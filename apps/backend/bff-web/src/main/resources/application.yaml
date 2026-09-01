@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: bff-web
+  threads:
+    virtual:
+      enabled: true # Concurrencia masiva eficiente con Java 21
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
+          jwk-set-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/v2.0/keys
+
+# URLs de los Microservicios de Dominio
+services:
+  ms-estudiantes: ${MS_ESTUDIANTES_URL:http://localhost:8082}
+  ms-notas: ${MS_NOTAS_URL:http://localhost:8087}
+  ms-asistencias: ${MS_ASISTENCIAS_URL:http://localhost:8088}
+
+# Configuración de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+
+# Configuración de Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
+  url: /v3/api-docs           # Especificación JSON a consumir
+  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  darkMode: true

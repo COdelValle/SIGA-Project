@@ -1,0 +1,28 @@
+version: '3.8'
+
+networks:
+  siga-network:
+    driver: bridge
+
+volumes:
+  mariadb_data: # Una vez este creado el servicio
+
+services:
+  # Microservicios Spring Boot // ejemplo
+  ms-estudiantes:
+    build:
+      context: ./apps/backend # Es importante que tenga esto para que funcione la extracción de la clase padre.
+      dockerfile: ms-estudiantes/Dockerfile
+    container_name: ms-estudiantes
+    ports:
+      - "8082:8082" #Sujeto a cambio
+    environment: # Reemplazar datos correspondiendo con las configuraciones de la base de datos
+      - DB_HOST=mariadb
+      - DB_NAME=siga_estudiantes_db
+      - DB_USER=root
+      - DB_PASS=dev_password
+    depends_on:
+      mariadb: # Una vez este creado el servicio
+        condition: service_healthy
+    networks:
+      - siga-network
