@@ -1,0 +1,48 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: ms-notas
+    description: Microservicio para la gestión de notas
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_notas_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
+          jwk-set-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/v2.0/keys
+
+feign:
+  circuitbreaker:
+    enabled: true
+
+# URLs de microservicios con los que se relaciona
+services:
+  ms-estudiantes:
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
+  ms-asignaturas:
+    url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
+
+# Configuración de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+
+# Configuración de Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
+  url: /v3/api-docs           # Especificación JSON a consumir
+  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  darkMode: true

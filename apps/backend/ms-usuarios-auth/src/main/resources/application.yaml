@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ms-usuarios-auth
+    description: Administra los datos base de la cuenta del usuario y sus roles. Trabaja en conjunto con los claims del JWT entregados por Azure AD.
+
+# Configuración de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+
+# Configuración de Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
+  url: /v3/api-docs           # Especificación JSON a consumir
+  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  darkMode: true
