@@ -1,0 +1,9 @@
+{
+  "name": "frontend",
+  "projectType": "application",
+  "implicitDependencies": ["java-common-dto"],
+  "targets": {
+    "build": { "executor": "@angular-devkit/build-angular:application"},
+    "serve": { "executor": "@angular-devkit/build-angular:dev-server"}
+  }
+}
