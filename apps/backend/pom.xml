@@ -76,6 +76,12 @@
                 <artifactId>mapstruct</artifactId>
                 <version>${org.mapstruct.version}</version>
             </dependency>
+            <dependency>
+                <groupId>cl.siga</groupId>
+                <artifactId>java-common-dto</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -90,11 +96,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>cl.siga</groupId>
-            <artifactId>java-common-dto</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
