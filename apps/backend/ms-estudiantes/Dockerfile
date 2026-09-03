@@ -3,10 +3,8 @@
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
-# Copiar el POM padre y las fuentes del módulo específico
-COPY pom.xml .
-COPY ms-estudiantes/pom.xml ms-estudiantes/
-COPY ms-estudiantes/src ms-estudiantes/src
+# Se necesita copiar todo el backend en cada microservicio, ya que el pom.xml del microservicio depende de los módulos padre y otros módulos, aunque no se compilen en este microservicio. Esto es necesario para que Maven pueda resolver las dependencias correctamente.
+COPY . .
 
 # Compilar el módulo e incluir dependencias del padre sin ejecutar tests
 RUN mvn clean package -pl ms-estudiantes -am -DskipTests

@@ -76,6 +76,12 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
         </dependency>
+
+        <!-- DTOs-->
+        <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>java-common-dto</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
