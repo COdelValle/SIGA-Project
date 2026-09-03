@@ -21,6 +21,7 @@
 
     <modules>
         <module>libs/java-common-dto</module>
+        <module>libs/java-common-security</module>
         <module>bff-web</module>
         <module>ms-usuarios-auth</module>
         <module>ms-estudiantes</module>
@@ -81,7 +82,11 @@
                 <artifactId>java-common-dto</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>cl.siga</groupId>
+                <artifactId>java-common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

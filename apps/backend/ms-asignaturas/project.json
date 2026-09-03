@@ -1,7 +1,7 @@
 {
   "name": "ms-asignaturas",
   "projectType": "application",
-  "implicitDependencies": ["java-common-dto"],
+  "implicitDependencies": ["java-common-dto","java-common-security"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
