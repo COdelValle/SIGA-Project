@@ -2,6 +2,9 @@ spring:
   application:
     name: ms-estudiantes
     description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrícula
+  
+  config:
+    import: "optional:classpath:common-azure.yml"
 
 # Configuración de OpenAPI / Swagger
 springdoc:
