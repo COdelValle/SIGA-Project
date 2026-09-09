@@ -78,6 +78,35 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>cz.habarta.typescript-generator</groupId>
+                <artifactId>typescript-generator-maven-plugin</artifactId>
+                <version>3.2.1263</version>
+                <executions>
+                    <execution>
+                        <id>generate</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jsonLibrary>jackson2</jsonLibrary>
+                    <outputKind>module</outputKind>
+                    <outputFileType>declarationFile</outputFileType>
+                    <!-- Los mapea como interfaces limpias de TypeScript -->
+                    <mapClasses>asInterfaces</mapClasses> 
+                    
+                    <!-- Apunta únicamente a tus DTOs independientes del BFF -->
+                    <classPatterns>
+                        <classPattern>cl.siga.bffweb.dto.**</classPattern>
+                    </classPatterns>
+                    
+                    <!-- Ruta donde el frontend recogerá el archivo -->
+                    <outputFile>..\..\..\apps\frontend\src\types\bff-models.d.ts</outputFile>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
