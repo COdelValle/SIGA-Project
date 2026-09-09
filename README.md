@@ -24,7 +24,7 @@ El repositorio ya está estructurado como proyecto de software con varias piezas
 - Frontend Angular en `apps/frontend`
 - Backend multi-módulo Maven en `apps/backend`
 - Microservicios con Spring Boot
-- Biblioteca compartida `java-common-dto`
+- Biblioteca compartida `core-share`
 - Configuración de seguridad
 - Documentación API con Swagger y Scalar
 - Docker Compose base
@@ -45,7 +45,7 @@ SIGA-Project/
 │   │   ├── ms-asignaturas/
 │   │   ├── ms-notas/
 │   │   └── libs/
-│   │       └── java-common-dto/
+│   │       └── core-share/
 │   └── frontend/
 │       ├── package.json
 │       ├── angular.json
@@ -95,7 +95,7 @@ El frontend tiene la base necesaria para comenzar a desarrollar pantallas, pero 
 - `ms-estudiantes`
 - `ms-asignaturas`
 - `ms-notas`
-- `libs/java-common-dto`
+- `libs/core-share`
 
 ### POM principal
 El `pom.xml` del backend define un proyecto padre con:
@@ -105,7 +105,7 @@ El `pom.xml` del backend define un proyecto padre con:
 - módulos organizados
 - gestión centralizada de dependencias
 - soporte para Lombok, MapStruct y OpenAPI
-- dependencia de `java-common-dto`
+- dependencia de `core-share`
 
 Esto indica una buena base para crecer desde una arquitectura modular.
 
@@ -159,7 +159,7 @@ Se configura con integración a varios microservicios y seguridad JWT.
 
 ## Biblioteca compartida
 
-### `libs/java-common-dto`
+### `libs/core-share`
 Esta librería existe como capa de modelos compartidos. Actualmente solo se observa un DTO base:
 
 - `EstudianteDTO`

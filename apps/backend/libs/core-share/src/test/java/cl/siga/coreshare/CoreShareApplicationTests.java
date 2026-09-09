@@ -1,10 +1,10 @@
-package cl.siga.javacommondto;
+package cl.siga.coreshare;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class JavaCommonDtoApplicationTests {
+class CoreShareApplicationTests {
 
     @Test
     void contextLoads() {

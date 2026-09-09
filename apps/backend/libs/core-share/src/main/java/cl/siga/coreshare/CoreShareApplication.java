@@ -1,13 +1,13 @@
-package cl.siga.javacommondto;
+package cl.siga.coreshare;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class JavaCommonDtoApplication {
+public class CoreShareApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(JavaCommonDtoApplication.class, args);
+        SpringApplication.run(CoreShareApplication.class, args);
     }
 
 }
