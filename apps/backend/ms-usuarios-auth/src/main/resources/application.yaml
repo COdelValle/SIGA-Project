@@ -2,7 +2,8 @@ spring:
   application:
     name: ms-usuarios-auth
     description: Administra los datos base de la cuenta del usuario y sus roles. Trabaja en conjunto con los claims del JWT entregados por Azure AD.
-
+  config:
+      import: "optional:classpath:common-azure.yml"
 # Configuración de OpenAPI / Swagger
 springdoc:
   api-docs:
