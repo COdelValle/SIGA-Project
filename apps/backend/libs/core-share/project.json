@@ -1,0 +1,14 @@
+{
+  "name": "core-share",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "apps/backend/libs/core-share/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "mvn compile -f apps/backend/libs/core-share/pom.xml"
+      }
+    }
+  }
+}

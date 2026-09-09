@@ -20,8 +20,7 @@
     </parent>
 
     <modules>
-        <module>libs/java-common-dto</module>
-        <module>libs/java-common-security</module>
+        <module>libs/core-share</module>
         <module>bff-web</module>
         <module>ms-usuarios-auth</module>
         <module>ms-estudiantes</module>
@@ -80,12 +79,7 @@
             </dependency>
             <dependency>
                 <groupId>cl.siga</groupId>
-                <artifactId>java-common-dto</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cl.siga</groupId>
-                <artifactId>java-common-security</artifactId>
+                <artifactId>core-share</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

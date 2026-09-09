@@ -70,11 +70,7 @@
         <!-- Dependencias internas -->
         <dependency>
             <groupId>cl.siga</groupId>
-            <artifactId>java-common-dto</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cl.siga</groupId>
-            <artifactId>java-common-security</artifactId>
+            <artifactId>core-share</artifactId>
         </dependency>
     </dependencies>
 
