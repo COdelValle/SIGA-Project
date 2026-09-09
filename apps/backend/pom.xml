@@ -20,7 +20,7 @@
     </parent>
 
     <modules>
-        <module>libs/java-common-dto</module>
+        <module>libs/core-share</module>
         <module>bff-web</module>
         <module>ms-usuarios-auth</module>
         <module>ms-estudiantes</module>
@@ -42,6 +42,7 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <springdoc.version>2.6.0</springdoc.version>
         <scalar.version>0.6.13</scalar.version>
+        <azure.spring.version>5.18.0</azure.spring.version>
     </properties>
 
     <!-- GESTIÓN CENTRALIZADA DE VERSIONES Y DEPENDENCIAS -->
@@ -78,10 +79,16 @@
             </dependency>
             <dependency>
                 <groupId>cl.siga</groupId>
-                <artifactId>java-common-dto</artifactId>
+                <artifactId>core-share</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.azure.spring</groupId>
+                <artifactId>spring-cloud-azure-dependencies</artifactId>
+                <version>${azure.spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

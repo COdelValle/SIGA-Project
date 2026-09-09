@@ -77,10 +77,10 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
 
-        <!-- DTOs-->
+        <!-- Core Share-->
         <dependency>
             <groupId>cl.siga</groupId>
-            <artifactId>java-common-dto</artifactId>
+            <artifactId>core-share</artifactId>
         </dependency>
     </dependencies>
 
