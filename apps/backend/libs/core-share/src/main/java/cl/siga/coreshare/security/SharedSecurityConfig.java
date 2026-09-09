@@ -22,7 +22,13 @@ public class SharedSecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                .requestMatchers(
+                    "/actuator/health", 
+                    "/v3/api-docs/**", 
+                    "/swagger-ui/**",
+                    "/docs/swagger/**",
+                    "/docs/scalar/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
