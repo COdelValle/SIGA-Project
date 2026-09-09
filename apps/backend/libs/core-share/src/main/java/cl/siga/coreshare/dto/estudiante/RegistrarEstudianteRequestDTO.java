@@ -7,6 +7,10 @@ import cl.siga.coreshare.validation.RUT;
 import jakarta.validation.constraints.*;
 
 public record RegistrarEstudianteRequestDTO(
+    @NotBlank(message = "El ID de usuario de Azure es obligatorio")
+    @Size(min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
+    String idUsuario,
+
     @NotBlank(message = "El nombre es requerido")
     @Size(min = 2, max = 50)
     String firstName,
@@ -26,9 +30,6 @@ public record RegistrarEstudianteRequestDTO(
     @Past
     LocalDate birthDate,
 
-    List<String> allergies,
-
-    @NotNull(message = "El ID de usuario es obligatorio")
-    Long idUsuario
+    List<String> allergies
 ) {
 }

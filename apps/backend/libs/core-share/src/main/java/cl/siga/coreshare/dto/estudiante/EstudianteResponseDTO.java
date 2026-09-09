@@ -5,11 +5,13 @@ import java.util.List;
 
 public record EstudianteResponseDTO(
     Long id,
+    String idUsuario,
     String rut,
     String firstName,
     String middleName,
     String lastName,
     LocalDate birthDate,
-    List<String> allergies
+    List<String> allergies,
+    String state
 ) {
 }
