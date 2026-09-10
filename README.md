@@ -1,5 +1,13 @@
 # SIGA-Project
 
+## Documentacion detallada
+
+Este README resume la situacion general del proyecto. El detalle tecnico esta organizado en documentos independientes:
+
+- [Documentacion del frontend](docs/frontend.md): estructura actual, modulos previstos, tecnologias y trabajo pendiente.
+- [Documentacion del backend](docs/backend.md): microservicios, BFF, biblioteca compartida, seguridad, datos y estado de implementacion.
+- [Arquitectura del sistema](docs/arquitectura.md): arquitectura actual y objetivo, flujo de solicitudes, contratos, despliegue y evolucion prevista.
+
 ## Resumen ejecutivo
 
 SIGA-Project es un proyecto de gestión académica en construcción. La intención del sistema es administrar estudiantes, docentes, usuarios, asignaturas y notas dentro de una arquitectura modular y escalable.
@@ -70,7 +78,7 @@ SIGA-Project/
 - Angular Router
 
 ### Estado
-El proyecto frontend se generó con Angular CLI y contiene la estructura base correcta, pero todavía aparace como una aplicación tipo plantilla por defecto. El contenido de `app.html` y `app.ts` no refleja aún la lógica funcional del sistema académico.
+El proyecto frontend se generó con Angular CLI y contiene la estructura base correcta, pero todavía aparece como una aplicación tipo plantilla por defecto. El contenido de `app.html` y `app.ts` no refleja aún la lógica funcional del sistema académico. El detalle de su estado y de los módulos previstos está en [docs/frontend.md](docs/frontend.md).
 
 ### Observación importante
 El frontend tiene la base necesaria para comenzar a desarrollar pantallas, pero aún no se ve la implementación real de módulos, servicios ni flujo de negocio.
@@ -108,6 +116,8 @@ El `pom.xml` del backend define un proyecto padre con:
 - dependencia de `core-share`
 
 Esto indica una buena base para crecer desde una arquitectura modular.
+
+Para conocer la responsabilidad y el estado de cada módulo, consulta [docs/backend.md](docs/backend.md).
 
 ## Microservicios actuales
 
@@ -273,6 +283,8 @@ Para avanzar de forma ordenada, el siguiente paso debería ser:
 8. preparar Infraestructura Terraform
 9. añadir pruebas y validaciones
 10. documentar cada módulo y flujo
+
+La visión técnica de la arquitectura actual y de la arquitectura que se implementará posteriormente está descrita en [docs/arquitectura.md](docs/arquitectura.md).
 
 ## Conclusión
 
