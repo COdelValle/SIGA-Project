@@ -1,9 +1,9 @@
 package cl.siga.coreshare.dto.usuario;
 
 import cl.siga.coreshare.dto.usuario.enums.Rol;
-import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record RegistrarUsuarioRequestDTO(
@@ -15,10 +15,7 @@ public record RegistrarUsuarioRequestDTO(
     @NotBlank (message = "El correo electrónico es obligatorio")
     String email,
 
-    @NotBlank (message = "El rol es obligatorio")
-    Rol rol,
-    
-    @NotBlank (message = "El estado del usuario es obligatorio")
-    StateUsuario state
+    @NotNull(message = "El rol es obligatorio")
+    Rol rol
 ) {
 }

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
 import cl.siga.msestudiantes.repository.EstudianteRepository;
@@ -31,7 +32,7 @@ public class EstudianteService {
     public EstudianteResponseDTO actualizar(Long id, ActualizarEstudianteRequestDTO request) {
         // 1. Buscas la entidad actual en la BD
         Estudiante estudianteExistente = repository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Estudiante no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
         // 2. MapStruct sobreescribe firstName, lastName, etc., pero el RUT queda INTACTO
         mapper.updateEntityFromDto(request, estudianteExistente);

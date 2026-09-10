@@ -3,6 +3,7 @@ package cl.siga.msestudiantes.model.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
@@ -10,7 +11,10 @@ import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 
 // MapStruct hace el mapeo de forma automática sin configuraciones extra.
-@Mapper(componentModel = "spring")
+@Mapper(
+    componentModel = "spring",
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
 public interface EstudianteMapper {
     // Mapea un DTO de solicitud a una entidad de estudiante.
     @Mapping (target = "id", ignore = true)
