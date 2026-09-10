@@ -5,7 +5,7 @@ spring:
     virtual:
       enabled: true # Concurrencia masiva eficiente con Java 21
   config:
-    import: "optional:classpath:common-azure.yml"
+    import: "optional:classpath:common-properities.yml"
 
 # URLs de los Microservicios de Dominio
 services:

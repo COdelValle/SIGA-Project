@@ -6,9 +6,12 @@ import cl.siga.coreshare.validation.RUT;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,13 +19,15 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity 
-@Table (name = "estudiantes")
+@Table (name = "estudiantes",
+    indexes = {
+        @Index (name = "idx_estudiante_rut", columnList = "rut", unique = true)
+    })
 @Getter 
 @Setter 
 @Builder 
@@ -33,8 +38,9 @@ public class Estudiante {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long  id;
 
-    @NotNull(message = "El ID de usuario es obligatorio")
-    private Long idUsuario;
+    @NotBlank (message = "Se requiere ingresar idUsuario")
+    @Column(name = "id", length = 36, nullable = false, updatable = false)
+    private String idUsuario;
 
     @NotBlank (message = "Se requiere ingresar RUT")
     @RUT(message = "RUT invalido")
@@ -61,5 +67,11 @@ public class Estudiante {
     private LocalDate birthDate;
 
     @ElementCollection
+    @Column (name = "allergies", nullable = true)
     private List<String> allergies;
+
+    @NotNull (message = "El estado del estudiante es obligatorio")
+    @Enumerated (EnumType.STRING)
+    @Column (name = "state", nullable = false, length = 50)
+    private State state;
 }

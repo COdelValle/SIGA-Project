@@ -23,7 +23,7 @@ import lombok.*;
 @NoArgsConstructor 
 public class Usuario {
     @Id
-    @NotNull (message = "El ID es obligatorio")
+    @NotBlank (message = "El ID es obligatorio")
     @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
