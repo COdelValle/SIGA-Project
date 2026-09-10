@@ -21,6 +21,9 @@ public record ActualizarEstudianteRequestDTO(
     @Past
     LocalDate birthDate,
 
-    List<String> allergies
+    List<String> allergies,
+
+    @NotNull(message = "El estado del usuario es obligatorio")
+    String state
 ) {
 }

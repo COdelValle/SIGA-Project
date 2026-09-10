@@ -1,7 +1,8 @@
 package cl.siga.msestudiantes.model.mapper;
 
+import java.util.List;
+
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
@@ -17,7 +18,6 @@ import cl.siga.msestudiantes.model.entity.Estudiante;
 )
 public interface EstudianteMapper {
     // Mapea un DTO de solicitud a una entidad de estudiante.
-    @Mapping (target = "id", ignore = true)
     Estudiante toEntity(RegistrarEstudianteRequestDTO requestDto);
 
     // Mapea un DTO de modificación a una entidad de estudiante.
@@ -25,4 +25,7 @@ public interface EstudianteMapper {
 
     // Mapea una entidad de estudiante a un DTO de respuesta.
     EstudianteResponseDTO toResponseDto(Estudiante estudiante);
+
+    // Mapea una lista de entidades de estudiante a una lista de DTOs de respuesta.
+    List<EstudianteResponseDTO> toResponseDtoList(List<Estudiante> estudiantes);
 }

@@ -17,6 +17,7 @@ import cl.siga.msusuariosauth.model.mapper.UsuarioMapper;
 import cl.siga.msusuariosauth.model.specification.UsuarioSpecifications;
 import cl.siga.msusuariosauth.repository.UsuarioRepository;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -27,16 +28,16 @@ import java.util.List;
 public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
 
-    private final UsuarioMapper usuarioMapper;
+    private final UsuarioMapper mapper;
 
     @Transactional (readOnly = true)
     public UsuarioResponseDTO getUsuarioById(String id) {
-        return usuarioMapper.toResponseDto(usuarioRepository.findById(id)
+        return mapper.toResponseDto(usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario con ID " + id + " no encontrado.")));
     }
 
     @Transactional (readOnly = true)
-    public List<UsuarioResponseDTO> searchUsuarios(String email, Rol rol, StateUsuario state) {
+    public List<UsuarioResponseDTO> searchUsuarios(@Valid @Email String email, Rol rol, StateUsuario state) {
         Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
 
         if (email != null && !email.isBlank()) {
@@ -49,7 +50,7 @@ public class UsuarioService {
             spec = spec.and(UsuarioSpecifications.hasState(state));
         }
 
-        return usuarioMapper.toResponseDtoList(usuarioRepository.findAll(spec));
+        return mapper.toResponseDtoList(usuarioRepository.findAll(spec));
     }
 
     @Transactional
@@ -63,10 +64,10 @@ public class UsuarioService {
             throw new BusinessException("El correo electrónico ya está registrado.");
         }
         
-        Usuario usuario = usuarioMapper.toEntity(request);
+        Usuario usuario = mapper.toEntity(request);
         usuario.setState(StateUsuario.ACTIVO);
 
-        return usuarioMapper.toResponseDto(usuarioRepository.save(usuario));
+        return mapper.toResponseDto(usuarioRepository.save(usuario));
     }
 
     @Transactional
@@ -84,9 +85,9 @@ public class UsuarioService {
             }
         }
 
-        usuarioMapper.updateEntityFromDto(request, existingUsuario);
+        mapper.updateEntityFromDto(request, existingUsuario);
 
-        return usuarioMapper.toResponseDto(usuarioRepository.save(existingUsuario));
+        return mapper.toResponseDto(usuarioRepository.save(existingUsuario));
     }
 
     @Transactional
