@@ -1,10 +1,22 @@
 package cl.siga.msusuariosauth.service;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
+import cl.siga.msusuariosauth.model.entity.Usuario;
+import cl.siga.msusuariosauth.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+
+@SpringBootTest
+@RequiredArgsConstructor 
 public class UsuarioServiceTest {
+
+    private final UsuarioRepository usuarioRepository;
+
     @Test 
     void testCrearUsuarioLocal() {
         // Generas un UUID al vuelo que emula perfectamente el formato de Azure
@@ -13,7 +25,6 @@ public class UsuarioServiceTest {
         // Usas el Builder de Lombok de forma limpia
         Usuario usuarioTest = Usuario.builder()
                 .id(idDePrueba)
-                .nombre("Carlos Test")
                 .email("carlos@test.com")
                 .build();
 

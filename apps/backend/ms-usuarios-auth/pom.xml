@@ -71,6 +71,7 @@
         <dependency>
             <groupId>cl.siga</groupId>
             <artifactId>core-share</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
