@@ -1,28 +1,162 @@
-version: '3.8'
+name: siga
 
 networks:
   siga-network:
     driver: bridge
 
 volumes:
-  mariadb_data: # Una vez este creado el servicio
+  mariadb_usuarios_data:
+  mariadb_estudiantes_data:
+  mariadb_asignaturas_data:
+  mariadb_notas_data:
+
+# Configuración común a las instancias MariaDB (database-per-service)
+x-mariadb-common: &mariadb-common
+  image: mariadb:11.4
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+  networks:
+    - siga-network
+
+# Variables comunes a todos los microservicios
+x-ms-common-env: &ms-common-env
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_ENABLED: "true"
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_PROFILE_TENANT_ID: ${AZURE_TENANT_ID}
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_CREDENTIAL_CLIENT_ID: ${AZURE_CLIENT_ID}
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_APP_ID_URI: ${AZURE_APP_ID_URI}
 
 services:
-  # Microservicios Spring Boot // ejemplo
+  # ---------------------------------------------------------------
+  # Bases de datos (una por microservicio)
+  # ---------------------------------------------------------------
+  mariadb-usuarios:
+    <<: *mariadb-common
+    container_name: mariadb-usuarios
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_usuarios_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_usuarios_data:/var/lib/mysql
+
+  mariadb-estudiantes:
+    <<: *mariadb-common
+    container_name: mariadb-estudiantes
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_estudiantes_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_estudiantes_data:/var/lib/mysql
+
+  mariadb-asignaturas:
+    <<: *mariadb-common
+    container_name: mariadb-asignaturas
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_asignaturas_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_asignaturas_data:/var/lib/mysql
+
+  mariadb-notas:
+    <<: *mariadb-common
+    container_name: mariadb-notas
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_notas_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_notas_data:/var/lib/mysql
+
+  # ---------------------------------------------------------------
+  # Microservicios
+  # ---------------------------------------------------------------
+  ms-usuarios-auth:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-usuarios-auth/Dockerfile
+    container_name: ms-usuarios-auth
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8081"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-usuarios:3306/siga_usuarios_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb-usuarios:
+        condition: service_healthy
+    networks:
+      - siga-network
+
   ms-estudiantes:
     build:
-      context: ./apps/backend # Es importante que tenga esto para que funcione la extracción de la clase padre.
+      context: ./apps/backend
       dockerfile: ms-estudiantes/Dockerfile
     container_name: ms-estudiantes
+    restart: unless-stopped
     ports:
-      - "8082:8082" #Sujeto a cambio
-    environment: # Reemplazar datos correspondiendo con las configuraciones de la base de datos
-      - DB_HOST=mariadb
-      - DB_NAME=siga_estudiantes_db
-      - DB_USER=root
-      - DB_PASS=dev_password
+      - "8082:8082"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8082"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-estudiantes:3306/siga_estudiantes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
     depends_on:
-      mariadb: # Una vez este creado el servicio
+      mariadb-estudiantes:
+        condition: service_healthy
+    networks:
+      - siga-network
+
+  ms-asignaturas:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-asignaturas/Dockerfile
+    container_name: ms-asignaturas
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8086"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-asignaturas:3306/siga_asignaturas_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb-asignaturas:
+        condition: service_healthy
+    networks:
+      - siga-network
+
+  ms-notas:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-notas/Dockerfile
+    container_name: ms-notas
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8087"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-notas:3306/siga_notas_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb-notas:
         condition: service_healthy
     networks:
       - siga-network
