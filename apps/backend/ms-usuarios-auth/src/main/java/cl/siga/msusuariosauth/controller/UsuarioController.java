@@ -34,15 +34,15 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @GetMapping("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('read:usuarios')")
+    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:read')")
     public ResponseEntity<UsuarioResponseDTO> usuarioById(@PathVariable String id) {
         return ResponseEntity.ok(usuarioService.getUsuarioById(id));
     }
     
     @GetMapping("/search")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('read:usuarios')")
+    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:read')")
     public ResponseEntity<List<UsuarioResponseDTO>> searchUsuarios(
-            @RequestParam(required = true) String email,
+            @RequestParam(required = false) String email,
             @RequestParam(required = false) Rol rol,
             @RequestParam(required = false) StateUsuario state
         ) {
@@ -50,19 +50,19 @@ public class UsuarioController {
     }
     
     @PostMapping()
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('write:usuarios')")
+    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:write')")
     public ResponseEntity<UsuarioResponseDTO> postUsuario(@RequestBody @Valid RegistrarUsuarioRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.saveUsuario(request));
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('write:usuarios')")
+    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:update')")
     public ResponseEntity<UsuarioResponseDTO> putUsuario(@PathVariable String id, @RequestBody @Valid ActualizarUsuarioRequestDTO request) {
         return ResponseEntity.ok(usuarioService.updateUsuario(id, request));
     }
 
     @DeleteMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('write:usuarios')")
+    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:delete')")
     public void deleteUsuario(@PathVariable String id) {
         usuarioService.deleteUsuario(id);
     }
