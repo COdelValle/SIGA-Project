@@ -17,15 +17,6 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
-# Circuit Breaker y Feign hacia ms-docentes
-feign:
-  circuitbreaker:
-    enabled: true
-
-services:
-  ms-docentes:
-    url: ${MS_DOCENTES_URL:http://localhost:8083}
-
 # Configuración de OpenAPI / Swagger
 springdoc:
   api-docs:

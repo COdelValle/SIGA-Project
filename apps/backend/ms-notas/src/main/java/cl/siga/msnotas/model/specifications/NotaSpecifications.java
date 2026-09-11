@@ -5,6 +5,10 @@ import org.springframework.data.jpa.domain.Specification;
 import cl.siga.msnotas.model.entity.Nota;
 
 public class NotaSpecifications {
+    public static Specification<Nota> isActive() {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.isTrue(root.get("active"));
+    }
+
     public static Specification<Nota> hasIdEstudiante(Long idEstudiante) {
         return (root, query, criteriaBuilder) -> {
             if (idEstudiante == null) {
