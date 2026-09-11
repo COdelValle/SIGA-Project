@@ -99,4 +99,9 @@ public class EstudianteService {
         // 3. Guardas los cambios
         return mapper.toResponseDto(repository.save(estudianteExistente));
     }
+
+    @Transactional (readOnly = true)
+    public boolean existsEstudianteById(Long id) {
+        return repository.existsById(id);
+    }
 }
