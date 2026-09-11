@@ -16,6 +16,7 @@ import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
+import cl.siga.msestudiantes.model.specifications.EstudianteSpecifications;
 import cl.siga.msestudiantes.repository.EstudianteRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,31 +43,15 @@ public class EstudianteService {
 
     @Transactional (readOnly = true)
     public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
-        Specification<Estudiante> spec = (root, query, cb) -> cb.notEqual(root.get("state"), State.INACTIVO);
-        if (rut != null && !rut.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("rut"), rut));
-        }
-        if (firstName != null && !firstName.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("firstName")), "%" + firstName.toLowerCase() + "%"));
-        }
-        if (middleName != null && !middleName.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("middleName")), "%" + middleName.toLowerCase() + "%"));
-        }
-        if (firstSurname != null && !firstSurname.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("firstSurname")), "%" + firstSurname.toLowerCase() + "%"));
-        }
-        if (secondSurname != null && !secondSurname.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("secondSurname")), "%" + secondSurname.toLowerCase() + "%"));
-        }
-        if (from != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("birthDate"), from));
-        }
-        if (to != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("birthDate"), to));
-        }
-        if (state != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("state"), state));
-        }
+        Specification<Estudiante> spec = EstudianteSpecifications.isActive()
+                .and(EstudianteSpecifications.hasRut(rut))
+                .and(EstudianteSpecifications.hasFirstName(firstName))
+                .and(EstudianteSpecifications.hasMiddleName(middleName))
+                .and(EstudianteSpecifications.hasFirstSurname(firstSurname))
+                .and(EstudianteSpecifications.hasSecondSurname(secondSurname))
+                .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))
+                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to))
+                .and(EstudianteSpecifications.hasState(state));
         return mapper.toResponseDtoList(repository.findAll(spec));
     }
 
@@ -90,7 +75,7 @@ public class EstudianteService {
     @Transactional 
     public EstudianteResponseDTO updateEstudiante(Long id, @Valid ActualizarEstudianteRequestDTO request) {
         // 1. Buscas la entidad actual en la BD
-        Estudiante estudianteExistente = repository.findById(id)
+        Estudiante estudianteExistente = repository.findByIdAndStateNot(id, State.INACTIVO)
             .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
         // 2. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
