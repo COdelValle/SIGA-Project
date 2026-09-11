@@ -161,3 +161,41 @@ services:
         condition: service_healthy
     networks:
       - siga-network
+
+  # ---------------------------------------------------------------
+  # BFF Web y Frontend
+  # ---------------------------------------------------------------
+  bff-web:
+    build:
+      context: ./apps/backend
+      dockerfile: bff-web/Dockerfile
+    container_name: bff-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8080"
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      MS_NOTAS_URL: http://ms-notas:8087
+    depends_on:
+      - ms-usuarios-auth
+      - ms-estudiantes
+      - ms-asignaturas
+      - ms-notas
+    networks:
+      - siga-network
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - bff-web
+    networks:
+      - siga-network
