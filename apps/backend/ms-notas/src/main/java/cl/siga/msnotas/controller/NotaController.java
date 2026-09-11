@@ -28,13 +28,13 @@ public class NotaController {
     private final NotaService notaService;
 
     @GetMapping ("/{id}")
-    @PreAuthorize ("hasScope('notas:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_notas:read')")
     public ResponseEntity<NotaResponseDTO> getNotaById(@PathVariable Long id) {
         return ResponseEntity.ok(notaService.getNotaById(id));
     }
 
     @GetMapping ("/search")
-    @PreAuthorize ("hasScope('notas:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_notas:read')")
     public ResponseEntity<List<NotaResponseDTO>> searchNotas(
         @RequestParam (required = false) Long idEstudiante,
         @RequestParam (required = false) Long idAsignatura,
@@ -45,13 +45,13 @@ public class NotaController {
     }
 
     @PostMapping
-    @PreAuthorize ("hasRole('ADMIN') or hasRole('DOCENTE') and hasScope('notas:write')")
+    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:write'))")
     public ResponseEntity<NotaResponseDTO> registrarNota(@RequestBody @Valid RegistrarNotaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));
     }
 
     @PutMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') or hasRole('DOCENTE') and hasScope('notas:update')")
+    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:update'))")
     public ResponseEntity<NotaResponseDTO> updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
         return ResponseEntity.ok(notaService.updateNota(id, request));
     }
