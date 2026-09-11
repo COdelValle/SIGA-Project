@@ -1,0 +1,13 @@
+{
+  "name": "docente",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/frontend/docente/src",
+  "prefix": "siga",
+  "tags": ["scope:docente", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}
