@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,32 +25,39 @@ public class AsignaturaController {
     private final AsignaturaService asignaturaService;
 
     @GetMapping ("/{id}")
-    @PreAuthorize ("hasScope('asignaturas:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<AsignaturaResponseDTO> getAsignaturaById(@PathVariable Long id) {
         return ResponseEntity.ok(asignaturaService.getAsignaturaById(id));
     }
 
     @GetMapping ("/name/{name}")
-    @PreAuthorize ("hasScope('asignaturas:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<AsignaturaResponseDTO> getAsignaturaByName(@PathVariable String name) {
         return ResponseEntity.ok(asignaturaService.getAsignaturaByName(name));
     }
 
     @PostMapping 
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('asignaturas:write')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:write')")
     public ResponseEntity<AsignaturaResponseDTO> saveAsignatura( @Valid @RequestBody AsignaturaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(asignaturaService.saveAsignatura(request));
     }
 
     @PutMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('asignaturas:update')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:update')")
     public ResponseEntity<AsignaturaResponseDTO> updateAsignatura(@PathVariable Long id, @Valid @RequestBody AsignaturaRequestDTO request) {
         return ResponseEntity.ok(asignaturaService.updateAsignatura(id, request));
     }
 
     @GetMapping ("/exists/{id}")
-    @PreAuthorize ("hasScope('notas:write')")
+    @PreAuthorize ("hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<Boolean> existsAsignaturaById(@PathVariable Long id) {
         return ResponseEntity.ok(asignaturaService.existsAsignaturaById(id));
+    }
+
+    @DeleteMapping ("/{id}")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:delete')")
+    public ResponseEntity<Void> deleteAsignatura(@PathVariable Long id) {
+        asignaturaService.deleteAsignatura(id);
+        return ResponseEntity.noContent().build();
     }
 }

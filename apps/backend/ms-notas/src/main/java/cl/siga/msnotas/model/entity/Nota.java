@@ -29,4 +29,8 @@ public class Nota {
     @ChileanGrade (message = "La nota debe estar entre 1.0 y 7.0")
     @Column (name = "score", nullable = false)
     private Double score;
+
+    @Builder.Default
+    @Column (name = "active", nullable = false)
+    private boolean active = true;
 }

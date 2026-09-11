@@ -15,16 +15,7 @@ spring:
     open-in-view: false
 
   config:
-    import: "optional:classpath:common-properities.yml"
-
-# Circuit Breaker y Feign hacia ms-docentes
-feign:
-  circuitbreaker:
-    enabled: true
-
-services:
-  ms-docentes:
-    url: ${MS_DOCENTES_URL:http://localhost:8083}
+    import: "optional:classpath:common-properties.yaml"
 
 # Configuración de OpenAPI / Swagger
 springdoc:

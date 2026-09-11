@@ -5,13 +5,12 @@ spring:
     virtual:
       enabled: true # Concurrencia masiva eficiente con Java 21
   config:
-    import: "optional:classpath:common-properities.yml"
+    import: "optional:classpath:common-properties.yaml"
 
 # URLs de los Microservicios de Dominio
 services:
   ms-estudiantes: ${MS_ESTUDIANTES_URL:http://localhost:8082}
   ms-notas: ${MS_NOTAS_URL:http://localhost:8087}
-  ms-asistencias: ${MS_ASISTENCIAS_URL:http://localhost:8088}
 
 # Configuración de OpenAPI / Swagger
 springdoc:
