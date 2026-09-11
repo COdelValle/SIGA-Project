@@ -4,7 +4,7 @@ spring:
     description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrícula
   
   config:
-    import: "optional:classpath:common-properities.yml"
+    import: "optional:classpath:common-properties.yaml"
 
 # Configuración de OpenAPI / Swagger
 springdoc:
