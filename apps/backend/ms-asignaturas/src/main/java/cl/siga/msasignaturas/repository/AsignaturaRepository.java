@@ -9,6 +9,6 @@ import cl.siga.msasignaturas.model.entity.Asignatura;
 
 @Repository 
 public interface AsignaturaRepository extends JpaRepository<Asignatura, Long>{
-    Optional<Asignatura> findByNombre(String nombre);
-    boolean existsByNombre(String nombre);
+    Optional<Asignatura> findByName(String name);
+    boolean existsByName(String name);
 }
