@@ -2,6 +2,7 @@ package cl.siga.msestudiantes.model.entity;
 
 import java.time.LocalDate;
 import java.util.List;
+import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
