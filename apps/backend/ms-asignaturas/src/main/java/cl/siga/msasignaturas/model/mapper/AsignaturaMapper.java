@@ -1,5 +1,7 @@
 package cl.siga.msasignaturas.model.mapper;
 
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
@@ -21,4 +23,7 @@ public interface AsignaturaMapper {
 
     // Mapea una entidad de asignatura a un DTO de respuesta.
     AsignaturaResponseDTO toResponseDto(Asignatura asignatura);
+
+    // Mapea una lista de entidades de asignatura a una lista de DTOs de respuesta.
+    List<AsignaturaResponseDTO> toResponseDtoList(List<Asignatura> asignaturas);
 }

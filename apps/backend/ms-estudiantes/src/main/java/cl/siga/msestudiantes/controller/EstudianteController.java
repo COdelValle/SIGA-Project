@@ -22,12 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.service.EstudianteService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController 
 @RequestMapping ("/api/v1/estudiantes")
 @RequiredArgsConstructor 
+@Tag (name = "Estudiantes", description = "Operaciones CRUD y busqueda de estudiantes")
 public class EstudianteController {
     private final EstudianteService estudianteService;
 
