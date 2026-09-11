@@ -18,13 +18,37 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
 
   config:
     import: "optional:classpath:common-properties.yaml"
-    
-feign:
+
+# Circuit Breaker (Resilience4j) para las llamadas salientes de ms-notas
+resilience4j:
   circuitbreaker:
-    enabled: true
+    instances:
+      ms-estudiantes:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      ms-asignaturas:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      ms-estudiantes:
+        timeoutDuration: 5s
+      ms-asignaturas:
+        timeoutDuration: 5s
 
 # URLs de microservicios con los que se relaciona
 services:
@@ -43,7 +67,7 @@ springdoc:
 # Configuración de Scalar UI
 scalar:
   enabled: true
-  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
-  url: /v3/api-docs           # Especificación JSON a consumir
-  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
   darkMode: true
