@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@siga/core": ["apps/frontend/libs/core/src/index.ts"],
+      "@siga/shared-ui": ["apps/frontend/libs/shared-ui/src/index.ts"],
+      "@siga/public-portal": ["apps/frontend/libs/public-portal/src/index.ts"],
+      "@siga/academico": ["apps/frontend/libs/academico/src/index.ts"],
+      "@siga/estudiante": ["apps/frontend/libs/estudiante/src/index.ts"],
+      "@siga/apoderado": ["apps/frontend/libs/apoderado/src/index.ts"],
+      "@siga/docente": ["apps/frontend/libs/docente/src/index.ts"],
+      "@siga/admin": ["apps/frontend/libs/admin/src/index.ts"]
+    }
+  }
+}

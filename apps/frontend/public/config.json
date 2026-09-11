@@ -1,0 +1,9 @@
+{
+  "bffBaseUrl": "/api",
+  "msal": {
+    "clientId": "<AZURE_FRONTEND_CLIENT_ID>",
+    "authority": "https://login.microsoftonline.com/<AZURE_TENANT_ID>",
+    "redirectUri": "/auth",
+    "scopes": ["api://<AZURE_BFF_APP_ID>/access_as_user"]
+  }
+}
