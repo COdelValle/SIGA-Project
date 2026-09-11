@@ -1,5 +1,6 @@
 package cl.siga.msasignaturas.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,6 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, Long>{
     Optional<Asignatura> findByNameAndActiveTrue(String name);
     boolean existsByNameAndActiveTrue(String name);
     boolean existsByIdAndActiveTrue(Long id);
+    List<Asignatura> findAllByActiveTrue();
+    List<Asignatura> findByNameContainingIgnoreCaseAndActiveTrue(String name);
 }

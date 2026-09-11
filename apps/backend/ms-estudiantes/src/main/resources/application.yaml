@@ -1,8 +1,18 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: ms-estudiantes
     description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrícula
-  
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_estudiantes_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
   config:
     import: "optional:classpath:common-properties.yaml"
 
@@ -16,7 +26,7 @@ springdoc:
 # Configuración de Scalar UI
 scalar:
   enabled: true
-  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
-  url: /v3/api-docs           # Especificación JSON a consumir
-  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
   darkMode: true
