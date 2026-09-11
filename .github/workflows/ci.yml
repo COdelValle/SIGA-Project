@@ -1,0 +1,28 @@
+name: CI Pipeline SIGA
+
+on:
+  push:
+    branches: [ dev, feature/nxForCD ]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+       
+      - run: npm ci
+      - run: npx nx run-many -t build
+      - run: npx nx fix-ci
+        if: always()
