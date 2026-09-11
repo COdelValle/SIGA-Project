@@ -27,7 +27,7 @@ Cada microservicio es dueno de su propia base de datos (database-per-service). E
 
 ### Presentacion
 
-`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que proxya `/api` al BFF. El navegador no conoce la topologia interna. Los estilos del frontend se gestionaran con Tailwind CSS.
+`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que proxya `/api` al BFF. El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
 
 ### Entrada y orquestacion
 

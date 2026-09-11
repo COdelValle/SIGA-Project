@@ -9,7 +9,7 @@ Detalle general del proyecto en el [README raiz](../../README.md) y [docs/fronte
 - Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
 - MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
 - Nx (librerias y reglas de frontera)
-- Tailwind CSS (framework de estilos; integracion pendiente)
+- Tailwind CSS 4 (framework de estilos) + `prettier-plugin-tailwindcss`
 - Vitest (pruebas) · Prettier
 
 ## Estructura
@@ -53,6 +53,17 @@ Linting con Nx (desde la raiz):
 ```bash
 npx nx lint frontend
 ```
+
+## Estilos (Tailwind CSS)
+
+- **Tailwind CSS 4** integrado via PostCSS (`.postcssrc.json` con el plugin `@tailwindcss/postcss`).
+- Import en `src/styles.css`: `@import 'tailwindcss';` y `@source "../libs"` para incluir las librerias Nx.
+- Las clases se **ordenan automaticamente** con `prettier-plugin-tailwindcss` (configurado en `.prettierrc`).
+- Formatear estilos/clases:
+  ```bash
+  npx prettier --write "src/**/*.{ts,html,css}" "libs/**/*.ts"
+  ```
+- Los componentes usan utilidades de Tailwind; se evitan estilos inline.
 
 ## Configuracion runtime
 
