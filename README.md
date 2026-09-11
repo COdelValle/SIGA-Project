@@ -83,6 +83,7 @@ SIGA-Project/
 - Angular 22 · TypeScript 6 · RxJS 7.8 · Angular Router
 - Nx (librerias y fronteras)
 - MSAL Angular v6 + Azure AD
+- Tailwind CSS (framework de estilos; integracion pendiente)
 - Vitest · Prettier
 
 **Infraestructura**

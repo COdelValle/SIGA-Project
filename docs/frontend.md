@@ -12,7 +12,10 @@ Actualmente es una aplicacion Angular modular, con autenticacion MSAL y rutas po
 - Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
 - MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
 - Nx (librerias y reglas de frontera)
+- Tailwind CSS (framework de estilos; integracion pendiente)
 - Vitest para pruebas · Prettier
+
+El diseno de la interfaz se basara en Tailwind CSS; su integracion se realizara en una tarea posterior.
 
 Comandos (desde `apps/frontend`):
 
