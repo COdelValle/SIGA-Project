@@ -14,7 +14,7 @@ import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msestudiantes.model.entity.Estudiante;
-import cl.siga.msestudiantes.model.entity.State;
+import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
 import cl.siga.msestudiantes.repository.EstudianteRepository;
 import jakarta.validation.Valid;

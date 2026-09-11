@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import cl.siga.msestudiantes.model.entity.State;
+import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.service.EstudianteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
