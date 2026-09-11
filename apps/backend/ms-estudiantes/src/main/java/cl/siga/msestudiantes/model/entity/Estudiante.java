@@ -12,6 +12,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -56,10 +58,14 @@ public class Estudiante {
     @Column(nullable = true)
     private String middleName;
 
-    @NotBlank(message = "El/los apellido/s no puede/n estar vacio")
-    @Size(min = 2, max = 100, message = "El/los apellido/s tiene/n que tener entre 2 a 100 caracteres")
+    @NotBlank(message = "El primer apellido no puede/n estar vacio")
+    @Size(min = 2, max = 50, message = "El/los apellido/s tiene/n que tener entre 2 a 50 caracteres")
     @Column(nullable = false)
-    private String lastName;
+    private String firstSurname;
+
+    @Size(max = 50, message = "El segundo apellido puede tener máximo 50 caracteres")
+    @Column(nullable = true)
+    private String secondSurname;
 
     @NotNull(message = "La fecha de nacimiento es obligatoria")
     @Past(message = "La fecha de nacimiento debe ser una fecha pasada")
@@ -74,4 +80,24 @@ public class Estudiante {
     @Enumerated (EnumType.STRING)
     @Column (name = "state", nullable = false, length = 50)
     private State state;
+
+    @PrePersist 
+    @PreUpdate
+    public void prePersist() {
+        if (this.rut != null) {
+            this.rut = this.rut.trim().toUpperCase();
+        }
+        if (this.firstName != null) {
+            this.firstName = this.firstName.trim().toUpperCase();
+        }
+        if (this.middleName != null) {
+            this.middleName = this.middleName.trim().toUpperCase();
+        }
+        if (this.firstSurname != null) {
+            this.firstSurname = this.firstSurname.trim().toUpperCase();
+        }
+        if (this.secondSurname != null) {
+            this.secondSurname = this.secondSurname.trim().toUpperCase();
+        }
+    }
 }

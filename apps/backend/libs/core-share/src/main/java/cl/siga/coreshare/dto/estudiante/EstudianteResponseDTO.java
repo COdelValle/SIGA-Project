@@ -9,7 +9,8 @@ public record EstudianteResponseDTO(
     String rut,
     String firstName,
     String middleName,
-    String lastName,
+    String firstSurname,
+    String secondSurname,
     LocalDate birthDate,
     List<String> allergies,
     String state

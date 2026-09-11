@@ -14,8 +14,11 @@ public record ActualizarEstudianteRequestDTO(
     String middleName,
 
     @NotBlank(message = "El apellido es requerido")
-    @Size(min = 2, max = 100)
-    String lastName,
+    @Size(min = 2, max = 50)
+    String firstSurname,
+
+    @Size(min = 2, max = 50)
+    String secondSurname,
 
     @NotNull(message = "Fecha de nacimiento requerida")
     @Past

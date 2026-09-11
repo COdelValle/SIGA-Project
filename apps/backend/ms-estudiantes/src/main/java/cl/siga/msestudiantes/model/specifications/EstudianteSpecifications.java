@@ -34,12 +34,21 @@ public class EstudianteSpecifications {
         };
     }
 
-    public static Specification<Estudiante> hasLastName(String lastName) {
+    public static Specification<Estudiante> hasfirstSurname(String firstSurname) {
         return (root, query, criteriaBuilder) -> {
-            if (lastName == null || lastName.trim().isEmpty()) {
+            if (firstSurname == null || firstSurname.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), "%" + lastName.trim().toLowerCase() + "%");
+            return criteriaBuilder.like(criteriaBuilder.lower(root.get("firstSurname")), "%" + firstSurname.trim().toLowerCase() + "%");
+        };
+    }
+
+    public static Specification<Estudiante> hasSecondSurname(String secondSurname) {
+        return (root, query, criteriaBuilder) -> {
+            if (secondSurname == null || secondSurname.trim().isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.like(criteriaBuilder.lower(root.get("secondSurname")), "%" + secondSurname.trim().toLowerCase() + "%");
         };
     }
 

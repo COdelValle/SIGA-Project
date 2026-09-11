@@ -18,9 +18,12 @@ public record RegistrarEstudianteRequestDTO(
     @Size(min = 0, max = 50)
     String middleName,
 
-    @NotBlank(message = "El apellido es requerido")
-    @Size(min = 2, max = 100)
-    String lastName,
+    @NotBlank(message = "El primer apellido es requerido")
+    @Size(min = 2, max = 50)
+    String firstSurname,
+
+    @Size(min = 2, max = 50)
+    String secondSurname,
     
     @NotBlank(message = "El RUT es requerido")
     @RUT

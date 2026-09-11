@@ -47,12 +47,13 @@ public class EstudianteController {
             @RequestParam(required = false) String rut,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String middleName,
-            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String firstSurname,
+            @RequestParam(required = false) String secondSurname,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(required = false) State state
     ) {
-        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, lastName, from, to, state));
+        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state));
     }
 
     @PostMapping 

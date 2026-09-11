@@ -41,7 +41,7 @@ public class EstudianteService {
     }
 
     @Transactional (readOnly = true)
-    public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String lastName, LocalDate from, LocalDate to, State state) {
+    public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
         Specification<Estudiante> spec = (root, query, cb) -> cb.conjunction();
         if (rut != null && !rut.isBlank()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("rut"), rut));
@@ -52,8 +52,11 @@ public class EstudianteService {
         if (middleName != null && !middleName.isBlank()) {
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("middleName")), "%" + middleName.toLowerCase() + "%"));
         }
-        if (lastName != null && !lastName.isBlank()) {
-            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("lastName")), "%" + lastName.toLowerCase() + "%"));
+        if (firstSurname != null && !firstSurname.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("firstSurname")), "%" + firstSurname.toLowerCase() + "%"));
+        }
+        if (secondSurname != null && !secondSurname.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("secondSurname")), "%" + secondSurname.toLowerCase() + "%"));
         }
         if (from != null) {
             spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("birthDate"), from));
@@ -89,7 +92,7 @@ public class EstudianteService {
         Estudiante estudianteExistente = repository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
-        // 2. MapStruct sobreescribe firstName, lastName, etc., pero el RUT queda INTACTO
+        // 2. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
         mapper.updateEntityFromDto(request, estudianteExistente);
 
         // 3. Guardas los cambios
