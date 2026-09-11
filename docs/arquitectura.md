@@ -2,16 +2,18 @@
 
 ## 1. Vision general
 
-SIGA se plantea como un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. La arquitectura actual es principalmente una base de organizacion; la implementacion completa de los flujos se realizara de forma incremental.
+SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional; la capa de orquestacion (BFF) y la infraestructura estan en construccion incremental.
 
 ```mermaid
 flowchart LR
-    U[Usuario] --> F[Frontend Angular]
-    F --> B[BFF Web]
+    U[Usuario] --> F[Frontend Angular + Nginx]
+    F -->|/api| B[BFF Web (esqueleto)]
     B --> A[MS Usuarios y autenticacion]
     B --> E[MS Estudiantes]
     B --> S[MS Asignaturas]
     B --> N[MS Notas]
+    N -. Feign: exists .-> E
+    N -. Feign: exists .-> S
     A --> DA[(BD usuarios)]
     E --> DE[(BD estudiantes)]
     S --> DS[(BD asignaturas)]
@@ -19,96 +21,92 @@ flowchart LR
     B -. contratos .-> C[core-share]
 ```
 
-El diagrama representa la direccion objetivo. Las bases de datos y las integraciones mostradas deben terminar de definirse durante la implementacion.
+Cada microservicio es dueno de su propia base de datos (database-per-service). El BFF aun no orquesta: los microservicios ya exponen sus APIs y el frontend esta preparado para consumirlas a traves del BFF.
 
 ## 2. Capas
 
 ### Presentacion
 
-`apps/frontend` contiene la aplicacion Angular, sus rutas, componentes, formularios y servicios HTTP. El navegador debe comunicarse con el BFF y no conocer la topologia interna de los microservicios.
+`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que proxya `/api` al BFF. El navegador no conoce la topologia interna.
 
 ### Entrada y orquestacion
 
-`bff-web` concentra los endpoints orientados a la interfaz, aplica seguridad y coordina solicitudes. Tambien es el punto donde se puede combinar informacion de varios servicios para una vista del frontend.
+`bff-web` sera el punto de entrada para la interfaz: aplicara seguridad, coordinara solicitudes y combinara informacion de varios servicios. Actualmente es un esqueleto (app + seguridad compartida); la orquestacion y `/me` estan pendientes.
 
 ### Dominio distribuido
 
-Cada microservicio es dueño de un contexto funcional:
+Cada microservicio es dueno de un contexto funcional:
 
 - Usuarios y autenticacion: identidad, roles y estado de cuentas.
 - Estudiantes: datos personales y academicos del estudiante.
-- Asignaturas: asignaturas, cursos y docentes.
+- Asignaturas: asignaturas.
 - Notas: calificaciones y sus relaciones.
 
 ### Compartidos transversales
 
-`core-share` ofrece DTO, validaciones, excepciones, seguridad y configuracion OpenAPI reutilizables. No debe contener la logica especifica de un dominio.
+`core-share` ofrece DTOs, validaciones, excepciones, seguridad y configuracion OpenAPI reutilizables. No contiene logica de un dominio especifico.
 
 ### Persistencia
 
-Cada servicio debe ser responsable de su modelo y persistencia. Se preve MariaDB, con separacion logica de datos para reducir el acoplamiento entre dominios.
+**Database-per-service implementado**: cada servicio tiene su propia instancia MariaDB y su propio volumen en Docker. El acoplamiento entre dominios se reduce al no compartir tablas.
 
 ## 3. Flujo de una solicitud
 
 1. El usuario inicia una accion en Angular.
-2. El frontend envia la solicitud al BFF con el token JWT.
+2. El frontend envia la solicitud a `/api` (Nginx la proxya al BFF) con el token JWT.
 3. El BFF valida la autenticacion y la autorizacion.
-4. El BFF llama al microservicio responsable, usando Feign cuando corresponda.
-5. El microservicio valida la entrada, ejecuta la regla de negocio y persiste los cambios.
+4. El BFF llama al microservicio responsable (Feign).
+5. El microservicio valida la entrada, ejecuta la regla de negocio y persiste.
 6. La respuesta se transforma a un DTO y vuelve al BFF.
 7. El frontend muestra el resultado o un error normalizado.
 
+Nota: los pasos 3 y 4 (orquestacion del BFF) estan pendientes; hoy los microservicios ya responden a sus propias APIs.
+
 ## 4. Seguridad
 
-La estrategia prevista es OAuth2/JWT, con Azure AD como proveedor de identidad. La autenticacion confirma quien es el usuario; la autorizacion por roles determina que operaciones puede realizar.
+La estrategia es OAuth2/JWT con **Azure AD** como proveedor de identidad.
 
-Aspectos que deben quedar definidos:
+- Autenticacion: confirma quien es el usuario.
+- Autorizacion: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
+- Rutas publicas limitadas a salud y documentacion tecnicas.
+- **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`RequestInterceptor`), de modo que la autorizacion se evalue en destino.
+- El frontend solo se comunica con el BFF.
 
-- Roles oficiales del sistema.
-- Permisos por endpoint y operacion.
-- Validacion del emisor, audiencia y expiracion del token.
-- Propagacion segura del contexto entre BFF y microservicios.
-- Rutas publicas limitadas a salud y documentacion tecnica.
+Aspectos a completar: contrato final de roles/permisos y validacion de audiencia/emisor en todos los flujos.
 
 ## 5. Comunicacion y contratos
 
-El BFF se comunicara con los microservicios mediante HTTP interno. Feign es la opcion prevista para clientes declarativos dentro del backend.
-
-Los DTO compartidos deben versionarse con cuidado. Un cambio incompatible requiere una estrategia de versionado o migracion para evitar romper el frontend y los consumidores internos.
+- Comunicacion interna HTTP; **Feign** es el cliente declarativo.
+- Implementado en `ms-notas`, que valida la existencia de estudiante y asignatura (`exists`) con fallback **Resilience4j**.
+- El BFF usara Feign para orquestar el resto (pendiente).
+- Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
 ## 6. Despliegue
 
-La base de despliegue esta compuesta por:
-
-- Dockerfiles por servicio.
-- `docker-compose.yml` para desarrollo y pruebas locales.
-- Red Docker `siga-network`.
-- Volumen MariaDB.
-- Terraform en `terraform/main.tf` como punto de partida para infraestructura futura.
-
-Actualmente Compose solo contiene una parte de la topologia y Terraform no tiene implementacion funcional. La evolucion prevista es completar primero el entorno local y despues definir los recursos de infraestructura, secretos, redes, bases de datos, escalamiento y observabilidad.
+- **Dockerfiles** por servicio (multi-stage).
+- `docker-compose.yml` levanta: 4 MariaDB, los 4 microservicios, `bff-web` y `frontend` sobre la red `siga-network`.
+- Configuracion centralizada por `.env` (credenciales MariaDB y Azure AD).
+- `frontend` se sirve con Nginx y proxya `/api` al BFF.
+- **Terraform** (`terraform/main.tf`) sigue pendiente.
 
 ## 7. Observabilidad y operacion
 
-Cada servicio debera incorporar, como minimo:
-
-- Health checks.
-- Logs estructurados.
-- Correlation ID para seguir una solicitud desde el frontend hasta el servicio final.
-- Metricas de errores, latencia y disponibilidad.
-- Documentacion OpenAPI actualizada.
+- Health checks: `/actuator/health` en cada servicio.
+- Documentacion OpenAPI por servicio (Swagger UI y Scalar).
+- Pendiente: logs estructurados, correlation ID, metricas y tracing.
 
 ## 8. Estado actual frente a la arquitectura objetivo
 
 | Componente | Estado actual | Objetivo |
 | --- | --- | --- |
-| Frontend Angular | Scaffold inicial | Modulos academicos conectados al BFF |
-| BFF Web | Aplicacion y seguridad base | Orquestacion y API para la interfaz |
-| Usuarios/Auth | Modelo y capa de servicio inicial | Identidad, roles y permisos completos |
-| Estudiantes | Modelo y capas iniciales | CRUD, filtros y relaciones academicas |
-| Asignaturas | Aplicacion y seguridad base | Gestion de asignaturas, cursos y docentes |
-| Notas | Aplicacion y configuracion base | Registro y consulta de calificaciones |
-| Docker Compose | Topologia parcial | Entorno local reproducible |
+| Frontend Angular | App modular con MSAL y rutas por rol | Pantallas academicas conectadas al BFF |
+| BFF Web | Esqueleto (app + seguridad) | Orquestacion y API para la interfaz (`/me`) |
+| Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
+| Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
+| Asignaturas | CRUD, listado, busqueda, `exists`, soft delete | Relacion con docentes y cursos |
+| Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
+| core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
+| Docker Compose | Completo (database-per-service) | Entorno local reproducible |
 | Terraform | Archivo vacio | Infraestructura declarativa |
 | Pruebas | Base de proyecto | Cobertura unitaria, integracion y contratos |
 

@@ -2,43 +2,41 @@
 
 ## Documentacion detallada
 
-Este README resume la situacion general del proyecto. El detalle tecnico esta organizado en documentos independientes:
+Este README resume el estado general del proyecto. El detalle tecnico esta en documentos independientes:
 
-- [Documentacion del frontend](docs/frontend.md): estructura actual, modulos previstos, tecnologias y trabajo pendiente.
-- [Documentacion del backend](docs/backend.md): microservicios, BFF, biblioteca compartida, seguridad, datos y estado de implementacion.
-- [Arquitectura del sistema](docs/arquitectura.md): arquitectura actual y objetivo, flujo de solicitudes, contratos, despliegue y evolucion prevista.
+- [Documentacion del frontend](docs/frontend.md): estructura, librerias Nx, autenticacion y trabajo pendiente.
+- [Documentacion del backend](docs/backend.md): microservicios, BFF, biblioteca compartida, seguridad, datos y estado.
+- [Arquitectura del sistema](docs/arquitectura.md): arquitectura actual y objetivo, flujo de solicitudes, contratos y despliegue.
 
 ## Resumen ejecutivo
 
-SIGA-Project es un proyecto de gestión académica en construcción. La intención del sistema es administrar estudiantes, docentes, usuarios, asignaturas y notas dentro de una arquitectura modular y escalable.
+SIGA es un sistema de gestion academica organizado como monorepo (Nx) con un frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad.
 
-A partir de la estructura actual del repositorio, el proyecto ya cuenta con una base técnica organizada, pero aún no está en una etapa funcional completa. Hay un frontend Angular, varios microservicios Spring Boot y una infraestructura base en Docker/Terraform, pero la implementación real del dominio académico todavía está pendiente.
+El **nucleo academico ya es funcional**: los microservicios de usuarios, estudiantes, asignaturas y notas exponen APIs REST con operaciones CRUD, validaciones, busqueda y borrado logico, protegidas con OAuth2/JWT (Azure AD). El frontend ya es una aplicacion Angular modular con autenticacion MSAL y rutas por rol. La orquestacion del BFF y la infraestructura Terraform siguen pendientes.
 
 ## Objetivo del proyecto
 
-Construir un sistema integral para la gestión académica institucional, con separación por módulos y capacidad de crecer en microservicios. El enfoque busca:
+Construir un sistema integral de gestion academica institucional, con separacion por modulos y capacidad de crecer en microservicios. El enfoque busca:
 
-- gestionar usuarios y autenticación
+- gestionar usuarios y autenticacion
 - administrar estudiantes
 - gestionar asignaturas y docentes
-- registrar notas
-- centralizar la capa de frontend mediante un BFF o gateway
-- preparar la base para despliegue y operación real
+- registrar y consultar notas
+- centralizar la capa de frontend mediante un BFF
+- preparar una base reproducible de despliegue y operacion
 
-## Estado actual del repositorio
+## Estado actual
 
-El repositorio ya está estructurado como proyecto de software con varias piezas clave preparadas:
-
-- Frontend Angular en `apps/frontend`
-- Backend multi-módulo Maven en `apps/backend`
-- Microservicios con Spring Boot
-- Biblioteca compartida `core-share`
-- Configuración de seguridad
-- Documentación API con Swagger y Scalar
-- Docker Compose base
-- Terraform inicial con archivo `main.tf` sin contenido real todavía
-
-Sin embargo, el proyecto todavía se encuentra en una etapa inicial de scaffolding y arquitectura, no en una versión funcional terminada.
+| Componente | Estado |
+| --- | --- |
+| Frontend Angular | App modular (Nx + MSAL) con rutas por rol; pantallas de negocio pendientes |
+| Microservicios | `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas` con CRUD funcional |
+| BFF Web | Esqueleto (app + seguridad); orquestacion y `/me` pendientes |
+| Biblioteca `core-share` | DTOs, validadores, seguridad, excepciones y OpenAPI compartidos |
+| Seguridad | OAuth2/JWT con Azure AD y autorizacion por rol/scope |
+| Documentacion API | Swagger UI y Scalar servidos en cada servicio |
+| Docker | Compose completo: 4 MariaDB + 4 MS + BFF + Frontend (database-per-service) |
+| Terraform | Pendiente (`terraform/main.tf` sin contenido) |
 
 ## Estructura del proyecto
 
@@ -47,256 +45,134 @@ SIGA-Project/
 ├── apps/
 │   ├── backend/
 │   │   ├── pom.xml
-│   │   ├── bff-web/
-│   │   ├── ms-usuarios-auth/
-│   │   ├── ms-estudiantes/
-│   │   ├── ms-asignaturas/
-│   │   ├── ms-notas/
+│   │   ├── bff-web/                 # BFF (esqueleto)
+│   │   ├── ms-usuarios-auth/        # usuarios, roles y estado de cuenta
+│   │   ├── ms-estudiantes/          # ficha academica del estudiante
+│   │   ├── ms-asignaturas/          # asignaturas
+│   │   ├── ms-notas/                # calificaciones
 │   │   └── libs/
-│   │       └── core-share/
+│   │       └── core-share/          # DTOs, validadores, seguridad, excepciones
 │   └── frontend/
-│       ├── package.json
-│       ├── angular.json
-│       ├── README.md
-│       └── src/
+│       ├── libs/                    # librerias Nx: core, shared-ui, features...
+│       ├── src/                     # shell, rutas, configuracion
+│       ├── public/config.json       # configuracion runtime (MSAL/BFF)
+│       ├── nginx.conf
+│       ├── Dockerfile
+│       └── project.json
+├── docs/                            # backend.md, frontend.md, arquitectura.md
 ├── docker-compose.yml
-├── terraform/
-│   └── main.tf
-├── README.md
-└── .gitignore
+├── .env.example
+├── terraform/main.tf
+├── nx.json
+├── tsconfig.base.json
+├── eslint.config.js
+└── README.md
 ```
 
-## Frontend
+## Stack tecnologico
 
-### Ubicación
-`apps/frontend`
+**Backend**
+- Java 21 · Spring Boot 3.5.0 · Maven
+- Spring Cloud 2025.0.0 (OpenFeign) · Resilience4j
+- Spring Security + OAuth2 Resource Server (JWT / Azure AD)
+- Spring Data JPA / Hibernate · MariaDB
+- MapStruct · Lombok
+- springdoc 2.8.14 (Swagger UI) + Scalar (nativo)
 
-### Tecnologías
-- Angular 22
-- TypeScript
-- RxJS
-- Angular Router
+**Frontend**
+- Angular 22 · TypeScript 6 · RxJS 7.8 · Angular Router
+- Nx (librerias y fronteras)
+- MSAL Angular v6 + Azure AD
+- Vitest · Prettier
 
-### Estado
-El proyecto frontend se generó con Angular CLI y contiene la estructura base correcta, pero todavía aparece como una aplicación tipo plantilla por defecto. El contenido de `app.html` y `app.ts` no refleja aún la lógica funcional del sistema académico. El detalle de su estado y de los módulos previstos está en [docs/frontend.md](docs/frontend.md).
-
-### Observación importante
-El frontend tiene la base necesaria para comenzar a desarrollar pantallas, pero aún no se ve la implementación real de módulos, servicios ni flujo de negocio.
+**Infraestructura**
+- Docker / Docker Compose · Nginx · Terraform (pendiente)
 
 ## Backend
 
-### Ubicación
-`apps/backend`
+Detalle en [docs/backend.md](docs/backend.md).
 
-### Tecnología principal
-- Java 21
-- Spring Boot 3.5
-- Maven
-- Spring Security
-- Spring Cloud
-- Feign
-- JPA / Hibernate
+- **`ms-usuarios-auth`** (`/api/v1/usuarios`): CRUD de usuarios, busqueda por email/rol/estado y borrado logico (`INACTIVO`).
+- **`ms-estudiantes`** (`/api/v1/estudiantes`): CRUD, busqueda, consulta por `idUsuario` y endpoint `exists`; borrado logico.
+- **`ms-asignaturas`** (`/api/v1/asignaturas`): CRUD, listado, busqueda y `exists`; borrado logico.
+- **`ms-notas`** (`/api/v1/notas`): CRUD y busqueda; valida existencia de estudiante y asignatura via Feign (con fallback Resilience4j).
+- **`bff-web`**: esqueleto; pendiente la orquestacion y el endpoint `/me`.
+- **`core-share`**: DTOs, enums (`Rol`, `StateUsuario`, `State`), validadores (`RUT`, `Phone`, `ChileanGrade`), seguridad compartida, manejo de errores y OpenAPI.
 
-### Módulos detectados
-- `bff-web`
-- `ms-usuarios-auth`
-- `ms-estudiantes`
-- `ms-asignaturas`
-- `ms-notas`
-- `libs/core-share`
+## Frontend
 
-### POM principal
-El `pom.xml` del backend define un proyecto padre con:
+Detalle en [docs/frontend.md](docs/frontend.md).
 
-- Java 21
-- Spring Boot 3.5
-- módulos organizados
-- gestión centralizada de dependencias
-- soporte para Lombok, MapStruct y OpenAPI
-- dependencia de `core-share`
+- App Angular modular con **librerias Nx** (`core`, `shared-ui`, `public-portal`, `academico`, `estudiante`, `apoderado`, `docente`, `admin`).
+- **Autenticacion MSAL v6 + Azure AD** con configuracion runtime (`public/config.json`).
+- **Rutas por rol** con lazy loading y guards; portal publico de bienvenida.
+- **Fronteras Nx** (`tags` + `depConstraints`) para separar responsabilidades.
+- Servida por **Nginx** en contenedor, con proxy `/api` hacia el BFF.
 
-Esto indica una buena base para crecer desde una arquitectura modular.
+## Seguridad y documentacion API
 
-Para conocer la responsabilidad y el estado de cada módulo, consulta [docs/backend.md](docs/backend.md).
+- OAuth2/JWT con **Azure AD** como proveedor de identidad.
+- Autorizacion por rol y scope (`hasRole(...)` / `hasAuthority('SCOPE_...')`).
+- El frontend solo habla con el **BFF**; el BFF y los servicios propagan el token.
+- Documentacion publica por servicio:
 
-## Microservicios actuales
+| Ruta | Descripcion |
+| --- | --- |
+| `/v3/api-docs` | Especificacion OpenAPI (JSON) |
+| `/v3/api-docs.yaml` | Especificacion OpenAPI (YAML) |
+| `/docs/swagger` | Swagger UI (redirige a `/docs/swagger-ui/index.html`) |
+| `/docs/scalar` | Scalar UI |
 
-### 1) `ms-usuarios-auth`
-Responsabilidad esperada:
-- autenticación
-- usuarios
-- roles
-- integración con Azure AD / JWT
+## Docker y despliegue (database-per-service)
 
-Se observa configuración de seguridad y documentación Swagger/Scalar. El servicio ya está preparado para trabajar con JWT, pero aún no hay evidencia de lógica de negocio real.
+Cada microservicio tiene su propia base de datos MariaDB en `siga-network`.
 
-### 2) `ms-estudiantes`
-Responsabilidad esperada:
-- CRUD de estudiantes
-- perfiles
-- alergias
-- matrícula
-- datos académicos del estudiante
+| Servicio | Puerto host | Base de datos | Volumen |
+| --- | --- | --- | --- |
+| `ms-usuarios-auth` | 8081 | `siga_usuarios_db` | `mariadb_usuarios_data` |
+| `ms-estudiantes` | 8082 | `siga_estudiantes_db` | `mariadb_estudiantes_data` |
+| `ms-asignaturas` | 8086 | `siga_asignaturas_db` | `mariadb_asignaturas_data` |
+| `ms-notas` | 8087 | `siga_notas_db` | `mariadb_notas_data` |
+| `bff-web` | 8080 | — | — |
+| `frontend` | 4200 | — | — |
 
-Ya hay la estructura base del microservicio y la configuración de seguridad.
+## Variables de entorno
 
-### 3) `ms-asignaturas`
-Responsabilidad esperada:
-- gestión de asignaturas
-- relación con docentes
-- curso y programas
+Copiar `.env.example` a `.env` y completar los valores (`.env` no se versiona):
 
-La configuración incluye datasource, JWT OAuth2, Feign y Swagger.
+```dotenv
+MARIADB_ROOT_PASSWORD=change_me_root
+DB_USER=siga
+DB_PASS=change_me
 
-### 4) `ms-notas`
-Responsabilidad esperada:
-- registro y consulta de notas
-- relación con estudiantes y asignaturas
+AZURE_TENANT_ID=
+AZURE_CLIENT_ID=
+AZURE_APP_ID_URI=api://<client-id>
+```
 
-Este microservicio ya incorpora configuración útil para:
-- datasource MariaDB
-- OAuth2 JWT
-- Feign
-- integración con otros servicios
+El frontend se configura en runtime via `apps/frontend/public/config.json` (clientId, authority, scopes y URL del BFF).
 
-### 5) `bff-web`
-Responsabilidad esperada:
-- orquestación de llamadas a otros servicios
-- capa de frontend / gateway
-- centralización de acceso para UI
+## Como levantar el entorno
 
-Se configura con integración a varios microservicios y seguridad JWT.
+```bash
+cp .env.example .env     # completar credenciales de Azure y MariaDB
+docker compose up -d --build
+```
 
-## Biblioteca compartida
+URLs:
+- Frontend: http://localhost:4200
+- BFF: http://localhost:8080
+- Servicios: 8081 / 8082 / 8086 / 8087
+- Docs (ej. estudiantes): http://localhost:8082/docs/swagger y http://localhost:8082/docs/scalar
 
-### `libs/core-share`
-Esta librería existe como capa de modelos compartidos. Actualmente solo se observa un DTO base:
+## Pendientes
 
-- `EstudianteDTO`
+- **BFF**: orquestacion de llamadas a los microservicios y endpoint `/me` para el enrutamiento por rol.
+- **Frontend**: pantallas de negocio reales consumiendo el BFF; formularios y validaciones.
+- **Terraform**: infraestructura declarativa.
+- **Pruebas**: unitarias, de integracion y de contrato.
+- **Servicios futuros**: `ms-docentes`, `ms-apoderados`, `ms-asistencias`, `ms-auditoria`.
 
-Esto es una buena señal de que el proyecto va encaminado a centralizar contratos de intercambio entre servicios. Sin embargo, aún falta consolidar más DTOs y un conjunto más amplio de modelos.
+## Conclusion
 
-## Seguridad y documentación
-
-Se observa una configuración consistente para seguridad y documentación:
-
-- `springdoc`
-- Swagger UI
-- Scalar UI
-- rutas públicas de documentación
-- autenticación con OAuth2 JWT para backend
-- acceso restringido al resto de endpoints
-
-Ejemplo de rutas documentadas:
-- `/v3/api-docs`
-- `/docs/swagger`
-- `/docs/scalar`
-
-Esto indica que el equipo ya está pensando en buena operatividad y documentación técnica desde el inicio.
-
-## Contenedores y despliegue
-
-### Docker Compose
-Archivo: `docker-compose.yml`
-
-Contiene una primera base con:
-- red Docker
-- volumen para MariaDB
-- un servicio de ejemplo para `ms-estudiantes`
-
-Todavía no está completo como orquestación del sistema real, pero es una base útil para continuar.
-
-### Terraform
-Archivo: `terraform/main.tf`
-
-Actualmente no hay contenido funcional real. Esto significa que la infraestructura como código aún no está implementada.
-
-## Variables de entorno esperadas
-
-La configuración del backend hace referencia a variables como:
-
-- `DB_HOST`
-- `DB_USER`
-- `DB_PASS`
-- `AZURE_TENANT_ID`
-- `MS_ESTUDIANTES_URL`
-- `MS_ASIGNATURAS_URL`
-- `MS_NOTAS_URL`
-- `MS_ASISTENCIAS_URL`
-
-Esto evidencia que la intención es usar:
-- base de datos MariaDB
-- JWT de Azure AD
-- llamadas internas entre microservicios
-
-## Lo que sí está bien hecho
-
-Entre los puntos positivos del proyecto actual:
-
-- la estructura está organizada por módulos
-- existe separación clara entre frontend y backend
-- hay arquitectura de microservicios pensada
-- los microservicios tienen base para Spring Boot
-- hay configuración de seguridad y documentación
-- se prepara la integración con bases de datos y JWT
-- la librería compartida ya está en camino
-
-## Lo que falta todavía para que funcione como sistema real
-
-Aún no está completamente implementado lo siguiente:
-
-- entidades de dominio reales
-- repositorios JPA
-- servicios de negocio
-- controladores REST
-- DTOs de cada módulo
-- validaciones de negocio
-- pruebas unitarias y de integración
-- endpoints concretos para cada funcionalidad
-- integración real entre frontend y backend
-- despliegue completo con Docker Compose
-- infraestructura Terraform real
-- configuración final de datos en entorno
-
-## Diagnóstico práctico
-
-El proyecto está en una fase de base arquitectónica y preparación técnica. Es decir:
-
-- no es un sistema terminado
-- sí tiene una estructura bastante buena
-- sí tiene una intención clara de arquitectura
-- aún falta la parte de negocio y funcionalidad real
-
-En términos de avance, podríamos decir que está “listo para construir sobre él”, pero no “listo para entregar”.
-
-## Recomendación de trabajo
-
-Para avanzar de forma ordenada, el siguiente paso debería ser:
-
-1. definir el dominio académico completo
-2. crear entidades por microservicio
-3. poner DTOs y contratos de API
-4. implementar repositorios y servicios
-5. crear controladores REST básicos
-6. conectar frontend con los endpoints reales
-7. completar Docker Compose
-8. preparar Infraestructura Terraform
-9. añadir pruebas y validaciones
-10. documentar cada módulo y flujo
-
-La visión técnica de la arquitectura actual y de la arquitectura que se implementará posteriormente está descrita en [docs/arquitectura.md](docs/arquitectura.md).
-
-## Conclusión
-
-El proyecto tiene una base sólida y un diseño orientado a microservicios con una buena intención técnica. La parte más importante ya está posada: estructura, módulos, observabilidad, seguridad, documentación y preparación para integrar servicios.
-
-Lo que todavía hace falta es la construcción funcional del sistema: negocio real, integración entre servicios, frontend conectado y despliegue final. En otras palabras, el proyecto ya tiene “arquitectura”, pero todavía no tiene “funcionalidad completa”.
-
-## Nota para compañeros
-
-Si vamos a compartir esta situación con el equipo, esta es la forma más clara de resumirla:
-
-- la base está bien hecha
-- falta enfocar la lógica del negocio
-- hay que priorizar endpoints y flujos de usuario
-- el siguiente sprint debería centrarse en dominio y vinculación real entre módulos
+La base tecnica esta solida: dominio academico funcional en microservicios, contratos y componentes transversales compartidos, seguridad con Azure AD, documentacion de API y un entorno Docker reproducible con base de datos por servicio. Lo siguiente es completar la capa de orquestacion (BFF + `/me`), conectar las pantallas del frontend y preparar la infraestructura y las pruebas.
