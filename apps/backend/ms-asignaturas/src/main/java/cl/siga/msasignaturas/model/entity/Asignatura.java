@@ -27,6 +27,10 @@ public class Asignatura {
     @Column(name = "description", length = 150, nullable = false)
     private String description;
 
+    @Builder.Default
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
     @PrePersist
     @PreUpdate
     private void formatFields() {
