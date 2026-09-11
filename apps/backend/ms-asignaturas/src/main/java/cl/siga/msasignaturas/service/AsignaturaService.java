@@ -55,4 +55,9 @@ public class AsignaturaService {
 
         return mapper.toResponseDto(repository.save(existingAsignatura));
     }
+
+    @Transactional (readOnly = true)
+    public boolean existsAsignaturaById(Long id) {
+        return repository.existsById(id);
+    }
 }

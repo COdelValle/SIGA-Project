@@ -46,4 +46,10 @@ public class AsignaturaController {
     public ResponseEntity<AsignaturaResponseDTO> updateAsignatura(@PathVariable Long id, @Valid @RequestBody AsignaturaRequestDTO request) {
         return ResponseEntity.ok(asignaturaService.updateAsignatura(id, request));
     }
+
+    @GetMapping ("/exists/{id}")
+    @PreAuthorize ("hasScope('notas:write')")
+    public ResponseEntity<Boolean> existsAsignaturaById(@PathVariable Long id) {
+        return ResponseEntity.ok(asignaturaService.existsAsignaturaById(id));
+    }
 }
