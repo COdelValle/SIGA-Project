@@ -70,6 +70,17 @@
             <groupId>com.azure.spring</groupId>
             <artifactId>spring-cloud-azure-starter</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>core-share</artifactId>
+        </dependency>
+        
     </dependencies>
 
     <build>
@@ -100,7 +111,8 @@
                     
                     <!-- Apunta únicamente a tus DTOs independientes del BFF -->
                     <classPatterns>
-                        <classPattern>cl.siga.bffweb.dto.**</classPattern>
+                        <!-- El '**' en el medio permite que funcione para 'estudiantes', 'profesores', 'asignaturas', etc. -->
+                        <classPattern>cl.siga.bffweb.domain.**.dto.api.**</classPattern>
                     </classPatterns>
                     
                     <!-- Ruta donde el frontend recogerá el archivo -->
