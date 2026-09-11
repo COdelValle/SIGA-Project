@@ -4,5 +4,6 @@ public enum State {
     REGISTRADO,
     REGULAR,
     SUSPENDIDO_POR_PAGO,
-    EGRESADO
+    EGRESADO,
+    INACTIVO
 }

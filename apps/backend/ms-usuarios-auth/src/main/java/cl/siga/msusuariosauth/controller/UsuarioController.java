@@ -63,7 +63,8 @@ public class UsuarioController {
 
     @DeleteMapping ("/{id}")
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
-    public void deleteUsuario(@PathVariable String id) {
+    public ResponseEntity<Void> deleteUsuario(@PathVariable String id) {
         usuarioService.deleteUsuario(id);
+        return ResponseEntity.noContent().build();
     }
 }
