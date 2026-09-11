@@ -19,22 +19,22 @@ public class Asignatura {
 
     @NotBlank (message = "El nombre es requerido")
     @Size (min = 2, max = 50)
-    @Column(name = "nombre", unique = true, length = 100, nullable = false)
-    private String nombre;
+    @Column(name = "name", unique = true, length = 50, nullable = false)
+    private String name;
 
     @NotBlank (message = "La descripción es requerida")
     @Size (min = 2, max = 150)
-    @Column(name = "descripcion", length = 255, nullable = true)
-    private String descripcion;
+    @Column(name = "description", length = 150, nullable = false)
+    private String description;
 
     @PrePersist
     @PreUpdate
     private void formatFields() {
-        if (nombre != null) {
-            nombre = nombre.trim().toUpperCase();
+        if (name != null) {
+            name = name.trim().toUpperCase();
         }
-        if (descripcion != null) {
-            descripcion = descripcion.trim().toLowerCase();
+        if (description != null) {
+            description = description.trim().toLowerCase();
         }
     }
 }
