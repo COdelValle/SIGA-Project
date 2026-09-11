@@ -10,9 +10,13 @@ import org.springframework.validation.annotation.Validated;
 import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
+import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msnotas.client.AsignaturaClient;
+import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapper;
+import cl.siga.msnotas.model.specifications.NotaSpecifications;
 import cl.siga.msnotas.repository.NotaRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +29,10 @@ public class NotaService {
 
     private final NotaMapper mapper;
 
+    private final EstudianteClient estudianteClient;
+
+    private final AsignaturaClient asignaturaClient;
+
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
         return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)
@@ -33,24 +41,23 @@ public class NotaService {
 
     @Transactional (readOnly = true)
     public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThatScore, Double greaterThanScore) {
-        Specification<Nota> spec = (root, query, cb) -> cb.isTrue(root.get("active"));
-        if (idEstudiante != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("idEstudiante"), idEstudiante));
-        }
-        if (idAsignatura != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("idAsignatura"), idAsignatura));
-        }
-        if (lessThatScore != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThan(root.get("score"), lessThatScore));
-        }
-        if (greaterThanScore != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThan(root.get("score"), greaterThanScore));
-        }
+        Specification<Nota> spec = NotaSpecifications.isActive()
+                .and(NotaSpecifications.hasIdEstudiante(idEstudiante))
+                .and(NotaSpecifications.hasIdAsignatura(idAsignatura))
+                .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))
+                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThatScore));
         return mapper.toResponseDtoList(repository.findAll(spec));
     }
 
     @Transactional 
     public NotaResponseDTO saveNota(@Valid RegistrarNotaRequestDTO request) {
+        if (!estudianteClient.existsById(request.idEstudiante())) {
+            throw new BusinessException("El estudiante con ID " + request.idEstudiante() + " no existe.");
+        }
+        if (!asignaturaClient.existsById(request.idAsignatura())) {
+            throw new BusinessException("La asignatura con ID " + request.idAsignatura() + " no existe.");
+        }
+
         Nota nota = mapper.toEntity(request);
         return mapper.toResponseDto(repository.save(nota));
     }
