@@ -27,13 +27,13 @@ public class NotaService {
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
-        return mapper.toResponseDto(repository.findById(id)
+        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Nota con ID " + id + " no encontrada.")));
     }
 
     @Transactional (readOnly = true)
     public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThatScore, Double greaterThanScore) {
-        Specification<Nota> spec = (root, query, cb) -> cb.conjunction();
+        Specification<Nota> spec = (root, query, cb) -> cb.isTrue(root.get("active"));
         if (idEstudiante != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("idEstudiante"), idEstudiante));
         }
@@ -57,7 +57,7 @@ public class NotaService {
 
     @Transactional
     public NotaResponseDTO updateNota(Long id, @Valid ActualizarNotaRequestDTO request) {
-        Nota existingNota = repository.findById(id)
+        Nota existingNota = repository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Nota con ID " + id + " no encontrada."));
 
         mapper.updateEntityFromDto(request, existingNota);
@@ -69,6 +69,7 @@ public class NotaService {
     public void deleteNota(Long id) {
         Nota existingNota = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Nota con ID " + id + " no encontrada."));
-        repository.delete(existingNota);
+        existingNota.setActive(false);
+        repository.save(existingNota);
     }
 }
