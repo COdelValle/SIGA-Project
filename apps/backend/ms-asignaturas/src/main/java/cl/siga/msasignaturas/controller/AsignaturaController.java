@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -51,5 +52,12 @@ public class AsignaturaController {
     @PreAuthorize ("hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<Boolean> existsAsignaturaById(@PathVariable Long id) {
         return ResponseEntity.ok(asignaturaService.existsAsignaturaById(id));
+    }
+
+    @DeleteMapping ("/{id}")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:delete')")
+    public ResponseEntity<Void> deleteAsignatura(@PathVariable Long id) {
+        asignaturaService.deleteAsignatura(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -54,5 +55,12 @@ public class NotaController {
     @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:update'))")
     public ResponseEntity<NotaResponseDTO> updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
         return ResponseEntity.ok(notaService.updateNota(id, request));
+    }
+
+    @DeleteMapping ("/{id}")
+    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:delete'))")
+    public ResponseEntity<Void> deleteNota(@PathVariable Long id) {
+        notaService.deleteNota(id);
+        return ResponseEntity.noContent().build();
     }
 }

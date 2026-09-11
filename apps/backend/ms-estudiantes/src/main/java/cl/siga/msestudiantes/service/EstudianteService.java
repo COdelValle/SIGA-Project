@@ -30,19 +30,19 @@ public class EstudianteService {
 
     @Transactional (readOnly = true)
     public EstudianteResponseDTO getEstudianteById(Long id) {
-        return mapper.toResponseDto(repository.findById(id)
+        return mapper.toResponseDto(repository.findByIdAndStateNot(id, State.INACTIVO)
                 .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado.")));
     }
 
     @Transactional (readOnly = true)
     public EstudianteResponseDTO getEstudianteByIdUsuario(String idUsuario) {
-        return mapper.toResponseDto(repository.findByIdUsuario(idUsuario)
+        return mapper.toResponseDto(repository.findByIdUsuarioAndStateNot(idUsuario, State.INACTIVO)
                 .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID de usuario " + idUsuario + " no encontrado.")));
     }
 
     @Transactional (readOnly = true)
     public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
-        Specification<Estudiante> spec = (root, query, cb) -> cb.conjunction();
+        Specification<Estudiante> spec = (root, query, cb) -> cb.notEqual(root.get("state"), State.INACTIVO);
         if (rut != null && !rut.isBlank()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("rut"), rut));
         }
@@ -102,6 +102,14 @@ public class EstudianteService {
 
     @Transactional (readOnly = true)
     public boolean existsEstudianteById(Long id) {
-        return repository.existsById(id);
+        return repository.existsByIdAndStateNot(id, State.INACTIVO);
+    }
+
+    @Transactional
+    public void deleteEstudiante(Long id) {
+        Estudiante existing = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
+        existing.setState(State.INACTIVO);
+        repository.save(existing);
     }
 }
