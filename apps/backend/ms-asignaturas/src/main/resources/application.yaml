@@ -4,7 +4,7 @@ server:
 spring:
   application:
     name: ms-asignaturas
-    description: Microservicio para la gestión de asignaturas
+    description: Microservicio para la gestiÃ³n de asignaturas
   datasource:
     url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_asignaturas_db
     username: ${DB_USER:root}
@@ -17,17 +17,16 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
-# Configuración de OpenAPI / Swagger
+# ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    path: /docs/swagger
-
-# Configuración de Scalar UI
+    path: /swagger-ui.html
+# ConfiguraciÃ³n de Scalar UI
 scalar:
   enabled: true
-  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
-  url: /v3/api-docs           # Especificación JSON a consumir
+  path: /docs/scalar          # Ruta donde se cargarÃ¡ Scalar (ej: http://localhost:8081/docs/scalar)
+  url: /v3/api-docs           # EspecificaciÃ³n JSON a consumir
   theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
   darkMode: true

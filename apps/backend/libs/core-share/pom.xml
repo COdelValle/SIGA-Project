@@ -59,8 +59,8 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scalar.maven</groupId>
-            <artifactId>scalar-webmvc</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-scalar</artifactId>
         </dependency>
 
         <!-- Tipos de excepciones de acceso a datos (DataIntegrityViolationException) -->

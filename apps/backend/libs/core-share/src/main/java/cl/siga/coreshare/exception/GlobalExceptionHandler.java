@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import cl.siga.coreshare.exception.dto.ErrorResponseDTO;
 import jakarta.validation.ConstraintViolationException;
@@ -60,6 +61,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleNotFound(ResourceNotFoundException ex) {
         ErrorResponseDTO response = new ErrorResponseDTO(
             LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), "Not Found", ex.getMessage(), null
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    // 2b. Rutas o recursos estáticos inexistentes (404 real, sin enmascarar como 500)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNoResource(NoResourceFoundException ex) {
+        ErrorResponseDTO response = new ErrorResponseDTO(
+            LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), "Not Found", "Recurso no encontrado", null
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }

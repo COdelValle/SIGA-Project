@@ -4,7 +4,7 @@ server:
 spring:
   application:
     name: ms-estudiantes
-    description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrícula
+    description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrÃ­cula
   datasource:
     url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_estudiantes_db
     username: ${DB_USER:root}
@@ -16,14 +16,13 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
-# Configuración de OpenAPI / Swagger
+# ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    path: /docs/swagger
-
-# Configuración de Scalar UI
+    path: /swagger-ui.html
+# ConfiguraciÃ³n de Scalar UI
 scalar:
   enabled: true
   path: /docs/scalar
