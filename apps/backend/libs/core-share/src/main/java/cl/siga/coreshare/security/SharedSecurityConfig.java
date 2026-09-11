@@ -34,13 +34,18 @@ public class SharedSecurityConfig {
                 .requestMatchers(
                     "/actuator/health",
                     "/actuator/info",
+                    "/v3/api-docs",
                     "/v3/api-docs/**",
+                    "/v3/api-docs.yaml",
+                    "/webjars/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
+                    "/docs/swagger",
                     "/docs/swagger/**",
-                    "/docs/scalar/**",
-                    "/scalar-ui/**",
-                    "/scalar-ui.html"
+                    "/docs/swagger-ui/**",
+                    "/scalar",
+                    "/scalar/**",
+                    "/docs/scalar/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

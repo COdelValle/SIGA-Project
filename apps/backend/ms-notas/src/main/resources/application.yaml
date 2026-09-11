@@ -4,7 +4,7 @@ server:
 spring:
   application:
     name: ms-notas
-    description: Microservicio para la gestión de notas
+    description: Microservicio para la gestiÃ³n de notas
   datasource:
     url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_notas_db
     username: ${DB_USER:root}
@@ -57,14 +57,13 @@ services:
   ms-asignaturas:
     url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
 
-# Configuración de OpenAPI / Swagger
+# ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /docs/swagger
-
-# Configuración de Scalar UI
+# ConfiguraciÃ³n de Scalar UI
 scalar:
   enabled: true
   path: /docs/scalar
