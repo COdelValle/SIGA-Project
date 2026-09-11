@@ -15,7 +15,7 @@ spring:
     open-in-view: false
 
   config:
-    import: "optional:classpath:common-properities.yml"
+    import: "optional:classpath:common-properties.yaml"
     
 feign:
   circuitbreaker:
