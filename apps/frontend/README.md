@@ -1,59 +1,103 @@
-# Frontend
+# Frontend SIGA
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.6.
+Aplicacion Angular del sistema de gestion academica SIGA. Es una aplicacion modular que se comunica **solo con el BFF** (a traves de `/api`) y organiza su codigo en librerias Nx con fronteras entre portales por rol.
 
-## Development server
+Detalle general del proyecto en el [README raiz](../../README.md) y [docs/frontend.md](../../docs/frontend.md).
 
-To start a local development server, run:
+## Tecnologias
 
-```bash
-ng serve
+- Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
+- MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
+- Nx (librerias y reglas de frontera)
+- Vitest (pruebas) · Prettier
+
+## Estructura
+
+```text
+apps/frontend/
+├── libs/
+│   ├── core/            # auth (MSAL), guards, interceptores, http, config, modelos
+│   ├── shared-ui/       # layout y componentes reutilizables
+│   ├── public-portal/   # landing publico
+│   ├── academico/       # componentes academicos reutilizables
+│   ├── estudiante/      # portal estudiante
+│   ├── apoderado/       # portal apoderado
+│   ├── docente/         # portal docente
+│   └── admin/           # portal administracion (base)
+├── src/
+│   ├── app/             # app.ts, app.config.ts, app.routes.ts (rutas por rol)
+│   ├── main.ts          # carga config runtime y hace bootstrap
+│   └── types/           # tipos generados desde el BFF
+├── public/config.json   # configuracion runtime (BFF + MSAL)
+├── proxy.conf.json      # proxy /api -> BFF en desarrollo
+├── nginx.conf           # servidor SPA + proxy /api en contenedor
+├── Dockerfile
+├── angular.json
+└── project.json
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Comandos
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Desde `apps/frontend`:
 
 ```bash
-ng generate component component-name
+npm install
+npm start              # servidor de desarrollo en http://localhost:4200
+npm run build          # build de produccion en dist/frontend/browser
+npm test               # pruebas unitarias (Vitest)
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Linting con Nx (desde la raiz):
 
 ```bash
-ng generate --help
+npx nx lint frontend
 ```
 
-## Building
+## Configuracion runtime
 
-To build the project run:
+La configuracion se carga antes del bootstrap desde `public/config.json` (servido en `/config.json`):
+
+```jsonc
+{
+  "bffBaseUrl": "/api",
+  "msal": {
+    "clientId": "<AZURE_FRONTEND_CLIENT_ID>",
+    "authority": "https://login.microsoftonline.com/<AZURE_TENANT_ID>",
+    "redirectUri": "/auth",
+    "scopes": ["api://<AZURE_BFF_APP_ID>/access_as_user"]
+  }
+}
+```
+
+Gracias a esto, la misma imagen se puede desplegar en distintos entornos sin recompilar.
+
+## Autenticacion y rutas
+
+Autenticacion con **MSAL Angular v6 + Azure AD**. El retorno del login se procesa en `/auth`.
+
+| Ruta | Acceso |
+| --- | --- |
+| `/` | Portal publico de bienvenida |
+| `/auth` | Retorno de Azure AD (MSAL) |
+| `/estudiante` | Rol `ESTUDIANTE` |
+| `/apoderado` | Rol `APODERADO` |
+| `/docente` | Rol `DOCENTE` |
+| `/admin` | Rol `ADMIN` |
+
+Cada portal se carga con lazy loading; `MsalGuard` valida la sesion y `roleGuard([...])` valida el rol. El rol autoritativo se obtiene del BFF (`GET /api/me`).
+
+## Docker
+
+- Build en dos etapas: `node:24-alpine` (build) → `nginx:alpine` (servido).
+- Nginx sirve la SPA con fallback a `index.html` y proxya `/api` hacia `bff-web:8080`.
+- Publicado en `http://localhost:4200` (mapeo `4200:80`).
 
 ```bash
-ng build
+# desde la raiz del repositorio
+docker compose up -d --build frontend
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Estado
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Disponible: bootstrap, autenticacion MSAL, rutas por rol, guards, layout base y portal publico.
+- Pendiente: pantallas de negocio (CRUD), integracion completa con el BFF y pruebas funcionales.
