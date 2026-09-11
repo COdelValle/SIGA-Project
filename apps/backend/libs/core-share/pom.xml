@@ -62,6 +62,12 @@
             <groupId>com.scalar.maven</groupId>
             <artifactId>scalar-webmvc</artifactId>
         </dependency>
+
+        <!-- Tipos de excepciones de acceso a datos (DataIntegrityViolationException) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
