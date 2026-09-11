@@ -62,7 +62,8 @@ public class EstudianteService {
         }
 
         // Verificar si el RUT ya existe en la base de datos
-        if (repository.existsByRut(request.rut())) {
+        String normalizedRut = request.rut() == null ? null : request.rut().trim().toUpperCase();
+        if (repository.existsByRut(normalizedRut)) {
             throw new BusinessException("El RUT ya está registrado: " + request.rut());
         }
 
