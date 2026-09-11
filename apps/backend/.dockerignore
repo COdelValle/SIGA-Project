@@ -1,0 +1,9 @@
+# Repositorio de dependencias de Maven
+**/target/
+
+# Metadatos de Git
+**/.git/
+
+# Documentación y artefactos no necesarios en el build
+**/*.md
+**/.mvn/wrapper/maven-wrapper.jar
