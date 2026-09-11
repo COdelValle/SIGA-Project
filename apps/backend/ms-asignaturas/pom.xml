@@ -76,6 +76,11 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>core-share</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
