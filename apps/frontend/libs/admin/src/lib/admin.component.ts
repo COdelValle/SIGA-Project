@@ -7,8 +7,10 @@ import { PortalShellComponent } from '@siga/shared-ui';
   imports: [PortalShellComponent],
   template: `
     <siga-portal-shell portal="Portal Administracion">
-      <h2>Gestion institucional</h2>
-      <p>Administracion de usuarios, roles y datos generales de la institucion.</p>
+      <h2 class="text-2xl font-semibold text-slate-900">Gestion institucional</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Administracion de usuarios, roles y datos generales de la institucion.
+      </p>
     </siga-portal-shell>
   `,
 })

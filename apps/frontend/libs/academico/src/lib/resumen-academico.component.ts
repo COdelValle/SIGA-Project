@@ -3,25 +3,16 @@ import { Component, Input } from '@angular/core';
 @Component({
   selector: 'siga-resumen-academico',
   template: `
-    <section class="siga-card">
-      <h3>Resumen academico</h3>
+    <section class="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="text-base font-semibold text-slate-900">Resumen academico</h3>
       @if (idEstudiante) {
-        <p>Estudiante seleccionado: {{ idEstudiante }}</p>
+        <p class="mt-2 text-sm text-slate-700">Estudiante seleccionado: {{ idEstudiante }}</p>
       }
-      <p>Notas, asignaturas y asistencias se cargaran desde el BFF.</p>
+      <p class="mt-2 text-sm text-slate-500">
+        Notas, asignaturas y asistencias se cargaran desde el BFF.
+      </p>
     </section>
   `,
-  styles: [
-    `
-      .siga-card {
-        border: 1px solid #d7dde5;
-        border-radius: 10px;
-        padding: 1rem 1.25rem;
-        margin-top: 1rem;
-        background: #fbfcfe;
-      }
-    `,
-  ],
 })
 export class ResumenAcademicoComponent {
   @Input() idEstudiante?: number;
