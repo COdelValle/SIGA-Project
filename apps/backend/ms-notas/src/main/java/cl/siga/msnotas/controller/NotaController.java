@@ -19,12 +19,14 @@ import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
 import cl.siga.msnotas.service.NotaService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController 
 @RequestMapping ("/api/v1/notas")
 @RequiredArgsConstructor 
+@Tag (name = "Notas", description = "Operaciones de registro y consulta de notas")
 public class NotaController {
     private final NotaService notaService;
 
@@ -39,10 +41,10 @@ public class NotaController {
     public ResponseEntity<List<NotaResponseDTO>> searchNotas(
         @RequestParam (required = false) Long idEstudiante,
         @RequestParam (required = false) Long idAsignatura,
-        @RequestParam (required = false) Double lessThatScore,
+        @RequestParam (required = false) Double lessThanScore,
         @RequestParam (required = false) Double greaterThanScore
     ){
-        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idAsignatura, lessThatScore, greaterThanScore));
+        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idAsignatura, lessThanScore, greaterThanScore));
     }
 
     @PostMapping

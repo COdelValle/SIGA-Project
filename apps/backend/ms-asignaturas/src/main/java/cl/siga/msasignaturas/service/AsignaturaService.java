@@ -1,5 +1,7 @@
 package cl.siga.msasignaturas.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -30,13 +32,26 @@ public class AsignaturaService {
 
     @Transactional (readOnly = true)
     public AsignaturaResponseDTO getAsignaturaByName(String name) {
-        return mapper.toResponseDto(repository.findByNameAndActiveTrue(name)
+        return mapper.toResponseDto(repository.findByNameAndActiveTrue(normalizeName(name))
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura con nombre " + name + " no encontrada.")));
+    }
+
+    @Transactional (readOnly = true)
+    public List<AsignaturaResponseDTO> getAllAsignaturas() {
+        return mapper.toResponseDtoList(repository.findAllByActiveTrue());
+    }
+
+    @Transactional (readOnly = true)
+    public List<AsignaturaResponseDTO> searchAsignaturas(String name) {
+        if (name == null || name.isBlank()) {
+            return getAllAsignaturas();
+        }
+        return mapper.toResponseDtoList(repository.findByNameContainingIgnoreCaseAndActiveTrue(name.trim()));
     }
 
     @Transactional 
     public AsignaturaResponseDTO saveAsignatura(@Valid AsignaturaRequestDTO request) {
-        if(repository.existsByNameAndActiveTrue(request.name())) {
+        if(repository.existsByNameAndActiveTrue(normalizeName(request.name()))) {
             throw new BusinessException("Ya existe una asignatura con el nombre: " + request.name());
         }
         return mapper.toResponseDto(repository.save(mapper.toEntity(request)));
@@ -47,7 +62,8 @@ public class AsignaturaService {
         Asignatura existingAsignatura = repository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura con ID " + id + " no encontrada."));
         
-        if(!existingAsignatura.getName().equals(request.name()) && repository.existsByNameAndActiveTrue(request.name())) {
+        String normalizedName = normalizeName(request.name());
+        if(!existingAsignatura.getName().equals(normalizedName) && repository.existsByNameAndActiveTrue(normalizedName)) {
             throw new BusinessException("Ya existe una asignatura con el nombre: " + request.name());
         }
 
@@ -67,5 +83,9 @@ public class AsignaturaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura con ID " + id + " no encontrada."));
         existing.setActive(false);
         repository.save(existing);
+    }
+
+    private String normalizeName(String name) {
+        return name == null ? null : name.trim().toUpperCase();
     }
 }

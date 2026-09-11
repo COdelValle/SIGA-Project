@@ -40,12 +40,12 @@ public class NotaService {
     }
 
     @Transactional (readOnly = true)
-    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThatScore, Double greaterThanScore) {
+    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThanScore, Double greaterThanScore) {
         Specification<Nota> spec = NotaSpecifications.isActive()
                 .and(NotaSpecifications.hasIdEstudiante(idEstudiante))
                 .and(NotaSpecifications.hasIdAsignatura(idAsignatura))
                 .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))
-                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThatScore));
+                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));
         return mapper.toResponseDtoList(repository.findAll(spec));
     }
 
