@@ -87,6 +87,7 @@ public class EstudianteService {
         return mapper.toResponseDto(repository.save(estudiante));
     }
 
+    @Transactional 
     public EstudianteResponseDTO updateEstudiante(Long id, @Valid ActualizarEstudianteRequestDTO request) {
         // 1. Buscas la entidad actual en la BD
         Estudiante estudianteExistente = repository.findById(id)
