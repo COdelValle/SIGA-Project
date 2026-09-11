@@ -1,0 +1,13 @@
+{
+  "name": "apoderado",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/frontend/apoderado/src",
+  "prefix": "siga",
+  "tags": ["scope:apoderado", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

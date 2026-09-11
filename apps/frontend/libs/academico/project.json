@@ -1,0 +1,13 @@
+{
+  "name": "academico",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/frontend/academico/src",
+  "prefix": "siga",
+  "tags": ["scope:academico", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}
