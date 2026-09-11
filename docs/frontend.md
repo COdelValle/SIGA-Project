@@ -12,10 +12,10 @@ Actualmente es una aplicacion Angular modular, con autenticacion MSAL y rutas po
 - Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
 - MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
 - Nx (librerias y reglas de frontera)
-- Tailwind CSS (framework de estilos; integracion pendiente)
+- Tailwind CSS 4 (framework de estilos) + `prettier-plugin-tailwindcss`
 - Vitest para pruebas · Prettier
 
-El diseno de la interfaz se basara en Tailwind CSS; su integracion se realizara en una tarea posterior.
+Estilos: Tailwind CSS 4 se integra via PostCSS (`.postcssrc.json` con el plugin `@tailwindcss/postcss`) y se importa con `@import 'tailwindcss';` en `src/styles.css` (que ademas declara `@source "../libs"` para escanear las librerias Nx). Las clases se ordenan automaticamente con `prettier-plugin-tailwindcss` (configurado en `.prettierrc` con `tailwindStylesheet` apuntando a `src/styles.css`); conviene ejecutar `npx prettier --write` al cerrar cambios de UI.
 
 Comandos (desde `apps/frontend`):
 
