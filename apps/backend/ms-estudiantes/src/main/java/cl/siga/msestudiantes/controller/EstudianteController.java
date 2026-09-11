@@ -68,4 +68,10 @@ public class EstudianteController {
     public ResponseEntity<EstudianteResponseDTO> actualizarEstudiante(@PathVariable Long id, @Valid @RequestBody ActualizarEstudianteRequestDTO request) {
         return ResponseEntity.ok(estudianteService.updateEstudiante(id, request));
     }
+
+    @GetMapping ("/exists/{id}")
+    @PreAuthorize ("hasScope('notas:write')")
+    public ResponseEntity<Boolean> existsEstudianteById(@PathVariable Long id) {
+        return ResponseEntity.ok(estudianteService.existsEstudianteById(id));
+    }
 }
