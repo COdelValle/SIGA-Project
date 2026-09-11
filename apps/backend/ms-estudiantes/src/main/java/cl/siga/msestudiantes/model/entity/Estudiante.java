@@ -39,7 +39,7 @@ public class Estudiante {
     private Long  id;
 
     @NotBlank (message = "Se requiere ingresar idUsuario")
-    @Column(name = "id", length = 36, nullable = false, updatable = false)
+    @Column(name = "id_usuario", length = 36, nullable = false, updatable = false)
     private String idUsuario;
 
     @NotBlank (message = "Se requiere ingresar RUT")
