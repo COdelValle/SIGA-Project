@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,7 +36,7 @@ public class EstudianteController {
         return ResponseEntity.ok(estudianteService.getEstudianteById(id));
     }
 
-    @GetMapping ("/{idUsuario}")
+    @GetMapping ("/idUsuario/{idUsuario}")
     @PreAuthorize ("hasScope('estudiantes:read')")
     public ResponseEntity<EstudianteResponseDTO> getEstudianteByIdUsuario(@PathVariable String idUsuario) {
         return ResponseEntity.ok(estudianteService.getEstudianteByIdUsuario(idUsuario));
@@ -58,13 +59,13 @@ public class EstudianteController {
 
     @PostMapping 
     @PreAuthorize ("hasRole('ADMIN') and hasScope('estudiantes:write')")
-    public ResponseEntity<EstudianteResponseDTO> registrarEstudiante(@Valid RegistrarEstudianteRequestDTO request) {
+    public ResponseEntity<EstudianteResponseDTO> registrarEstudiante(@Valid @RequestBody RegistrarEstudianteRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.saveEstudiante(request));
     }
 
-    @PutMapping 
+    @PutMapping ("/{id}")
     @PreAuthorize ("hasRole('ADMIN') or hasRole('APODERADO') and hasScope('estudiantes:update')")
-    public ResponseEntity<EstudianteResponseDTO> actualizarEstudiante(@RequestParam Long id, @Valid ActualizarEstudianteRequestDTO request) {
+    public ResponseEntity<EstudianteResponseDTO> actualizarEstudiante(@PathVariable Long id, @Valid @RequestBody ActualizarEstudianteRequestDTO request) {
         return ResponseEntity.ok(estudianteService.updateEstudiante(id, request));
     }
 }
