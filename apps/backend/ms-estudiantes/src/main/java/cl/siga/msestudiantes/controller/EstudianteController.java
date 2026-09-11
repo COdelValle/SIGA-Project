@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -31,19 +32,19 @@ public class EstudianteController {
     private final EstudianteService estudianteService;
 
     @GetMapping ("/{id}")
-    @PreAuthorize ("hasScope('estudiantes:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
     public ResponseEntity<EstudianteResponseDTO> getEstudianteById(@PathVariable Long id) {
         return ResponseEntity.ok(estudianteService.getEstudianteById(id));
     }
 
     @GetMapping ("/idUsuario/{idUsuario}")
-    @PreAuthorize ("hasScope('estudiantes:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
     public ResponseEntity<EstudianteResponseDTO> getEstudianteByIdUsuario(@PathVariable String idUsuario) {
         return ResponseEntity.ok(estudianteService.getEstudianteByIdUsuario(idUsuario));
     }
 
     @GetMapping ("/search")
-    @PreAuthorize ("hasRole('ADMIN') or hasRole('APODERADO') or hasRole('DOCENTE') and hasScope('estudiantes:read')")
+    @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
     public ResponseEntity<List<EstudianteResponseDTO>> searchEstudiantes(
             @RequestParam(required = false) String rut,
             @RequestParam(required = false) String firstName,
@@ -58,20 +59,27 @@ public class EstudianteController {
     }
 
     @PostMapping 
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('estudiantes:write')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_estudiantes:write')")
     public ResponseEntity<EstudianteResponseDTO> registrarEstudiante(@Valid @RequestBody RegistrarEstudianteRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.saveEstudiante(request));
     }
 
     @PutMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') or hasRole('APODERADO') and hasScope('estudiantes:update')")
+    @PreAuthorize ("hasRole('ADMIN') or (hasRole('APODERADO') and hasAuthority('SCOPE_estudiantes:update'))")
     public ResponseEntity<EstudianteResponseDTO> actualizarEstudiante(@PathVariable Long id, @Valid @RequestBody ActualizarEstudianteRequestDTO request) {
         return ResponseEntity.ok(estudianteService.updateEstudiante(id, request));
     }
 
     @GetMapping ("/exists/{id}")
-    @PreAuthorize ("hasScope('notas:write')")
+    @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
     public ResponseEntity<Boolean> existsEstudianteById(@PathVariable Long id) {
         return ResponseEntity.ok(estudianteService.existsEstudianteById(id));
+    }
+
+    @DeleteMapping ("/{id}")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_estudiantes:delete')")
+    public ResponseEntity<Void> deleteEstudiante(@PathVariable Long id) {
+        estudianteService.deleteEstudiante(id);
+        return ResponseEntity.noContent().build();
     }
 }

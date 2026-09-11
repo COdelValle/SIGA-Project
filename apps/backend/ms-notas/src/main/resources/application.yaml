@@ -14,8 +14,13 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
   config:
-    import: "optional:classpath:common-properities.yml"
+    import: "optional:classpath:common-properties.yaml"
     
 feign:
   circuitbreaker:

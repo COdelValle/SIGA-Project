@@ -33,12 +33,13 @@ public class UsuarioService {
     @Transactional (readOnly = true)
     public UsuarioResponseDTO getUsuarioById(String id) {
         return mapper.toResponseDto(usuarioRepository.findById(id)
+                .filter(usuario -> usuario.getState() != StateUsuario.INACTIVO)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario con ID " + id + " no encontrado.")));
     }
 
     @Transactional (readOnly = true)
     public List<UsuarioResponseDTO> searchUsuarios(@Valid @Email String email, Rol rol, StateUsuario state) {
-        Specification<Usuario> spec = (root, query, cb) -> cb.conjunction();
+        Specification<Usuario> spec = (root, query, cb) -> cb.notEqual(root.get("state"), StateUsuario.INACTIVO);
 
         if (email != null && !email.isBlank()) {
             spec = spec.and(UsuarioSpecifications.hasEmail(email));

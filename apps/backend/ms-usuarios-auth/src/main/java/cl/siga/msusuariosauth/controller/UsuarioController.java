@@ -34,13 +34,13 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @GetMapping("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:read')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
     public ResponseEntity<UsuarioResponseDTO> usuarioById(@PathVariable String id) {
         return ResponseEntity.ok(usuarioService.getUsuarioById(id));
     }
     
     @GetMapping("/search")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:read')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
     public ResponseEntity<List<UsuarioResponseDTO>> searchUsuarios(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Rol rol,
@@ -50,20 +50,21 @@ public class UsuarioController {
     }
     
     @PostMapping()
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:write')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
     public ResponseEntity<UsuarioResponseDTO> postUsuario(@RequestBody @Valid RegistrarUsuarioRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.saveUsuario(request));
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:update')")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')")
     public ResponseEntity<UsuarioResponseDTO> putUsuario(@PathVariable String id, @RequestBody @Valid ActualizarUsuarioRequestDTO request) {
         return ResponseEntity.ok(usuarioService.updateUsuario(id, request));
     }
 
     @DeleteMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') and hasScope('usuarios:delete')")
-    public void deleteUsuario(@PathVariable String id) {
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable String id) {
         usuarioService.deleteUsuario(id);
+        return ResponseEntity.noContent().build();
     }
 }
