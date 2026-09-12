@@ -15,6 +15,12 @@ spring:
     open-in-view: false
   config:
     import: "optional:classpath:common-properties.yaml"
+  # Permite migrar bases que ya tenian tablas creadas por Hibernate (ddl-auto=update)
+  # sin historial de Flyway. En bases nuevas aplica V1 normalmente; en existentes
+  # crea la linea base y luego aplica las migraciones (V1 es idempotente).
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
 
 # Integración con Microsoft Graph (client credentials).
 # Si AZURE_CLIENT_SECRET está vacío, la integración queda deshabilitada y el CRUD
