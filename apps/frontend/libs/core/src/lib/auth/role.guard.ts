@@ -14,7 +14,10 @@ export function roleGuard(roles: Rol[]): CanActivateFn {
         if (meService.hasRole(me, roles)) {
           return true;
         }
-        const fallback = me.roles.length > 0 ? ROL_HOME[me.roles[0]] : '/';
+        if (me.roles.length === 0) {
+          return router.createUrlTree(['/sin-acceso']);
+        }
+        const fallback = ROL_HOME[me.roles[0]];
         return router.createUrlTree([fallback]);
       }),
     );

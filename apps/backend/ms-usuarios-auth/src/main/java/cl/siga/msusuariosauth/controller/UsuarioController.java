@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import cl.siga.coreshare.dto.usuario.ActualizarUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.CandidatoUsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
@@ -11,6 +12,7 @@ import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import cl.siga.msusuariosauth.service.UsuarioService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -32,6 +34,18 @@ import org.springframework.web.bind.annotation.PutMapping;
 @Tag (name = "Usuarios", description = "Operaciones CRUD para la gestión de usuarios")
 public class UsuarioController {
     private final UsuarioService usuarioService;
+
+    @GetMapping("/me")
+    @PreAuthorize ("isAuthenticated()")
+    public ResponseEntity<UsuarioResponseDTO> me() {
+        return ResponseEntity.ok(usuarioService.getCurrentUsuario());
+    }
+
+    @GetMapping("/lookup")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
+    public ResponseEntity<CandidatoUsuarioResponseDTO> lookup(@RequestParam @Email String email) {
+        return ResponseEntity.ok(usuarioService.lookupCandidato(email));
+    }
 
     @GetMapping("/{id}")
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
@@ -65,6 +79,13 @@ public class UsuarioController {
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
     public ResponseEntity<Void> deleteUsuario(@PathVariable String id) {
         usuarioService.deleteUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping ("/{id}/sync-roles")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')")
+    public ResponseEntity<Void> syncRoles(@PathVariable String id) {
+        usuarioService.syncUserRoles(id);
         return ResponseEntity.noContent().build();
     }
 }

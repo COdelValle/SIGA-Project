@@ -12,6 +12,10 @@ export const routes: Routes = [
     component: MsalRedirectComponent,
   },
   {
+    path: 'sin-acceso',
+    loadComponent: () => import('@siga/public-portal').then((m) => m.SinAccesoComponent),
+  },
+  {
     path: 'estudiante',
     canActivate: [MsalGuard, roleGuard(['ESTUDIANTE'])],
     loadChildren: () => import('@siga/estudiante').then((m) => m.ESTUDIANTE_ROUTES),
