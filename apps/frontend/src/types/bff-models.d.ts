@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 3.2.1263 on 2026-09-11 20:32:04.
+// Generated using typescript-generator version 3.2.1263 on 2026-09-12 16:46:19.
 
 export interface PerfilEstudianteResponseDTO {
     id: number;
@@ -16,6 +16,13 @@ export interface PerfilEstudianteResponseDTO {
     asignaturas: AsignaturaDetalleDTO[];
 }
 
+export interface MeResponseDTO {
+    id: string;
+    email: string;
+    displayName: string;
+    roles: Rol[];
+}
+
 export interface AsignaturaDetalleDTO {
     id: number;
     name: string;
@@ -27,3 +34,5 @@ export interface NotaDetalleDTO {
     id: number;
     score: number;
 }
+
+export type Rol = "ADMIN" | "DOCENTE" | "APODERADO" | "ESTUDIANTE";

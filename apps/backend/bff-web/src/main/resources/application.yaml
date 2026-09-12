@@ -9,6 +9,8 @@ spring:
 
 # URLs de los microservicios de dominio
 microservices:
+  usuarios:
+    url: ${MS_USUARIOS_URL:http://localhost:8081}
   estudiantes:
     url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
   asignaturas:

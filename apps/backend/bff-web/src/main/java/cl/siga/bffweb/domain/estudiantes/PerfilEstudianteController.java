@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RestController 
 @RequestMapping ("/api/bff/v1/estudiantes")
 @RequiredArgsConstructor
-@PreAuthorize ("hasAuthority('SCOPE_estudiantes:read' and 'SCOPE_asignaturas:read' and 'SCOPE_notas:read')")
+@PreAuthorize ("hasAuthority('SCOPE_estudiantes:read') and hasAuthority('SCOPE_asignaturas:read') and hasAuthority('SCOPE_notas:read')")
 public class PerfilEstudianteController {
     private final PerfilEstudianteService service;
 
