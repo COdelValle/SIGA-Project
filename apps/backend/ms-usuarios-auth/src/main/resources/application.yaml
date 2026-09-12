@@ -16,6 +16,16 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
+# Integración con Microsoft Graph (client credentials).
+# Si AZURE_CLIENT_SECRET está vacío, la integración queda deshabilitada y el CRUD
+# sigue funcionando, pero no se puede resolver el oid ni sincronizar roles.
+azure:
+  graph:
+    tenant-id: ${AZURE_TENANT_ID:}
+    client-id: ${AZURE_CLIENT_ID:}
+    client-secret: ${AZURE_CLIENT_SECRET:}
+    api-app-id: ${AZURE_API_APP_ID:}
+
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
