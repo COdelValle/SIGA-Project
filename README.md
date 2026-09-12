@@ -7,6 +7,7 @@ Este README resume el estado general del proyecto. El detalle tecnico esta en do
 - [Documentacion del frontend](docs/frontend.md): estructura, librerias Nx, autenticacion y trabajo pendiente.
 - [Documentacion del backend](docs/backend.md): microservicios, BFF, biblioteca compartida, seguridad, datos y estado.
 - [Arquitectura del sistema](docs/arquitectura.md): arquitectura actual y objetivo, flujo de solicitudes, contratos y despliegue.
+- [Pruebas de login](docs/testing-login.md): guia paso a paso para probar el inicio de sesion con Azure AD y el sistema con Docker.
 
 ## Resumen ejecutivo
 
@@ -31,7 +32,7 @@ Construir un sistema integral de gestion academica institucional, con separacion
 | --- | --- |
 | Frontend Angular | App modular (Nx + MSAL) con rutas por rol; pantallas de negocio pendientes |
 | Microservicios | `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas` con CRUD funcional |
-| BFF Web | Esqueleto (app + seguridad); orquestacion y `/me` pendientes |
+| BFF Web | Esqueleto (app + seguridad); `/me` implementado; orquestacion pendiente |
 | Biblioteca `core-share` | DTOs, validadores, seguridad, excepciones y OpenAPI compartidos |
 | Seguridad | OAuth2/JWT con Azure AD y autorizacion por rol/scope |
 | Documentacion API | Swagger UI y Scalar servidos en cada servicio |
