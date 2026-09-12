@@ -3,7 +3,29 @@
   "projectType": "application",
   "implicitDependencies": ["java-common-dto"],
   "targets": {
-    "build": { "executor": "@angular-devkit/build-angular:application"},
-    "serve": { "executor": "@angular-devkit/build-angular:dev-server"}
+    "build": {
+      "executor": "@angular-devkit/build-angular:application",
+      "options": {
+        "outputPath": "dist/apps/frontend",
+        "index": "apps/frontend/src/index.html",
+        "browser": "apps/frontend/src/main.ts",
+        "tsConfig": "apps/frontend/tsconfig.app.json",
+        "polyfills": ["zone.js"],
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/frontend/public"
+          }
+        ],
+        "styles": ["apps/frontend/src/styles.css"],
+        "scripts": []
+      }
+    },
+    "serve": {
+      "executor": "@angular-devkit/build-angular:dev-server",
+      "options": {
+        "buildTarget": "frontend:build"
+      }
+    }
   }
 }

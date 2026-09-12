@@ -1,0 +1,26 @@
+<div class="contenedor-login">
+  <h2>Plataforma SIGA</h2>
+  <p class="subtitulo">Gestión Académica Institucional</p>
+
+  <button (click)="iniciarSesionConAzure()" [disabled]="cargando" class="boton-azure">
+    {{ cargando ? 'Conectando con Azure...' : 'Iniciar Sesión con Microsoft' }}
+  </button>
+
+  @if (error) {
+    <p class="mensaje-error">{{ error }}</p>
+  }
+
+  <div class="separador">
+    <span>O PRUEBA LOCAL</span>
+  </div>
+
+  <div class="lista-usuarios">
+    @for (usuario of usuariosSimulados; track usuario.correo) {
+      <button (click)="seleccionarUsuarioSimulado(usuario)" class="tarjeta-usuario">
+        <strong>{{ usuario.nombre }}</strong>
+        <span>Rol: {{ usuario.rol }}</span>
+        <small>{{ usuario.correo }}</small>
+      </button>
+    }
+  </div>
+</div>
