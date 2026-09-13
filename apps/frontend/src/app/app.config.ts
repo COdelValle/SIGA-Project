@@ -1,9 +1,12 @@
 import {
   ApplicationConfig,
+  inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { catchError, lastValueFrom, of } from 'rxjs';
 import {
   MSAL_GUARD_CONFIG,
   MSAL_INSTANCE,
@@ -22,6 +25,7 @@ import {
   msalInterceptorConfigFactory,
 } from '@siga/core';
 import { routes } from './app.routes';
+import { limpiarParametrosMsal } from './msal-url.util';
 
 export function appConfig(config: AppConfig): ApplicationConfig {
   return {
@@ -37,6 +41,17 @@ export function appConfig(config: AppConfig): ApplicationConfig {
       MsalGuard,
       MsalBroadcastService,
       { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+      // Procesa el retorno de Microsoft (login Y logout) y limpia la URL ANTES
+      // de que el router haga su navegacion inicial (que corre en el bootstrap
+      // listener). Asi el `?state=` del logout no queda pegado en la URL.
+      provideAppInitializer(() => {
+        const msal = inject(MsalService);
+        return lastValueFrom(
+          msal
+            .handleRedirectObservable({ navigateToLoginRequestUrl: false })
+            .pipe(catchError(() => of(null))),
+        ).then(() => limpiarParametrosMsal());
+      }),
     ],
   };
 }
