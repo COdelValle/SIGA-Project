@@ -1,11 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { MsalService } from '@azure/msal-angular';
+import { Component } from '@angular/core';
 
 /**
- * Componente de la ruta /auth. Procesa el redirect de Azure AD sin volver a la
- * pagina de origen (navigateToLoginRequestUrl: false), evitando la recarga que
- * impedia que se disparara LOGIN_SUCCESS y la resolucion del rol. Mientras se
- * procesa el redirect y se resuelve el rol se muestra un indicador de carga.
+ * Componente de la ruta /auth. Muestra el indicador de carga mientras el
+ * componente raiz (App) procesa el redirect de Azure AD y resuelve el rol.
  */
 @Component({
   selector: 'siga-auth-redirect',
@@ -21,12 +18,4 @@ import { MsalService } from '@azure/msal-angular';
     </div>
   `,
 })
-export class AuthRedirectComponent implements OnInit {
-  private readonly msal = inject(MsalService);
-
-  ngOnInit(): void {
-    this.msal.handleRedirectObservable({ navigateToLoginRequestUrl: false }).subscribe({
-      error: (error) => console.error('Error procesando el redirect de MSAL', error),
-    });
-  }
-}
+export class AuthRedirectComponent {}
