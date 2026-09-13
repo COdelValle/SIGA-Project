@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
-import { MsalGuard, MsalRedirectComponent } from '@azure/msal-angular';
+import { MsalGuard } from '@azure/msal-angular';
 import { roleGuard } from '@siga/core';
+import { AuthRedirectComponent } from './auth-redirect/auth-redirect.component';
 
 export const routes: Routes = [
   {
@@ -9,7 +10,7 @@ export const routes: Routes = [
   },
   {
     path: 'auth',
-    component: MsalRedirectComponent,
+    component: AuthRedirectComponent,
   },
   {
     path: 'sin-acceso',
