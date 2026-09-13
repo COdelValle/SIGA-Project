@@ -1,0 +1,17 @@
+# Estado de Terraform: puede contener IDs e IPs, nunca debe versionarse.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Variables locales (pueden contener datos sensibles)
+*.tfvars
+!terraform.tfvars.example
+
+# Directorio de trabajo del provider
+.terraform/
+
+# Nota: .terraform.lock.hcl SI se versiona para fijar la version del provider.
+
+# Logs de crash
+crash.log
+crash.*.log

@@ -1,12 +1,26 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { MsalService } from '@azure/msal-angular';
+import { MeService } from '@siga/core';
+import { of } from 'rxjs';
 import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        // La App inyecta MSAL y MeService; en el test solo se valida que se cree.
+        {
+          provide: MsalService,
+          useValue: { instance: { getAllAccounts: () => [] } },
+        },
+        {
+          provide: MeService,
+          useValue: { getMe: () => of({ roles: [] }), clear: () => undefined },
+        },
+      ],
     }).compileComponents();
   });
 
