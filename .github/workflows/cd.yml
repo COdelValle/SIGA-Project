@@ -43,12 +43,12 @@ jobs:
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           echo "REGISTRY=${REGISTRY}" >> $GITHUB_ENV
-          echo "MS_USER_ECR=${REGISTRY}/SIGA-usuarios-auth" >> $GITHUB_ENV
-          echo "MS_EST_ECR=${REGISTRY}/SIGA-estudiantes" >> $GITHUB_ENV
-          echo "MS_ASIGN_ECR=${REGISTRY}/SIGA-asignaturas" >> $GITHUB_ENV
-          echo "MS_GRADE_ECR=${REGISTRY}/SIGA-notas" >> $GITHUB_ENV
-          echo "BFF_WEB_ECR=${REGISTRY}/SIGA-bff-web" >> $GITHUB_ENV
-          echo "FRONTEND_ECR=${REGISTRY}/SIGA-frontend" >> $GITHUB_ENV
+          echo "MS_USER_ECR=${REGISTRY}/siga-usuarios-auth" >> $GITHUB_ENV
+          echo "MS_EST_ECR=${REGISTRY}/siga-estudiantes" >> $GITHUB_ENV
+          echo "MS_ASIGN_ECR=${REGISTRY}/siga-asignaturas" >> $GITHUB_ENV
+          echo "MS_GRADE_ECR=${REGISTRY}/siga-notas" >> $GITHUB_ENV
+          echo "BFF_WEB_ECR=${REGISTRY}/siga-bff-web" >> $GITHUB_ENV
+          echo "FRONTEND_ECR=${REGISTRY}/siga-frontend" >> $GITHUB_ENV
 
       # El contexto de build es apps/backend (el pom padre y los modulos son
       # necesarios); por eso se usa -f con el Dockerfile de cada servicio.

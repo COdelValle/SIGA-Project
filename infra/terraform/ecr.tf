@@ -1,7 +1,7 @@
 # Repositorios ECR. force_delete permite eliminar repos con imagenes para no
 # dejar recursos huerfanos consumiendo presupuesto.
 resource "aws_ecr_repository" "users" {
-  name                 = "SIGA-usuarios-auth"
+  name                 = "siga-usuarios-auth"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -11,7 +11,7 @@ resource "aws_ecr_repository" "users" {
 }
 
 resource "aws_ecr_repository" "estudiantes" {
-  name                 = "SIGA-estudiantes"
+  name                 = "siga-estudiantes"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -21,7 +21,7 @@ resource "aws_ecr_repository" "estudiantes" {
 }
 
 resource "aws_ecr_repository" "asignaturas" {
-  name                 = "SIGA-asignaturas"
+  name                 = "siga-asignaturas"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -31,7 +31,7 @@ resource "aws_ecr_repository" "asignaturas" {
 }
 
 resource "aws_ecr_repository" "notas" {
-  name                 = "SIGA-notas"
+  name                 = "siga-notas"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -41,7 +41,7 @@ resource "aws_ecr_repository" "notas" {
 }
 
 resource "aws_ecr_repository" "bff" {
-  name                 = "SIGA-bff-web"
+  name                 = "siga-bff-web"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -51,7 +51,7 @@ resource "aws_ecr_repository" "bff" {
 }
 
 resource "aws_ecr_repository" "frontend" {
-  name                 = "SIGA-frontend"
+  name                 = "siga-frontend"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
