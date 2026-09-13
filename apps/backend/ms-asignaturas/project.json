@@ -5,11 +5,16 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "options": { "command": "mvn package -DskipTests -f apps/ms-asignaturas/pom.xml" }
+      "options": {
+        "cwd": "apps/backend/ms-asignaturas",
+        "command": "./mvnw clean package -DskipTests"
+      }
     },
-    "serve": {
+    "docker-build": {
       "executor": "nx:run-commands",
-      "options": { "command": "mvn spring-boot:run -f apps/ms-asignaturas/pom.xml" }
+      "options": {
+        "command": "docker buildx build --platform linux/amd64 -t $MS_ASIGN_ECR:$TAG_VERSION -t $MS_ASIGN_ECR:latest apps/backend/ms-asignaturas --push"
+      }
     }
   }
 }

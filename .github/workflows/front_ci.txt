@@ -1,0 +1,55 @@
+front-test: #TEST de PRUEBAAAAAAAAAAAAA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apps/frontend
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cahche: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run unit tests with coverage
+      run: npx tsc --noEmit
+
+    - name: Upload coverage report
+      if: always()
+      uses: action/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 7
+
+  front-build: #BUILD
+    name: Producton Build for frontend
+    needs: front-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cahche: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+    
+      - name: App-front Build
+        run: npm run build:ci
+      
+      - name: Save App-Front on Dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: dist/
+          retention-days: 7
