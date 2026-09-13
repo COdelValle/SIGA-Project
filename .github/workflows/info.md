@@ -22,7 +22,7 @@ Ruta en GitHub: **Settings -> Secrets and variables -> Actions -> New repository
 | `BACKEND_PRIVATE_IP` | IP estática privada asignada a la EC2 Backend | `10.0.2.30` |
 | `DB_PRIVATE_IP` | IP estática privada asignada a la EC2 MariaDB | `10.0.2.40` |
 | `DB_USER` | Usuario de base de datos para los microservicios | `siga_user` |
-| `DB_PASSWORD` | Contraseña configurada para el usuario de MariaDB | `TuPasswordApp456` |
+| `DB_PASSWORD` | Contraseña configurada para el usuario de MariaDB | `TuPassword` |
 | `AZURE_TENANT_ID` | Directory (tenant) ID de Azure Entra ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_CLIENT_ID` | Application (client) ID de la app en Azure | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_APP_ID_URI` | Identificador URI del recurso/API en Azure | `api://siga-backend` |
