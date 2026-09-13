@@ -1,0 +1,63 @@
+version: '3.8'
+
+x-ms-common-env: &ms-common-env
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_ENABLED: "true"
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_PROFILE_TENANT_ID: $${AZURE_TENANT_ID}
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_CREDENTIAL_CLIENT_ID: $${AZURE_CLIENT_ID}
+  SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_APP_ID_URI: $${AZURE_APP_ID_URI}
+
+services:
+  ms-usuarios-auth:
+    image: $${REGISTRY}/SIGA-usuarios-auth:$${IMAGE_TAG}
+    container_name: ms-usuarios-auth
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8081"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://$${DB_HOST}:3306/siga_usuarios_db
+      SPRING_DATASOURCE_USERNAME: $${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: $${DB_PASS}
+      AZURE_CLIENT_SECRET: $${AZURE_CLIENT_SECRET}
+      AZURE_API_APP_ID: $${AZURE_API_APP_ID}
+
+  ms-estudiantes:
+    image: $${REGISTRY}/SIGA-estudiantes:$${IMAGE_TAG}
+    container_name: ms-estudiantes
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8082"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://$${DB_HOST}:3306/siga_estudiantes_db
+      SPRING_DATASOURCE_USERNAME: $${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: $${DB_PASS}
+
+  ms-asignaturas:
+    image: $${REGISTRY}/SIGA-asignaturas:$${IMAGE_TAG}
+    container_name: ms-asignaturas
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8086"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://$${DB_HOST}:3306/siga_asignaturas_db
+      SPRING_DATASOURCE_USERNAME: $${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: $${DB_PASS}
+
+  ms-notas:
+    image: $${REGISTRY}/SIGA-notas:$${IMAGE_TAG}
+    container_name: ms-notas
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8087"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://$${DB_HOST}:3306/siga_notas_db
+      SPRING_DATASOURCE_USERNAME: $${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: $${DB_PASS}

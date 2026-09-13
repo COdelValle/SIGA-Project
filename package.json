@@ -9,5 +9,9 @@
     "@nx/js": "23.2.1",
     "@nx/workspace": "23.2.1",
     "nx": "23.2.1"
+  },
+  "dependencies": {
+    "@angular/core": "^22.1.6",
+    "@angular/platform-browser": "^22.1.6"
   }
 }
