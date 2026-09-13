@@ -10,8 +10,13 @@ export class AuthService {
     this.msal.loginRedirect();
   }
 
-  logout(): void {
-    this.msal.logoutRedirect();
+  /**
+   * Cierra la sesion de Microsoft y redirige al destino indicado.
+   * Por defecto vuelve al portal publico ("/"); el rechazo de cuenta usa
+   * "/sin-acceso". Ambos deben estar registrados como redirect URIs en Azure.
+   */
+  logout(postLogoutRedirectUri = '/'): void {
+    this.msal.logoutRedirect({ postLogoutRedirectUri });
   }
 
   isAuthenticated(): boolean {
