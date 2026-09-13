@@ -1,0 +1,150 @@
+name: CD Pipeline SIGA
+
+on:
+  push:
+    branches: [deploy]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TAG_VERSION: ${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Setup ECR Repository URLs
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          echo "REGISTRY=${REGISTRY}" >> $GITHUB_ENV
+          echo "MS_USER_ECR=${REGISTRY}/SIGA-usuarios-auth" >> $GITHUB_ENV
+          echo "MS_EST_ECR=${REGISTRY}/SIGA-estudiantes" >> $GITHUB_ENV
+          echo "MS_ASIGN_ECR=${REGISTRY}/SIGA-asignaturas" >> $GITHUB_ENV
+          echo "MS_GRADE_ECR=${REGISTRY}/SIGA-notas" >> $GITHUB_ENV
+          echo "BFF_WEB_ECR=${REGISTRY}/SIGA-bff-web" >> $GITHUB_ENV
+          echo "FRONTEND_ECR=${REGISTRY}/SIGA-frontend" >> $GITHUB_ENV
+
+      - name: Build & Push - ms-usuarios-auth
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_USER_ECR:${TAG_VERSION} -t $MS_USER_ECR:latest \
+            ./apps/backend/ms-usuarios-auth --push
+
+      - name: Build & Push - ms-estudiantes
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_EST_ECR:${TAG_VERSION} -t $MS_EST_ECR:latest \
+            ./apps/backend/ms-estudiantes --push
+
+      - name: Build & Push - ms-asignaturas
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_ASIGN_ECR:${TAG_VERSION} -t $MS_ASIGN_ECR:latest \
+            ./apps/backend/ms-asignaturas --push
+
+      - name: Build & Push - ms-notas
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_GRADE_ECR:${TAG_VERSION} -t $MS_GRADE_ECR:latest \
+            ./apps/backend/ms-notas --push
+
+      - name: Build & Push - bff-web
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $BFF_WEB_ECR:${TAG_VERSION} -t $BFF_WEB_ECR:latest \
+            ./apps/backend/bff-web --push
+
+      - name: Build & Push - frontend
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $FRONTEND_ECR:${TAG_VERSION} -t $FRONTEND_ECR:latest \
+            ./apps/frontend --push
+
+      - name: Deploy Microservices to Backend EC2 (t3.large)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_TAG: ${{ env.TAG_VERSION }}
+          DB_HOST: ${{ secrets.DB_PRIVATE_IP }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        with:
+          host: ${{ secrets.EC2_BACKEND_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,REGISTRY,IMAGE_TAG,DB_HOST,DB_PASSWORD
+          script: |
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
+            cd /home/ubuntu/siga-backend
+            export REGISTRY=$REGISTRY
+            export IMAGE_TAG=$IMAGE_TAG
+            export DB_HOST=$DB_HOST
+            export DB_PASSWORD=$DB_PASSWORD
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
+
+      - name: Deploy BFF to BFF EC2 (t2.micro)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_TAG: ${{ env.TAG_VERSION }}
+          BACKEND_IP: ${{ secrets.BACKEND_PRIVATE_IP }}
+        with:
+          host: ${{ secrets.EC2_BFF_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,REGISTRY,IMAGE_TAG,BACKEND_IP
+          script: |
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
+            docker pull $REGISTRY/SIGA-bff-web:$IMAGE_TAG
+            docker rm -f bff-web 2>/dev/null || true
+            docker run -d \
+              --name bff-web \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -e JAVA_TOOL_OPTIONS="-Xms128m -Xmx400m -XX:+UseSerialGC" \
+              -e URL_MS_USUARIOS="http://${BACKEND_IP}:8081" \
+              -e URL_MS_ESTUDIANTES="http://${BACKEND_IP}:8082" \
+              -e URL_MS_ASIGNATURAS="http://${BACKEND_IP}:8086" \
+              -e URL_MS_NOTAS="http://${BACKEND_IP}:8087" \
+              $REGISTRY/SIGA-bff-web:$IMAGE_TAG
+            docker image prune -f
+
+      - name: Deploy Frontend to Front EC2 (t2.micro)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_TAG: ${{ env.TAG_VERSION }}
+        with:
+          host: ${{ secrets.EC2_FRONT_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,REGISTRY,IMAGE_TAG
+          script: |
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
+            docker pull $REGISTRY/SIGA-frontend:$IMAGE_TAG
+            docker rm -f front-app 2>/dev/null || true
+            docker run -d \
+              --name front-app \
+              --restart unless-stopped \
+              -p 4200:80 \
+              $REGISTRY/SIGA-frontend:$IMAGE_TAG
+            docker image prune -f

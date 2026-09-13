@@ -1,180 +1,96 @@
-# SIGA-Project
+# SIGAProject
 
-## Documentacion detallada
+<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 
-Este README resume el estado general del proyecto. El detalle tecnico esta en documentos independientes:
+✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
 
-- [Documentacion del frontend](docs/frontend.md): estructura, librerias Nx, autenticacion y trabajo pendiente.
-- [Documentacion del backend](docs/backend.md): microservicios, BFF, biblioteca compartida, seguridad, datos y estado.
-- [Arquitectura del sistema](docs/arquitectura.md): arquitectura actual y objetivo, flujo de solicitudes, contratos y despliegue.
-- [Pruebas de login](docs/testing-login.md): guia paso a paso para probar el inicio de sesion con Azure AD y el sistema con Docker.
+[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
 
-## Resumen ejecutivo
+## Run tasks
 
-SIGA es un sistema de gestion academica organizado como monorepo (Nx) con un frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad.
+To run tasks with Nx use:
 
-El **nucleo academico ya es funcional**: los microservicios de usuarios, estudiantes, asignaturas y notas exponen APIs REST con operaciones CRUD, validaciones, busqueda y borrado logico, protegidas con OAuth2/JWT (Azure AD). El frontend ya es una aplicacion Angular modular con autenticacion MSAL y rutas por rol. La orquestacion del BFF y la infraestructura Terraform siguen pendientes.
-
-## Objetivo del proyecto
-
-Construir un sistema integral de gestion academica institucional, con separacion por modulos y capacidad de crecer en microservicios. El enfoque busca:
-
-- gestionar usuarios y autenticacion
-- administrar estudiantes
-- gestionar asignaturas y docentes
-- registrar y consultar notas
-- centralizar la capa de frontend mediante un BFF
-- preparar una base reproducible de despliegue y operacion
-
-## Estado actual
-
-| Componente | Estado |
-| --- | --- |
-| Frontend Angular | App modular (Nx + MSAL) con rutas por rol; pantallas de negocio pendientes |
-| Microservicios | `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas` con CRUD funcional |
-| BFF Web | Esqueleto (app + seguridad); `/me` implementado; orquestacion pendiente |
-| Biblioteca `core-share` | DTOs, validadores, seguridad, excepciones y OpenAPI compartidos |
-| Seguridad | OAuth2/JWT con Azure AD y autorizacion por rol/scope |
-| Documentacion API | Swagger UI y Scalar servidos en cada servicio |
-| Docker | Compose completo: 4 MariaDB + 4 MS + BFF + Frontend (database-per-service) |
-| Terraform | Pendiente (`terraform/main.tf` sin contenido) |
-
-## Estructura del proyecto
-
-```text
-SIGA-Project/
-├── apps/
-│   ├── backend/
-│   │   ├── pom.xml
-│   │   ├── bff-web/                 # BFF (esqueleto)
-│   │   ├── ms-usuarios-auth/        # usuarios, roles y estado de cuenta
-│   │   ├── ms-estudiantes/          # ficha academica del estudiante
-│   │   ├── ms-asignaturas/          # asignaturas
-│   │   ├── ms-notas/                # calificaciones
-│   │   └── libs/
-│   │       └── core-share/          # DTOs, validadores, seguridad, excepciones
-│   └── frontend/
-│       ├── libs/                    # librerias Nx: core, shared-ui, features...
-│       ├── src/                     # shell, rutas, configuracion
-│       ├── public/config.json       # configuracion runtime (MSAL/BFF)
-│       ├── nginx.conf
-│       ├── Dockerfile
-│       └── project.json
-├── docs/                            # backend.md, frontend.md, arquitectura.md
-├── docker-compose.yml
-├── .env.example
-├── terraform/main.tf
-├── nx.json
-├── tsconfig.base.json
-├── eslint.config.js
-└── README.md
+```sh
+npx nx <target> <project-name>
 ```
 
-## Stack tecnologico
+For example:
 
-**Backend**
-- Java 21 · Spring Boot 3.5.0 · Maven
-- Spring Cloud 2025.0.0 (OpenFeign) · Resilience4j
-- Spring Security + OAuth2 Resource Server (JWT / Azure AD)
-- Spring Data JPA / Hibernate · MariaDB
-- MapStruct · Lombok
-- springdoc 2.8.14 (Swagger UI) + Scalar (nativo)
-
-**Frontend**
-- Angular 22 · TypeScript 6 · RxJS 7.8 · Angular Router
-- Nx (librerias y fronteras)
-- MSAL Angular v6 + Azure AD
-- Tailwind CSS 4 (framework de estilos) · prettier-plugin-tailwindcss
-- Vitest · Prettier
-
-**Infraestructura**
-- Docker / Docker Compose · Nginx · Terraform (pendiente)
-
-## Backend
-
-Detalle en [docs/backend.md](docs/backend.md).
-
-- **`ms-usuarios-auth`** (`/api/v1/usuarios`): CRUD de usuarios, busqueda por email/rol/estado y borrado logico (`INACTIVO`).
-- **`ms-estudiantes`** (`/api/v1/estudiantes`): CRUD, busqueda, consulta por `idUsuario` y endpoint `exists`; borrado logico.
-- **`ms-asignaturas`** (`/api/v1/asignaturas`): CRUD, listado, busqueda y `exists`; borrado logico.
-- **`ms-notas`** (`/api/v1/notas`): CRUD y busqueda; valida existencia de estudiante y asignatura via Feign (con fallback Resilience4j).
-- **`bff-web`**: esqueleto; pendiente la orquestacion y el endpoint `/me`.
-- **`core-share`**: DTOs, enums (`Rol`, `StateUsuario`, `State`), validadores (`RUT`, `Phone`, `ChileanGrade`), seguridad compartida, manejo de errores y OpenAPI.
-
-## Frontend
-
-Detalle en [docs/frontend.md](docs/frontend.md).
-
-- App Angular modular con **librerias Nx** (`core`, `shared-ui`, `public-portal`, `academico`, `estudiante`, `apoderado`, `docente`, `admin`).
-- **Autenticacion MSAL v6 + Azure AD** con configuracion runtime (`public/config.json`).
-- **Rutas por rol** con lazy loading y guards; portal publico de bienvenida.
-- **Fronteras Nx** (`tags` + `depConstraints`) para separar responsabilidades.
-- Servida por **Nginx** en contenedor, con proxy `/api` hacia el BFF.
-
-## Seguridad y documentacion API
-
-- OAuth2/JWT con **Azure AD** como proveedor de identidad.
-- Autorizacion por rol y scope (`hasRole(...)` / `hasAuthority('SCOPE_...')`).
-- El frontend solo habla con el **BFF**; el BFF y los servicios propagan el token.
-- Documentacion publica por servicio:
-
-| Ruta | Descripcion |
-| --- | --- |
-| `/v3/api-docs` | Especificacion OpenAPI (JSON) |
-| `/v3/api-docs.yaml` | Especificacion OpenAPI (YAML) |
-| `/docs/swagger` | Swagger UI (redirige a `/docs/swagger-ui/index.html`) |
-| `/docs/scalar` | Scalar UI |
-
-## Docker y despliegue (database-per-service)
-
-Cada microservicio tiene su propia base de datos MariaDB en `siga-network`.
-
-| Servicio | Puerto host | Base de datos | Volumen |
-| --- | --- | --- | --- |
-| `ms-usuarios-auth` | 8081 | `siga_usuarios_db` | `mariadb_usuarios_data` |
-| `ms-estudiantes` | 8082 | `siga_estudiantes_db` | `mariadb_estudiantes_data` |
-| `ms-asignaturas` | 8086 | `siga_asignaturas_db` | `mariadb_asignaturas_data` |
-| `ms-notas` | 8087 | `siga_notas_db` | `mariadb_notas_data` |
-| `bff-web` | 8080 | — | — |
-| `frontend` | 4200 | — | — |
-
-## Variables de entorno
-
-Copiar `.env.example` a `.env` y completar los valores (`.env` no se versiona):
-
-```dotenv
-MARIADB_ROOT_PASSWORD=change_me_root
-DB_USER=siga
-DB_PASS=change_me
-
-AZURE_TENANT_ID=
-AZURE_CLIENT_ID=
-AZURE_APP_ID_URI=api://<client-id>
+```sh
+npx nx build myproject
 ```
 
-El frontend se configura en runtime via `apps/frontend/public/config.json` (clientId, authority, scopes y URL del BFF).
+These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
 
-## Como levantar el entorno
+[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
-```bash
-cp .env.example .env     # completar credenciales de Azure y MariaDB
-docker compose up -d --build
+## Add new projects
+
+While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+
+To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
+```sh
+npx nx add @nx/react
 ```
 
-URLs:
-- Frontend: http://localhost:4200
-- BFF: http://localhost:8080
-- Servicios: 8081 / 8082 / 8086 / 8087
-- Docs (ej. estudiantes): http://localhost:8082/docs/swagger y http://localhost:8082/docs/scalar
+Use the plugin's generator to create new projects. For example, to create a new React app or library:
 
-## Pendientes
+```sh
+# Generate an app
+npx nx g @nx/react:app demo
 
-- **BFF**: orquestacion de llamadas a los microservicios y endpoint `/me` para el enrutamiento por rol.
-- **Frontend**: pantallas de negocio reales consumiendo el BFF; formularios y validaciones.
-- **Terraform**: infraestructura declarativa.
-- **Pruebas**: unitarias, de integracion y de contrato.
-- **Servicios futuros**: `ms-docentes`, `ms-apoderados`, `ms-asistencias`, `ms-auditoria`.
+# Generate a library
+npx nx g @nx/react:lib some-lib
+```
 
-## Conclusion
+You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
 
-La base tecnica esta solida: dominio academico funcional en microservicios, contratos y componentes transversales compartidos, seguridad con Azure AD, documentacion de API y un entorno Docker reproducible con base de datos por servicio. Lo siguiente es completar la capa de orquestacion (BFF + `/me`), conectar las pantallas del frontend y preparar la infraestructura y las pruebas.
+[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+## Set up CI!
+
+### Step 1
+
+To connect to Nx Cloud, run the following command:
+
+```sh
+npx nx connect
+```
+
+Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+
+- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+### Step 2
+
+Use the following command to configure a CI workflow for your workspace:
+
+```sh
+npx nx g ci-workflow
+```
+
+[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+## Install Nx Console
+
+Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+
+[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+## Useful links
+
+Learn more:
+
+- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
+- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+And join the Nx community:
+- [Discord](https://go.nx.dev/community)
+- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
+- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
+- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
