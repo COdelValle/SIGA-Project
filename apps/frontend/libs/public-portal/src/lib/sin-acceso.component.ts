@@ -35,7 +35,7 @@ export class SinAccesoComponent implements OnInit {
     // Si quedó una sesión de Microsoft activa, se cierra para que el usuario
     // no permanezca autenticado sin acceso a SIGA.
     if (this.auth.isAuthenticated()) {
-      this.auth.logout();
+      this.auth.logout('/sin-acceso');
     }
   }
 }
