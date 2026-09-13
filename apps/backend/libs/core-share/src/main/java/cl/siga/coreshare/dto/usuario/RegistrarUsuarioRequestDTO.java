@@ -6,8 +6,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Registro de un usuario. El {@code id} (object id de Entra ID) es opcional:
+ * si no viene, el servicio lo resuelve a partir del correo usando Microsoft Graph.
+ */
 public record RegistrarUsuarioRequestDTO(
-    @NotBlank (message = "El ID de usuario de Azure es obligatorio")
     @Size (min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
     String id,
 

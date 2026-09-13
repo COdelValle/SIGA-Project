@@ -2,97 +2,124 @@
 
 ## 1. Proposito
 
-El frontend de SIGA sera la interfaz web para los usuarios del sistema de gestion academica. Su responsabilidad sera presentar los flujos de autenticacion, consulta y administracion, y comunicarse con el backend a traves del BFF Web.
+El frontend de SIGA es la interfaz web del sistema de gestion academica. Presenta los flujos de autenticacion, consulta y administracion, y se comunica con el backend a traves del **BFF Web** (nunca directamente con los microservicios).
 
-Actualmente el frontend es una base inicial generada con Angular CLI. La aplicacion muestra la pantalla de bienvenida de Angular y aun no contiene los modulos funcionales del sistema.
+Actualmente es una aplicacion Angular modular, con autenticacion MSAL y rutas por rol. Las pantallas de negocio reales estan pendientes.
 
 ## 2. Ubicacion y tecnologias
 
 - Ubicacion: `apps/frontend`
-- Angular 22.1
-- TypeScript 6
-- RxJS 7.8
-- Angular Router
-- Formularios de Angular
-- Vitest para pruebas
-- Node.js y npm
+- Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
+- MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
+- Nx (librerias y reglas de frontera)
+- Tailwind CSS 4 (framework de estilos) + `prettier-plugin-tailwindcss`
+- Vitest para pruebas · Prettier
 
-Los comandos principales se ejecutan desde `apps/frontend`:
+Estilos: Tailwind CSS 4 se integra via PostCSS (`.postcssrc.json` con el plugin `@tailwindcss/postcss`) y se importa con `@import 'tailwindcss';` en `src/styles.css` (que ademas declara `@source "../libs"` para escanear las librerias Nx). Las clases se ordenan automaticamente con `prettier-plugin-tailwindcss` (configurado en `.prettierrc` con `tailwindStylesheet` apuntando a `src/styles.css`); conviene ejecutar `npx prettier --write` al cerrar cambios de UI.
+
+Comandos (desde `apps/frontend`):
 
 ```bash
 npm install
-npm start
+npm start        # servidor de desarrollo (http://localhost:4200)
 npm run build
 npm test
 ```
 
-La aplicacion de desarrollo queda disponible, por defecto, en `http://localhost:4200/`.
+Linting (desde la raiz, con Nx):
+
+```bash
+npx nx lint frontend
+```
 
 ## 3. Estructura actual
 
-- `src/main.ts`: punto de entrada de la aplicacion.
-- `src/index.html`: documento HTML base.
-- `src/styles.css`: estilos globales.
-- `src/app/app.ts`: componente raiz actual.
-- `src/app/app.html`: plantilla inicial de Angular.
-- `src/app/app.css`: estilos del componente raiz.
-- `src/app/app.config.ts`: configuracion de la aplicacion.
-- `src/app/app.routes.ts`: rutas, actualmente sin flujos de negocio implementados.
-- `src/app/app.spec.ts`: prueba inicial del componente raiz.
-- `src/types`: espacio reservado para tipos compartidos del frontend.
+```text
+apps/frontend/
+├── libs/                       # librerias Nx (cada una con project.json y tags)
+│   ├── core/                   # auth (MSAL), guards, interceptores, http, config, modelos
+│   ├── shared-ui/              # componentes de UI y layout reutilizables
+│   ├── public-portal/          # landing publico de bienvenida
+│   ├── academico/              # componentes academicos reutilizables
+│   ├── estudiante/             # portal estudiante
+│   ├── apoderado/              # portal apoderado
+│   ├── docente/                # portal docente
+│   └── admin/                  # portal administracion (base)
+├── src/
+│   ├── app/
+│   │   ├── app.ts              # componente raiz (router-outlet)
+│   │   ├── app.config.ts       # providers (router, http, MSAL)
+│   │   └── app.routes.ts       # rutas por rol con lazy loading
+│   ├── main.ts                 # carga config runtime y hace bootstrap
+│   ├── index.html
+│   └── types/bff-models.d.ts   # tipos generados desde el BFF
+├── public/config.json          # configuracion runtime (BFF + MSAL)
+├── proxy.conf.json             # proxy /api -> BFF en desarrollo
+├── nginx.conf                  # servidor SPA + proxy /api en contenedor
+├── Dockerfile
+├── angular.json
+├── project.json
+├── tsconfig.json               # alias @siga/*
+└── tsconfig.base.json (raiz)   # paths para el grafo de Nx
+```
 
-## 4. Modulos funcionales previstos
+## 4. Autenticacion y sesion
 
-### Autenticacion y sesion
+- **MSAL Angular v6 + Azure AD**. La configuracion (clientId, authority, redirectUri y scopes) se carga en **runtime** desde `public/config.json` antes del bootstrap (`main.ts`).
+- `MSAL_INSTANCE`, `MSAL_GUARD_CONFIG` y `MSAL_INTERCEPTOR_CONFIG` se registran en `app.config.ts`.
+- `MsalInterceptor` adjunta el token a las llamadas al BFF; `errorInterceptor` centraliza el manejo de errores (p. ej. 401).
+- El retorno del login se procesa en la ruta `/auth` (`MsalRedirectComponent`).
 
-Permitira iniciar y cerrar sesion, conservar el estado del usuario, proteger rutas y adjuntar el token JWT a las solicitudes autorizadas. La autenticacion debera integrarse con el mecanismo configurado en `ms-usuarios-auth` y Azure AD.
+## 5. Rutas por rol
 
-### Inicio y navegacion por rol
+| Ruta | Acceso | Descripcion |
+| --- | --- | --- |
+| `/` | publico | Portal de bienvenida (boton "Ingresar al portal") |
+| `/auth` | publico | Retorno de Azure AD (MSAL) |
+| `/estudiante` | `ESTUDIANTE` | Informacion academica propia |
+| `/apoderado` | `APODERADO` | Seleccion de pupilo y gestiones |
+| `/docente` | `DOCENTE` | Panel docente |
+| `/admin` | `ADMIN` | Administracion (base) |
 
-Funcionara como punto de entrada despues del login. Mostrara accesos segun el rol del usuario, por ejemplo administrador, docente o usuario administrativo.
+- Cada portal se carga con **lazy loading**.
+- `MsalGuard` valida la autenticacion y `roleGuard([...])` valida el rol (a partir del rol autoritativo del BFF via `MeService`).
 
-### Usuarios y roles
+## 6. Librerias Nx
 
-Permitira consultar, registrar, actualizar y desactivar usuarios cuando el rol tenga permisos para hacerlo. Las operaciones se consumiran desde el BFF y no directamente desde cada microservicio.
+- **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`) y guards (`roleGuard`), e interceptores HTTP.
+- **`shared-ui`**: layout compartido (`PortalShell`).
+- **`public-portal`**: landing publico con accesos por rol.
+- **`academico`**: componentes academicos reutilizables (`ResumenAcademico`), usados por estudiante y apoderado con distinto contexto.
+- **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal.
 
-### Estudiantes
+### Fronteras
 
-Permitira consultar y administrar la ficha del estudiante, incluyendo sus datos personales, identificacion, informacion academica y relaciones con cursos o asignaturas.
+`eslint.config.js` aplica `@nx/enforce-module-boundaries` con `tags` (`scope:core`, `scope:shared`, `scope:academico`, `scope:estudiante`, etc.) y `depConstraints`: los portales pueden depender de `core`, `shared` y `academico`, pero no entre si.
 
-### Asignaturas y docentes
+## 7. Contratos con el backend
 
-Permitira consultar asignaturas, cursos, docentes y las relaciones entre ellos. La interfaz debera contemplar formularios de mantenimiento y vistas de consulta.
+- El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
+- `MeService` consume `GET /api/me` para obtener rol y vinculos (p. ej. estudiantes del apoderado). **Pendiente de implementar en el BFF.**
+- Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
 
-### Notas
+## 8. Docker
 
-Permitira registrar, editar y consultar calificaciones por estudiante y asignatura, con validaciones de rango y permisos segun el perfil del usuario.
+- Build en dos etapas (`node:24-alpine` → `nginx:alpine`).
+- Nginx sirve la SPA con fallback a `index.html` y proxya `/api` hacia `http://bff-web:8080`, de modo que el navegador nunca accede a los microservicios ni hay CORS.
+- El contenedor se publica en `http://localhost:4200`.
 
-### Reportes y consultas
-
-Se podran agregar vistas para resumenes academicos, listados filtrables y exportacion. Este modulo depende de que los contratos del backend esten definidos.
-
-## 5. Capas que se deben implementar
-
-- Componentes y paginas para cada flujo.
-- Servicios HTTP para comunicarse con el BFF.
-- Interceptores para JWT, errores y estados de carga.
-- Guards para autenticacion y autorizacion por rol.
-- Modelos TypeScript alineados con los DTO del backend.
-- Formularios reactivos y validaciones.
-- Manejo de errores y mensajes para el usuario.
-- Pruebas unitarias de componentes, servicios y guards.
-
-## 6. Estado actual y trabajo pendiente
+## 9. Estado y trabajo pendiente
 
 | Area | Situacion |
 | --- | --- |
-| Bootstrap de Angular | Disponible |
-| Ruteo de negocio | Pendiente |
-| Login y sesion | Pendiente |
-| Componentes academicos | Pendiente |
-| Servicios HTTP | Pendiente |
-| Integracion con BFF | Pendiente |
-| Control de roles | Pendiente |
+| Bootstrap Angular / Nx | Disponible |
+| Autenticacion MSAL + Azure AD | Disponible |
+| Rutas por rol y guards | Disponible |
+| Portal publico y layout | Disponible (base) |
+| Fronteras Nx | Disponible |
+| Pantallas de negocio (CRUD) | Pendiente |
+| Integracion con BFF (`/me` y recursos) | Pendiente |
+| Formularios y validaciones | Pendiente |
 | Pruebas funcionales | Pendiente |
 
-El siguiente paso recomendado es definir primero el flujo de autenticacion y el layout principal. Luego se pueden implementar los modulos de estudiantes, asignaturas y notas sobre contratos de API estables.
+El siguiente paso es completar el BFF (`/me` y orquestacion) y luego implementar las pantallas de cada portal sobre contratos estables.

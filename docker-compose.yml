@@ -95,6 +95,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-usuarios:3306/siga_usuarios_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      # Microsoft Graph (pre-registro por email y sincronización de roles)
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
+      AZURE_API_APP_ID: ${AZURE_API_APP_ID}
     depends_on:
       mariadb-usuarios:
         condition: service_healthy
@@ -175,6 +178,7 @@ services:
     environment:
       <<: *ms-common-env
       SERVER_PORT: "8080"
+      MS_USUARIOS_URL: http://ms-usuarios-auth:8081
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8087

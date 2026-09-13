@@ -1,5 +1,6 @@
 package cl.siga.coreshare.dto.usuario;
 
+import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -11,6 +12,9 @@ public record ActualizarUsuarioRequestDTO(
     String email,
 
     @NotNull(message = "El estado del usuario es obligatorio")
-    StateUsuario state
+    StateUsuario state,
+
+    // Opcional: si viene, se cambia el rol y se sincroniza con Entra ID.
+    Rol rol
 ) {
 }
