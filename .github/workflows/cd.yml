@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -30,7 +32,7 @@ jobs:
       - name: Setup ECR Repository URLs
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
           echo "REGISTRY=${REGISTRY}" >> $GITHUB_ENV
           echo "MS_USER_ECR=${REGISTRY}/SIGA-usuarios-auth" >> $GITHUB_ENV
           echo "MS_EST_ECR=${REGISTRY}/SIGA-estudiantes" >> $GITHUB_ENV
@@ -43,31 +45,31 @@ jobs:
         run: |
           docker buildx build --platform linux/amd64 \
             -t $MS_USER_ECR:${TAG_VERSION} -t $MS_USER_ECR:latest \
-            ./apps/backend/ms-usuarios-auth --push
+            -f ./apps/backend/ms-usuarios-auth/Dockerfile ./apps/backend --push
 
       - name: Build & Push - ms-estudiantes
         run: |
           docker buildx build --platform linux/amd64 \
             -t $MS_EST_ECR:${TAG_VERSION} -t $MS_EST_ECR:latest \
-            ./apps/backend/ms-estudiantes --push
+            -f ./apps/backend/ms-estudiantes/Dockerfile ./apps/backend --push
 
       - name: Build & Push - ms-asignaturas
         run: |
           docker buildx build --platform linux/amd64 \
             -t $MS_ASIGN_ECR:${TAG_VERSION} -t $MS_ASIGN_ECR:latest \
-            ./apps/backend/ms-asignaturas --push
+            -f ./apps/backend/ms-asignaturas/Dockerfile ./apps/backend --push
 
       - name: Build & Push - ms-notas
         run: |
           docker buildx build --platform linux/amd64 \
             -t $MS_GRADE_ECR:${TAG_VERSION} -t $MS_GRADE_ECR:latest \
-            ./apps/backend/ms-notas --push
+            -f ./apps/backend/ms-notas/Dockerfile ./apps/backend --push
 
       - name: Build & Push - bff-web
         run: |
           docker buildx build --platform linux/amd64 \
             -t $BFF_WEB_ECR:${TAG_VERSION} -t $BFF_WEB_ECR:latest \
-            ./apps/backend/bff-web --push
+            -f ./apps/backend/bff-web/Dockerfile ./apps/backend --push
 
       - name: Build & Push - frontend
         run: |
@@ -78,39 +80,62 @@ jobs:
       - name: Deploy Microservices to Backend EC2 (t3.large)
         uses: appleboy/ssh-action@v1.0.3
         env:
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_TAG: ${{ env.TAG_VERSION }}
-          DB_HOST: ${{ secrets.DB_PRIVATE_IP }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: "10.0.2.40"
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_APP_ID_URI: ${{ secrets.AZURE_APP_ID_URI }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_API_APP_ID: ${{ secrets.AZURE_API_APP_ID }}
         with:
-          host: ${{ secrets.EC2_BACKEND_HOST }}
+          proxy_host: ${{ secrets.EC2_FRONT_HOST }}
+          proxy_username: ${{ secrets.EC2_USER }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
+          host: "10.0.2.30"
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: AWS_REGION,REGISTRY,IMAGE_TAG,DB_HOST,DB_PASSWORD
+          envs: AWS_REGION,REGISTRY,IMAGE_TAG,DB_HOST,DB_USER,DB_PASS,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_CLIENT_SECRET,AZURE_API_APP_ID
           script: |
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
             cd /home/ubuntu/siga-backend
-            export REGISTRY=$REGISTRY
-            export IMAGE_TAG=$IMAGE_TAG
-            export DB_HOST=$DB_HOST
-            export DB_PASSWORD=$DB_PASSWORD
-            docker compose pull
-            docker compose up -d --remove-orphans
+            cat <<EOF > .env
+            REGISTRY=$REGISTRY
+            IMAGE_TAG=$IMAGE_TAG
+            DB_HOST=$DB_HOST
+            DB_USER=$DB_USER
+            DB_PASS=$DB_PASS
+            AZURE_TENANT_ID=$AZURE_TENANT_ID
+            AZURE_CLIENT_ID=$AZURE_CLIENT_ID
+            AZURE_APP_ID_URI=$AZURE_APP_ID_URI
+            AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET
+            AZURE_API_APP_ID=$AZURE_API_APP_ID
+            EOF
+            docker compose --env-file .env pull
+            docker compose --env-file .env up -d --remove-orphans
             docker image prune -f
 
       - name: Deploy BFF to BFF EC2 (t2.micro)
         uses: appleboy/ssh-action@v1.0.3
         env:
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_TAG: ${{ env.TAG_VERSION }}
-          BACKEND_IP: ${{ secrets.BACKEND_PRIVATE_IP }}
+          BACKEND_IP: "10.0.2.30"
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_APP_ID_URI: ${{ secrets.AZURE_APP_ID_URI }}
         with:
-          host: ${{ secrets.EC2_BFF_HOST }}
+          proxy_host: ${{ secrets.EC2_FRONT_HOST }}
+          proxy_username: ${{ secrets.EC2_USER }}
+          proxy_key: ${{ secrets.EC2_SSH_KEY }}
+          host: "10.0.2.20"
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: AWS_REGION,REGISTRY,IMAGE_TAG,BACKEND_IP
+          envs: AWS_REGION,REGISTRY,IMAGE_TAG,BACKEND_IP,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI
           script: |
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
             docker pull $REGISTRY/SIGA-bff-web:$IMAGE_TAG
@@ -119,18 +144,23 @@ jobs:
               --name bff-web \
               --restart unless-stopped \
               -p 8080:8080 \
+              -e SERVER_PORT="8080" \
               -e JAVA_TOOL_OPTIONS="-Xms128m -Xmx400m -XX:+UseSerialGC" \
-              -e URL_MS_USUARIOS="http://${BACKEND_IP}:8081" \
-              -e URL_MS_ESTUDIANTES="http://${BACKEND_IP}:8082" \
-              -e URL_MS_ASIGNATURAS="http://${BACKEND_IP}:8086" \
-              -e URL_MS_NOTAS="http://${BACKEND_IP}:8087" \
+              -e SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_ENABLED="true" \
+              -e SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_PROFILE_TENANT_ID="$AZURE_TENANT_ID" \
+              -e SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_CREDENTIAL_CLIENT_ID="$AZURE_CLIENT_ID" \
+              -e SPRING_CLOUD_AZURE_ACTIVE_DIRECTORY_APP_ID_URI="$AZURE_APP_ID_URI" \
+              -e MS_USUARIOS_URL="http://${BACKEND_IP}:8081" \
+              -e MS_ESTUDIANTES_URL="http://${BACKEND_IP}:8082" \
+              -e MS_ASIGNATURAS_URL="http://${BACKEND_IP}:8086" \
+              -e MS_NOTAS_URL="http://${BACKEND_IP}:8087" \
               $REGISTRY/SIGA-bff-web:$IMAGE_TAG
             docker image prune -f
 
       - name: Deploy Frontend to Front EC2 (t2.micro)
         uses: appleboy/ssh-action@v1.0.3
         env:
-          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_TAG: ${{ env.TAG_VERSION }}
         with:
@@ -145,6 +175,6 @@ jobs:
             docker run -d \
               --name front-app \
               --restart unless-stopped \
-              -p 4200:80 \
+              -p 80:80 \
               $REGISTRY/SIGA-frontend:$IMAGE_TAG
             docker image prune -f
