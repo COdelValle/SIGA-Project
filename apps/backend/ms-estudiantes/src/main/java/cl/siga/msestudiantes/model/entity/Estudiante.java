@@ -5,6 +5,7 @@ import java.util.List;
 import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -74,6 +76,7 @@ public class Estudiante {
     private LocalDate birthDate;
 
     @ElementCollection
+    @CollectionTable(name = "estudiante_allergies", joinColumns = @JoinColumn(name = "estudiante_id"))
     @Column (name = "allergies", nullable = true)
     private List<String> allergies;
 
