@@ -7,7 +7,8 @@ SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y micro
 ```mermaid
 flowchart LR
     U[Usuario] --> F[Frontend Angular + Nginx]
-    F -->|/api| B[BFF Web (esqueleto)]
+    F -->|Bearer JWT| G[API Gateway + JWT Authorizer]
+    G --> B[BFF Web]
     B --> A[MS Usuarios y autenticacion]
     B --> E[MS Estudiantes]
     B --> S[MS Asignaturas]
@@ -83,11 +84,27 @@ Aspectos a completar: contrato final de roles/permisos y validacion de audiencia
 
 ## 6. Despliegue
 
-- **Dockerfiles** por servicio (multi-stage).
-- `docker-compose.yml` levanta: 4 MariaDB, los 4 microservicios, `bff-web` y `frontend` sobre la red `siga-network`.
-- Configuracion centralizada por `.env` (credenciales MariaDB y Azure AD).
-- `frontend` se sirve con Nginx y proxya `/api` al BFF.
-- **Terraform** (`terraform/main.tf`) sigue pendiente.
+Hay dos entornos:
+
+- **Local**: `docker-compose.yml` levanta 4 MariaDB (una por servicio), los 4 microservicios, `bff-web` y `frontend` sobre la red `siga-network`, con configuracion por `.env`.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 4 bases, los 4 microservicios, el BFF y Nginx. Los datos viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+
+Flujo de entrada:
+
+- El navegador (Angular + MSAL) llama al **API Gateway HTTP API** con `Authorization: Bearer`.
+- El **JWT Authorizer** valida el token de Entra ID (firma, `iss`, `aud`) y reenvia al BFF (`http://<eip>:8080/api/...`).
+- Nginx solo sirve el SPA y el `config.json`; ya no proxya `/api`.
+- El BFF y los microservicios revalidan el token y aplican scopes/roles (defensa en profundidad).
+
+Esquema y datos:
+
+- **Flyway** en cada microservicio (`ddl-auto: validate`) crea y evoluciona el esquema; una base vacia se auto-inicializa.
+- `init-db.sh` crea las 4 bases y el usuario en el primer arranque de MariaDB.
+
+CI/CD:
+
+- **CI** (`.github/workflows/ci.yml`): build y tests de backend y frontend.
+- **CD** (`.github/workflows/cd.yml`): construye las imagenes, las sube a ECR y despliega por SSH. Es manual (`deploy` o `workflow_dispatch`) porque las credenciales del learner lab expiran (~4 h).
 
 ## 7. Observabilidad y operacion
 
@@ -106,9 +123,11 @@ Aspectos a completar: contrato final de roles/permisos y validacion de audiencia
 | Asignaturas | CRUD, listado, busqueda, `exists`, soft delete | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
-| Docker Compose | Completo (database-per-service) | Entorno local reproducible |
-| Terraform | Archivo vacio | Infraestructura declarativa |
-| Pruebas | Base de proyecto | Cobertura unitaria, integracion y contratos |
+| Docker Compose | Completo (database-per-service local) | Entorno local reproducible |
+| Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
+| Flyway | Esquema + seed en los 4 microservicios | Migraciones versionadas |
+| CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
+| Pruebas | Unitarias en usuarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
 
 ## 9. Principios de implementacion
 

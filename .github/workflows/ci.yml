@@ -1,40 +1,77 @@
-name: CI Pipeline SIGA
+name: CI
 
 on:
   push:
-    branches: [ dev, feature/nxForCD ]
+    branches: [dev, main, deploy]
+  pull_request:
+    branches: [dev, main]
 
 permissions:
-  actions: read
   contents: read
 
-jobs:
-  main:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
-      - name: Set up JDK
+jobs:
+  backend:
+    name: Backend (build + tests unitarios)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Grant execute permission for mvnw
-        run: |
-          chmod +x apps/backend/*/mvnw || true
+      - name: Permisos de mvnw
+        run: find . -name mvnw -exec chmod +x {} \;
+
+      # Compila todos los modulos y corre los tests unitarios. Se excluyen los
+      # contextLoads (*ApplicationTests) porque requieren base de datos y Azure AD.
+      # typescript-generator.skip evita que bff-web escriba fuera del workspace.
+      - name: Build + tests
+        run: >-
+          mvn -B -ntp package
+          -Dtest='!*ApplicationTests'
+          -DfailIfNoTests=false
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtypescript-generator.skip=true
+
+  frontend:
+    name: Frontend (typecheck + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    env:
+      npm_config_legacy_peer_deps: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Instalar dependencias
+        run: npm ci
 
-      - name: Build Monorepo
-        run: npx nx run-many -t build --parallel=2
+      - name: Typecheck
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Tests unitarios
+        run: npm test -- --watch=false
+
+      - name: Build de produccion
+        run: npm run build -- --configuration production
