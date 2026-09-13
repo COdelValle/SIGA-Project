@@ -1,0 +1,16 @@
+// Copiar a terraform.tfvars (gitignored) y ajustar.
+// NO poner secretos aquí: las credenciales de la app (DB, Azure) van en los
+// secretos de GitHub y se escriben en el .env del servidor durante el CD.
+
+aws_region       = "us-east-1"
+management_name  = "SIGA"
+key_name         = "vockey"
+instance_type    = "t3.medium"
+data_volume_size = 10
+ssh_cidr         = "0.0.0.0/0"
+
+// Verificar con jwt.ms / jwt.io decodificando un access token real antes de
+// aplicar. Si el token es v1, el issuer es https://sts.windows.net/<tenant>/ y
+// el audience suele ser el GUID en lugar de api://<client-id>.
+azure_audience = "api://afad9bb4-4804-4b86-965d-34b67774f629"
+azure_issuer   = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
