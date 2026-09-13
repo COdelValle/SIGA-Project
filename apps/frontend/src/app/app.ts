@@ -1,54 +1,25 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { MsalService } from '@azure/msal-angular';
 import { MeService, ROL_HOME } from '@siga/core';
-import { Subject, takeUntil } from 'rxjs';
-
-const MSAL_URL_PARAMS = [
-  'state',
-  'code',
-  'error',
-  'error_description',
-  'session_state',
-  'client_info',
-  'ear_jwe',
-];
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
   template: '<router-outlet />',
 })
-export class App implements OnInit, OnDestroy {
+export class App implements OnInit {
   private readonly msal = inject(MsalService);
   private readonly meService = inject(MeService);
   private readonly router = inject(Router);
-  private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    // Procesa el retorno de Microsoft (login Y logout) en cualquier ruta.
-    // Si no se procesa, el estado SIGNOUT queda "en progreso" en sessionStorage
-    // y bloquea los siguientes inicios de sesion (interaction_in_progress).
-    this.msal
-      .handleRedirectObservable({ navigateToLoginRequestUrl: false })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => this.limpiarParametrosMsal(),
-        error: (error) => {
-          console.error('Error procesando el redirect de MSAL', error);
-          this.limpiarParametrosMsal();
-        },
-        complete: () => {
-          if (this.msal.instance.getAllAccounts().length > 0) {
-            this.redirigirSegunRol();
-          }
-        },
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    // El retorno de Microsoft (login y logout) ya se proceso y limpio en el
+    // APP_INITIALIZER (app.config.ts), antes de la navegacion inicial del router.
+    // Si hay sesion activa, resolvemos el rol y llevamos al portal.
+    if (this.msal.instance.getAllAccounts().length > 0) {
+      this.redirigirSegunRol();
+    }
   }
 
   private redirigirSegunRol(): void {
@@ -66,39 +37,5 @@ export class App implements OnInit, OnDestroy {
         // 401 u otro error: se mantiene en el portal publico.
       },
     });
-  }
-
-  /** Quita de la URL los parametros de respuesta de MSAL (state, code, ...). */
-  private limpiarParametrosMsal(): void {
-    const url = new URL(window.location.href);
-    let cambio = false;
-
-    MSAL_URL_PARAMS.forEach((param) => {
-      if (url.searchParams.has(param)) {
-        url.searchParams.delete(param);
-        cambio = true;
-      }
-    });
-
-    const hash = url.hash.startsWith('#') ? url.hash.slice(1) : '';
-    if (hash.includes('=')) {
-      const hashParams = new URLSearchParams(hash);
-      let hashCambio = false;
-      MSAL_URL_PARAMS.forEach((param) => {
-        if (hashParams.has(param)) {
-          hashParams.delete(param);
-          hashCambio = true;
-        }
-      });
-      if (hashCambio) {
-        const restante = hashParams.toString();
-        url.hash = restante ? `#${restante}` : '';
-        cambio = true;
-      }
-    }
-
-    if (cambio) {
-      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
-    }
   }
 }
