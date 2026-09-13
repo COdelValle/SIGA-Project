@@ -12,6 +12,7 @@ export function msalInstanceFactory(config: AppConfig): PublicClientApplication 
       clientId: config.msal.clientId,
       authority: config.msal.authority,
       redirectUri: config.msal.redirectUri,
+      postLogoutRedirectUri: config.msal.postLogoutRedirectUri,
     },
     cache: {
       cacheLocation: BrowserCacheLocation.LocalStorage,

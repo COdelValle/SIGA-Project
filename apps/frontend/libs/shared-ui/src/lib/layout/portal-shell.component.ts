@@ -3,41 +3,18 @@ import { Component, Input } from '@angular/core';
 @Component({
   selector: 'siga-portal-shell',
   template: `
-    <header class="siga-header">
-      <span class="siga-brand">SIGA</span>
-      <span class="siga-portal">{{ portal }}</span>
-    </header>
-    <main class="siga-main">
-      <ng-content />
-    </main>
+    <div class="flex min-h-dvh flex-col bg-slate-50">
+      <header
+        class="flex items-center justify-between bg-gradient-to-r from-slate-900 to-blue-800 px-6 py-4 text-white shadow-md"
+      >
+        <span class="text-lg font-bold tracking-widest">SIGA</span>
+        <span class="text-sm font-medium text-blue-100">{{ portal }}</span>
+      </header>
+      <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <ng-content />
+      </main>
+    </div>
   `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-height: 100dvh;
-        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-      }
-      .siga-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: #1f3a5f;
-        color: #ffffff;
-      }
-      .siga-brand {
-        font-weight: 700;
-        letter-spacing: 0.08em;
-      }
-      .siga-portal {
-        opacity: 0.85;
-      }
-      .siga-main {
-        padding: 1.5rem;
-      }
-    `,
-  ],
 })
 export class PortalShellComponent {
   @Input() portal = '';

@@ -35,7 +35,7 @@ public class Usuario {
 
     @NotNull(message = "El rol es obligatorio")
     @Enumerated(EnumType.STRING)
-    @Column(name = "rol", nullable = false, length = 50, updatable = false)
+    @Column(name = "rol", nullable = false, length = 50)
     private Rol rol;
 
     @NotNull(message = "El estado del usuario es obligatorio")

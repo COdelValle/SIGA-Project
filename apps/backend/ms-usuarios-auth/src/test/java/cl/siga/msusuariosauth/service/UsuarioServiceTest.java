@@ -1,34 +1,86 @@
 package cl.siga.msusuariosauth.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.UUID;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msusuariosauth.integration.graph.GraphUserDirectory;
 import cl.siga.msusuariosauth.model.entity.Usuario;
+import cl.siga.msusuariosauth.model.mapper.UsuarioMapper;
 import cl.siga.msusuariosauth.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
 
-@SpringBootTest
-@RequiredArgsConstructor 
-public class UsuarioServiceTest {
+@ExtendWith(MockitoExtension.class)
+class UsuarioServiceTest {
 
-    private final UsuarioRepository usuarioRepository;
+    private static final String OID = "12345678-1234-1234-1234-123456789012";
 
-    @Test 
-    void testCrearUsuarioLocal() {
-        // Generas un UUID al vuelo que emula perfectamente el formato de Azure
-        String idDePrueba = UUID.randomUUID().toString();
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
-        // Usas el Builder de Lombok de forma limpia
-        Usuario usuarioTest = Usuario.builder()
-                .id(idDePrueba)
-                .email("carlos@test.com")
-                .build();
+    @Mock
+    private UsuarioMapper mapper;
 
-        usuarioRepository.save(usuarioTest);
-        assertNotNull(usuarioRepository.findById(idDePrueba));
+    @Mock
+    private GraphUserDirectory graphDirectory;
+
+    @InjectMocks
+    private UsuarioService service;
+
+    @Test
+    void saveUsuario_registraComoActivo() {
+        RegistrarUsuarioRequestDTO request =
+                new RegistrarUsuarioRequestDTO(OID, "user@test.com", Rol.DOCENTE);
+        Usuario entity = Usuario.builder().id(OID).email("user@test.com").rol(Rol.DOCENTE).build();
+        UsuarioResponseDTO response =
+                new UsuarioResponseDTO(OID, "user@test.com", Rol.DOCENTE, StateUsuario.ACTIVO);
+
+        when(usuarioRepository.existsById(OID)).thenReturn(false);
+        when(usuarioRepository.existsByEmail("user@test.com")).thenReturn(false);
+        when(mapper.toEntity(request)).thenReturn(entity);
+        when(usuarioRepository.save(entity)).thenReturn(entity);
+        when(mapper.toResponseDto(entity)).thenReturn(response);
+
+        UsuarioResponseDTO result = service.saveUsuario(request);
+
+        assertNotNull(result);
+        assertEquals(StateUsuario.ACTIVO, entity.getState());
+        verify(usuarioRepository).save(entity);
+    }
+
+    @Test
+    void saveUsuario_rechazaEmailDuplicado() {
+        RegistrarUsuarioRequestDTO request =
+                new RegistrarUsuarioRequestDTO(OID, "user@test.com", Rol.DOCENTE);
+
+        when(usuarioRepository.existsById(OID)).thenReturn(false);
+        when(usuarioRepository.existsByEmail("user@test.com")).thenReturn(true);
+
+        assertThrows(BusinessException.class, () -> service.saveUsuario(request));
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void getUsuarioById_lanzaCuandoNoExiste() {
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.getUsuarioById(OID));
     }
 }

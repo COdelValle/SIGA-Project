@@ -2,24 +2,24 @@
 
 ## 1. Proposito
 
-El backend de SIGA esta organizado como un proyecto Maven multi-modulo basado en Spring Boot. Su objetivo es separar las responsabilidades del dominio academico en servicios independientes, exponer APIs protegidas y centralizar los contratos compartidos.
+El backend de SIGA es un proyecto Maven multi-modulo basado en Spring Boot. Separa las responsabilidades del dominio academico en servicios independientes, expone APIs REST protegidas y centraliza los contratos compartidos en la libreria `core-share`.
 
-La estructura ya existe, pero la implementacion funcional aun es parcial. Hay modulos con entidades, repositorios y servicios iniciales, mientras que otros solo tienen su aplicacion y configuracion base.
+El nucleo academico ya es funcional (CRUD, validaciones, busqueda y borrado logico). El BFF y la infraestructura Terraform siguen pendientes.
 
 ## 2. Ubicacion y tecnologias
 
 - Ubicacion: `apps/backend`
 - Java 21
 - Spring Boot 3.5.0
-- Maven
-- Spring Security y OAuth2 Resource Server con JWT
-- Spring Cloud OpenFeign para comunicacion entre servicios
+- Spring Cloud 2025.0.0 (OpenFeign) + Resilience4j
+- Maven multi-modulo
+- Spring Security y OAuth2 Resource Server con JWT (Azure AD)
 - Spring Data JPA e Hibernate
 - MapStruct y Lombok
-- Springdoc OpenAPI y Scalar
-- MariaDB como base de datos prevista
+- springdoc 2.8.14 (Swagger UI) + Scalar (starter nativo de springdoc)
+- MariaDB (una base por microservicio)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Los modulos actualmente declarados son `core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas` y `ms-notas`.
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas` y `ms-notas`.
 
 ## 3. Componentes del backend
 
@@ -27,118 +27,159 @@ El `pom.xml` padre centraliza versiones, dependencias y modulos. Los modulos act
 
 Ubicacion: `apps/backend/bff-web`
 
-Es la puerta de entrada pensada para el frontend. Debe ocultar la topologia interna, coordinar solicitudes y entregar respuestas orientadas a las necesidades de la interfaz.
+Puerta de entrada pensada para el frontend: oculta la topologia interna, coordina solicitudes y entrega respuestas orientadas a la interfaz.
 
 Responsabilidades previstas:
 
 - Exponer endpoints consumibles por Angular.
 - Validar el token y propagar el contexto de seguridad.
-- Orquestar llamadas a microservicios.
-- Unificar respuestas y errores para el frontend.
-- Evitar que el navegador dependa de las direcciones internas de cada servicio.
+- Orquestar llamadas a los microservicios (Feign).
+- Unificar respuestas y errores.
+- Evitar que el navegador dependa de las direcciones internas.
 
-Actualmente contiene la aplicacion Spring Boot, configuracion de seguridad y un DTO provisional. La orquestacion y los endpoints funcionales siguen pendientes.
+Estado actual: **esqueleto**. Contiene la aplicacion Spring Boot, seguridad compartida y un DTO provisional. La orquestacion y el endpoint `/me` (rol + vinculos para el frontend) estan pendientes.
 
 ### 3.2 Servicio de usuarios y autenticacion
 
-Ubicacion: `apps/backend/ms-usuarios-auth`
+Ubicacion: `apps/backend/ms-usuarios-auth` · puerto `8081`
 
-Responsabilidad de administrar usuarios, roles y estado de las cuentas, ademas de integrarse con la autenticacion basada en JWT.
+Administra usuarios, roles y estado de las cuentas, en conjunto con los claims del JWT de Azure AD.
 
-La base actual incluye:
+Incluye:
 
-- Entidad `Usuario`.
-- `UsuarioRepository`.
-- `UsuarioService`.
-- `UsuarioController`.
-- Mapper y especificaciones de consulta.
-- DTO de registro, actualizacion y respuesta en `core-share`.
+- Entidad `Usuario` (PK = `id` de Azure, rol, estado).
+- `UsuarioRepository` (JPA + Specifications), `UsuarioSpecifications`.
+- `UsuarioService` y `UsuarioMapper` (MapStruct).
+- `UsuarioController` en `/api/v1/usuarios` con CRUD.
+- DTOs de registro, actualizacion y respuesta en `core-share`.
 
-Pendientes principales:
+Comportamiento:
 
-- Definir completamente el contrato de autenticacion.
-- Resolver el modelo final de identidad entre Azure AD y SIGA.
-- Completar autorizacion por roles y permisos.
-- Agregar pruebas y persistencia verificada.
+- `POST` crea el usuario con estado `ACTIVO`.
+- `DELETE` aplica **borrado logico** (estado `INACTIVO`); los inactivos no se devuelven en consultas.
+- `GET /search` filtra por `email`, `rol` y `state`.
+
+Seguridad: `hasRole('ADMIN')` combinado con `hasAuthority('SCOPE_usuarios:read|write|update|delete')`.
+
+Pendientes: contrato final de identidad (Azure AD vs SIGA) y pruebas.
 
 ### 3.3 Servicio de estudiantes
 
-Ubicacion: `apps/backend/ms-estudiantes`
+Ubicacion: `apps/backend/ms-estudiantes` · puerto `8082`
 
-Responsabilidad de administrar la ficha academica y personal de los estudiantes.
+Administra la ficha personal y academica de los estudiantes.
 
-La base actual incluye:
+Incluye:
 
-- Entidad `Estudiante`.
-- `EstudianteRepository`.
-- `EstudianteService`.
-- Mapper de estudiante.
-- DTO de registro, actualizacion y respuesta compartidos.
-- Configuracion para base de datos y seguridad.
+- Entidad `Estudiante` (RUT validado, nombres/apellidos, fecha de nacimiento, alergias, estado).
+- Repositorio, service, mapper y `EstudianteSpecifications`.
+- `EstudianteController` en `/api/v1/estudiantes`.
 
-El servicio debera evolucionar hacia operaciones REST completas, validaciones, filtros, matricula y relaciones academicas. Esas capacidades aun no estan terminadas.
+Endpoints:
+
+- `GET /{id}`, `GET /idUsuario/{idUsuario}`, `GET /search` (rut, nombres, apellidos, rango de fecha, estado).
+- `GET /exists/{id}` (verificacion de existencia; usado por otros servicios).
+- `POST`, `PUT /{id}`, `DELETE /{id}`.
+
+Comportamiento y reglas:
+
+- Normaliza RUT y nombres a mayusculas.
+- `DELETE` aplica **borrado logico** (`State.INACTIVO`); `State` se centraliza en `core-share`.
+- Valida RUT chileno con `@RUT`.
 
 ### 3.4 Servicio de asignaturas
 
-Ubicacion: `apps/backend/ms-asignaturas`
+Ubicacion: `apps/backend/ms-asignaturas` · puerto `8086`
 
-Responsabilidad prevista de gestionar asignaturas, cursos, docentes y sus relaciones academicas.
+Gestiona asignaturas. La entidad usa nombres en ingles (`name`, `description`).
 
-Actualmente existe la aplicacion Spring Boot y una configuracion de seguridad. El dominio, las entidades, los repositorios, los servicios y los controladores funcionales deben implementarse.
+Incluye:
+
+- Entidad `Asignatura` (nombre unico, descripcion y `active`).
+- Repositorio, service, mapper.
+- `AsignaturaController` en `/api/v1/asignaturas`.
+
+Endpoints:
+
+- `GET /{id}`, `GET` (listado), `GET /search?name=`, `GET /name/{name}`, `GET /exists/{id}`.
+- `POST`, `PUT /{id}`, `DELETE /{id}`.
+
+Comportamiento:
+
+- `DELETE` aplica **borrado logico** (`active = false`); listados y `exists` solo consideran activos.
+- Normaliza el nombre (mayusculas) para busquedas y unicidad.
 
 ### 3.5 Servicio de notas
 
-Ubicacion: `apps/backend/ms-notas`
+Ubicacion: `apps/backend/ms-notas` · puerto `8087`
 
-Responsabilidad prevista de registrar y consultar calificaciones relacionadas con estudiantes y asignaturas.
+Registra y consulta calificaciones relacionadas con estudiantes y asignaturas.
 
-Actualmente existe la aplicacion y la configuracion base del modulo. Quedan pendientes las entidades, reglas de rango y periodo, repositorios, servicios, endpoints y pruebas.
+Incluye:
+
+- Entidad `Nota` (`idEstudiante`, `idAsignatura`, `score`, `active`).
+- Repositorio, service, mapper y `NotaSpecifications`.
+- `NotaController` en `/api/v1/notas`.
+
+Endpoints:
+
+- `GET /{id}`, `GET /search` (por estudiante, asignatura y rango de nota).
+- `POST`, `PUT /{id}`, `DELETE /{id}`.
+
+Comportamiento e integracion:
+
+- Valida el rango de la nota (1.0 a 7.0) con `@ChileanGrade`.
+- **Integracion Feign**: antes de guardar, verifica la existencia del estudiante (`ms-estudiantes`) y de la asignatura (`ms-asignaturas`) usando sus endpoints `exists`.
+- **Resilience4j**: circuit breaker y timeouts configurados; si un servicio no responde, se aplica el fallback y se responde `503`.
+- Propagacion del token: un `RequestInterceptor` reenvia el `Authorization` entrante en las llamadas Feign.
+- `DELETE` aplica **borrado logico** (`active = false`).
 
 ### 3.6 Biblioteca compartida
 
 Ubicacion: `apps/backend/libs/core-share`
 
-Centraliza elementos reutilizables sin convertir los microservicios en un unico modulo de negocio.
+Centraliza elementos reutilizables, sin logica de un dominio especifico:
 
-Incluye actualmente:
+- **DTOs** de usuario, estudiante, asignatura y notas.
+- **Enums**: `Rol`, `StateUsuario` y `State` (estudiante).
+- **Validadores**: `@RUT` (RUT chileno), `@Phone` y `@ChileanGrade` (nota 1.0 a 7.0).
+- **Seguridad**: `SharedSecurityConfig` (filtro stateless, rutas publicas de salud/documentacion y conversion de claims `scp`/`roles` a scopes/roles) y `SecurityUtils`.
+- **Excepciones**: `BusinessException`, `ResourceNotFoundException`, `BadRequestException`, `ServiceUnavailableException`, `GlobalExceptionHandler` y `ErrorResponseDTO`.
+- **OpenAPI**: `SharedOpenApiConfig` (esquema `bearerAuth`).
+- **Fechas**: `CommonDateFormatConfig` (`dd/MM/yyyy` para JSON y parametros).
 
-- DTO de usuarios, estudiantes, asignaturas y notas.
-- Enumeraciones de roles y estado de usuario.
-- Validadores de RUT, telefono y calificacion chilena.
-- Configuracion de seguridad compartida.
-- Utilidades de seguridad.
-- Excepciones de negocio y respuestas de error.
-- Configuracion compartida de OpenAPI.
-
-La libreria debe mantenerse enfocada en contratos, validaciones y componentes transversales. Las entidades y reglas especificas deben permanecer en su microservicio.
+Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 
 ## 4. Seguridad y contratos
 
-La seguridad esta preparada para OAuth2/JWT. Las rutas de documentacion pueden exponerse publicamente, mientras que el resto de los endpoints debe requerir autenticacion.
-
-La documentacion OpenAPI se contempla mediante:
-
-- `/v3/api-docs`
-- `/docs/swagger`
-- `/docs/scalar`
-
-Los contratos deben definirse primero en cada servicio y luego reflejarse en los DTO compartidos y en los modelos TypeScript del frontend.
+- OAuth2/JWT con Azure AD (`spring.cloud.azure.active-directory`).
+- Autorizacion por metodo: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
+- Rutas publicas limitadas a salud y documentacion tecnicas.
+- El frontend no accede a los microservicios: lo hara a traves del BFF.
+- Los contratos se definen en cada servicio y se reflejan en los DTOs de `core-share` y en los modelos TypeScript del frontend.
 
 ## 5. Datos y configuracion
 
-Los servicios esperan variables de entorno para conexion a MariaDB, credenciales y direcciones internas. Entre las variables previstas se encuentran `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL` y `MS_NOTAS_URL`.
+- Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
+- `docker-compose.yml` levanta 4 MariaDB, los 4 microservicios, el BFF y el frontend.
+- En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=update` y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
+- Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`.
 
-Docker Compose contiene una base inicial para la red, el volumen de MariaDB y `ms-estudiantes`. La orquestacion completa de todos los servicios y la definicion de salud de cada uno estan pendientes.
+## 6. Documentacion API
 
-## 6. Estado y orden recomendado
+Servida por cada servicio:
 
-1. Definir entidades y reglas del dominio.
-2. Completar repositorios, servicios y controladores de cada microservicio.
-3. Definir contratos OpenAPI y respuestas de error.
-4. Implementar autenticacion y autorizacion por rol.
-5. Implementar la orquestacion del BFF.
-6. Integrar MariaDB y migraciones de esquema.
-7. Añadir pruebas unitarias, de integracion y de contrato.
-8. Completar Docker Compose y observabilidad.
+- `/v3/api-docs` y `/v3/api-docs.yaml`: especificacion OpenAPI.
+- `/docs/swagger`: Swagger UI (redirige a `/docs/swagger-ui/index.html`).
+- `/docs/scalar`: Scalar UI.
 
-El backend tiene una base tecnica aprovechable, pero no debe considerarse una API terminada hasta que esos flujos esten implementados y probados.
+Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 3.5 / Spring Framework 6.2 (2.6.0 fallaba al generar el OpenAPI y 2.8.15+ tenia una regresion de patrones de ruta).
+
+## 7. Estado y orden recomendado
+
+1. Implementar la orquestacion del BFF y el endpoint `/me`.
+2. Conectar el frontend a traves del BFF.
+3. Anadir pruebas unitarias, de integracion y de contrato.
+4. Definir migraciones de esquema para produccion.
+5. Completar Docker/observabilidad y Terraform.
+6. Incorporar servicios futuros (`ms-docentes`, `ms-apoderados`, `ms-asistencias`, `ms-auditoria`).

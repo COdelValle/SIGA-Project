@@ -8,8 +8,8 @@ import { PortalShellComponent } from '@siga/shared-ui';
   imports: [PortalShellComponent, ResumenAcademicoComponent],
   template: `
     <siga-portal-shell portal="Portal Estudiante">
-      <h2>Mi informacion academica</h2>
-      <p>Aqui veras tus notas, asignaturas y asistencias.</p>
+      <h2 class="text-2xl font-semibold text-slate-900">Mi informacion academica</h2>
+      <p class="mt-1 text-sm text-slate-500">Aqui veras tus notas, asignaturas y asistencias.</p>
       <siga-resumen-academico />
     </siga-portal-shell>
   `,

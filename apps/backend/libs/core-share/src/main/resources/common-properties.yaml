@@ -8,3 +8,9 @@ spring:
         credential:
           client-id: ${AZURE_CLIENT_ID}
         app-id-uri: ${AZURE_APP_ID_URI}
+        resource-server:
+          # Mapea los claims del token de Entra ID a authorities de Spring Security.
+          # Sin esto Azure usa APPROLE_ para el claim "roles" y hasRole('ADMIN') nunca coincide.
+          claim-to-authority-prefix-map:
+            scp: SCOPE_
+            roles: ROLE_
