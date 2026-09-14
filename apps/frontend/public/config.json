@@ -1,0 +1,10 @@
+{
+  "bffBaseUrl": "/api",
+  "msal": {
+    "clientId": "afad9bb4-4804-4b86-965d-34b67774f629",
+    "authority": "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831",
+    "redirectUri": "/auth",
+    "postLogoutRedirectUri": "/sin-acceso",
+    "scopes": ["api://afad9bb4-4804-4b86-965d-34b67774f629/Acceso.Base"]
+  }
+}

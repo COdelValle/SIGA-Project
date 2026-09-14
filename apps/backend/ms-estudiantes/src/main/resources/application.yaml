@@ -1,19 +1,36 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: ms-estudiantes
-    description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrícula
+    description: Gestiona el CRUD de los alumnos, sus perfiles, alergias y matrÃ­cula
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_estudiantes_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  # Flyway administra el esquema. baseline-on-migrate permite convivir con bases
+  # creadas previamente por Hibernate (ddl-auto=update) sin historial de Flyway.
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+  config:
+    import: "optional:classpath:common-properties.yaml"
 
-# Configuración de OpenAPI / Swagger
+# ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /docs/swagger
-
-# Configuración de Scalar UI
+# ConfiguraciÃ³n de Scalar UI
 scalar:
   enabled: true
-  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
-  url: /v3/api-docs           # Especificación JSON a consumir
-  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
   darkMode: true

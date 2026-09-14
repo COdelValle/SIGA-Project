@@ -56,8 +56,8 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scalar.maven</groupId>
-            <artifactId>scalar-webmvc</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-scalar</artifactId>
         </dependency>
 
         <!-- Monitoreo -->
@@ -65,6 +65,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Azure Spring Cloud -->
+        <dependency>
+            <groupId>com.azure.spring</groupId>
+            <artifactId>spring-cloud-azure-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>core-share</artifactId>
+        </dependency>
+        
     </dependencies>
 
     <build>
@@ -72,6 +88,36 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>cz.habarta.typescript-generator</groupId>
+                <artifactId>typescript-generator-maven-plugin</artifactId>
+                <version>3.2.1263</version>
+                <executions>
+                    <execution>
+                        <id>generate</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jsonLibrary>jackson2</jsonLibrary>
+                    <outputKind>module</outputKind>
+                    <outputFileType>declarationFile</outputFileType>
+                    <!-- Los mapea como interfaces limpias de TypeScript -->
+                    <mapClasses>asInterfaces</mapClasses> 
+                    
+                    <!-- Apunta únicamente a tus DTOs independientes del BFF -->
+                    <classPatterns>
+                        <!-- El '**' en el medio permite que funcione para 'estudiantes', 'profesores', 'asignaturas', etc. -->
+                        <classPattern>cl.siga.bffweb.domain.**.dto.api.**</classPattern>
+                    </classPatterns>
+                    
+                    <!-- Ruta donde el frontend recogerá el archivo -->
+                    <outputFile>..\..\..\apps\frontend\src\types\bff-models.d.ts</outputFile>
+                </configuration>
             </plugin>
         </plugins>
     </build>

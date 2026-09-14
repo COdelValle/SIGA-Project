@@ -37,6 +37,22 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Migraciones de base de datos -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
+        <!-- Microsoft Graph (client credentials) para resolver oid y sincronizar roles -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+        </dependency>
+
         <!-- Seguridad JWT / Azure AD -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -53,8 +69,8 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.scalar.maven</groupId>
-            <artifactId>scalar-webmvc</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-scalar</artifactId>
         </dependency>
 
         <!-- Monitoreo y Mapeo -->
@@ -65,6 +81,13 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <!-- Dependencias internas -->
+        <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>core-share</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

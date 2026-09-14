@@ -1,0 +1,4 @@
+cl.siga.coreshare.exception.GlobalExceptionHandler
+cl.siga.coreshare.security.SharedSecurityConfig
+cl.siga.coreshare.config.SharedOpenApiConfig
+cl.siga.coreshare.config.CommonDateFormatConfig
