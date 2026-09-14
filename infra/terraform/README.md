@@ -1,17 +1,18 @@
 # SIGA - Infraestructura AWS (Terraform)
 
 Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.medium`, un
-volumen EBS dedicado para los datos de MariaDB, **CloudFront** para servir el SPA
-por HTTPS (requisito de MSAL) y un API Gateway HTTP API que valida el JWT de
-Azure AD antes de llegar al BFF.
+volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
+sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure AD antes de
+llegar al BFF.
 
 ```
 Navegador (Angular + MSAL)
-  |  HTTPS (SPA)                      |  HTTPS + Bearer <token Entra ID>
-  v                                   v
-CloudFront (*.cloudfront.net)     API Gateway HTTP API  -- JWT Authorizer
-  |  HTTP origin :80                  |  HTTP_PROXY http://<eip>:8080/api/{proxy}
-  v                                   v
+  |  HTTPS
+  v
+API Gateway HTTP API (HTTPS)
+  |- $default          -> http://<eip>:80                    (SPA + assets, sin auth)
+  `- ANY /api/{proxy+} -> http://<eip>:8080/api/{proxy}      (JWT Authorizer)
+  v
 EC2 t3.medium (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
@@ -19,6 +20,11 @@ EC2 t3.medium (EIP)
   |- mariadb:3306    4 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
 ```
+
+Nota: se intentó CloudFront para el HTTPS, pero el LabRole deniega
+`cloudfront:CreateDistribution`. API Gateway sirve el SPA por HTTPS con su
+certificado de `*.execute-api`, lo que da contexto seguro a MSAL y ademas deja
+SPA y API en el mismo origen (sin CORS).
 
 ## Requisitos
 
@@ -103,8 +109,8 @@ credenciales AWS, de modo que sobreviven a recrear la infraestructura.
 
 Registrar en la app SPA de Entra ID (Authentication -> Single-page application):
 
-- `https://<cloudfront-domain>/auth` (para local: `http://localhost:4200/auth`)
-- post-logout: `https://<cloudfront-domain>/sin-acceso`
+- `https://<api-gateway-invoke-url>/auth` (para local: `http://localhost:4200/auth`)
+- post-logout: `https://<api-gateway-invoke-url>/sin-acceso`
 
 El dominio lo dan los outputs `frontend_url`, `azure_redirect_uri` y
 `azure_post_logout_redirect_uri` tras el `apply`. Sin esto, el login falla con
