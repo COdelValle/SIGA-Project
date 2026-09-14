@@ -1,7 +1,7 @@
 # Limpieza de ramas
 
-Documento de trabajo. **Nada se elimina todavia**: sirve como inventario para
-ejecutar la limpieza cuando el equipo lo autorice.
+Estado: **ejecutada** (2026-09-14). El repositorio quedo con solo tres ramas
+remotas: `dev`, `main` y `deploy`.
 
 ## Modelo adoptado
 
@@ -15,91 +15,40 @@ feature/*  ->  dev  ->  main  ->  deploy
 - **deploy**: rama que dispara el CD (`push: deploy` + `workflow_dispatch`).
 - **feature/*** y **fix/***: ramas cortas, se eliminan al integrar.
 
-## Estado actual (resumen)
+## Resultado
 
-`main` esta ~97 commits por detras de `dev` y es la rama por defecto del repo.
-Casi todas las ramas ya estan contenidas en `dev`.
+- Se eliminaron **28 ramas ya integradas** en `dev` (locales y remotas).
+- Se eliminaron **4 ramas con commits propios** que estaban obsoletas, dejando
+  un tag de respaldo por cada una antes de borrarlas:
 
-## 1. Ramas ya integradas en `dev` (seguras de eliminar)
+| Rama eliminada | Tag de respaldo |
+| --- | --- |
+| `feature/infrasEc2` | `archive/infrasEc2` |
+| `feature/infraestructure` | `archive/infraestructure` |
+| `feature/azure` | `archive/azure` |
+| `exp/bff-web-structure` | `archive/bff-web-structure` |
 
-Tienen 0 commits propios respecto a `dev`:
+Los tags se pueden consultar con `git tag -l "archive/*"` y
+`git show archive/<nombre>`. Para recuperar una rama:
+`git branch <nueva-rama> archive/<nombre>`.
 
-- `docs/readme`
-- `feature/docker-infra`
-- `feature/frontend`
-- `feature/ms-estudiantes`
-- `feature/bff-web`
-- `feature/common-security`
-- `feature/core-share`
-- `feature/dtos`
-- `feature/java-common-security`
-- `feature/ms-asignaturas`
-- `feature/ms-notas`
-- `feature/ms-usuarios-auth`
-- `feature/nxForCD`
-- `feature/workflow`
-- `fix/backend-contracts`
-- `fix/backend-data`
-- `fix/backend-errors-config`
-- `fix/backend-feign-tuning`
-- `fix/backend-pom`
-- `fix/backend-security`
-- `fix/backend-soft-delete`
-- `fix/backend-swagger`
-- `fix/bff-microservices-config`
-- `fix/frontend-docker-build`
-- `fix/login-e2e`
-- `fix/msal-logout-redirect`
-- `fix/msal-url-cleanup`
+`deploy` quedo alineada con `main` (ya no es el scaffold viejo).
 
-## 2. Ramas con commits propios (revisar antes de eliminar)
+## Flujo de trabajo
 
-| Rama | Contenido | Decision |
-| --- | --- | --- |
-| `feature/infrasEc2` | Unico Terraform real, pero invalido y basado en un `dev` viejo | **Rescatar solo la infra conceptual** (ya reescrita en `infra/terraform`). **NO mergear**: revierte el `.gitignore` de `.env` y renombra `ci.yml`. Eliminar. |
-| `feature/infraestructure` | Terraform antiguo (`main.tf` vacio) | Eliminar. |
-| `exp/bff-web-structure` | Experimento de estructura BFF | Revisar; probablemente eliminar. |
-| `feature/azure` | Commit obsoleto + `package.json.backup` | Eliminar. |
-| `deploy` | Divergida y obsoleta; el CD apunta aqui | Recrear desde `main`. |
+1. Crear `feature/<algo>` o `fix/<algo>` desde `dev`.
+2. PR a `dev` (merge `--no-ff`).
+3. PR `dev` -> `main` (merge `--no-ff`).
+4. Actualizar `deploy` desde `main` para disparar el CD:
+   ```bash
+   git fetch origin
+   git branch -f deploy origin/main
+   git push origin deploy --force-with-lease
+   ```
+5. Borrar la rama corta tras el merge.
 
-## 3. Comandos sugeridos (ejecutar por separado, con el equipo de acuerdo)
+## Protecciones recomendadas en GitHub
 
-Actualizar `main` a `dev`:
-
-```bash
-git checkout main
-git merge --ff-only dev
-git push origin main
-```
-
-Recrear `deploy` desde `main`:
-
-```bash
-git branch -f deploy main
-git push origin deploy --force-with-lease
-```
-
-Eliminar ramas locales integradas:
-
-```bash
-git branch -d docs/readme feature/docker-infra feature/frontend feature/ms-estudiantes \
-  feature/bff-web feature/common-security feature/core-share feature/dtos \
-  feature/java-common-security feature/ms-asignaturas feature/ms-notas \
-  feature/ms-usuarios-auth feature/nxForCD feature/workflow \
-  fix/backend-contracts fix/backend-data fix/backend-errors-config \
-  fix/backend-feign-tuning fix/backend-pom fix/backend-security \
-  fix/backend-soft-delete fix/backend-swagger fix/bff-microservices-config \
-  fix/frontend-docker-build fix/login-e2e fix/msal-logout-redirect fix/msal-url-cleanup
-```
-
-Eliminar ramas remotas integradas (una por una, requiere permiso de push):
-
-```bash
-git push origin --delete <nombre-rama>
-```
-
-## 4. Protecciones recomendadas en GitHub
-
-- Rama por defecto: `dev` (o `main` si se avanza primero).
 - Requerir PR y CI verde hacia `dev` y `main`.
-- `deploy`: protegida, solo merges desde `main`.
+- `deploy`: protegida, solo actualizaciones desde `main`.
+- Activar "Automatically delete head branches" para las ramas cortas.
