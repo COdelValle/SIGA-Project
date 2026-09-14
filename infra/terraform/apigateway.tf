@@ -1,18 +1,13 @@
-# API Gateway HTTP API como entrada unica del sistema.
+# API Gateway HTTP API como entrada unica del sistema (HTTPS).
 #
-# Flujo: navegador -> API Gateway (valida JWT de Entra ID) -> BFF.
+# Flujo: navegador -> API Gateway -> { SPA (nginx) | BFF }.
+# - La ruta $default sirve el SPA desde nginx (sin auth).
+# - La ruta /api/{proxy+} valida el JWT de Entra ID y reenvia al BFF.
 # El Authorizer solo valida firma/iss/aud; los roles y scopes los sigue
 # aplicando Spring Security en el BFF y en los microservicios.
 resource "aws_apigatewayv2_api" "http" {
   name          = "${var.management_name}-http-api"
   protocol_type = "HTTP"
-
-  cors_configuration {
-    allow_headers = ["authorization", "content-type"]
-    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    allow_origins = ["https://${aws_cloudfront_distribution.spa.domain_name}"]
-    max_age       = 3600
-  }
 
   tags = {
     Name = "${var.management_name}-http-api"
@@ -27,6 +22,24 @@ resource "aws_apigatewayv2_integration" "bff" {
   integration_method     = "ANY"
   integration_uri        = "http://${aws_eip.app.public_ip}:8080/api/{proxy}"
   payload_format_version = "1.0"
+}
+
+# Integracion para servir el SPA (nginx:80) por HTTPS a traves de API Gateway.
+# La ruta $default reenvia el path completo a nginx, de modo que el SPA, los
+# assets y /config.json salen por el mismo origen HTTPS que el API (sin CORS).
+resource "aws_apigatewayv2_integration" "spa" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = "http://${aws_eip.app.public_ip}:80"
+  payload_format_version = "1.0"
+}
+
+resource "aws_apigatewayv2_route" "default" {
+  api_id             = aws_apigatewayv2_api.http.id
+  route_key          = "$default"
+  target             = "integrations/${aws_apigatewayv2_integration.spa.id}"
+  authorization_type = "NONE"
 }
 
 resource "aws_apigatewayv2_authorizer" "azure" {

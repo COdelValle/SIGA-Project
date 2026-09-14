@@ -9,18 +9,18 @@ output "api_gateway_invoke_url" {
 }
 
 output "frontend_url" {
-  description = "URL publica HTTPS del SPA (CloudFront). Registrar en Azure como redirect URI base"
-  value       = "https://${aws_cloudfront_distribution.spa.domain_name}"
+  description = "URL publica HTTPS del SPA (servido por API Gateway). Registrar en Azure como redirect URI base"
+  value       = aws_apigatewayv2_api.http.api_endpoint
 }
 
 output "azure_redirect_uri" {
   description = "Redirect URI a registrar en la app SPA de Entra ID"
-  value       = "https://${aws_cloudfront_distribution.spa.domain_name}/auth"
+  value       = "${aws_apigatewayv2_api.http.api_endpoint}/auth"
 }
 
 output "azure_post_logout_redirect_uri" {
   description = "Post-logout redirect URI a registrar en la app SPA de Entra ID"
-  value       = "https://${aws_cloudfront_distribution.spa.domain_name}/sin-acceso"
+  value       = "${aws_apigatewayv2_api.http.api_endpoint}/sin-acceso"
 }
 
 output "ssh_command" {
