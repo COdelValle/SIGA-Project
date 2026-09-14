@@ -10,7 +10,11 @@ data_volume_size = 10
 ssh_cidr         = "0.0.0.0/0"
 
 // Verificar con jwt.ms / jwt.io decodificando un access token real antes de
-// aplicar. Si el token es v1, el issuer es https://sts.windows.net/<tenant>/ y
-// el audience suele ser el GUID en lugar de api://<client-id>.
-azure_audience = "api://afad9bb4-4804-4b86-965d-34b67774f629"
-azure_issuer   = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
+// aplicar. Un token v2 trae aud = GUID y issuer .../v2.0; un token v1 trae
+// aud = api://<client-id> y issuer https://sts.windows.net/<tenant>/. Se aceptan
+// ambos audiences para no depender de la version.
+azure_audience = [
+  "afad9bb4-4804-4b86-965d-34b67774f629",
+  "api://afad9bb4-4804-4b86-965d-34b67774f629",
+]
+azure_issuer = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
