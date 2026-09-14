@@ -1,9 +1,50 @@
 {
   "name": "frontend",
   "projectType": "application",
-  "implicitDependencies": ["java-common-dto"],
+  "sourceRoot": "apps/frontend/src",
+  "implicitDependencies": ["core-share"],
+  "tags": ["scope:app", "type:app"],
   "targets": {
-    "build": { "executor": "@angular-devkit/build-angular:application"},
-    "serve": { "executor": "@angular-devkit/build-angular:dev-server"}
+    "build": {
+      "executor": "@angular/build:application",
+      "options": {
+        "browser": "apps/frontend/src/main.ts",
+        "tsConfig": "apps/frontend/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/frontend/public"
+          }
+        ],
+        "styles": ["apps/frontend/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@angular/build:dev-server",
+      "configurations": {
+        "production": { "buildTarget": "frontend:build:production" },
+        "development": { "buildTarget": "frontend:build:development" }
+      },
+      "defaultConfiguration": "development",
+      "options": {
+        "proxyConfig": "apps/frontend/proxy.conf.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/frontend/**/*.ts"]
+      }
+    }
   }
 }

@@ -1,26 +1,17 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "targetDefaults": {
-    "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "{projectRoot}/target",
-        "{projectRoot}/dist"
-      ],
-      "cache": true
-    },
-    "test": {
-      "inputs": [
-        "default",
-        "^production"
-      ],
-      "cache": true
-    },
-    "serve": {
-      "continuous": true
-    }
-  },
-  "analytics": false
+  "defaultBase": "dev",
+  "analytics": false,
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "default"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml"
+    ]
+  }
 }

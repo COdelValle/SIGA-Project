@@ -1,19 +1,47 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: ms-usuarios-auth
     description: Administra los datos base de la cuenta del usuario y sus roles. Trabaja en conjunto con los claims del JWT entregados por Azure AD.
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_usuarios_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  config:
+    import: "optional:classpath:common-properties.yaml"
+  # Permite migrar bases que ya tenian tablas creadas por Hibernate (ddl-auto=update)
+  # sin historial de Flyway. En bases nuevas aplica V1 normalmente; en existentes
+  # crea la linea base y luego aplica las migraciones (V1 es idempotente).
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
 
-# Configuración de OpenAPI / Swagger
+# Integración con Microsoft Graph (client credentials).
+# Si AZURE_CLIENT_SECRET está vacío, la integración queda deshabilitada y el CRUD
+# sigue funcionando, pero no se puede resolver el oid ni sincronizar roles.
+azure:
+  graph:
+    tenant-id: ${AZURE_TENANT_ID:}
+    client-id: ${AZURE_CLIENT_ID:}
+    client-secret: ${AZURE_CLIENT_SECRET:}
+    api-app-id: ${AZURE_API_APP_ID:}
+
+# ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /docs/swagger
-
-# Configuración de Scalar UI
+# ConfiguraciÃ³n de Scalar UI
 scalar:
   enabled: true
-  path: /docs/scalar          # Ruta donde se cargará Scalar (ej: http://localhost:8081/docs/scalar)
-  url: /v3/api-docs           # Especificación JSON a consumir
-  theme: purple               # Temas opcionales: default, moon, purple, solarized, etc.
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
   darkMode: true

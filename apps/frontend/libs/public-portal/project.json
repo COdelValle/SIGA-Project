@@ -1,0 +1,13 @@
+{
+  "name": "public-portal",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/frontend/public-portal/src",
+  "prefix": "siga",
+  "tags": ["scope:public", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

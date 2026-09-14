@@ -3,6 +3,18 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@siga/core": ["libs/core/src/index.ts"],
+      "@siga/shared-ui": ["libs/shared-ui/src/index.ts"],
+      "@siga/public-portal": ["libs/public-portal/src/index.ts"],
+      "@siga/academico": ["libs/academico/src/index.ts"],
+      "@siga/estudiante": ["libs/estudiante/src/index.ts"],
+      "@siga/apoderado": ["libs/apoderado/src/index.ts"],
+      "@siga/docente": ["libs/docente/src/index.ts"],
+      "@siga/admin": ["libs/admin/src/index.ts"]
+    },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
