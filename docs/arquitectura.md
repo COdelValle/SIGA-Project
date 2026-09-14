@@ -2,7 +2,7 @@
 
 ## 1. Vision general
 
-SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional; la capa de orquestacion (BFF) y la infraestructura estan en construccion incremental.
+SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional, el BFF ya orquesta los dominios (`/me` y perfil de estudiante) y la infraestructura Terraform esta implementada; las pantallas de negocio del frontend y la observabilidad avanzada siguen en construccion.
 
 ```mermaid
 flowchart LR
@@ -22,17 +22,17 @@ flowchart LR
     B -. contratos .-> C[core-share]
 ```
 
-Cada microservicio es dueno de su propia base de datos (database-per-service). El BFF aun no orquesta: los microservicios ya exponen sus APIs y el frontend esta preparado para consumirlas a traves del BFF.
+Cada microservicio es dueno de su propia base de datos (database-per-service). El BFF ya orquesta los dominios: expone `/api/me` (usuario y rol) y el perfil agregado de estudiante combinando estudiantes, asignaturas y notas por Feign.
 
 ## 2. Capas
 
 ### Presentacion
 
-`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que proxya `/api` al BFF. El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
+`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que entrega el SPA y el `config.json` (el API va por `bffBaseUrl`, enrutado por el API Gateway al BFF). El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
 
 ### Entrada y orquestacion
 
-`bff-web` sera el punto de entrada para la interfaz: aplicara seguridad, coordinara solicitudes y combinara informacion de varios servicios. Actualmente es un esqueleto (app + seguridad compartida); la orquestacion y `/me` estan pendientes.
+`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + asignaturas + notas) usando clientes Feign con fallback.
 
 ### Dominio distribuido
 
@@ -54,14 +54,14 @@ Cada microservicio es dueno de un contexto funcional:
 ## 3. Flujo de una solicitud
 
 1. El usuario inicia una accion en Angular.
-2. El frontend envia la solicitud a `/api` (Nginx la proxya al BFF) con el token JWT.
+2. El frontend envia la solicitud a `/api` (el API Gateway la enruta al BFF) con el token JWT.
 3. El BFF valida la autenticacion y la autorizacion.
 4. El BFF llama al microservicio responsable (Feign).
 5. El microservicio valida la entrada, ejecuta la regla de negocio y persiste.
 6. La respuesta se transforma a un DTO y vuelve al BFF.
 7. El frontend muestra el resultado o un error normalizado.
 
-Nota: los pasos 3 y 4 (orquestacion del BFF) estan pendientes; hoy los microservicios ya responden a sus propias APIs.
+Nota: el BFF ya implementa los pasos 3 y 4 para `/me` y el perfil de estudiante; la cobertura del resto de recursos se anadira de forma incremental.
 
 ## 4. Seguridad
 
@@ -78,8 +78,8 @@ Aspectos a completar: contrato final de roles/permisos y validacion de audiencia
 ## 5. Comunicacion y contratos
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
-- Implementado en `ms-notas`, que valida la existencia de estudiante y asignatura (`exists`) con fallback **Resilience4j**.
-- El BFF usara Feign para orquestar el resto (pendiente).
+- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas y usuarios) y en `ms-notas`, que valida la existencia de estudiante y asignatura (`exists`) con fallback **Resilience4j**.
+- El BFF orquesta `/me` y el perfil de estudiante; el resto de recursos se conectara de forma incremental.
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
 ## 6. Despliegue
@@ -118,7 +118,7 @@ CI/CD:
 | Componente | Estado actual | Objetivo |
 | --- | --- | --- |
 | Frontend Angular | App modular con MSAL y rutas por rol | Pantallas academicas conectadas al BFF |
-| BFF Web | Esqueleto (app + seguridad) | Orquestacion y API para la interfaz (`/me`) |
+| BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
 | Asignaturas | CRUD, listado, busqueda, `exists`, soft delete | Relacion con docentes y cursos |

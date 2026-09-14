@@ -1,96 +1,205 @@
-# SIGAProject
+# SIGA — Sistema de Gestión Académica
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Monorepo del proyecto **SIGA**, un sistema de gestión académica compuesto por un
+frontend Angular, un BFF (Backend For Frontend) y microservicios Spring Boot
+separados por dominio, con persistencia *database-per-service* en MariaDB.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+- **Frontend**: `apps/frontend` (Angular 22 + MSAL + Tailwind CSS 4, librerías Nx).
+- **Backend**: `apps/backend` (Maven multi-módulo, Spring Boot 3.5, Java 21).
+- **Infraestructura**: `infra/terraform` (AWS Academy Learner Lab: EC2, EBS, ECR y API Gateway HTTP API).
+- **Documentación detallada**: [`docs/`](docs/README.md).
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+> Estado: el núcleo académico y la orquestación del BFF (`/me` y perfil de
+> estudiante) son funcionales; las pantallas de negocio del frontend y la
+> observabilidad avanzada están en construcción.
 
-## Run tasks
+## Arquitectura
 
-To run tasks with Nx use:
-
-```sh
-npx nx <target> <project-name>
+```mermaid
+flowchart LR
+    U[Usuario] -->|HTTPS| G[API Gateway HTTP API]
+    G -->|"$default: SPA"| F[Frontend Angular + Nginx]
+    G -->|"/api + Bearer JWT"| B[BFF Web]
+    B --> A[MS Usuarios y autenticación]
+    B --> E[MS Estudiantes]
+    B --> S[MS Asignaturas]
+    B --> N[MS Notas]
+    B -. Feign .-> A
+    B -. Feign .-> E
+    B -. Feign .-> S
+    B -. Feign .-> N
+    N -. "Feign: exists" .-> E
+    N -. "Feign: exists" .-> S
+    A --> DA[(BD usuarios)]
+    E --> DE[(BD estudiantes)]
+    S --> DS[(BD asignaturas)]
+    N --> DN[(BD notas)]
+    B -. contratos .-> C[core-share]
 ```
 
-For example:
+Cada microservicio es dueño de su propia base de datos y expone su API REST
+protegida. El frontend **solo** consume el BFF; el BFF orquesta los dominios por
+Feign. La documentación completa de la arquitectura está en
+[`docs/arquitectura.md`](docs/arquitectura.md).
 
-```sh
-npx nx build myproject
+## Stack
+
+| Capa | Tecnología |
+| --- | --- |
+| Frontend | Angular 22.1, TypeScript 6, RxJS 7.8, MSAL Angular v6, Tailwind CSS 4, Nx, Vitest |
+| Backend | Java 21, Spring Boot 3.5.0, Spring Cloud 2025.0.0 (OpenFeign), Resilience4j, Spring Security OAuth2, JPA/Hibernate, MapStruct, Lombok, springdoc (Swagger/Scalar) |
+| Persistencia | MariaDB 11.4 (una base por microservicio), Flyway |
+| Mensajería/contratos | HTTP + Feign, DTOs compartidos en `core-share` |
+| Infra | Docker Compose (local), Terraform (AWS), GitHub Actions (CI/CD) |
+
+## Estructura del repositorio
+
+```text
+SIGA-Project/
+├── apps/
+│   ├── backend/                  # Maven multi-módulo (ver apps/backend/README.md)
+│   │   ├── libs/core-share/      # DTOs, validadores, seguridad y OpenAPI compartidos
+│   │   ├── bff-web/              # BFF: /me y orquestación por Feign
+│   │   ├── ms-usuarios-auth/     # usuarios, roles y Microsoft Graph
+│   │   ├── ms-estudiantes/       # ficha del estudiante
+│   │   ├── ms-asignaturas/       # asignaturas
+│   │   └── ms-notas/             # calificaciones + Feign con fallback
+│   └── frontend/                 # Angular + Nx (ver apps/frontend/README.md)
+├── docs/                         # documentación (ver docs/README.md)
+├── infra/terraform/              # infraestructura AWS (ver infra/terraform/README.md)
+├── .github/workflows/            # CI (ci.yml) y CD (cd.yml)
+├── docker-compose.yml            # stack local completo
+└── .env.example                  # plantilla de variables de entorno
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## Requisitos
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- **Docker** y **Docker Compose** (para el entorno local completo).
+- **Node.js 22+** y **npm** (frontend).
+- **JDK 21** y **Maven** (backend; hay wrappers `mvnw` por módulo).
+- **Terraform >= 1.5** y **AWS CLI** (solo para desplegar en AWS).
 
-## Add new projects
+## Inicio rápido (Docker Compose)
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+```bash
+# 1. Variables de entorno
+cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
+#    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS y las variables AZURE_*
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+# 2. Levantar todo el stack (bases, microservicios, BFF y frontend)
+docker compose up -d --build
+
+# 3. Ver estado y logs
+docker compose ps
+docker compose logs -f bff-web
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+Accesos del entorno local:
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+| Recurso | URL |
+| --- | --- |
+| Frontend (SPA) | http://localhost:4200 |
+| BFF Web | http://localhost:8080 |
+| Swagger BFF | http://localhost:8080/docs/swagger |
+| Scalar BFF | http://localhost:8080/docs/scalar |
+| Swagger usuarios | http://localhost:8081/docs/swagger |
+| Health BFF | http://localhost:8080/actuator/health |
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+> Guía paso a paso de login y pruebas: [`docs/testing-login.md`](docs/testing-login.md).
+
+## Servicios y puertos
+
+| Servicio | Puerto host | Descripción |
+| --- | --- | --- |
+| `frontend` | 4200 | SPA Angular servida por Nginx. |
+| `bff-web` | 8080 | Backend For Frontend (`/api/me`, perfil de estudiante). |
+| `ms-usuarios-auth` | 8081 | Usuarios, roles y sincronización con Microsoft Graph. |
+| `ms-estudiantes` | 8082 | Dominio estudiantes. |
+| `ms-asignaturas` | 8086 | Dominio asignaturas. |
+| `ms-notas` | 8087 | Dominio notas (Feign a estudiantes y asignaturas). |
+| `mariadb-*` | interno | Una instancia MariaDB por microservicio. |
+
+## Comandos habituales
+
+### Docker Compose (desde la raíz)
+
+```bash
+docker compose up -d --build            # levantar/actualizar el stack
+docker compose up -d --build frontend   # reconstruir un servicio
+docker compose logs -f ms-notas         # seguir logs
+docker compose down                     # detener (conserva volúmenes)
+docker compose down -v                  # detener y borrar datos (¡destructivo!)
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+### Backend (Maven)
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Compilar y ejecutar tests unitarios de todos los módulos
+mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTests=false
 
-## Set up CI!
+# Compilar sin tests e instalar en el repo local
+mvn -f apps/backend/pom.xml -DskipTests install
 
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+# Levantar un servicio concreto (incluye dependencias con -am)
+mvn -f apps/backend/pom.xml -pl ms-estudiantes -am spring-boot:run
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+Detalle de módulos, endpoints y configuración en
+[`apps/backend/README.md`](apps/backend/README.md) y [`docs/backend.md`](docs/backend.md).
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Frontend (npm / Nx)
 
-### Step 2
+```bash
+# Desde apps/frontend
+npm install
+npm start              # ng serve en http://localhost:4200 (proxy /api -> BFF)
+npm run build          # build de producción
+npm test               # pruebas unitarias (Vitest)
 
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+# Desde la raíz
+npx nx lint frontend
+npx nx graph           # explorar el grafo de proyectos
+npx prettier --write "apps/frontend/**/*.{ts,html,css}"
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Más información en [`apps/frontend/README.md`](apps/frontend/README.md) y
+[`docs/frontend.md`](docs/frontend.md).
 
-## Install Nx Console
+### Infraestructura (Terraform)
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init && terraform validate && terraform plan && terraform apply
+terraform output api_gateway_invoke_url   # URL HTTPS del SPA
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Detalles de la topología AWS y secretos en
+[`infra/terraform/README.md`](infra/terraform/README.md).
 
-## Useful links
+## Documentación
 
-Learn more:
+| Documento | Contenido |
+| --- | --- |
+| [`docs/README.md`](docs/README.md) | Índice general de la documentación. |
+| [`docs/arquitectura.md`](docs/arquitectura.md) | Visión general, capas, seguridad y despliegue. |
+| [`docs/backend.md`](docs/backend.md) | Microservicios, endpoints, contratos y datos. |
+| [`docs/frontend.md`](docs/frontend.md) | Angular, rutas por rol, MSAL y librerías Nx. |
+| [`docs/testing-login.md`](docs/testing-login.md) | Pruebas de login y del sistema con Docker. |
+| [`docs/branch-cleanup.md`](docs/branch-cleanup.md) | Modelo de ramas y limpieza ejecutada. |
+| [`apps/backend/README.md`](apps/backend/README.md) | Guía del backend. |
+| [`apps/frontend/README.md`](apps/frontend/README.md) | Guía del frontend. |
+| [`infra/terraform/README.md`](infra/terraform/README.md) | Guía de infraestructura AWS. |
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Flujo de trabajo (ramas)
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```text
+feature/*  ->  dev  ->  main  ->  deploy
+                                 (dispara CD)
+```
+
+- `dev`: integración. `main`: estable. `deploy`: dispara el despliegue (CD).
+- Ramas cortas `feature/*` y `fix/*` se eliminan al integrar.
+- CI corre en push/PR a `dev` y `main`; CD es manual (`deploy` o `workflow_dispatch`).
+
+Ver [`docs/branch-cleanup.md`](docs/branch-cleanup.md).
