@@ -43,12 +43,35 @@ jobs:
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           echo "REGISTRY=${REGISTRY}" >> $GITHUB_ENV
-          echo "MS_USER_ECR=${REGISTRY}/SIGA-usuarios-auth" >> $GITHUB_ENV
-          echo "MS_EST_ECR=${REGISTRY}/SIGA-estudiantes" >> $GITHUB_ENV
-          echo "MS_ASIGN_ECR=${REGISTRY}/SIGA-asignaturas" >> $GITHUB_ENV
-          echo "MS_GRADE_ECR=${REGISTRY}/SIGA-notas" >> $GITHUB_ENV
-          echo "BFF_WEB_ECR=${REGISTRY}/SIGA-bff-web" >> $GITHUB_ENV
-          echo "FRONTEND_ECR=${REGISTRY}/SIGA-frontend" >> $GITHUB_ENV
+          echo "MS_USER_ECR=${REGISTRY}/siga-usuarios-auth" >> $GITHUB_ENV
+          echo "MS_EST_ECR=${REGISTRY}/siga-estudiantes" >> $GITHUB_ENV
+          echo "MS_ASIGN_ECR=${REGISTRY}/siga-asignaturas" >> $GITHUB_ENV
+          echo "MS_GRADE_ECR=${REGISTRY}/siga-notas" >> $GITHUB_ENV
+          echo "BFF_WEB_ECR=${REGISTRY}/siga-bff-web" >> $GITHUB_ENV
+          echo "FRONTEND_ECR=${REGISTRY}/siga-frontend" >> $GITHUB_ENV
+
+      # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
+      # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
+      - name: Resolver destino (EC2 + API Gateway)
+        run: |
+          EC2_HOST=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=SIGA-app" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+          API_GW_INVOKE_URL=$(aws apigatewayv2 get-apis \
+            --query "Items[?Name=='SIGA-http-api'].ApiEndpoint | [0]" --output text)
+
+          if [ -z "$EC2_HOST" ] || [ "$EC2_HOST" = "None" ]; then
+            echo "No se encontro la instancia SIGA-app en ejecucion. Corre 'terraform apply' primero." >&2
+            exit 1
+          fi
+          if [ -z "$API_GW_INVOKE_URL" ] || [ "$API_GW_INVOKE_URL" = "None" ]; then
+            echo "No se encontro el API Gateway SIGA-http-api. Corre 'terraform apply' primero." >&2
+            exit 1
+          fi
+
+          echo "EC2_HOST=${EC2_HOST}" >> $GITHUB_ENV
+          echo "API_GW_INVOKE_URL=${API_GW_INVOKE_URL}" >> $GITHUB_ENV
+          echo "Destino resuelto -> EC2=${EC2_HOST} API=${API_GW_INVOKE_URL}"
 
       # El contexto de build es apps/backend (el pom padre y los modulos son
       # necesarios); por eso se usa -f con el Dockerfile de cada servicio.
@@ -102,9 +125,9 @@ jobs:
           AZURE_APP_ID_URI: ${{ secrets.AZURE_APP_ID_URI }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_API_APP_ID: ${{ secrets.AZURE_API_APP_ID }}
-          API_GW_INVOKE_URL: ${{ secrets.API_GW_INVOKE_URL }}
+          API_GW_INVOKE_URL: ${{ env.API_GW_INVOKE_URL }}
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,API_GW_INVOKE_URL

@@ -83,10 +83,8 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AWS_SECRET_ACCESS_KEY` | AWS Details (sesión vigente) |
 | `AWS_SESSION_TOKEN` | AWS Details (sesión vigente) |
 | `AWS_REGION` | `us-east-1` |
-| `EC2_HOST` | `terraform output -raw ec2_public_ip` |
 | `EC2_USER` | `ubuntu` |
 | `EC2_SSH_KEY` | contenido de la clave privada `.pem` (`vockey`) |
-| `API_GW_INVOKE_URL` | `terraform output -raw api_gateway_invoke_url` |
 | `DB_USER` | usuario de MariaDB, p. ej. `siga_user` |
 | `DB_PASSWORD` | password del usuario de MariaDB |
 | `MARIADB_ROOT_PASSWORD` | password de root de MariaDB |
@@ -95,6 +93,10 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AZURE_APP_ID_URI` | `api://<client-id>` |
 | `AZURE_CLIENT_SECRET` | secreto del cliente (Microsoft Graph) |
 | `AZURE_API_APP_ID` | app que define los app roles |
+
+`EC2_HOST` y `API_GW_INVOKE_URL` **no** se configuran como secrets: el CD los
+resuelve dinámicamente por tag/nombre (`SIGA-app` y `SIGA-http-api`) usando las
+credenciales AWS, de modo que sobreviven a recrear la infraestructura.
 
 ## Redirect URIs de Azure (SPA)
 
