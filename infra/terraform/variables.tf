@@ -49,9 +49,12 @@ variable "ssh_cidr" {
 # --- Azure AD / Entra ID (solo lo que necesita el JWT Authorizer) ---
 # Estos valores NO son secretos: se validan firma/iss/aud, no se guarda credencial.
 variable "azure_audience" {
-  description = "claim aud del access token de Entra ID (api://<client-id> o el GUID)"
-  type        = string
-  default     = "api://afad9bb4-4804-4b86-965d-34b67774f629"
+  description = "claims aud aceptados por el JWT Authorizer (GUID para tokens v2 y api://<client-id> para v1)"
+  type        = list(string)
+  default = [
+    "afad9bb4-4804-4b86-965d-34b67774f629",
+    "api://afad9bb4-4804-4b86-965d-34b67774f629",
+  ]
 }
 
 variable "azure_issuer" {

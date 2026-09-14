@@ -50,7 +50,17 @@ export function appConfig(config: AppConfig): ApplicationConfig {
           msal
             .handleRedirectObservable({ navigateToLoginRequestUrl: false })
             .pipe(catchError(() => of(null))),
-        ).then(() => limpiarParametrosMsal());
+        ).then(() => {
+          // Fija una cuenta activa para que el MsalInterceptor sepa a quien pedir
+          // el token (evita depender de getAllAccounts()[0]).
+          if (msal.instance.getActiveAccount() === null) {
+            const [account] = msal.instance.getAllAccounts();
+            if (account) {
+              msal.instance.setActiveAccount(account);
+            }
+          }
+          limpiarParametrosMsal();
+        });
       }),
     ],
   };
