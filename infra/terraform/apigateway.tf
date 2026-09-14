@@ -10,7 +10,7 @@ resource "aws_apigatewayv2_api" "http" {
   cors_configuration {
     allow_headers = ["authorization", "content-type"]
     allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    allow_origins = ["http://${aws_eip.app.public_ip}"]
+    allow_origins = ["https://${aws_cloudfront_distribution.spa.domain_name}"]
     max_age       = 3600
   }
 
