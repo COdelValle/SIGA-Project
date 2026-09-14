@@ -4,7 +4,7 @@
 
 El backend de SIGA es un proyecto Maven multi-modulo basado en Spring Boot. Separa las responsabilidades del dominio academico en servicios independientes, expone APIs REST protegidas y centraliza los contratos compartidos en la libreria `core-share`.
 
-El nucleo academico ya es funcional (CRUD, validaciones, busqueda y borrado logico). El BFF y la infraestructura Terraform siguen pendientes.
+El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico), el BFF ya orquesta `/me` y el perfil de estudiante, y la infraestructura Terraform esta implementada. Las pantallas de negocio del frontend y parte de la orquestacion del BFF siguen pendientes.
 
 ## 2. Ubicacion y tecnologias
 
@@ -37,7 +37,14 @@ Responsabilidades previstas:
 - Unificar respuestas y errores.
 - Evitar que el navegador dependa de las direcciones internas.
 
-Estado actual: **esqueleto**. Contiene la aplicacion Spring Boot, seguridad compartida y un DTO provisional. La orquestacion y el endpoint `/me` (rol + vinculos para el frontend) estan pendientes.
+Estado actual: **orquesta `/me` y el perfil de estudiante**. Incluye:
+
+- `MeController` (`GET /api/me`): resuelve el usuario via `UsuarioClient` y compone `{ id, email, displayName, roles }`.
+- `PerfilEstudianteController` (`GET /api/bff/v1/estudiantes/perfil/{idExterno}`): agrega estudiante, asignaturas y notas usando `EstudianteClient`, `AsignaturaClient` y `NotaClient` con mappers.
+- Clientes Feign con fallback para usuarios, estudiantes, asignaturas y notas (`integration/*`).
+- `FeignClientConfig` con propagacion del `Authorization`.
+
+Pendiente: orquestar el resto de recursos de la interfaz.
 
 ### 3.2 Servicio de usuarios y autenticacion
 
@@ -50,7 +57,8 @@ Incluye:
 - Entidad `Usuario` (PK = `id` de Azure, rol, estado).
 - `UsuarioRepository` (JPA + Specifications), `UsuarioSpecifications`.
 - `UsuarioService` y `UsuarioMapper` (MapStruct).
-- `UsuarioController` en `/api/v1/usuarios` con CRUD.
+- `UsuarioController` en `/api/v1/usuarios`: CRUD, `GET /me`, `GET /lookup?email=` y `POST /{id}/sync-roles`.
+- Integracion con **Microsoft Graph** (opcional via `AZURE_CLIENT_SECRET`): pre-registro por correo, cambio de rol y sincronizacion de app roles.
 - DTOs de registro, actualizacion y respuesta en `core-share`.
 
 Comportamiento:
@@ -162,7 +170,7 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
 - `docker-compose.yml` levanta 4 MariaDB, los 4 microservicios, el BFF y el frontend.
-- En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=update` y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
+- En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
 - Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`.
 
 ## 6. Documentacion API
@@ -177,9 +185,9 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 
 ## 7. Estado y orden recomendado
 
-1. Implementar la orquestacion del BFF y el endpoint `/me`.
-2. Conectar el frontend a traves del BFF.
+1. Completar la orquestacion del BFF para el resto de recursos (`/me` y perfil de estudiante ya estan implementados).
+2. Conectar las pantallas del frontend a traves del BFF.
 3. Anadir pruebas unitarias, de integracion y de contrato.
 4. Definir migraciones de esquema para produccion.
-5. Completar Docker/observabilidad y Terraform.
+5. Completar la observabilidad (logs estructurados, correlation ID, metricas, tracing).
 6. Incorporar servicios futuros (`ms-docentes`, `ms-apoderados`, `ms-asistencias`, `ms-auditoria`).
