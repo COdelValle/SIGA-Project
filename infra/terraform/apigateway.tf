@@ -49,7 +49,7 @@ resource "aws_apigatewayv2_authorizer" "azure" {
   name             = "azure-ad"
 
   jwt_configuration {
-    audience = [var.azure_audience]
+    audience = var.azure_audience
     issuer   = var.azure_issuer
   }
 }
