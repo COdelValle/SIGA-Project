@@ -71,9 +71,9 @@ Servicios esperados:
 
 | Servicio | Puerto host | Descripcion |
 | --- | --- | --- |
-| `frontend` | 4200 | SPA Angular via Nginx (proxya `/api` al BFF). |
-| `bff-web` | 8080 | Backend For Frontend. |
-| `ms-usuarios-auth` | 8081 | Usuarios, `/me`, sync con Graph. |
+| `frontend` | 4200 | SPA Angular via Nginx (solo sirve el SPA; el API va por `config.json`). |
+| `bff-web` | 8080 | Backend For Frontend (`/api/me` y perfil de estudiante). |
+| `ms-usuarios-auth` | 8081 | Usuarios (`/api/v1/usuarios`), lookup y sync con Graph. |
 | `ms-estudiantes` | 8082 | Dominio estudiantes. |
 | `ms-asignaturas` | 8086 | Dominio asignaturas. |
 | `ms-notas` | 8087 | Dominio notas. |
@@ -193,7 +193,7 @@ CRUD como admin (Swagger de `ms-usuarios-auth`):
 | `/api/me` 404 | Usuario no registrado en `usuarios`. | Pre-registrar por admin (seccion 6). |
 | 503 / error de negocio en lookup/sync | Graph deshabilitado o sin permisos. | Configurar `AZURE_CLIENT_SECRET` + permisos Graph. |
 | 403 en perfil de estudiante | Los controllers piden `SCOPE_estudiantes:read`, etc., y el token solo trae `Acceso.Base`. | Exponer y solicitar esos scopes (pendiente conocido). |
-| Frontend no llama al BFF | Falta el proxy `/api`. | En Docker lo hace Nginx; en `ng serve` usar `proxy.conf.json`. |
+| Frontend no llama al BFF | `bffBaseUrl` mal configurado o API inaccesible. | En AWS, usar el API Gateway; en `ng serve`, `proxy.conf.json`. |
 
 ## 11. Que se puede validar sin Azure
 
