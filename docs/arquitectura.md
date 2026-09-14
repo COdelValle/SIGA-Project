@@ -6,7 +6,8 @@ SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y micro
 
 ```mermaid
 flowchart LR
-    U[Usuario] --> F[Frontend Angular + Nginx]
+    U[Usuario] -->|HTTPS SPA| CF[CloudFront]
+    CF --> F[Frontend Angular + Nginx]
     F -->|Bearer JWT| G[API Gateway + JWT Authorizer]
     G --> B[BFF Web]
     B --> A[MS Usuarios y autenticacion]
@@ -91,6 +92,7 @@ Hay dos entornos:
 
 Flujo de entrada:
 
+- El SPA se sirve por **HTTPS vía CloudFront** (`*.cloudfront.net`), requisito de MSAL (Web Crypto solo existe en contextos seguros).
 - El navegador (Angular + MSAL) llama al **API Gateway HTTP API** con `Authorization: Bearer`.
 - El **JWT Authorizer** valida el token de Entra ID (firma, `iss`, `aud`) y reenvia al BFF (`http://<eip>:8080/api/...`).
 - Nginx solo sirve el SPA y el `config.json`; ya no proxya `/api`.
@@ -124,7 +126,7 @@ CI/CD:
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
 | Docker Compose | Completo (database-per-service local) | Entorno local reproducible |
-| Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
+| Terraform | `infra/terraform` (EC2 + EBS + CloudFront + API Gateway + ECR) | Infraestructura declarativa en AWS |
 | Flyway | Esquema + seed en los 4 microservicios | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
 | Pruebas | Unitarias en usuarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
