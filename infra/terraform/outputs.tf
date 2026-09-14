@@ -1,16 +1,26 @@
 output "ec2_public_ip" {
-  description = "IP publica de la instancia (usar como EC2_HOST en los secretos de GitHub)"
+  description = "IP publica de la instancia (referencia; el CD la descubre por tag SIGA-app)"
   value       = aws_eip.app.public_ip
 }
 
 output "api_gateway_invoke_url" {
-  description = "Invoke URL del API Gateway. Usar como API_GW_INVOKE_URL en los secretos; el frontend llama a <url>/api"
+  description = "Invoke URL del API Gateway (referencia; el CD la descubre por nombre SIGA-http-api)"
   value       = aws_apigatewayv2_api.http.api_endpoint
 }
 
 output "frontend_url" {
-  description = "URL publica del SPA"
-  value       = "http://${aws_eip.app.public_ip}"
+  description = "URL publica HTTPS del SPA (CloudFront). Registrar en Azure como redirect URI base"
+  value       = "https://${aws_cloudfront_distribution.spa.domain_name}"
+}
+
+output "azure_redirect_uri" {
+  description = "Redirect URI a registrar en la app SPA de Entra ID"
+  value       = "https://${aws_cloudfront_distribution.spa.domain_name}/auth"
+}
+
+output "azure_post_logout_redirect_uri" {
+  description = "Post-logout redirect URI a registrar en la app SPA de Entra ID"
+  value       = "https://${aws_cloudfront_distribution.spa.domain_name}/sin-acceso"
 }
 
 output "ssh_command" {
