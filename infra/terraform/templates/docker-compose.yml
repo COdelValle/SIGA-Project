@@ -30,7 +30,7 @@ services:
       retries: 10
 
   ms-usuarios-auth:
-    image: ${REGISTRY}/SIGA-usuarios-auth:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-usuarios-auth:${IMAGE_TAG}
     container_name: ms-usuarios-auth
     restart: unless-stopped
     ports:
@@ -48,7 +48,7 @@ services:
         condition: service_healthy
 
   ms-estudiantes:
-    image: ${REGISTRY}/SIGA-estudiantes:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-estudiantes:${IMAGE_TAG}
     container_name: ms-estudiantes
     restart: unless-stopped
     ports:
@@ -64,7 +64,7 @@ services:
         condition: service_healthy
 
   ms-asignaturas:
-    image: ${REGISTRY}/SIGA-asignaturas:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-asignaturas:${IMAGE_TAG}
     container_name: ms-asignaturas
     restart: unless-stopped
     ports:
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
 
   ms-notas:
-    image: ${REGISTRY}/SIGA-notas:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-notas:${IMAGE_TAG}
     container_name: ms-notas
     restart: unless-stopped
     ports:
@@ -96,7 +96,7 @@ services:
         condition: service_healthy
 
   bff-web:
-    image: ${REGISTRY}/SIGA-bff-web:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
     container_name: bff-web
     restart: unless-stopped
     ports:
@@ -115,7 +115,7 @@ services:
       - ms-notas
 
   frontend:
-    image: ${REGISTRY}/SIGA-frontend:${IMAGE_TAG}
+    image: ${REGISTRY}/siga-frontend:${IMAGE_TAG}
     container_name: frontend
     restart: unless-stopped
     ports:

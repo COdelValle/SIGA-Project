@@ -15,3 +15,6 @@
 # Logs de crash
 crash.log
 crash.*.log
+
+# Planes guardados
+*.tfplan
