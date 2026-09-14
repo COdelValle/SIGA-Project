@@ -5,6 +5,10 @@ volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
 sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure AD antes de
 llegar al BFF.
 
+Contexto del proyecto en el [README raiz](../../README.md) e
+[`docs/arquitectura.md`](../../docs/arquitectura.md); indice en
+[`docs/README.md`](../../docs/README.md).
+
 ```
 Navegador (Angular + MSAL)
   |  HTTPS
@@ -51,6 +55,33 @@ Después del apply, usar los outputs:
 terraform output ec2_public_ip
 terraform output api_gateway_invoke_url
 ```
+
+## Variables y outputs
+
+Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
+
+| Variable | Default | Descripcion |
+| --- | --- | --- |
+| `aws_region` | `us-east-1` | Region permitida en el Learner Lab. |
+| `management_name` | `SIGA` | Prefijo de nombres/etiquetas. |
+| `instance_type` | `t3.medium` | Tipo de instancia EC2. |
+| `data_volume_size` | `10` | Tamano (GB) del EBS gp3 de MariaDB. |
+| `key_name` | `vockey` | Key pair del Learner Lab. |
+| `ssh_cidr` | `0.0.0.0/0` | CIDR autorizado para SSH. |
+| `azure_audience` | lista de audiences | `aud` aceptados por el JWT Authorizer. |
+| `azure_issuer` | issuer v2.0 | `iss` exacto del token. |
+
+Outputs utiles:
+
+| Output | Contenido |
+| --- | --- |
+| `ec2_public_ip` | IP publica (EIP) de la instancia. |
+| `api_gateway_invoke_url` | URL HTTPS base del SPA/API. |
+| `frontend_url` | URL publica del SPA. |
+| `azure_redirect_uri` | `…/auth` a registrar en Entra ID. |
+| `azure_post_logout_redirect_uri` | `…/sin-acceso` a registrar en Entra ID. |
+| `ssh_command` | Comando SSH para administrar la instancia. |
+| `frontend_config_json` | Contenido esperado de `config.json`. |
 
 ## Persistencia de datos
 

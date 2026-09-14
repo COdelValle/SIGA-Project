@@ -2,7 +2,9 @@
 
 Aplicacion Angular del sistema de gestion academica SIGA. Es una aplicacion modular que se comunica **solo con el BFF** (a traves de `/api`) y organiza su codigo en librerias Nx con fronteras entre portales por rol.
 
-Detalle general del proyecto en el [README raiz](../../README.md) y [docs/frontend.md](../../docs/frontend.md).
+Detalle general del proyecto en el [README raiz](../../README.md); guia del backend en
+[apps/backend/README.md](../backend/README.md); indice completo en [docs/README.md](../../docs/README.md)
+y detalle del frontend en [docs/frontend.md](../../docs/frontend.md).
 
 ## Tecnologias
 
@@ -43,16 +45,22 @@ Desde `apps/frontend`:
 
 ```bash
 npm install
-npm start              # servidor de desarrollo en http://localhost:4200
-npm run build          # build de produccion en dist/frontend/browser
-npm test               # pruebas unitarias (Vitest)
+npm start                        # servidor de desarrollo en http://localhost:4200
+npm run build                    # build de produccion en dist/frontend/browser
+npm test                         # pruebas unitarias (Vitest)
+npm test -- --watch=false        # ejecucion unica (como en CI)
+npx tsc -p tsconfig.app.json --noEmit   # typecheck (como en CI)
 ```
 
-Linting con Nx (desde la raiz):
+Linting y formateo con Nx / Prettier (desde la raiz):
 
 ```bash
 npx nx lint frontend
+npx prettier --write "apps/frontend/**/*.{ts,html,css}"
 ```
+
+`npm start` usa `proxy.conf.json` para redirigir `/api` hacia el BFF en
+`http://localhost:8080`; en Docker el SPA llama al API Gateway via `config.json`.
 
 ## Estilos (Tailwind CSS)
 
@@ -101,7 +109,9 @@ Cada portal se carga con lazy loading; `MsalGuard` valida la sesion y `roleGuard
 ## Docker
 
 - Build en dos etapas: `node:24-alpine` (build) → `nginx:alpine` (servido).
-- Nginx sirve la SPA con fallback a `index.html` y proxya `/api` hacia `bff-web:8080`.
+- Nginx sirve la SPA con fallback a `index.html` y los assets; **no proxya `/api`**.
+  El navegador llama al backend segun `bffBaseUrl` de `config.json` (en AWS, el
+  API Gateway enruta `/api` al BFF; en desarrollo, `npm start` usa `proxy.conf.json`).
 - Publicado en `http://localhost:4200` (mapeo `4200:80`).
 
 ```bash
@@ -112,4 +122,11 @@ docker compose up -d --build frontend
 ## Estado
 
 - Disponible: bootstrap, autenticacion MSAL, rutas por rol, guards, layout base y portal publico.
-- Pendiente: pantallas de negocio (CRUD), integracion completa con el BFF y pruebas funcionales.
+- Disponible: consumo de `GET /api/me` (el BFF ya lo implementa) para resolver el rol autoritativo.
+- Pendiente: pantallas de negocio (CRUD), integracion completa con el resto de recursos del BFF y pruebas funcionales.
+
+## Documentacion
+
+- [README raiz](../../README.md) · [Indice de docs](../../docs/README.md)
+- [docs/frontend.md](../../docs/frontend.md) · [docs/arquitectura.md](../../docs/arquitectura.md)
+- [docs/testing-login.md](../../docs/testing-login.md) · [apps/backend/README.md](../backend/README.md)

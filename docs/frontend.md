@@ -55,7 +55,7 @@ apps/frontend/
 │   └── types/bff-models.d.ts   # tipos generados desde el BFF
 ├── public/config.json          # configuracion runtime (BFF + MSAL)
 ├── proxy.conf.json             # proxy /api -> BFF en desarrollo
-├── nginx.conf                  # servidor SPA + proxy /api en contenedor
+├── nginx.conf                  # servidor SPA (no proxya /api)
 ├── Dockerfile
 ├── angular.json
 ├── project.json
@@ -99,13 +99,13 @@ apps/frontend/
 ## 7. Contratos con el backend
 
 - El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
-- `MeService` consume `GET /api/me` para obtener rol y vinculos (p. ej. estudiantes del apoderado). **Pendiente de implementar en el BFF.**
+- `MeService` consume `GET /api/me` para obtener rol y vinculos (p. ej. estudiantes del apoderado). **El BFF ya implementa `/me`**; el resto de recursos se conectara de forma incremental.
 - Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
 
 ## 8. Docker
 
 - Build en dos etapas (`node:24-alpine` → `nginx:alpine`).
-- Nginx sirve la SPA con fallback a `index.html` y proxya `/api` hacia `http://bff-web:8080`, de modo que el navegador nunca accede a los microservicios ni hay CORS.
+- Nginx sirve la SPA con fallback a `index.html` y los assets; **no proxya `/api`**. El navegador llama al backend segun `bffBaseUrl` de `config.json`: en AWS el API Gateway enruta `/api` al BFF, y en desarrollo `npm start` usa `proxy.conf.json`.
 - El contenedor se publica en `http://localhost:4200`.
 
 ## 9. Estado y trabajo pendiente
@@ -115,11 +115,13 @@ apps/frontend/
 | Bootstrap Angular / Nx | Disponible |
 | Autenticacion MSAL + Azure AD | Disponible |
 | Rutas por rol y guards | Disponible |
+| Resolucion del rol via BFF (`GET /api/me`) | Disponible |
 | Portal publico y layout | Disponible (base) |
 | Fronteras Nx | Disponible |
 | Pantallas de negocio (CRUD) | Pendiente |
-| Integracion con BFF (`/me` y recursos) | Pendiente |
+| Integracion con el resto de recursos del BFF | Pendiente |
 | Formularios y validaciones | Pendiente |
 | Pruebas funcionales | Pendiente |
 
-El siguiente paso es completar el BFF (`/me` y orquestacion) y luego implementar las pantallas de cada portal sobre contratos estables.
+El siguiente paso es implementar las pantallas de cada portal sobre los contratos
+del BFF (`/me` y perfil de estudiante ya disponibles).
