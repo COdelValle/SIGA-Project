@@ -1,16 +1,17 @@
 # SIGA - Infraestructura AWS (Terraform)
 
 Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.medium`, un
-volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
-valida el JWT de Azure AD antes de llegar al BFF.
+volumen EBS dedicado para los datos de MariaDB, **CloudFront** para servir el SPA
+por HTTPS (requisito de MSAL) y un API Gateway HTTP API que valida el JWT de
+Azure AD antes de llegar al BFF.
 
 ```
 Navegador (Angular + MSAL)
-  |  HTTPS + Bearer <token Entra ID>
-  v
-API Gateway HTTP API  -- JWT Authorizer
-  |  HTTP_PROXY http://<eip>:8080/api/{proxy}
-  v
+  |  HTTPS (SPA)                      |  HTTPS + Bearer <token Entra ID>
+  v                                   v
+CloudFront (*.cloudfront.net)     API Gateway HTTP API  -- JWT Authorizer
+  |  HTTP origin :80                  |  HTTP_PROXY http://<eip>:8080/api/{proxy}
+  v                                   v
 EC2 t3.medium (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
@@ -100,10 +101,14 @@ credenciales AWS, de modo que sobreviven a recrear la infraestructura.
 
 ## Redirect URIs de Azure (SPA)
 
-Registrar en la app SPA:
+Registrar en la app SPA de Entra ID (Authentication -> Single-page application):
 
-- `http://<EIP>/auth` (y `http://localhost:4200/auth` para local)
-- post-logout: `http://<EIP>/sin-acceso`
+- `https://<cloudfront-domain>/auth` (para local: `http://localhost:4200/auth`)
+- post-logout: `https://<cloudfront-domain>/sin-acceso`
+
+El dominio lo dan los outputs `frontend_url`, `azure_redirect_uri` y
+`azure_post_logout_redirect_uri` tras el `apply`. Sin esto, el login falla con
+`AADSTS50011: redirect_uri_mismatch`.
 
 Antes de aplicar, verificar con `jwt.ms` / `jwt.io` el `iss` y el `aud` reales
 del access token y ajustarlos en `terraform.tfvars` (`azure_issuer`, `azure_audience`).
