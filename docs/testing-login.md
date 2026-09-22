@@ -37,7 +37,7 @@ solicitar:
 | Fase 2 - Permisos Graph | `User.Read.All` y `AppRoleAssignment.ReadWrite.All` (permisos de aplicacion con consentimiento de admin). |
 
 > **Decision importante:** hoy `config.json` y `.env` asumen que la **misma** app se usa
-> como SPA y como API (`afad9bb4-...`). Si TI configura apps separadas, hay que actualizar
+> como SPA y como API (`448f165b-...`). Si TI configura apps separadas, hay que actualizar
 > `clientId`/`scopes` en `apps/frontend/public/config.json` y `AZURE_CLIENT_ID`/`AZURE_APP_ID_URI`
 > en `.env`.
 
