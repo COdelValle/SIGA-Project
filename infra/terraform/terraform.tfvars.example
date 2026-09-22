@@ -14,7 +14,7 @@ ssh_cidr         = "0.0.0.0/0"
 // aud = api://<client-id> y issuer https://sts.windows.net/<tenant>/. Se aceptan
 // ambos audiences para no depender de la version.
 azure_audience = [
-  "afad9bb4-4804-4b86-965d-34b67774f629",
-  "api://afad9bb4-4804-4b86-965d-34b67774f629",
+  "448f165b-4fab-45c4-9088-766044e1a004",
+  "api://448f165b-4fab-45c4-9088-766044e1a004",
 ]
-azure_issuer = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
+azure_issuer = "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff/v2.0"

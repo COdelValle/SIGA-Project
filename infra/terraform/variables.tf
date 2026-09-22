@@ -52,13 +52,13 @@ variable "azure_audience" {
   description = "claims aud aceptados por el JWT Authorizer (GUID para tokens v2 y api://<client-id> para v1)"
   type        = list(string)
   default = [
-    "afad9bb4-4804-4b86-965d-34b67774f629",
-    "api://afad9bb4-4804-4b86-965d-34b67774f629",
+    "448f165b-4fab-45c4-9088-766044e1a004",
+    "api://448f165b-4fab-45c4-9088-766044e1a004",
   ]
 }
 
 variable "azure_issuer" {
   description = "issuer exacto del token. Verificar v1/v2 con jwt.ms antes de aplicar"
   type        = string
-  default     = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
+  default     = "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff/v2.0"
 }
