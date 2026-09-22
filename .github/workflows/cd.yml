@@ -153,11 +153,11 @@ jobs:
             {
               "bffBaseUrl": "$API_GW_INVOKE_URL/api",
               "msal": {
-                "clientId": "afad9bb4-4804-4b86-965d-34b67774f629",
-                "authority": "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831",
+                "clientId": "448f165b-4fab-45c4-9088-766044e1a004",
+                "authority": "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff",
                 "redirectUri": "/auth",
                 "postLogoutRedirectUri": "/sin-acceso",
-                "scopes": ["api://afad9bb4-4804-4b86-965d-34b67774f629/Acceso.Base"]
+                "scopes": ["api://448f165b-4fab-45c4-9088-766044e1a004/Acceso.Base"]
               }
             }
             EOF

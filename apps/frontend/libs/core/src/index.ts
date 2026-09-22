@@ -4,6 +4,8 @@ export * from './lib/config/app-config.model';
 export * from './lib/config/app-config.loader';
 export * from './lib/auth/msal.factory';
 export * from './lib/auth/auth.service';
+export * from './lib/auth/auth-error.service';
 export * from './lib/auth/me.service';
 export * from './lib/auth/role.guard';
+export * from './lib/http/auth.interceptor';
 export * from './lib/http/error.interceptor';
