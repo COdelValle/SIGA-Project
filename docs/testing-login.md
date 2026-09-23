@@ -9,15 +9,16 @@ resto de lo implementado, levantando el sistema con Docker Compose.
 
 - Login con Azure AD desde el portal publico (`/`).
 - `GET /api/me` en el BFF y resolucion del rol.
-- Redireccion por rol (`/admin`, `/estudiante`, `/docente`, `/apoderado`).
-- Pantalla de rechazo `/sin-acceso` y cierre de sesion de Microsoft para cuentas
-  no habilitadas.
+- Redireccion por rol (`/admin`, `/estudiante`, `/docente`, `/apoderado`) y navegacion por el dashboard.
+- Pantalla de rechazo `/sin-acceso`, pantalla de error `/error-acceso` y cierre de sesion de Microsoft.
 - CRUD de usuarios en `ms-usuarios-auth` (via Swagger/API).
 - Integracion con Microsoft Graph: lookup de `oid`, alta por correo, cambio de rol y
   `sync-roles` (Fase 2, requiere secreto de Azure).
 
-**No incluido (placeholders):** los portales de negocio (admin, estudiante, docente,
-apoderado) solo muestran un layout; no tienen pantallas CRUD ni datos reales.
+**Pantallas de negocio (datos mock):** los portales (estudiante, apoderado, docente, admin)
+ya tienen dashboards con opciones (Inicio, Horarios, Notas, Asistencias, Progreso Academico,
+Cursos, Usuarios, etc.), pero usan **datos de ejemplo** en el frontend; la conexion real al
+BFF esta pendiente para los recursos sin endpoint.
 
 ## 2. Checklist para Azure (responsable: equipo TI / companera)
 
@@ -193,7 +194,9 @@ CRUD como admin (Swagger de `ms-usuarios-auth`):
 | `/api/me` 404 | Usuario no registrado en `usuarios`. | Pre-registrar por admin (seccion 6). |
 | 503 / error de negocio en lookup/sync | Graph deshabilitado o sin permisos. | Configurar `AZURE_CLIENT_SECRET` + permisos Graph. |
 | 403 en perfil de estudiante | Los controllers piden `SCOPE_estudiantes:read`, etc., y el token solo trae `Acceso.Base`. | Exponer y solicitar esos scopes (pendiente conocido). |
-| Frontend no llama al BFF | `bffBaseUrl` mal configurado o API inaccesible. | En AWS, usar el API Gateway; en `ng serve`, `proxy.conf.json`. |
+| `/error-acceso` tras iniciar sesion | Fallo al adquirir el token (scope no expuesto/consentido, redirect como Web en vez de SPA, o app role sin asignar). | Revisar el detalle que muestra la pantalla (AADSTS); corregir en Entra ID y limpiar el cache MSAL (`msal.*` en Local/Session Storage). |
+| Fechas `dd/MM/yyyy` rechazadas por la API | La API usa **ISO 8601** (`yyyy-MM-dd`) para `LocalDate` (JSON y parametros). | Enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`); el frontend normaliza a `dd/MM/yyyy` solo para mostrar. |
+| Frontend no llama al BFF | `bffBaseUrl` mal configurado o API inaccesible. | En AWS, usar el API Gateway; en `ng serve`, `proxy.conf.json`; en Docker local, el proxy `/api` de Nginx. |
 
 ## 11. Que se puede validar sin Azure
 
@@ -201,9 +204,9 @@ Mientras no haya acceso al tenant se puede comprobar:
 
 - Build de backend (`mvn -f apps/backend/pom.xml -DskipTests install`) y frontend (`ng build`).
 - `docker compose up -d --build` y que todos los servicios queden arriba.
-- Migracion Flyway y existencia de la tabla `usuarios`.
+- Migracion Flyway y existencia de las tablas (`usuarios`, `estudiantes`, etc.).
 - Endpoints publicos (`/actuator/health`, `/docs/swagger`) y que `/api/me` sin token da 401.
-- UI de `http://localhost:4200` (portal publico) y `http://localhost:4200/sin-acceso`.
+- UI de `http://localhost:4200`: portal publico, `/sin-acceso`, `/error-acceso` y la navegacion del dashboard (con datos mock) en cada rol.
 
 **Requiere Azure:** login real, `/api/me` con rol, redireccion por rol y CRUD autenticado.
 
