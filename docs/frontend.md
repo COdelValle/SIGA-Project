@@ -4,7 +4,7 @@
 
 El frontend de SIGA es la interfaz web del sistema de gestion academica. Presenta los flujos de autenticacion, consulta y administracion, y se comunica con el backend a traves del **BFF Web** (nunca directamente con los microservicios).
 
-Actualmente es una aplicacion Angular modular, con autenticacion MSAL y rutas por rol. Las pantallas de negocio reales estan pendientes.
+Actualmente es una aplicacion Angular modular con autenticacion MSAL, **dashboards por rol** (layout con header y sidebar) y **tema oscuro/claro**. Las pantallas academicas ya estan implementadas con **datos mock**; la conexion real al BFF esta pendiente para los recursos que aun no tienen endpoint.
 
 ## 2. Ubicacion y tecnologias
 
@@ -37,25 +37,26 @@ npx nx lint frontend
 ```text
 apps/frontend/
 ├── libs/                       # librerias Nx (cada una con project.json y tags)
-│   ├── core/                   # auth (MSAL), guards, interceptores, http, config, modelos
-│   ├── shared-ui/              # componentes de UI y layout reutilizables
+│   ├── core/                   # auth (MSAL), guards, interceptores, tema, http, config, modelos
+│   ├── shared-ui/              # layout (DashboardShell, PortalHeader, menu) y UI reutilizable
 │   ├── public-portal/          # landing publico de bienvenida
-│   ├── academico/              # componentes academicos reutilizables
-│   ├── estudiante/             # portal estudiante
-│   ├── apoderado/              # portal apoderado
-│   ├── docente/                # portal docente
-│   └── admin/                  # portal administracion (base)
+│   ├── academico/              # componentes academicos (horario, asistencia, notas, periodo) y mocks
+│   ├── estudiante/             # portal estudiante (inicio, horarios, notas, asistencias, progreso)
+│   ├── apoderado/              # portal apoderado (multipupilo)
+│   ├── docente/                # portal docente (inicio, cursos, horarios, registrar-notas/asistencias)
+│   └── admin/                  # portal administracion (inicio, usuarios, roles, asignaturas)
 ├── src/
 │   ├── app/
 │   │   ├── app.ts              # componente raiz (router-outlet)
-│   │   ├── app.config.ts       # providers (router, http, MSAL)
-│   │   └── app.routes.ts       # rutas por rol con lazy loading
+│   │   ├── app.config.ts       # providers (router, http con authInterceptor, MSAL)
+│   │   ├── app.routes.ts       # rutas por rol con lazy loading
+│   │   └── auth-error/         # pantalla /error-acceso (fallo de sesion/token)
 │   ├── main.ts                 # carga config runtime y hace bootstrap
-│   ├── index.html
+│   ├── index.html              # <html data-theme="dark"> (tema oscuro por defecto)
 │   └── types/bff-models.d.ts   # tipos generados desde el BFF
 ├── public/config.json          # configuracion runtime (BFF + MSAL)
 ├── proxy.conf.json             # proxy /api -> BFF en desarrollo
-├── nginx.conf                  # servidor SPA (no proxya /api)
+├── nginx.conf                  # servidor SPA + proxy /api (local)
 ├── Dockerfile
 ├── angular.json
 ├── project.json
@@ -66,9 +67,11 @@ apps/frontend/
 ## 4. Autenticacion y sesion
 
 - **MSAL Angular v6 + Azure AD**. La configuracion (clientId, authority, redirectUri y scopes) se carga en **runtime** desde `public/config.json` antes del bootstrap (`main.ts`).
-- `MSAL_INSTANCE`, `MSAL_GUARD_CONFIG` y `MSAL_INTERCEPTOR_CONFIG` se registran en `app.config.ts`.
-- `MsalInterceptor` adjunta el token a las llamadas al BFF; `errorInterceptor` centraliza el manejo de errores (p. ej. 401).
-- El retorno del login se procesa en la ruta `/auth` (`MsalRedirectComponent`).
+- `MSAL_INSTANCE` y `MSAL_GUARD_CONFIG` se registran en `app.config.ts`.
+- **`authInterceptor` (propio)** adjunta el token de acceso a las llamadas al BFF (`acquireTokenSilent`). Ante un fallo de token, registra el error en `AuthErrorService` y lo **re-lanza sin `loginRedirect`**, evitando el bucle de login. Ya **no** se usa `MsalInterceptor`.
+- `errorInterceptor` complementa el manejo de errores HTTP.
+- El retorno del login se procesa en la ruta `/auth` (`AuthRedirectComponent`); el error de sesion se muestra en `/error-acceso` (`AuthErrorComponent`).
+- **Temas**: `ThemeService` (oscuro por defecto magenta/dorado, claro institucional) aplica `data-theme` en `<html>` y persiste la preferencia en `localStorage`.
 
 ## 5. Rutas por rol
 
@@ -76,21 +79,32 @@ apps/frontend/
 | --- | --- | --- |
 | `/` | publico | Portal de bienvenida (boton "Ingresar al portal") |
 | `/auth` | publico | Retorno de Azure AD (MSAL) |
-| `/estudiante` | `ESTUDIANTE` | Informacion academica propia |
-| `/apoderado` | `APODERADO` | Seleccion de pupilo y gestiones |
-| `/docente` | `DOCENTE` | Panel docente |
-| `/admin` | `ADMIN` | Administracion (base) |
+| `/sin-acceso` | publico | Cuenta autenticada pero no habilitada (cierra sesion) |
+| `/error-acceso` | publico | Error de sesion/token (muestra el detalle de Azure) |
+| `/estudiante` | `ESTUDIANTE` | Dashboard del estudiante |
+| `/apoderado` | `APODERADO` | Dashboard del apoderado (multipupilo) |
+| `/docente` | `DOCENTE` | Dashboard del docente |
+| `/admin` | `ADMIN` | Dashboard de administracion |
 
-- Cada portal se carga con **lazy loading**.
+Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layout `DashboardShell`
+(header fijo + sidebar con menu por rol):
+
+| Portal | Rutas hijas |
+| --- | --- |
+| Estudiante | `inicio`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso` |
+| Apoderado | `inicio`, `pupilos`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso`, `solicitudes` |
+| Docente | `inicio`, `cursos`, `horarios`, `registrar-notas`, `registrar-asistencias` |
+| Admin | `inicio`, `usuarios`, `roles`, `asignaturas` |
+
 - `MsalGuard` valida la autenticacion y `roleGuard([...])` valida el rol (a partir del rol autoritativo del BFF via `MeService`).
 
 ## 6. Librerias Nx
 
-- **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`) y guards (`roleGuard`), e interceptores HTTP.
-- **`shared-ui`**: layout compartido (`PortalShell`).
+- **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`, `AuthErrorService`), tema (`ThemeService`), guards (`roleGuard`) e interceptores HTTP (`authInterceptor`, `errorInterceptor`).
+- **`shared-ui`**: layout (`DashboardShell`, `PortalHeader`, `PortalShell`, menu con iconos SVG) y UI reutilizable (`SeccionCard`, `DayTabs`, `Paginador`).
 - **`public-portal`**: landing publico con accesos por rol.
-- **`academico`**: componentes academicos reutilizables (`ResumenAcademico`), usados por estudiante y apoderado con distinto contexto.
-- **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal.
+- **`academico`**: componentes academicos reutilizables (horario, asistencia, notas, periodo) y datos mock.
+- **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal con sus rutas hijas y paginas.
 
 ### Fronteras
 
@@ -105,7 +119,7 @@ apps/frontend/
 ## 8. Docker
 
 - Build en dos etapas (`node:24-alpine` → `nginx:alpine`).
-- Nginx sirve la SPA con fallback a `index.html` y los assets; **no proxya `/api`**. El navegador llama al backend segun `bffBaseUrl` de `config.json`: en AWS el API Gateway enruta `/api` al BFF, y en desarrollo `npm start` usa `proxy.conf.json`.
+- Nginx sirve la SPA con fallback a `index.html` y los assets, y **proxya `/api` al BFF** (`http://bff-web:8080`) para el entorno local (Docker), donde `bffBaseUrl` es relativo (`/api`). En **AWS** esa ruta no se usa: el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF (alli `config.json` se monta con la URL absoluta del API Gateway).
 - El contenedor se publica en `http://localhost:4200`.
 
 ## 9. Estado y trabajo pendiente
@@ -114,14 +128,16 @@ apps/frontend/
 | --- | --- |
 | Bootstrap Angular / Nx | Disponible |
 | Autenticacion MSAL + Azure AD | Disponible |
-| Rutas por rol y guards | Disponible |
+| Rutas por rol, guards y rutas hijas | Disponible |
 | Resolucion del rol via BFF (`GET /api/me`) | Disponible |
-| Portal publico y layout | Disponible (base) |
+| Portal publico, `/sin-acceso` y `/error-acceso` | Disponible |
+| Tema oscuro/claro (oscuro por defecto) | Disponible |
+| Dashboards y pantallas por rol | Disponible (con **datos mock**) |
 | Fronteras Nx | Disponible |
-| Pantallas de negocio (CRUD) | Pendiente |
-| Integracion con el resto de recursos del BFF | Pendiente |
+| Conexion real al BFF del resto de recursos | Pendiente |
 | Formularios y validaciones | Pendiente |
 | Pruebas funcionales | Pendiente |
 
-El siguiente paso es implementar las pantallas de cada portal sobre los contratos
-del BFF (`/me` y perfil de estudiante ya disponibles).
+Las pantallas academicas (horarios, notas, asistencias, progreso, cursos, usuarios) usan
+**datos mock** en `libs/*/src/lib/mocks`; el siguiente paso es conectarlas a los contratos
+del BFF a medida que se expongan los endpoints.
