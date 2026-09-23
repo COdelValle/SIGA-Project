@@ -10,8 +10,10 @@ separados por dominio, con persistencia *database-per-service* en MariaDB.
 - **Documentación detallada**: [`docs/`](docs/README.md).
 
 > Estado: el núcleo académico y la orquestación del BFF (`/me` y perfil de
-> estudiante) son funcionales; las pantallas de negocio del frontend y la
-> observabilidad avanzada están en construcción.
+> estudiante) son funcionales. El frontend ya tiene **dashboards por rol** (Inicio,
+> Horarios, Notas, Asistencias, Progreso Académico, Cursos, Usuarios/Roles/
+> Asignaturas) con **tema oscuro/claro**, pero esas pantallas usan **datos mock**;
+> conectar el resto de recursos al BFF y la observabilidad avanzada están pendientes.
 
 ## Arquitectura
 

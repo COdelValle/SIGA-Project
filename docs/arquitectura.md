@@ -2,7 +2,7 @@
 
 ## 1. Vision general
 
-SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional, el BFF ya orquesta los dominios (`/me` y perfil de estudiante) y la infraestructura Terraform esta implementada; las pantallas de negocio del frontend y la observabilidad avanzada siguen en construccion.
+SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional, el BFF ya orquesta los dominios (`/me` y perfil de estudiante) y la infraestructura Terraform esta implementada. El frontend ya tiene **dashboards por rol** con **tema oscuro/claro**, pero esas pantallas usan **datos mock**; conectar el resto de recursos al BFF y la observabilidad avanzada siguen pendientes.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ Cada microservicio es dueno de su propia base de datos (database-per-service). E
 
 ### Presentacion
 
-`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol, autenticacion MSAL, servicios HTTP). En contenedor se sirve con Nginx, que entrega el SPA y el `config.json` (el API va por `bffBaseUrl`, enrutado por el API Gateway al BFF). El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
+`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol con dashboard y sidebar, autenticacion MSAL, tema oscuro/claro, servicios HTTP). En contenedor se sirve con Nginx, que entrega el SPA y el `config.json`; en local Nginx **proxya `/api` al BFF** y en AWS el API Gateway enruta `/api` al BFF segun `bffBaseUrl`. El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
 
 ### Entrada y orquestacion
 
@@ -94,7 +94,7 @@ Flujo de entrada:
 - El SPA se sirve por **HTTPS vía API Gateway** (`*.execute-api`), requisito de MSAL (Web Crypto solo existe en contextos seguros). SPA y API comparten origen (sin CORS).
 - El navegador (Angular + MSAL) llama a `/api` en el mismo API Gateway con `Authorization: Bearer`.
 - El **JWT Authorizer** valida el token de Entra ID (firma, `iss`, `aud`) y reenvia al BFF (`http://<eip>:8080/api/...`).
-- Nginx solo sirve el SPA y el `config.json`; ya no proxya `/api`.
+- Nginx sirve el SPA y el `config.json`. En **local (Docker)** proxya `/api` al BFF; en **AWS** esa ruta no se usa porque el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF.
 - El BFF y los microservicios revalidan el token y aplican scopes/roles (defensa en profundidad).
 
 Esquema y datos:
@@ -117,7 +117,7 @@ CI/CD:
 
 | Componente | Estado actual | Objetivo |
 | --- | --- | --- |
-| Frontend Angular | App modular con MSAL y rutas por rol | Pantallas academicas conectadas al BFF |
+| Frontend Angular | Dashboards por rol (tema oscuro/claro) con datos mock | Pantallas academicas conectadas al BFF |
 | BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |

@@ -135,6 +135,10 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
   `siga_asignaturas_db` y `siga_notas_db`.
 - **Flyway** crea y evoluciona el esquema (`ddl-auto: validate`); una base vacía
   se auto-inicializa al arrancar.
+- **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y
+  parámetros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:*
+  antes era `dd/MM/yyyy`; los consumidores deben usar `yyyy-MM-dd` (`birthDate`,
+  `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - En Docker las variables se inyectan desde `.env`
   (`SPRING_DATASOURCE_*`, `SERVER_PORT`, Azure, `MS_*_URL`).
 
