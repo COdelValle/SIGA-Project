@@ -1,19 +1,50 @@
 import { Component } from '@angular/core';
-import { Routes } from '@angular/router';
-import { PortalShellComponent } from '@siga/shared-ui';
+import { RouterOutlet, Routes } from '@angular/router';
+import { DashboardShellComponent, MenuItem } from '@siga/shared-ui';
+
+const MENU: MenuItem[] = [
+  { label: 'Inicio', route: '/admin/inicio', icon: 'home' },
+  { label: 'Usuarios', route: '/admin/usuarios', icon: 'users' },
+  { label: 'Roles', route: '/admin/roles', icon: 'roles' },
+  { label: 'Asignaturas', route: '/admin/asignaturas', icon: 'subjects' },
+];
 
 @Component({
-  selector: 'siga-admin-home',
-  imports: [PortalShellComponent],
+  selector: 'siga-admin-layout',
+  imports: [DashboardShellComponent, RouterOutlet],
   template: `
-    <siga-portal-shell portal="Portal Administracion">
-      <h2 class="text-2xl font-semibold text-slate-900">Gestion institucional</h2>
-      <p class="mt-1 text-sm text-slate-500">
-        Administracion de usuarios, roles y datos generales de la institucion.
-      </p>
-    </siga-portal-shell>
+    <siga-dashboard-shell portal="Portal Administración" [menu]="menu">
+      <router-outlet />
+    </siga-dashboard-shell>
   `,
 })
-export class AdminHomeComponent {}
+export class AdminLayoutComponent {
+  protected readonly menu = MENU;
+}
 
-export const ADMIN_ROUTES: Routes = [{ path: '', component: AdminHomeComponent }];
+export const ADMIN_ROUTES: Routes = [
+  {
+    path: '',
+    component: AdminLayoutComponent,
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'inicio' },
+      {
+        path: 'inicio',
+        loadComponent: () => import('./pages/inicio.component').then((m) => m.AdminInicioComponent),
+      },
+      {
+        path: 'usuarios',
+        loadComponent: () => import('./pages/usuarios.component').then((m) => m.AdminUsuariosComponent),
+      },
+      {
+        path: 'roles',
+        loadComponent: () => import('./pages/roles.component').then((m) => m.AdminRolesComponent),
+      },
+      {
+        path: 'asignaturas',
+        loadComponent: () =>
+          import('./pages/asignaturas.component').then((m) => m.AdminAsignaturasComponent),
+      },
+    ],
+  },
+];

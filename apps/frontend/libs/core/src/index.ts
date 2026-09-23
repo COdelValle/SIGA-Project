@@ -7,5 +7,6 @@ export * from './lib/auth/auth.service';
 export * from './lib/auth/auth-error.service';
 export * from './lib/auth/me.service';
 export * from './lib/auth/role.guard';
+export * from './lib/theme/theme.service';
 export * from './lib/http/auth.interceptor';
 export * from './lib/http/error.interceptor';
