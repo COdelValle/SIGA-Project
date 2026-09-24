@@ -1,28 +1,28 @@
 import { Component, signal } from '@angular/core';
+import { SelectComponent, SelectOption } from '@siga/shared-ui';
 import { ALUMNOS_MOCK, CURSOS_MOCK } from '../mocks/docente.mock';
 
 @Component({
   selector: 'siga-docente-registrar-notas',
+  imports: [SelectComponent],
   template: `
     <div class="mx-auto flex max-w-4xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Registrar notas</h1>
 
-      <label class="flex w-full max-w-sm flex-col gap-1 text-sm text-muted">
-        Curso
-        <select
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          @for (curso of cursos; track curso.id) {
-            <option>{{ curso.asignatura }} · {{ curso.nombre }}</option>
-          }
-        </select>
-      </label>
+      <div class="w-full max-w-md">
+        <siga-select
+          [options]="opcionesCurso"
+          [value]="cursoSeleccionado()"
+          ariaLabel="Seleccionar curso"
+          (valueChange)="seleccionarCurso($event)"
+        />
+      </div>
 
       <section class="rounded-2xl bg-panel p-4 shadow-lg sm:p-5">
-        <div class="overflow-hidden rounded-xl border border-dashed border-line">
+        <div class="overflow-hidden rounded-xl border border-gold/60">
           <table class="w-full border-collapse text-left text-sm">
             <thead>
-              <tr class="bg-panel text-heading">
+              <tr class="bg-bar text-gold">
                 <th class="px-4 py-3 font-semibold">Alumno</th>
                 <th class="w-32 px-4 py-3 font-semibold">Nota (1.0 - 7.0)</th>
               </tr>
@@ -66,6 +66,16 @@ export class DocenteRegistrarNotasComponent {
   protected readonly cursos = CURSOS_MOCK;
   protected readonly alumnos = ALUMNOS_MOCK;
   protected readonly mensaje = signal('');
+
+  protected readonly opcionesCurso: SelectOption[] = CURSOS_MOCK.map((curso) => ({
+    value: curso.id,
+    label: `${curso.asignatura} · ${curso.nombre}`,
+  }));
+  protected readonly cursoSeleccionado = signal(CURSOS_MOCK[0]?.id ?? 0);
+
+  protected seleccionarCurso(value: string | number): void {
+    this.cursoSeleccionado.set(Number(value));
+  }
 
   protected guardar(): void {
     this.mensaje.set('Demo: la persistencia se habilitará con el backend de notas.');

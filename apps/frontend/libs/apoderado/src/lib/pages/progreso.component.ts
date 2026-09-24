@@ -1,46 +1,27 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   CONFIG_ACADEMICA_MOCK,
-  HISTORIAL_NOTAS_MOCK,
   NotasTablaComponent,
   PeriodoResumenComponent,
+  notasDe,
 } from '@siga/academico';
-import { SeccionCardComponent } from '@siga/shared-ui';
-import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
+import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
+import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
   selector: 'siga-apoderado-progreso',
-  imports: [SeccionCardComponent, NotasTablaComponent, PeriodoResumenComponent],
+  imports: [SeccionCardComponent, NotasTablaComponent, PeriodoResumenComponent, SelectComponent],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Progreso Académico</h1>
 
-      <div class="grid gap-3 sm:grid-cols-2">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          Pupilo
-          <select
-            [value]="pupiloId()"
-            (change)="cambiarPupilo($event)"
-            class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            @for (pupilo of pupilos; track pupilo.id) {
-              <option [value]="pupilo.id">{{ pupilo.nombre }} · {{ pupilo.curso }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          Periodo
-          <select
-            [value]="anioSeleccionado()"
-            (change)="cambiarPeriodo($event)"
-            class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            @for (periodo of periodos; track periodo.anio) {
-              <option [value]="periodo.anio">{{ periodo.anio }} · {{ periodo.curso }}</option>
-            }
-          </select>
-        </label>
+      <div class="w-full max-w-sm">
+        <siga-select
+          [options]="opcionesPeriodo()"
+          [value]="anioSeleccionado()"
+          ariaLabel="Seleccionar periodo"
+          (valueChange)="cambiarPeriodo($event)"
+        />
       </div>
 
       <siga-periodo-resumen [periodo]="periodo()" />
@@ -76,13 +57,21 @@ import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
   `,
 })
 export class ApoderadoProgresoComponent {
-  protected readonly periodos = HISTORIAL_NOTAS_MOCK;
-  protected readonly pupilos = PUPILOS_MOCK;
-  protected readonly pupiloId = signal(PUPILOS_MOCK[0]?.id ?? 0);
-  protected readonly anioSeleccionado = signal(this.periodos[0]?.anio ?? 0);
+  private readonly state = inject(ApoderadoStateService);
+
+  protected readonly periodos = computed(() => notasDe(this.state.pupiloId()));
+  protected readonly opcionesPeriodo = computed<SelectOption[]>(() =>
+    this.periodos().map((periodo) => ({
+      value: periodo.anio,
+      label: `${periodo.anio} · ${periodo.curso}`,
+    })),
+  );
+  protected readonly anioSeleccionado = signal(2026);
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly periodo = computed(
-    () => this.periodos.find((periodo) => periodo.anio === this.anioSeleccionado()) ?? this.periodos[0],
+    () =>
+      this.periodos().find((periodo) => periodo.anio === this.anioSeleccionado()) ??
+      this.periodos()[0],
   );
   protected readonly asignaturas = computed(
     () =>
@@ -100,12 +89,8 @@ export class ApoderadoProgresoComponent {
       : 'Cálculo: promedio simple (suma de notas / cantidad).',
   );
 
-  protected cambiarPupilo(event: Event): void {
-    this.pupiloId.set(Number((event.target as HTMLSelectElement).value));
-  }
-
-  protected cambiarPeriodo(event: Event): void {
-    this.anioSeleccionado.set(Number((event.target as HTMLSelectElement).value));
+  protected cambiarPeriodo(value: string | number): void {
+    this.anioSeleccionado.set(Number(value));
   }
 
   protected seleccionar(numero: 1 | 2): void {
