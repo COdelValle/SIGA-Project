@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet, Routes } from '@angular/router';
 import { DashboardShellComponent, MenuItem } from '@siga/shared-ui';
+import { PupiloBarComponent } from './components/pupilo-bar.component';
 
 const MENU: MenuItem[] = [
   { label: 'Inicio', route: '/apoderado/inicio', icon: 'home' },
@@ -14,9 +15,10 @@ const MENU: MenuItem[] = [
 
 @Component({
   selector: 'siga-apoderado-layout',
-  imports: [DashboardShellComponent, RouterOutlet],
+  imports: [DashboardShellComponent, RouterOutlet, PupiloBarComponent],
   template: `
     <siga-dashboard-shell portal="Portal Apoderado" [menu]="menu">
+      <siga-pupilo-bar />
       <router-outlet />
     </siga-dashboard-shell>
   `,

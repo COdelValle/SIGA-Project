@@ -1,11 +1,7 @@
-import { Component, computed, signal } from '@angular/core';
-import {
-  CONFIG_ACADEMICA_MOCK,
-  NotasTablaComponent,
-  PERIODO_ACTUAL_MOCK,
-} from '@siga/academico';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CONFIG_ACADEMICA_MOCK, NotasTablaComponent, notasDe } from '@siga/academico';
 import { SeccionCardComponent } from '@siga/shared-ui';
-import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
+import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
   selector: 'siga-apoderado-notas',
@@ -14,24 +10,11 @@ import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Notas</h1>
-        <p class="text-sm text-muted">{{ periodo.anio }} · {{ periodo.curso }}</p>
+        <p class="text-sm text-muted">{{ periodo().anio }} · {{ periodo().curso }}</p>
       </div>
 
-      <label class="flex w-full max-w-md flex-col gap-1 text-sm text-muted">
-        Pupilo
-        <select
-          [value]="pupiloId()"
-          (change)="cambiarPupilo($event)"
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          @for (pupilo of pupilos; track pupilo.id) {
-            <option [value]="pupilo.id">{{ pupilo.nombre }} · {{ pupilo.curso }}</option>
-          }
-        </select>
-      </label>
-
       <div class="flex flex-wrap gap-2">
-        @for (semestre of periodo.semestres; track semestre.numero) {
+        @for (semestre of periodo().semestres; track semestre.numero) {
           <button
             type="button"
             (click)="seleccionar(semestre.numero)"
@@ -61,18 +44,21 @@ import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
   `,
 })
 export class ApoderadoNotasComponent {
-  protected readonly periodo = PERIODO_ACTUAL_MOCK;
-  protected readonly pupilos = PUPILOS_MOCK;
-  protected readonly pupiloId = signal(PUPILOS_MOCK[0]?.id ?? 0);
+  private readonly state = inject(ApoderadoStateService);
+
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
+  protected readonly periodo = computed(() => {
+    const periodos = notasDe(this.state.pupiloId());
+    return periodos.find((item) => item.estado === 'EN_CURSO') ?? periodos[0];
+  });
   protected readonly asignaturas = computed(
     () =>
-      this.periodo.semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
+      this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
         ?.asignaturas ?? [],
   );
   protected readonly promedioSemestre = computed(
     () =>
-      this.periodo.semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
+      this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
         ?.promedio ?? 0,
   );
   protected readonly leyenda = computed(() =>
@@ -80,10 +66,6 @@ export class ApoderadoNotasComponent {
       ? 'Cálculo: promedio ponderado (cada nota vale según su ponderación).'
       : 'Cálculo: promedio simple (suma de notas dividida por la cantidad).',
   );
-
-  protected cambiarPupilo(event: Event): void {
-    this.pupiloId.set(Number((event.target as HTMLSelectElement).value));
-  }
 
   protected seleccionar(numero: 1 | 2): void {
     this.semestreSeleccionado.set(numero);

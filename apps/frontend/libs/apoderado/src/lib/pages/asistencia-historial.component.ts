@@ -2,11 +2,12 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
-  ASISTENCIA_REGISTROS_MOCK,
-  ASISTENCIA_RESUMEN_MOCK,
   AsistenciaHistorialComponent,
+  asistenciaRegistrosDe,
+  asistenciaResumenDe,
 } from '@siga/academico';
 import { SeccionCardComponent } from '@siga/shared-ui';
+import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
   selector: 'siga-apoderado-asistencia-historial',
@@ -31,12 +32,19 @@ import { SeccionCardComponent } from '@siga/shared-ui';
 })
 export class ApoderadoAsistenciaHistorialComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly idParam = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
+  private readonly state = inject(ApoderadoStateService);
+  private readonly idParam = toSignal(this.route.paramMap, {
+    initialValue: this.route.snapshot.paramMap,
+  });
 
   private readonly id = computed(() => Number(this.idParam().get('id') ?? 0));
 
   protected readonly asignatura = computed(
-    () => ASISTENCIA_RESUMEN_MOCK.find((item) => item.id === this.id())?.asignatura ?? 'Asignatura',
+    () =>
+      asistenciaResumenDe(this.state.pupiloId()).find((item) => item.id === this.id())?.asignatura ??
+      'Asignatura',
   );
-  protected readonly registros = computed(() => ASISTENCIA_REGISTROS_MOCK[this.id()] ?? []);
+  protected readonly registros = computed(
+    () => asistenciaRegistrosDe(this.state.pupiloId())[this.id()] ?? [],
+  );
 }

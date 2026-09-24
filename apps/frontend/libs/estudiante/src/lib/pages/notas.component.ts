@@ -1,8 +1,9 @@
 import { Component, computed, signal } from '@angular/core';
 import {
   CONFIG_ACADEMICA_MOCK,
+  ESTUDIANTE_ACTUAL_ID,
   NotasTablaComponent,
-  PERIODO_ACTUAL_MOCK,
+  periodoActualDe,
 } from '@siga/academico';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
@@ -42,12 +43,12 @@ import { SeccionCardComponent } from '@siga/shared-ui';
         </p>
       </siga-seccion-card>
 
-      <p class="text-xs text-muted">{{ leyenda() }}</p>
+      <p class="text-xs text-muted">{{ leyenda }}</p>
     </div>
   `,
 })
 export class EstudianteNotasComponent {
-  protected readonly periodo = PERIODO_ACTUAL_MOCK;
+  protected readonly periodo = periodoActualDe(ESTUDIANTE_ACTUAL_ID);
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly asignaturas = computed(
     () =>
@@ -59,11 +60,10 @@ export class EstudianteNotasComponent {
       this.periodo.semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
         ?.promedio ?? 0,
   );
-  protected readonly leyenda = computed(() =>
+  protected readonly leyenda =
     CONFIG_ACADEMICA_MOCK.modoCalculo === 'PONDERADO'
       ? 'Cálculo: promedio ponderado (cada nota vale según su ponderación).'
-      : 'Cálculo: promedio simple (suma de notas dividida por la cantidad).',
-  );
+      : 'Cálculo: promedio simple (suma de notas dividida por la cantidad).';
 
   protected seleccionar(numero: 1 | 2): void {
     this.semestreSeleccionado.set(numero);

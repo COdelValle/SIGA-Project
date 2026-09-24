@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { ASISTENCIA_RESUMEN_MOCK, AsistenciaTablaComponent } from '@siga/academico';
+import { Component, computed } from '@angular/core';
+import { AsistenciaTablaComponent, ESTUDIANTE_ACTUAL_ID, asistenciaResumenDe } from '@siga/academico';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
 @Component({
@@ -9,11 +9,11 @@ import { SeccionCardComponent } from '@siga/shared-ui';
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Asistencias</h1>
       <siga-seccion-card title="Asistencia">
-        <siga-asistencia-tabla [items]="asistencia" />
+        <siga-asistencia-tabla [items]="asistencia()" />
       </siga-seccion-card>
     </div>
   `,
 })
 export class EstudianteAsistenciasComponent {
-  protected readonly asistencia = ASISTENCIA_RESUMEN_MOCK;
+  protected readonly asistencia = computed(() => asistenciaResumenDe(ESTUDIANTE_ACTUAL_ID));
 }
