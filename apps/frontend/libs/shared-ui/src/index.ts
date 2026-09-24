@@ -6,3 +6,5 @@ export * from './lib/layout/portal-shell.component';
 export * from './lib/ui/seccion-card.component';
 export * from './lib/ui/day-tabs.component';
 export * from './lib/ui/paginador.component';
+export * from './lib/ui/select.model';
+export * from './lib/ui/select.component';

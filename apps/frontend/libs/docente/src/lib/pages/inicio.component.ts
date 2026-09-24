@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { HORARIO_MOCK, HorarioTablaComponent } from '@siga/academico';
+import { ESTUDIANTE_ACTUAL_ID, HorarioTablaComponent, horarioDe } from '@siga/academico';
 import { MeService } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { CURSOS_MOCK } from '../mocks/docente.mock';
@@ -44,5 +44,5 @@ export class DocenteInicioComponent {
 
   protected readonly nombre = computed(() => this.me()?.displayName ?? '');
   protected readonly cursos = CURSOS_MOCK;
-  protected readonly clasesHoy = HORARIO_MOCK['Lunes'];
+  protected readonly clasesHoy = horarioDe(ESTUDIANTE_ACTUAL_ID)['Lunes'];
 }

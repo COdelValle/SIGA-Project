@@ -1,6 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DIAS_SEMANA, DiaSemana, HORARIO_MOCK, HorarioTablaComponent } from '@siga/academico';
+import {
+  DIAS_SEMANA,
+  DiaSemana,
+  ESTUDIANTE_ACTUAL_ID,
+  HorarioTablaComponent,
+  horarioDe,
+} from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
 
 @Component({
@@ -23,7 +29,7 @@ import { DayTabsComponent } from '@siga/shared-ui';
           />
         </div>
 
-        <div class="bg-panel/0 px-4 pb-4 pt-2">
+        <div class="px-4 pb-4 pt-2">
           <siga-horario-tabla [bloques]="bloques()" />
         </div>
       </section>
@@ -38,7 +44,7 @@ export class EstudianteHorariosComponent {
   protected readonly dia = signal<DiaSemana>(
     normalizarDia(this.route.snapshot.queryParamMap.get('dia')),
   );
-  protected readonly bloques = computed(() => HORARIO_MOCK[this.dia()]);
+  protected readonly bloques = computed(() => horarioDe(ESTUDIANTE_ACTUAL_ID)[this.dia()]);
 
   protected seleccionarDia(valor: string): void {
     const dia = normalizarDia(valor);

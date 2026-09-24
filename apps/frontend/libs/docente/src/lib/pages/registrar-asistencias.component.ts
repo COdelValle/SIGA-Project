@@ -1,25 +1,24 @@
 import { Component, signal } from '@angular/core';
+import { SelectComponent, SelectOption } from '@siga/shared-ui';
 import { ALUMNOS_MOCK, CURSOS_MOCK } from '../mocks/docente.mock';
 
 type EstadoAsistencia = 'P' | 'A';
 
 @Component({
   selector: 'siga-docente-registrar-asistencias',
-  imports: [],
+  imports: [SelectComponent],
   template: `
     <div class="mx-auto flex max-w-4xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Registrar asistencias</h1>
 
-      <label class="flex w-full max-w-sm flex-col gap-1 text-sm text-muted">
-        Curso
-        <select
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          @for (curso of cursos; track curso.id) {
-            <option>{{ curso.asignatura }} · {{ curso.nombre }}</option>
-          }
-        </select>
-      </label>
+      <div class="w-full max-w-md">
+        <siga-select
+          [options]="opcionesCurso"
+          [value]="cursoSeleccionado()"
+          ariaLabel="Seleccionar curso"
+          (valueChange)="seleccionarCurso($event)"
+        />
+      </div>
 
       <ul class="flex flex-col gap-2">
         @for (alumno of alumnos; track alumno.id) {
@@ -55,6 +54,16 @@ export class DocenteRegistrarAsistenciasComponent {
   protected readonly cursos = CURSOS_MOCK;
   protected readonly alumnos = ALUMNOS_MOCK;
   protected readonly estado = signal<Record<number, EstadoAsistencia>>({});
+
+  protected readonly opcionesCurso: SelectOption[] = CURSOS_MOCK.map((curso) => ({
+    value: curso.id,
+    label: `${curso.asignatura} · ${curso.nombre}`,
+  }));
+  protected readonly cursoSeleccionado = signal(CURSOS_MOCK[0]?.id ?? 0);
+
+  protected seleccionarCurso(value: string | number): void {
+    this.cursoSeleccionado.set(Number(value));
+  }
 
   protected marcar(id: number, valor: EstadoAsistencia): void {
     this.estado.update((actual) => ({ ...actual, [id]: valor }));
