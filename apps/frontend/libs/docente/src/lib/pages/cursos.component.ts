@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { CURSOS_MOCK } from '../mocks/docente.mock';
+import { Component, inject } from '@angular/core';
+import { DocenteAcademicoService } from '../state/docente-academico.service';
 
 @Component({
   selector: 'siga-docente-cursos',
@@ -10,9 +10,22 @@ import { CURSOS_MOCK } from '../mocks/docente.mock';
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (curso of cursos; track curso.id) {
           <article class="rounded-2xl bg-panel p-5 shadow-lg">
-            <h3 class="text-lg font-semibold text-ink">{{ curso.asignatura }}</h3>
-            <p class="mt-1 text-sm text-muted">{{ curso.nombre }} · {{ curso.profesor }}</p>
-            <p class="mt-3 text-sm text-brand">{{ curso.alumnos }} alumnos</p>
+            <h3 class="text-lg font-semibold text-heading">{{ curso.nombre }}</h3>
+            <p class="mt-1 text-sm text-muted">{{ curso.asignatura }}</p>
+            <dl class="mt-3 flex flex-col gap-1 text-sm">
+              <div class="flex justify-between">
+                <dt class="text-muted">Alumnos</dt>
+                <dd class="font-semibold text-ink">{{ curso.alumnos.length }}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-muted">Clases por semana</dt>
+                <dd class="font-semibold text-ink">{{ curso.diasClase.length }} (1h30 c/u)</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-muted">Sala</dt>
+                <dd class="font-semibold text-ink">{{ curso.sala }}</dd>
+              </div>
+            </dl>
           </article>
         }
       </div>
@@ -20,5 +33,7 @@ import { CURSOS_MOCK } from '../mocks/docente.mock';
   `,
 })
 export class DocenteCursosComponent {
-  protected readonly cursos = CURSOS_MOCK;
+  private readonly academico = inject(DocenteAcademicoService);
+
+  protected readonly cursos = this.academico.cursos;
 }
