@@ -1,5 +1,9 @@
 package cl.siga.coreshare.dto.apoderado;
 
+import java.util.List;
+
+import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
+import cl.siga.coreshare.validation.Phone;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.validation.constraints.*;
 
@@ -24,7 +28,14 @@ public record RegistrarAdoderadoRequestDTO(
     
     @NotBlank(message = "El RUT es requerido")
     @RUT
-    String rut
+    String rut,
+
+    @NotEmpty(message = "Debe tener al menos un teléfono")
+    List<@Phone(message = "El teléfono debe tener un formato válido") String> telefonos,
+
+    @NotNull (message = "Debe tener al menos un estudiante")
+    @Size (min = 1, message = "Debe tener al menos un estudiante")
+    List<ParentescoEstudianteDTO> estudiantes
 ) {
 
 }
