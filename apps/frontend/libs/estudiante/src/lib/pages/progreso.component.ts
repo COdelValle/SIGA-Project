@@ -1,31 +1,28 @@
 import { Component, computed, signal } from '@angular/core';
 import {
   CONFIG_ACADEMICA_MOCK,
-  HISTORIAL_NOTAS_MOCK,
+  ESTUDIANTE_ACTUAL_ID,
   NotasTablaComponent,
   PeriodoResumenComponent,
+  notasDe,
 } from '@siga/academico';
-import { SeccionCardComponent } from '@siga/shared-ui';
+import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 
 @Component({
   selector: 'siga-estudiante-progreso',
-  imports: [SeccionCardComponent, NotasTablaComponent, PeriodoResumenComponent],
+  imports: [SeccionCardComponent, NotasTablaComponent, PeriodoResumenComponent, SelectComponent],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Progreso Académico</h1>
 
-      <label class="flex w-full max-w-xs flex-col gap-1 text-sm text-muted">
-        Periodo
-        <select
+      <div class="w-full max-w-sm">
+        <siga-select
+          [options]="opcionesPeriodo"
           [value]="anioSeleccionado()"
-          (change)="cambiarPeriodo($event)"
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          @for (periodo of periodos; track periodo.anio) {
-            <option [value]="periodo.anio">{{ periodo.anio }} · {{ periodo.curso }}</option>
-          }
-        </select>
-      </label>
+          ariaLabel="Seleccionar periodo"
+          (valueChange)="cambiarPeriodo($event)"
+        />
+      </div>
 
       <siga-periodo-resumen [periodo]="periodo()" />
 
@@ -60,11 +57,16 @@ import { SeccionCardComponent } from '@siga/shared-ui';
   `,
 })
 export class EstudianteProgresoComponent {
-  protected readonly periodos = HISTORIAL_NOTAS_MOCK;
+  protected readonly periodos = notasDe(ESTUDIANTE_ACTUAL_ID);
+  protected readonly opcionesPeriodo: SelectOption[] = this.periodos.map((periodo) => ({
+    value: periodo.anio,
+    label: `${periodo.anio} · ${periodo.curso}`,
+  }));
   protected readonly anioSeleccionado = signal(this.periodos[0]?.anio ?? 0);
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly periodo = computed(
-    () => this.periodos.find((periodo) => periodo.anio === this.anioSeleccionado()) ?? this.periodos[0],
+    () =>
+      this.periodos.find((periodo) => periodo.anio === this.anioSeleccionado()) ?? this.periodos[0],
   );
   protected readonly asignaturas = computed(
     () =>
@@ -82,8 +84,8 @@ export class EstudianteProgresoComponent {
       : 'Cálculo: promedio simple (suma de notas / cantidad).',
   );
 
-  protected cambiarPeriodo(event: Event): void {
-    this.anioSeleccionado.set(Number((event.target as HTMLSelectElement).value));
+  protected cambiarPeriodo(value: string | number): void {
+    this.anioSeleccionado.set(Number(value));
   }
 
   protected seleccionar(numero: 1 | 2): void {

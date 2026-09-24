@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
-import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { PUPILOS_MOCK, Pupilo } from '../mocks/pupilos.mock';
+import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
   selector: 'siga-apoderado-pupilos',
@@ -21,6 +23,13 @@ import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
                 <p class="text-sm text-muted">{{ pupilo.relacion }} · {{ pupilo.curso }}</p>
               </div>
             </div>
+            <button
+              type="button"
+              (click)="verInformacion(pupilo)"
+              class="mt-4 rounded-lg border border-gold/60 px-4 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/10"
+            >
+              Ver información
+            </button>
           </article>
         }
       </div>
@@ -28,5 +37,13 @@ import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
   `,
 })
 export class ApoderadoPupilosComponent {
+  private readonly state = inject(ApoderadoStateService);
+  private readonly router = inject(Router);
+
   protected readonly pupilos = PUPILOS_MOCK;
+
+  protected verInformacion(pupilo: Pupilo): void {
+    this.state.seleccionar(pupilo.id);
+    void this.router.navigate(['/apoderado/inicio']);
+  }
 }

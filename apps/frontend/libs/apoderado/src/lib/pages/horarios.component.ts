@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DIAS_SEMANA, DiaSemana, HORARIO_MOCK, HorarioTablaComponent } from '@siga/academico';
+import { DIAS_SEMANA, DiaSemana, HorarioTablaComponent, horarioDe } from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
+import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
   selector: 'siga-apoderado-horarios',
@@ -33,12 +34,13 @@ import { DayTabsComponent } from '@siga/shared-ui';
 export class ApoderadoHorariosComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly state = inject(ApoderadoStateService);
 
   protected readonly dias = DIAS_SEMANA;
   protected readonly dia = signal<DiaSemana>(
     normalizarDia(this.route.snapshot.queryParamMap.get('dia')),
   );
-  protected readonly bloques = computed(() => HORARIO_MOCK[this.dia()]);
+  protected readonly bloques = computed(() => horarioDe(this.state.pupiloId())[this.dia()]);
 
   protected seleccionarDia(valor: string): void {
     const dia = normalizarDia(valor);

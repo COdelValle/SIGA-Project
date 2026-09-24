@@ -1,8 +1,10 @@
 import { Component, computed, signal } from '@angular/core';
+import { SelectComponent, SelectOption } from '@siga/shared-ui';
 import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
 
 @Component({
   selector: 'siga-admin-usuarios',
+  imports: [SelectComponent],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Usuarios</h1>
@@ -15,33 +17,31 @@ import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
           placeholder="Buscar por nombre o correo"
           class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         />
-        <select
-          [value]="rol()"
-          (change)="cambiarRol($event)"
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          <option value="">Todos los roles</option>
-          @for (r of roles; track r) {
-            <option [value]="r">{{ r }}</option>
-          }
-        </select>
-        <select
-          [value]="estado()"
-          (change)="cambiarEstado($event)"
-          class="rounded-xl border border-line bg-panel px-4 py-3 text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          <option value="">Todos los estados</option>
-          @for (e of estados; track e) {
-            <option [value]="e">{{ e }}</option>
-          }
-        </select>
+
+        <div class="min-w-56">
+          <siga-select
+            [options]="opcionesRol"
+            [value]="rol()"
+            ariaLabel="Filtrar por rol"
+            (valueChange)="cambiarRol($event)"
+          />
+        </div>
+
+        <div class="min-w-56">
+          <siga-select
+            [options]="opcionesEstado"
+            [value]="estado()"
+            ariaLabel="Filtrar por estado"
+            (valueChange)="cambiarEstado($event)"
+          />
+        </div>
       </div>
 
       <section class="rounded-2xl bg-panel p-4 shadow-lg sm:p-5">
-        <div class="overflow-x-auto rounded-xl border border-dashed border-line">
+        <div class="overflow-x-auto rounded-xl border border-gold/60">
           <table class="w-full border-collapse text-left text-sm">
             <thead>
-              <tr class="bg-panel text-heading">
+              <tr class="bg-bar text-gold">
                 <th class="px-4 py-3 font-semibold">Nombre</th>
                 <th class="px-4 py-3 font-semibold">Correo</th>
                 <th class="px-4 py-3 font-semibold">Rol</th>
@@ -73,11 +73,24 @@ import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
 })
 export class AdminUsuariosComponent {
   protected readonly usuarios = USUARIOS_MOCK;
-  protected readonly roles: RolAdmin[] = ['ADMIN', 'DOCENTE', 'APODERADO', 'ESTUDIANTE'];
-  protected readonly estados: EstadoAdmin[] = ['ACTIVO', 'INACTIVO'];
   protected readonly busqueda = signal('');
   protected readonly rol = signal('');
   protected readonly estado = signal('');
+
+  protected readonly opcionesRol: SelectOption[] = [
+    { value: '', label: 'Todos los roles' },
+    ...(['ADMIN', 'DOCENTE', 'APODERADO', 'ESTUDIANTE'] as RolAdmin[]).map((rol) => ({
+      value: rol,
+      label: rol,
+    })),
+  ];
+  protected readonly opcionesEstado: SelectOption[] = [
+    { value: '', label: 'Todos los estados' },
+    ...(['ACTIVO', 'INACTIVO'] as EstadoAdmin[]).map((estado) => ({
+      value: estado,
+      label: estado,
+    })),
+  ];
 
   protected readonly filtrados = computed(() => {
     const q = this.busqueda().trim().toLowerCase();
@@ -96,11 +109,11 @@ export class AdminUsuariosComponent {
     this.busqueda.set((event.target as HTMLInputElement).value);
   }
 
-  protected cambiarRol(event: Event): void {
-    this.rol.set((event.target as HTMLSelectElement).value);
+  protected cambiarRol(value: string | number): void {
+    this.rol.set(String(value));
   }
 
-  protected cambiarEstado(event: Event): void {
-    this.estado.set((event.target as HTMLSelectElement).value);
+  protected cambiarEstado(value: string | number): void {
+    this.estado.set(String(value));
   }
 }
