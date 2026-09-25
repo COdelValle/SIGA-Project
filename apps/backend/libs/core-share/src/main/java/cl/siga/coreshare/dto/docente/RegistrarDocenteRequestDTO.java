@@ -38,7 +38,7 @@ public record RegistrarDocenteRequestDTO(
     @NotNull(message = "El área académica es requerida")
     AreaAcademica area,
 
-    @NotNull (message = "El área académica es requerida")
+    @NotNull (message = "El certificado es requerido")
     @Size (min = 1, message = "Debe tener al menos un certificado")
     List<CertificadoRequestDTO> certificados
 ) {}
