@@ -20,9 +20,6 @@ public record RegistrarAsistenciaRequestDTO(
     @NotNull (message = "El estado es obligatorio")
     State estado,
 
-    @NotNull (message = "La justificación es obligatoria")
-    Justificacion justificacion,
-
     @Size(max = 255, message = "La observación no puede superar los 255 caracteres")
     String observacion
 ) {
