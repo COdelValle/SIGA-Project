@@ -9,6 +9,7 @@ volumes:
   mariadb_estudiantes_data:
   mariadb_asignaturas_data:
   mariadb_notas_data:
+  rabbitmq_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
 x-mariadb-common: &mariadb-common
@@ -28,6 +29,11 @@ x-ms-common-env: &ms-common-env
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
+  # RabbitMQ (mensajeria entre microservicios)
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: "5672"
+  SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
 
 services:
   # ---------------------------------------------------------------
@@ -78,6 +84,29 @@ services:
       - mariadb_notas_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
+  # Mensajeria
+  # ---------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - siga-network
+
+  # ---------------------------------------------------------------
   # Microservicios
   # ---------------------------------------------------------------
   ms-usuarios-auth:
@@ -100,6 +129,8 @@ services:
     depends_on:
       mariadb-usuarios:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -119,6 +150,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
     depends_on:
       mariadb-estudiantes:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - siga-network
@@ -140,6 +173,8 @@ services:
     depends_on:
       mariadb-asignaturas:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -159,6 +194,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
     depends_on:
       mariadb-notas:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - siga-network
@@ -182,10 +219,16 @@ services:
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8087
     depends_on:
-      - ms-usuarios-auth
-      - ms-estudiantes
-      - ms-asignaturas
-      - ms-notas
+      ms-usuarios-auth:
+        condition: service_started
+      ms-estudiantes:
+        condition: service_started
+      ms-asignaturas:
+        condition: service_started
+      ms-notas:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - siga-network
 

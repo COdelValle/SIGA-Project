@@ -74,6 +74,10 @@ fi
 mkdir -p "$DATA_MOUNT/mariadb"
 chown -R 999:999 "$DATA_MOUNT/mariadb"
 
+# El contenedor RabbitMQ tambien corre como uid 999
+mkdir -p "$DATA_MOUNT/rabbitmq"
+chown -R 999:999 "$DATA_MOUNT/rabbitmq"
+
 # --- Archivos de la aplicacion ---
 APP_DIR=/home/ubuntu/siga
 mkdir -p "$APP_DIR"
