@@ -42,6 +42,14 @@ function isoDe(fecha: Date): string {
   return fecha.toISOString().slice(0, 10);
 }
 
+/** Fecha ISO (yyyy-MM-dd) usando la fecha LOCAL del navegador. */
+function isoLocal(fecha: Date): string {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+}
+
 function parseIso(iso: string): Date {
   const [anio, mes, dia] = iso.split('-').map(Number);
   return new Date(Date.UTC(anio, mes - 1, dia));
@@ -86,7 +94,7 @@ export class DocenteAcademicoService {
   readonly cursos: CursoDocente[] = cursosDelDocente(this.docenteId);
   readonly horario = horarioDelDocente(this.docenteId);
 
-  readonly fechaHoy = isoDe(new Date());
+  readonly fechaHoy = isoLocal(new Date());
   readonly semestreActual = computed(() => this.semestreDe(this.fechaHoy));
 
   readonly diaHoy = computed<DiaSemana | null>(() => DIAS_JS[parseIso(this.fechaHoy).getUTCDay()] ?? null);

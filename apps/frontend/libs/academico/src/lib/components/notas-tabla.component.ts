@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { AsignaturaNotas, NotaDetalle } from '../models/academico.model';
+import { AsignaturaNotas, NotaDetalle, formatearNota } from '../models/academico.model';
 
 /**
  * Tabla de notas con columnas dinamicas (maximo de notas del semestre).
@@ -33,7 +33,7 @@ import { AsignaturaNotas, NotaDetalle } from '../models/academico.model';
                         notaClass(nota.valor)
                       "
                     >
-                      {{ nota.valor.toFixed(1) }}
+                      {{ formatear(nota.valor) }}
                     </span>
                   } @else {
                     <span class="inline-flex min-w-10 justify-center px-2 py-1 text-ink/30">—</span>
@@ -45,7 +45,7 @@ import { AsignaturaNotas, NotaDetalle } from '../models/academico.model';
                   'px-4 py-3 text-center align-middle font-bold ' + notaClass(asignatura.promedio)
                 "
               >
-                {{ asignatura.promedio.toFixed(1) }}
+                {{ formatear(asignatura.promedio) }}
               </td>
             </tr>
           } @empty {
@@ -73,6 +73,10 @@ export class NotasTablaComponent {
 
   protected notaDe(asignatura: AsignaturaNotas, numero: number): NotaDetalle | undefined {
     return asignatura.notas.find((nota) => nota.numero === numero);
+  }
+
+  protected formatear(valor: number): string {
+    return formatearNota(valor);
   }
 
   protected notaClass(valor: number): string {

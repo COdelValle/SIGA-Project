@@ -7,6 +7,7 @@ import {
   HorarioResumenComponent,
   NotasListaComponent,
   asistenciaResumenDe,
+  diaActual,
   horarioDe,
   notasResumenDe,
   resumirBloques,
@@ -66,7 +67,7 @@ export class ApoderadoInicioComponent {
 
   protected readonly nombre = computed(() => this.me()?.displayName ?? '');
   protected readonly dias = DIAS_SEMANA;
-  protected readonly dia = signal<DiaSemana>('Lunes');
+  protected readonly dia = signal<DiaSemana>(diaActual());
   protected readonly resumen = computed(() =>
     resumirBloques(horarioDe(this.state.pupiloId())[this.dia()]),
   );
