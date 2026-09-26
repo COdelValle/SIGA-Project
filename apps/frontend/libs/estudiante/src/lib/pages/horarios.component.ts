@@ -5,6 +5,7 @@ import {
   DiaSemana,
   ESTUDIANTE_ACTUAL_ID,
   HorarioTablaComponent,
+  diaActual,
   horarioDe,
 } from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
@@ -59,5 +60,5 @@ export class EstudianteHorariosComponent {
 
 function normalizarDia(valor: string | null): DiaSemana {
   const dias: readonly string[] = DIAS_SEMANA;
-  return valor && dias.includes(valor) ? (valor as DiaSemana) : 'Lunes';
+  return valor && dias.includes(valor) ? (valor as DiaSemana) : diaActual();
 }

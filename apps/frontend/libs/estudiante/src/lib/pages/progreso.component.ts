@@ -4,6 +4,7 @@ import {
   ESTUDIANTE_ACTUAL_ID,
   NotasTablaComponent,
   PeriodoResumenComponent,
+  formatearNota,
   notasDe,
 } from '@siga/academico';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
@@ -48,7 +49,7 @@ import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/share
         <siga-notas-tabla [asignaturas]="asignaturas()" />
         <p class="mt-3 text-sm text-muted">
           Promedio del semestre:
-          <span class="font-semibold text-ink">{{ promedioSemestre().toFixed(1) }}</span>
+          <span class="font-semibold text-ink">{{ formatear(promedioSemestre()) }}</span>
         </p>
       </siga-seccion-card>
 
@@ -90,5 +91,9 @@ export class EstudianteProgresoComponent {
 
   protected seleccionar(numero: 1 | 2): void {
     this.semestreSeleccionado.set(numero);
+  }
+
+  protected formatear(valor: number): string {
+    return formatearNota(valor);
   }
 }

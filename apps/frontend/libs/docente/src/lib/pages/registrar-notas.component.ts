@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { formatearNota, parseNota } from '@siga/academico';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 import { Alumno, nombreCompleto } from '../mocks/docente.mock';
 import { DocenteAcademicoService } from '../state/docente-academico.service';
@@ -35,12 +36,11 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
                   >
                     <span class="text-xs font-semibold text-gold">N{{ nota.numero }}</span>
                     <input
-                      type="number"
-                      min="1"
-                      max="7"
-                      step="0.1"
-                      [value]="nota.valor"
-                      (change)="editar(alumno.id, nota.numero, $event)"
+                      type="text"
+                      inputmode="decimal"
+                      [value]="formatear(nota.valor)"
+                      (input)="normalizarComa($event)"
+                      (change)="editar(alumno.id, nota.numero, nota.valor, $event)"
                       class="w-16 bg-transparent text-sm text-ink focus:outline-none"
                     />
                     <button
@@ -57,11 +57,10 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
                 <span class="flex items-center gap-1">
                   <input
                     #nuevo
-                    type="number"
-                    min="1"
-                    max="7"
-                    step="0.1"
+                    type="text"
+                    inputmode="decimal"
                     placeholder="Nota {{ siguiente(alumno.id) }}"
+                    (input)="normalizarComa($event)"
                     class="w-24 rounded-lg border border-line bg-panel px-2 py-1 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   />
                   <button
@@ -124,20 +123,41 @@ export class DocenteRegistrarNotasComponent {
     return this.academico.siguienteNumero(this.cursoId(), alumnoId);
   }
 
+  protected formatear(valor: number): string {
+    return formatearNota(valor);
+  }
+
+  protected normalizarComa(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.value.includes('.')) {
+      input.value = input.value.replace('.', ',');
+    }
+  }
+
   protected agregar(alumnoId: number, input: HTMLInputElement): void {
-    const valor = Math.round(Number(input.value) * 10) / 10;
-    if (!valor || valor < 1 || valor > 7) {
+    const valor = parseNota(input.value);
+    if (valor === null) {
+      input.value = '';
       return;
     }
     this.academico.crearNota(this.cursoId(), alumnoId, valor);
     input.value = '';
   }
 
-  protected editar(alumnoId: number, numero: number, event: Event): void {
-    const valor = Math.round(Number((event.target as HTMLInputElement).value) * 10) / 10;
-    if (valor >= 1 && valor <= 7) {
-      this.academico.editarNota(this.cursoId(), alumnoId, numero, valor);
+  protected editar(
+    alumnoId: number,
+    numero: number,
+    valorActual: number,
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const valor = parseNota(input.value);
+    if (valor === null) {
+      input.value = formatearNota(valorActual);
+      return;
     }
+    this.academico.editarNota(this.cursoId(), alumnoId, numero, valor);
+    input.value = formatearNota(valor);
   }
 
   protected eliminar(alumnoId: number, numero: number): void {
