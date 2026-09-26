@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import cl.siga.coreshare.dto.docente.certificado.CertificadoResponseDTO;
-import cl.siga.coreshare.dto.docente.enums.AreaAcademica;
+import cl.siga.coreshare.enums.AreaAcademica;
 
 public record DocenteResponseDTO(
     Long id,

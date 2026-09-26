@@ -2,7 +2,7 @@ package cl.siga.coreshare.dto.docente;
 
 import java.time.LocalDate;
 
-import cl.siga.coreshare.dto.docente.enums.AreaAcademica;
+import cl.siga.coreshare.enums.AreaAcademica;
 import jakarta.validation.constraints.*;
 
 public record ActualizarDocenteRequestDTO(
