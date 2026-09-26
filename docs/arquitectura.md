@@ -86,8 +86,8 @@ Aspectos a completar: contrato final de roles/permisos y validacion de audiencia
 
 Hay dos entornos:
 
-- **Local**: `docker-compose.yml` levanta 4 MariaDB (una por servicio), los 4 microservicios, `bff-web` y `frontend` sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 4 bases, los 4 microservicios, el BFF y Nginx. Los datos viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **Local**: `docker-compose.yml` levanta 4 MariaDB (una por servicio), los 4 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 4 bases, los 4 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
@@ -105,7 +105,7 @@ Esquema y datos:
 CI/CD:
 
 - **CI** (`.github/workflows/ci.yml`): build y tests de backend y frontend.
-- **CD** (`.github/workflows/cd.yml`): construye las imagenes, las sube a ECR y despliega por SSH. Es manual (`deploy` o `workflow_dispatch`) porque las credenciales del learner lab expiran (~4 h).
+- **CD** (`.github/workflows/cd.yml`): construye las imagenes, las sube a ECR y despliega por SSH. Es manual (`deploy` o `workflow_dispatch`) porque las credenciales del learner lab expiran (~4 h). El `config.json` del frontend y el `.env` de la EC2 se generan desde los secrets (`AZURE_*`, `RABBITMQ_*`), y el compose se copia desde `infra/terraform/templates/docker-compose.yml` en cada deploy para no depender del que escribio `user-data` al crear la instancia.
 
 ## 7. Observabilidad y operacion
 
@@ -124,7 +124,7 @@ CI/CD:
 | Asignaturas | CRUD, listado, busqueda, `exists`, soft delete | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
-| Docker Compose | Completo (database-per-service local) | Entorno local reproducible |
+| Docker Compose | Completo (database-per-service local + RabbitMQ) | Entorno local reproducible |
 | Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
 | Flyway | Esquema + seed en los 4 microservicios | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |

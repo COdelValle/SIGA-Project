@@ -18,6 +18,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MapStruct y Lombok
 - springdoc 2.8.14 (Swagger UI) + Scalar (starter nativo de springdoc)
 - MariaDB (una base por microservicio)
+- RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
 El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas` y `ms-notas`.
 
@@ -169,10 +170,10 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 ## 5. Datos y configuracion
 
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
-- `docker-compose.yml` levanta 4 MariaDB, los 4 microservicios, el BFF y el frontend.
+- `docker-compose.yml` levanta 4 MariaDB, los 4 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
-- Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`.
+- Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
 
 ## 6. Documentacion API
 
