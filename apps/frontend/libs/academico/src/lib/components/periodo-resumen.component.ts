@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { PeriodoAcademico } from '../models/academico.model';
+import { PeriodoAcademico, formatearNota } from '../models/academico.model';
 
 /** Resumen de un periodo academico: anio, curso, estado, promedio y asistencia. */
 @Component({
@@ -23,7 +23,7 @@ import { PeriodoAcademico } from '../models/academico.model';
       <article class="rounded-2xl bg-panel p-4 shadow-lg">
         <p class="text-xs font-semibold uppercase tracking-wide text-muted">Promedio final</p>
         <p [class]="'mt-1 text-2xl font-bold ' + notaClass(periodo.promedioFinal)">
-          {{ periodo.promedioFinal.toFixed(1) }}
+          {{ formatear(periodo.promedioFinal) }}
         </p>
       </article>
       <article class="rounded-2xl bg-panel p-4 shadow-lg">
@@ -37,6 +37,10 @@ import { PeriodoAcademico } from '../models/academico.model';
 })
 export class PeriodoResumenComponent {
   @Input() periodo!: PeriodoAcademico;
+
+  protected formatear(valor: number): string {
+    return formatearNota(valor);
+  }
 
   protected notaClass(valor: number): string {
     if (valor >= 6) {

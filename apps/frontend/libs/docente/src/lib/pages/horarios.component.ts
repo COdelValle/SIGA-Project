@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DIAS_SEMANA, DiaSemana } from '@siga/academico';
+import { DIAS_SEMANA, DiaSemana, diaActual } from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
 import { horaDeFranja } from '../mocks/docente.mock';
 import { DocenteAcademicoService } from '../state/docente-academico.service';
@@ -62,7 +62,7 @@ export class DocenteHorariosComponent {
   private readonly academico = inject(DocenteAcademicoService);
 
   protected readonly dias = DIAS_SEMANA;
-  protected readonly dia = signal<DiaSemana>('Lunes');
+  protected readonly dia = signal<DiaSemana>(diaActual());
   protected readonly clases = computed(() => this.academico.horario[this.dia()]);
 
   protected seleccionarDia(valor: string): void {
