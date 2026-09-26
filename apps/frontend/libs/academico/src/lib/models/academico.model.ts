@@ -2,6 +2,18 @@ export const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'
 
 export type DiaSemana = (typeof DIAS_SEMANA)[number];
 
+/** Dia de la semana actual (sabado/domingo caen en Lunes). */
+export function diaActual(): DiaSemana {
+  const mapa: Record<number, DiaSemana> = {
+    1: 'Lunes',
+    2: 'Martes',
+    3: 'Miércoles',
+    4: 'Jueves',
+    5: 'Viernes',
+  };
+  return mapa[new Date().getDay()] ?? 'Lunes';
+}
+
 export interface HorarioBloque {
   hora: string;
   asignatura: string;
@@ -143,6 +155,24 @@ export function formatearFecha(iso: string): string {
     return iso;
   }
   return `${dia}/${mes}/${anio}`;
+}
+
+/** Formatea una nota para mostrarla en la UI: 1 decimal con coma (6.0 -> "6,0"). */
+export function formatearNota(valor: number): string {
+  return valor.toFixed(1).replace('.', ',');
+}
+
+/**
+ * Parsea una nota escrita por el usuario (acepta coma o punto), valida el rango
+ * 1.0-7.0 y la redondea a 1 decimal. Devuelve null si no es valida.
+ */
+export function parseNota(texto: string): number | null {
+  const limpio = (texto ?? '').trim().replace(',', '.');
+  const valor = Number(limpio);
+  if (!Number.isFinite(valor) || valor < 1 || valor > 7) {
+    return null;
+  }
+  return Math.round(valor * 10) / 10;
 }
 
 /**

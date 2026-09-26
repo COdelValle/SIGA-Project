@@ -16,7 +16,7 @@ import {
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Registrar asistencias</h1>
 
       <p class="text-sm text-muted">
-        Hoy es {{ diaHoy() }} {{ fechaHoy }} · Semestre {{ semestre() }}
+        Hoy es {{ diaHoy() }} {{ hoyLegible }} · Semestre {{ semestre() }}
       </p>
 
       @if (cursos().length > 0) {
@@ -108,6 +108,7 @@ export class DocenteRegistrarAsistenciasComponent {
   protected readonly alumnos = computed(() => this.curso()?.alumnos ?? []);
   protected readonly diaHoy = this.academico.diaHoy;
   protected readonly fechaHoy = this.academico.fechaHoy;
+  protected readonly hoyLegible = this.academico.hoyLegible();
   protected readonly semestre = this.academico.semestreActual;
   protected readonly pendiente = computed(() =>
     this.academico.pendiente(`asistencia|${this.cursoId()}|${this.fechaHoy}`),
