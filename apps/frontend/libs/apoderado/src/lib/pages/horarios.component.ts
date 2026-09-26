@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DIAS_SEMANA, DiaSemana, HorarioTablaComponent, horarioDe } from '@siga/academico';
+import { DIAS_SEMANA, DiaSemana, HorarioTablaComponent, diaActual, horarioDe } from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
@@ -55,5 +55,5 @@ export class ApoderadoHorariosComponent {
 
 function normalizarDia(valor: string | null): DiaSemana {
   const dias: readonly string[] = DIAS_SEMANA;
-  return valor && dias.includes(valor) ? (valor as DiaSemana) : 'Lunes';
+  return valor && dias.includes(valor) ? (valor as DiaSemana) : diaActual();
 }

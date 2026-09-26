@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CONFIG_ACADEMICA_MOCK, NotasTablaComponent, notasDe } from '@siga/academico';
+import { CONFIG_ACADEMICA_MOCK, NotasTablaComponent, formatearNota, notasDe } from '@siga/academico';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
@@ -35,7 +35,7 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
         <siga-notas-tabla [asignaturas]="asignaturas()" />
         <p class="mt-3 text-sm text-muted">
           Promedio del semestre:
-          <span class="font-semibold text-ink">{{ promedioSemestre().toFixed(1) }}</span>
+          <span class="font-semibold text-ink">{{ formatear(promedioSemestre()) }}</span>
         </p>
       </siga-seccion-card>
 
@@ -69,5 +69,9 @@ export class ApoderadoNotasComponent {
 
   protected seleccionar(numero: 1 | 2): void {
     this.semestreSeleccionado.set(numero);
+  }
+
+  protected formatear(valor: number): string {
+    return formatearNota(valor);
   }
 }
