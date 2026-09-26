@@ -1,4 +1,4 @@
-package cl.siga.coreshare.dto.docente.enums;
+package cl.siga.coreshare.enums;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
