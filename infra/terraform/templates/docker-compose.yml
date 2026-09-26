@@ -7,6 +7,11 @@ x-ms-common-env: &ms-common-env
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
+  # RabbitMQ (mensajeria entre microservicios)
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: "5672"
+  SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
 
 services:
   mariadb:
@@ -29,6 +34,21 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: siga-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - /home/ubuntu/siga-data/rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   ms-usuarios-auth:
     image: ${REGISTRY}/siga-usuarios-auth:${IMAGE_TAG}
     container_name: ms-usuarios-auth
@@ -46,6 +66,8 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   ms-estudiantes:
     image: ${REGISTRY}/siga-estudiantes:${IMAGE_TAG}
@@ -61,6 +83,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
     depends_on:
       mariadb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   ms-asignaturas:
@@ -78,6 +102,8 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   ms-notas:
     image: ${REGISTRY}/siga-notas:${IMAGE_TAG}
@@ -94,6 +120,8 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   bff-web:
     image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
@@ -109,10 +137,16 @@ services:
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8087
     depends_on:
-      - ms-usuarios-auth
-      - ms-estudiantes
-      - ms-asignaturas
-      - ms-notas
+      ms-usuarios-auth:
+        condition: service_started
+      ms-estudiantes:
+        condition: service_started
+      ms-asignaturas:
+        condition: service_started
+      ms-notas:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   frontend:
     image: ${REGISTRY}/siga-frontend:${IMAGE_TAG}
