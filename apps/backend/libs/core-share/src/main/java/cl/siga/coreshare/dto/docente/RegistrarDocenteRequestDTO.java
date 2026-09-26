@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import cl.siga.coreshare.dto.docente.certificado.CertificadoRequestDTO;
-import cl.siga.coreshare.dto.docente.enums.AreaAcademica;
+import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.validation.constraints.*;
 
