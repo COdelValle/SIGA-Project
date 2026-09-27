@@ -27,8 +27,8 @@
         <module>ms-asignaturas</module>
         <module>ms-notas</module>
         <module>ms-docentes</module>
-        <!--
         <module>ms-apoderados</module>
+        <!--
         <module>ms-clases</module>
         <module>ms-asistencias</module>
         <module>ms-auditoria</module>
