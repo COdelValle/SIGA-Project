@@ -28,22 +28,23 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity 
+@Entity
 @Table (name = "estudiantes",
     indexes = {
         @Index (name = "idx_estudiante_rut", columnList = "rut", unique = true)
     })
-@Getter 
-@Setter 
-@Builder 
+@Getter
+@Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Estudiante {
-    @Id 
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long  id;
 
     @NotBlank (message = "Se requiere ingresar idUsuario")
+    @Size(min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
     @Column(name = "id_usuario", length = 36, nullable = false, updatable = false)
     private String idUsuario;
 
@@ -85,7 +86,7 @@ public class Estudiante {
     @Column (name = "state", nullable = false, length = 50)
     private State state;
 
-    @PrePersist 
+    @PrePersist
     @PreUpdate
     public void prePersist() {
         if (this.rut != null) {
