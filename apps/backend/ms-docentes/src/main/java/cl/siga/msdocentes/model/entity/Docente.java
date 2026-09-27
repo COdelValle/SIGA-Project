@@ -27,6 +27,7 @@ public class Docente {
   private Long  id;
 
   @NotBlank(message = "Se requiere ingresar idUsuario")
+  @Size(min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
   @Column(name = "id_usuario", length = 36, nullable = false, updatable = false)
   private String idUsuario;
 
