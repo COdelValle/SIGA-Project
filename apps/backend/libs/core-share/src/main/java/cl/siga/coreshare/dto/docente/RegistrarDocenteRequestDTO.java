@@ -6,6 +6,7 @@ import java.util.List;
 import cl.siga.coreshare.dto.docente.certificado.CertificadoRequestDTO;
 import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.validation.RUT;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 public record RegistrarDocenteRequestDTO(
@@ -26,7 +27,7 @@ public record RegistrarDocenteRequestDTO(
 
     @Size(min = 2, max = 50)
     String secondSurname,
-    
+
     @NotBlank(message = "El RUT es requerido")
     @RUT
     String rut,
@@ -40,5 +41,5 @@ public record RegistrarDocenteRequestDTO(
 
     @NotNull (message = "El certificado es requerido")
     @Size (min = 1, message = "Debe tener al menos un certificado")
-    List<CertificadoRequestDTO> certificados
+    List<@Valid CertificadoRequestDTO> certificados
 ) {}
