@@ -9,5 +9,4 @@ public record ClaseResponseDTO(
     Integer anioAcademico,
     Long idDocenteJefe
 ) {
-
 }
