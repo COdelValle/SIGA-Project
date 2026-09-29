@@ -1,0 +1,54 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: ms-evaluaciones
+    description: Gestiona el CRUD de las evaluaciones
+
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_evaluaciones_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+    # Flyway administra el esquema. baseline-on-migrate permite convivir con bases
+    # creadas previamente por Hibernate (ddl-auto=update) sin historial de Flyway.
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  config:
+    import: "optional:classpath:common-properties.yaml"
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+
+services:
+  ms-asignaturas:
+    url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
+
+# ConfiguraciÃ³n de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+# ConfiguraciÃ³n de Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
+  darkMode: true
