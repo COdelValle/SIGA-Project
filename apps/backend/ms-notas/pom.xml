@@ -57,7 +57,7 @@
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
-        <!-- Comunicacion HTTP y Circuit Breaker (para ms-estudiantes y ms-asignaturas) -->
+        <!-- Comunicacion HTTP y Circuit Breaker (para ms-estudiantes y ms-evaluaciones) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>

@@ -23,9 +23,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RestController 
+@RestController
 @RequestMapping ("/api/v1/notas")
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 @Tag (name = "Notas", description = "Operaciones de registro y consulta de notas")
 public class NotaController {
     private final NotaService notaService;
@@ -40,11 +40,11 @@ public class NotaController {
     @PreAuthorize ("hasAuthority('SCOPE_notas:read')")
     public ResponseEntity<List<NotaResponseDTO>> searchNotas(
         @RequestParam (required = false) Long idEstudiante,
-        @RequestParam (required = false) Long idAsignatura,
+        @RequestParam (required = false) Long idEvaluacion,
         @RequestParam (required = false) Double lessThanScore,
         @RequestParam (required = false) Double greaterThanScore
     ){
-        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idAsignatura, lessThanScore, greaterThanScore));
+        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore));
     }
 
     @PostMapping

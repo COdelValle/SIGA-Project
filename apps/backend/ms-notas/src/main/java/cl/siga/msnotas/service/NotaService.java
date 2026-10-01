@@ -2,6 +2,7 @@ package cl.siga.msnotas.service;
 
 import java.util.List;
 
+import cl.siga.msnotas.client.EvaluacionClient;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +13,6 @@ import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
-import cl.siga.msnotas.client.AsignaturaClient;
 import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapper;
@@ -21,9 +21,9 @@ import cl.siga.msnotas.repository.NotaRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Service 
-@Validated 
-@RequiredArgsConstructor 
+@Service
+@Validated
+@RequiredArgsConstructor
 public class NotaService {
     private final NotaRepository repository;
 
@@ -31,7 +31,7 @@ public class NotaService {
 
     private final EstudianteClient estudianteClient;
 
-    private final AsignaturaClient asignaturaClient;
+    private final EvaluacionClient evaluacionClient;
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
@@ -40,22 +40,22 @@ public class NotaService {
     }
 
     @Transactional (readOnly = true)
-    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThanScore, Double greaterThanScore) {
+    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore) {
         Specification<Nota> spec = NotaSpecifications.isActive()
                 .and(NotaSpecifications.hasIdEstudiante(idEstudiante))
-                .and(NotaSpecifications.hasIdAsignatura(idAsignatura))
+                .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))
                 .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))
                 .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));
         return mapper.toResponseDtoList(repository.findAll(spec));
     }
 
-    @Transactional 
+    @Transactional
     public NotaResponseDTO saveNota(@Valid RegistrarNotaRequestDTO request) {
         if (!estudianteClient.existsById(request.idEstudiante())) {
             throw new BusinessException("El estudiante con ID " + request.idEstudiante() + " no existe.");
         }
-        if (!asignaturaClient.existsById(request.idAsignatura())) {
-            throw new BusinessException("La asignatura con ID " + request.idAsignatura() + " no existe.");
+        if (!evaluacionClient.existsById(request.idEvaluacion())) {
+            throw new BusinessException("La evaluación con ID " + request.idEvaluacion() + " no existe.");
         }
 
         Nota nota = mapper.toEntity(request);
