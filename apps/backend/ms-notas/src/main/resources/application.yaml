@@ -42,7 +42,7 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
-      ms-asignaturas:
+      ms-evaluaciones:
         slidingWindowSize: 10
         minimumNumberOfCalls: 10
         failureRateThreshold: 50
@@ -52,15 +52,15 @@ resilience4j:
     instances:
       ms-estudiantes:
         timeoutDuration: 5s
-      ms-asignaturas:
+      ms-evaluaciones:
         timeoutDuration: 5s
 
 # URLs de microservicios con los que se relaciona
 services:
   ms-estudiantes:
     url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
-  ms-asignaturas:
-    url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
+  ms-evaluaciones:
+    url: ${MS_EVALUACIONES_URL:http://localhost:8091}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:

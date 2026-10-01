@@ -1,7 +1,6 @@
 package cl.siga.msevaluaciones.client;
 
 import cl.siga.coreshare.exception.ServiceUnavailableException;
-import cl.siga.msnotas.client.AsignaturaClient;
 import org.springframework.stereotype.Component;
 
 @Component

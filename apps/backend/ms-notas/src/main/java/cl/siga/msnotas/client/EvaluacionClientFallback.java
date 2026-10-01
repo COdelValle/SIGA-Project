@@ -5,10 +5,10 @@ import org.springframework.stereotype.Component;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
 
 @Component
-public class AsignaturaClientFallback implements AsignaturaClient {
+public class EvaluacionClientFallback implements EvaluacionClient {
 
     @Override
     public boolean existsById(Long id) {
-        throw new ServiceUnavailableException("No se pudo verificar la existencia de la asignatura " + id);
+        throw new ServiceUnavailableException("No se pudo verificar la existencia de la evaluación " + id);
     }
 }
