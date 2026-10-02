@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,8 @@ import cl.siga.coreshare.dto.asignatura.inscripcion.RegistrarInscripcionRequestD
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msasignaturas.client.EstudianteClient;
 import cl.siga.msasignaturas.model.InscripcionEstados;
 import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
@@ -30,6 +33,7 @@ public class InscripcionService {
     private final InscripcionRepository inscripcionRepository;
     private final AsignaturaRepository asignaturaRepository;
     private final InscripcionMapper inscripcionMapper;
+    private final EstudianteClient estudianteClient;
 
     @Transactional(readOnly = true)
     public List<InscripcionResponseDTO> buscarInscripciones(Long idAlumno, Long idAsignatura, List<EstadoInscripcion> estados) {
@@ -48,6 +52,9 @@ public class InscripcionService {
 
     @Transactional
     public InscripcionResponseDTO registrarInscripcion(RegistrarInscripcionRequestDTO request) {
+        // Un ESTUDIANTE solo puede inscribirse a si mismo; ADMIN puede inscribir a cualquiera.
+        validarAlumnoAutenticado(request.idAlumno());
+
         // Bloqueo pesimista: serializa las inscripciones concurrentes de la asignatura.
         Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrueForUpdate(request.idAsignatura())
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura no encontrada o inactiva"));
@@ -105,6 +112,18 @@ public class InscripcionService {
         
         if (inscritosActuales >= electiva.getCupoMaximo()) {
             throw new BusinessException("No hay cupos disponibles para esta asignatura electiva");
+        }
+    }
+
+    private void validarAlumnoAutenticado(Long idAlumno) {
+        if (SecurityUtils.isAdmin() || !SecurityUtils.hasRole("ESTUDIANTE")) {
+            return;
+        }
+        String oid = SecurityUtils.getCurrentUserOid()
+                .orElseThrow(() -> new AccessDeniedException("No se pudo identificar al usuario autenticado."));
+        Long idAlumnoAutenticado = estudianteClient.getEstudianteByIdUsuario(oid).id();
+        if (!idAlumnoAutenticado.equals(idAlumno)) {
+            throw new AccessDeniedException("Solo puedes inscribirte a ti mismo.");
         }
     }
 }
