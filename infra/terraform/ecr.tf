@@ -59,3 +59,43 @@ resource "aws_ecr_repository" "frontend" {
     scan_on_push = true
   }
 }
+
+resource "aws_ecr_repository" "docentes" {
+  name                 = "siga-docentes"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "apoderados" {
+  name                 = "siga-apoderados"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "clases" {
+  name                 = "siga-clases"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "evaluaciones" {
+  name                 = "siga-evaluaciones"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}

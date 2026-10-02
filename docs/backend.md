@@ -20,7 +20,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MariaDB (una base por microservicio)
 - RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas` y `ms-notas`.
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases` y `ms-evaluaciones` (quedan comentados `ms-asistencias` y `ms-auditoria`).
 
 ## 3. Componentes del backend
 
@@ -41,8 +41,8 @@ Responsabilidades previstas:
 Estado actual: **orquesta `/me` y el perfil de estudiante**. Incluye:
 
 - `MeController` (`GET /api/me`): resuelve el usuario via `UsuarioClient` y compone `{ id, email, displayName, roles }`.
-- `PerfilEstudianteController` (`GET /api/bff/v1/estudiantes/perfil/{idExterno}`): agrega estudiante, asignaturas y notas usando `EstudianteClient`, `AsignaturaClient` y `NotaClient` con mappers.
-- Clientes Feign con fallback para usuarios, estudiantes, asignaturas y notas (`integration/*`).
+- `PerfilEstudianteController` (`GET /api/bff/v1/estudiantes/perfil/{idExterno}`): agrega estudiante, asignaturas y notas resolviendo evaluacion -> asignatura, usando `EstudianteClient`, `AsignaturaClient`, `NotaClient` y `EvaluacionClient` con mappers.
+- Clientes Feign con fallback para usuarios, estudiantes, asignaturas, notas y evaluaciones (`integration/*`).
 - `FeignClientConfig` con propagacion del `Authorization`.
 
 Pendiente: orquestar el resto de recursos de la interfaz.
@@ -122,28 +122,35 @@ Comportamiento:
 
 Ubicacion: `apps/backend/ms-notas` · puerto `8087`
 
-Registra y consulta calificaciones relacionadas con estudiantes y asignaturas.
+Registra y consulta calificaciones asociadas a evaluaciones.
 
 Incluye:
 
-- Entidad `Nota` (`idEstudiante`, `idAsignatura`, `score`, `active`).
+- Entidad `Nota` (`idEstudiante`, `idEvaluacion`, `score`, `active`).
 - Repositorio, service, mapper y `NotaSpecifications`.
 - `NotaController` en `/api/v1/notas`.
 
 Endpoints:
 
-- `GET /{id}`, `GET /search` (por estudiante, asignatura y rango de nota).
+- `GET /{id}`, `GET /search` (por estudiante, evaluacion y rango de nota).
 - `POST`, `PUT /{id}`, `DELETE /{id}`.
 
 Comportamiento e integracion:
 
 - Valida el rango de la nota (1.0 a 7.0) con `@ChileanGrade`.
-- **Integracion Feign**: antes de guardar, verifica la existencia del estudiante (`ms-estudiantes`) y de la asignatura (`ms-asignaturas`) usando sus endpoints `exists`.
+- **Integracion Feign**: antes de guardar, verifica la existencia del estudiante (`ms-estudiantes`) y de la evaluacion (`ms-evaluaciones`) usando sus endpoints `exists`.
 - **Resilience4j**: circuit breaker y timeouts configurados; si un servicio no responde, se aplica el fallback y se responde `503`.
 - Propagacion del token: un `RequestInterceptor` reenvia el `Authorization` entrante en las llamadas Feign.
 - `DELETE` aplica **borrado logico** (`active = false`).
 
-### 3.6 Biblioteca compartida
+### 3.6 Servicios de docentes, apoderados, clases y evaluaciones
+
+- **`ms-docentes`** · puerto `8088`: entidades `Docente` (idUsuario, RUT, nombres, fecha de contratacion, area academica, activo) y `Certificado`; CRUD + busqueda + `exists` + certificados como subrecurso (`/api/v1/docentes/{id}/certificados`). Scopes `docentes:*`.
+- **`ms-apoderados`** · puerto `8089`: entidad `Apoderado` (telefonos y estudiantes a cargo con parentesco); CRUD + `idUsuario` + busqueda + `exists` + alta/baja de estudiantes; Feign a `ms-estudiantes`. Scopes `apoderados:*`.
+- **`ms-clases`** · puerto `8090`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
+- **`ms-evaluaciones`** · puerto `8091`: entidad `Evaluacion` (nombre, tipo, ponderacion, idAsignatura, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas`. Scopes `evaluaciones:*`.
+
+### 3.7 Biblioteca compartida
 
 Ubicacion: `apps/backend/libs/core-share`
 
@@ -170,10 +177,10 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 ## 5. Datos y configuracion
 
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
-- `docker-compose.yml` levanta 4 MariaDB, los 4 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
+- `docker-compose.yml` levanta 8 MariaDB, los 8 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
-- Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
+- Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`, `MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
 
 ## 6. Documentacion API
 
@@ -192,4 +199,4 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 3. Anadir pruebas unitarias, de integracion y de contrato.
 4. Definir migraciones de esquema para produccion.
 5. Completar la observabilidad (logs estructurados, correlation ID, metricas, tracing).
-6. Incorporar servicios futuros (`ms-docentes`, `ms-apoderados`, `ms-asistencias`, `ms-auditoria`).
+6. Incorporar servicios futuros (`ms-asistencias`, `ms-auditoria`); docentes, apoderados, clases y evaluaciones ya estan implementados.
