@@ -39,6 +39,14 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
   SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
 
+# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio)
+x-ms-healthcheck: &ms-healthcheck
+  test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${SERVER_PORT}/actuator/health || exit 1"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 45s
+
 services:
   # ---------------------------------------------------------------
   # Bases de datos (una por microservicio)
@@ -162,6 +170,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-usuarios-auth/Dockerfile
     container_name: ms-usuarios-auth
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -187,6 +196,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-estudiantes/Dockerfile
     container_name: ms-estudiantes
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8082:8082"
@@ -209,6 +219,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-asignaturas/Dockerfile
     container_name: ms-asignaturas
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8086:8086"
@@ -227,11 +238,11 @@ services:
       rabbitmq:
         condition: service_healthy
       ms-docentes:
-        condition: service_started
+        condition: service_healthy
       ms-clases:
-        condition: service_started
+        condition: service_healthy
       ms-estudiantes:
-        condition: service_started
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -240,6 +251,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-notas/Dockerfile
     container_name: ms-notas
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8087:8087"
@@ -256,7 +268,7 @@ services:
       rabbitmq:
         condition: service_healthy
       ms-evaluaciones:
-        condition: service_started
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -265,6 +277,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-docentes/Dockerfile
     container_name: ms-docentes
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8088:8088"
@@ -287,6 +300,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-apoderados/Dockerfile
     container_name: ms-apoderados
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8089:8089"
@@ -303,7 +317,7 @@ services:
       rabbitmq:
         condition: service_healthy
       ms-estudiantes:
-        condition: service_started
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -312,6 +326,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-clases/Dockerfile
     container_name: ms-clases
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -328,7 +343,7 @@ services:
       rabbitmq:
         condition: service_healthy
       ms-docentes:
-        condition: service_started
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -337,6 +352,7 @@ services:
       context: ./apps/backend
       dockerfile: ms-evaluaciones/Dockerfile
     container_name: ms-evaluaciones
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8091:8091"
@@ -353,7 +369,7 @@ services:
       rabbitmq:
         condition: service_healthy
       ms-asignaturas:
-        condition: service_started
+        condition: service_healthy
     networks:
       - siga-network
 
@@ -365,6 +381,7 @@ services:
       context: ./apps/backend
       dockerfile: bff-web/Dockerfile
     container_name: bff-web
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -378,15 +395,15 @@ services:
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
     depends_on:
       ms-usuarios-auth:
-        condition: service_started
+        condition: service_healthy
       ms-estudiantes:
-        condition: service_started
+        condition: service_healthy
       ms-asignaturas:
-        condition: service_started
+        condition: service_healthy
       ms-notas:
-        condition: service_started
+        condition: service_healthy
       ms-evaluaciones:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
