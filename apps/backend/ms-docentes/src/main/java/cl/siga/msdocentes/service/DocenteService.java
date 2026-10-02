@@ -5,6 +5,7 @@ import cl.siga.coreshare.dto.docente.RegistrarDocenteRequestDTO;
 import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msdocentes.model.entity.Docente;
 import cl.siga.msdocentes.model.mapper.DocenteMapper;
 import cl.siga.msdocentes.model.specifications.DocenteSpecifications;
@@ -74,6 +75,10 @@ public class DocenteService {
   public DocenteResponseDTO updateDocente(Long id, @Valid ActualizarDocenteRequestDTO request) {
     Docente docenteExistente = repository.findByIdAndActivoTrue(id)
       .orElseThrow(() -> new ResourceNotFoundException("Docente con ID " + id + " no encontrado."));
+
+    SecurityUtils.requireOwnerOrAdmin(
+      docenteExistente.getIdUsuario(),
+      "No tienes permiso para modificar este docente.");
 
     mapper.updateEntityFromDto(request, docenteExistente);
     return mapper.toResponseDto(repository.save(docenteExistente));

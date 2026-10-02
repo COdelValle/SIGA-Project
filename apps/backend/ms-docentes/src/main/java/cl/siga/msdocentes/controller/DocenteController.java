@@ -60,7 +60,7 @@ public class DocenteController {
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_docentes:update')")
+  @PreAuthorize("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_docentes:update')")
   public ResponseEntity<DocenteResponseDTO> actualizarDocente(@PathVariable Long id, @Valid @RequestBody ActualizarDocenteRequestDTO request) {
     return ResponseEntity.ok(docenteService.updateDocente(id, request));
   }
