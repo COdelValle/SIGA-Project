@@ -48,7 +48,7 @@ public class InscripcionController {
 
     @Operation(summary = "Registrar un alumno en una asignatura electiva")
     @PostMapping
-    @PreAuthorize("(hasRole('ADMIN') or hasRole('ALUMNO')) and hasAuthority('SCOPE_inscripciones:write')")
+    @PreAuthorize("(hasRole('ADMIN') or hasRole('ESTUDIANTE')) and hasAuthority('SCOPE_inscripciones:write')")
     public ResponseEntity<InscripcionResponseDTO> registrar(
             @RequestBody @Valid RegistrarInscripcionRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(inscripcionService.registrarInscripcion(request));
