@@ -113,6 +113,11 @@ public class UsuarioService {
         Usuario existingUsuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario con ID " + id + " no encontrado."));
 
+        if (request.state() == StateUsuario.INACTIVO
+                && SecurityUtils.getCurrentUserOid().map(id::equals).orElse(false)) {
+            throw new BusinessException("No puedes desactivar tu propia cuenta.");
+        }
+
         String newEmailFormatted = request.email().trim().toLowerCase();
 
         // Validar si cambió el correo y si el nuevo correo pertenece a otro usuario

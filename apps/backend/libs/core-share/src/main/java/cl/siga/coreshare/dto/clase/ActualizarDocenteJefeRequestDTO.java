@@ -1,8 +1,8 @@
 package cl.siga.coreshare.dto.clase;
 
-import jakarta.validation.constraints.NotNull;
-
+/**
+ * Permite asignar o limpiar (null) el docente jefe de una clase.
+ */
 public record ActualizarDocenteJefeRequestDTO(
-    @NotNull (message = "El ID del docente jefe es obligatorio")
     Long idDocenteJefe
 ) {}

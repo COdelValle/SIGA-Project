@@ -68,6 +68,15 @@ public class EvaluacionService {
     Evaluacion existingEvaluacion = repository.findByIdAndActiveTrue(idEvaluacion)
       .orElseThrow(() -> new ResourceNotFoundException("Evaluación con ID " + idEvaluacion + " no encontrada."));
 
+    String nombreNormalizado = request.nombre() != null ? request.nombre().trim() : null;
+    if (nombreNormalizado != null && repository.existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrueAndIdNot(
+        nombreNormalizado, existingEvaluacion.getIdAsignatura(), idEvaluacion)) {
+      throw new BusinessException(
+        String.format("Ya existe una evaluación llamada '%s' para la asignatura con ID %d.",
+          nombreNormalizado, existingEvaluacion.getIdAsignatura())
+      );
+    }
+
     validarPonderacionAcumulada(existingEvaluacion.getIdAsignatura(), request.ponderacion(), idEvaluacion);
 
     mapper.updateEntityFromDto(request, existingEvaluacion);
@@ -92,7 +101,7 @@ public class EvaluacionService {
    * Valida que la inserción o actualización de una ponderación no supere el 100% en la asignatura.
    */
   private void validarPonderacionAcumulada(Long idAsignatura, Double nuevaPonderacion, Long idEvaluacionActual) {
-    List<Evaluacion> evaluacionesAsignatura = repository.findByIdAsignaturaAndActiveTrue(idAsignatura);
+    List<Evaluacion> evaluacionesAsignatura = repository.findActiveByIdAsignaturaForUpdate(idAsignatura);
 
     double sumaActual = evaluacionesAsignatura.stream()
       .filter(ev -> idEvaluacionActual == null || !ev.getId().equals(idEvaluacionActual))
