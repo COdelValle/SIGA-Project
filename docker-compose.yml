@@ -220,6 +220,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       MS_DOCENTES_URL: http://ms-docentes:8088
       MS_CLASES_URL: http://ms-clases:8090
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
     depends_on:
       mariadb-asignaturas:
         condition: service_healthy
@@ -228,6 +229,8 @@ services:
       ms-docentes:
         condition: service_started
       ms-clases:
+        condition: service_started
+      ms-estudiantes:
         condition: service_started
     networks:
       - siga-network
