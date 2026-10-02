@@ -4,6 +4,7 @@ import cl.siga.coreshare.dto.docente.certificado.CertificadoRequestDTO;
 import cl.siga.coreshare.dto.docente.certificado.CertificadoResponseDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msdocentes.model.entity.Certificado;
 import cl.siga.msdocentes.model.entity.Docente;
 import cl.siga.msdocentes.model.mapper.CertificadoMapper;
@@ -38,6 +39,10 @@ public class CertificadoService {
     Docente docente = docenteRepository.findByIdAndActivoTrue(docenteId)
       .orElseThrow(() -> new ResourceNotFoundException("Docente con ID " + docenteId + " no encontrado."));
 
+    SecurityUtils.requireOwnerOrAdmin(
+      docente.getIdUsuario(),
+      "No tienes permiso para modificar los certificados de este docente.");
+
     Certificado certificado = mapper.toEntity(request);
     certificado.setDocente(docente);
 
@@ -52,6 +57,10 @@ public class CertificadoService {
     if (!certificado.getDocente().getId().equals(docenteId)) {
       throw new ResourceNotFoundException("El certificado no pertenece al docente indicado.");
     }
+
+    SecurityUtils.requireOwnerOrAdmin(
+      certificado.getDocente().getIdUsuario(),
+      "No tienes permiso para modificar los certificados de este docente.");
 
     long totalCertificados = certificadoRepository.countByDocenteId(docenteId);
     if (totalCertificados <= 1) {

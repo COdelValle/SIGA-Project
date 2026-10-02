@@ -83,6 +83,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    // 3b. Acceso denegado (403) lanzado desde la capa de servicio
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        ErrorResponseDTO response = new ErrorResponseDTO(
+            LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), "Forbidden",
+            ex.getMessage() != null ? ex.getMessage() : "No tienes permisos para realizar esta acción", null
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     // 4. Conflictos de integridad de datos (409)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponseDTO> handleDataIntegrity(DataIntegrityViolationException ex) {

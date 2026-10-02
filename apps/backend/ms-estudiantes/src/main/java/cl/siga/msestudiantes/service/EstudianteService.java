@@ -13,6 +13,7 @@ import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
@@ -83,10 +84,15 @@ public class EstudianteService {
         Estudiante estudianteExistente = repository.findByIdAndStateNot(id, State.INACTIVO)
             .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
-        // 2. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
+        // 2. Solo ADMIN o el propio estudiante pueden modificar su ficha
+        SecurityUtils.requireOwnerOrAdmin(
+            estudianteExistente.getIdUsuario(),
+            "No tienes permiso para modificar este estudiante.");
+
+        // 3. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
         mapper.updateEntityFromDto(request, estudianteExistente);
 
-        // 3. Guardas los cambios
+        // 4. Guardas los cambios
         return mapper.toResponseDto(repository.save(estudianteExistente));
     }
 
