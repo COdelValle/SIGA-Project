@@ -30,12 +30,41 @@ solicitar:
 | Tenant ID | GUID del tenant del colegio. |
 | Client ID (SPA) | App registration usada por el frontend (`config.json`). |
 | Client ID (API) | App que expone la API y define los app roles. Puede ser la misma que la SPA o una separada (recomendado: separadas). |
-| Scope expuesto | Por defecto `Acceso.Base` (el que usa `config.json`). |
+| Scope expuesto | `Acceso.Base` + los **38 scopes granulares** (lista en la seccion 2.1). El SPA los solicita en `config.json`. |
 | App roles | `ADMIN`, `DOCENTE`, `APODERADO`, `ESTUDIANTE`. |
 | Redirect URI `/auth` | `http://localhost:4200/auth` (plataforma SPA). |
 | Redirect URI logout `/sin-acceso` | `http://localhost:4200/sin-acceso` (plataforma SPA). |
 | Fase 2 - Secreto | Client secret de la app de API. |
 | Fase 2 - Permisos Graph | `User.Read.All` y `AppRoleAssignment.ReadWrite.All` (permisos de aplicacion con consentimiento de admin). |
+
+### 2.1 Scopes requeridos (exponer y consentir)
+
+Ademas de `Acceso.Base`, la app de API debe exponer y consentir:
+
+| Servicio | Scopes |
+| --- | --- |
+| usuarios | `read`, `write`, `update`, `delete` |
+| estudiantes | `read`, `write`, `update`, `delete` |
+| asignaturas | `read`, `write`, `update`, `delete` |
+| notas | `read`, `write`, `update`, `delete` |
+| docentes | `read`, `write`, `update`, `delete` |
+| apoderados | `read`, `write`, `update`, `delete` |
+| clases | `read`, `write`, `update`, `delete` |
+| evaluaciones | `read`, `write`, `update`, `delete` |
+| horarios | `write`, `update`, `delete` |
+| inscripciones | `read`, `write`, `update` |
+
+Pasos en Entra ID (TI):
+
+1. **Expose an API** en la app de API: agregar cada scope con su nombre (`x:accion`),
+   consentimiento de admin y estado habilitado.
+2. **API permissions** de la app SPA: agregar los 39 scopes (`Acceso.Base` + 38) y
+   otorgar consentimiento de admin.
+3. Verificar que `config.json` (local y el generado por el CD) incluya la lista
+   completa; el SPA los pide en el token.
+
+> Sin este paso, los endpoints con `hasAuthority('SCOPE_...')` responden **403**
+> (el codigo ya exige rol + scope).
 
 > **Decision importante:** hoy `config.json` y `.env` asumen que la **misma** app se usa
 > como SPA y como API (`448f165b-...`). Si TI configura apps separadas, hay que actualizar
