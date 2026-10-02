@@ -2,7 +2,7 @@ package cl.siga.msapoderados.service;
 
 import cl.siga.coreshare.dto.apoderado.ActualizarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
-import cl.siga.coreshare.dto.apoderado.RegistrarAdoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
@@ -57,7 +57,7 @@ public class ApoderadoService {
   }
 
   @Transactional
-  public ApoderadoResponseDTO saveApoderado(@Valid RegistrarAdoderadoRequestDTO request) {
+  public ApoderadoResponseDTO saveApoderado(@Valid RegistrarApoderadoRequestDTO request) {
     if (repository.existsByIdUsuario(request.idUsuario())) {
       throw new BusinessException("El ID de usuario de Azure ya está registrado: " + request.idUsuario());
     }
