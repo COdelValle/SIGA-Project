@@ -12,6 +12,8 @@ import cl.siga.msdocentes.repository.DocenteRepository;
 import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +42,7 @@ public class DocenteService {
   }
 
   @Transactional(readOnly = true)
-  public List<DocenteResponseDTO> searchDocentes(String rut, String firstName, String firstSurname, LocalDate from, LocalDate to, AreaAcademica area) {
+  public Page<DocenteResponseDTO> searchDocentes(String rut, String firstName, String firstSurname, LocalDate from, LocalDate to, AreaAcademica area, Pageable pageable) {
     Specification<Docente> spec = DocenteSpecifications.isActivo()
       .and(DocenteSpecifications.hasRut(rut))
       .and(DocenteSpecifications.hasFirstName(firstName))
@@ -48,7 +50,7 @@ public class DocenteService {
       .and(DocenteSpecifications.hasFechaContratacionGreaterThanOrEqual(from))
       .and(DocenteSpecifications.hasFechaContratacionLessThanOrEqual(to))
       .and(DocenteSpecifications.hasArea(area));
-    return mapper.toResponseDtoList(repository.findAll(spec));
+    return repository.findAll(spec, pageable).map(mapper::toResponseDto);
   }
 
   @Transactional

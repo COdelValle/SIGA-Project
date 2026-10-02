@@ -2,6 +2,10 @@ package cl.siga.msasignaturas.controller.asignatura;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,17 +34,18 @@ public class AsignaturaController {
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('SCOPE_asignaturas:read')")
-    public ResponseEntity<List<AsignaturaResponseDTO>> buscarAsignaturas(
+    public ResponseEntity<Page<AsignaturaResponseDTO>> buscarAsignaturas(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) TipoAsignatura tipo,
             @RequestParam(required = false) Semestre semestre,
             @RequestParam(required = false) AreaAcademica area,
             @RequestParam(required = false) Long idDocente,
             @RequestParam(required = false) Long idClase,
-            @RequestParam(required = false) Boolean verificarCupos) {
+            @RequestParam(required = false) Boolean verificarCupos,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         
         return ResponseEntity.ok(asignaturaService.searchAsignaturas(
-                name, tipo, semestre, area, idDocente, idClase, verificarCupos));
+                name, tipo, semestre, area, idDocente, idClase, verificarCupos, pageable));
     }
 
     @DeleteMapping("/{id}")

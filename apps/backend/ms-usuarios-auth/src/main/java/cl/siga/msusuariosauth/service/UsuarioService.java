@@ -1,5 +1,7 @@
 package cl.siga.msusuariosauth.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +58,7 @@ public class UsuarioService {
     }
 
     @Transactional (readOnly = true)
-    public List<UsuarioResponseDTO> searchUsuarios(@Valid @Email String email, Rol rol, StateUsuario state) {
+    public Page<UsuarioResponseDTO> searchUsuarios(@Valid @Email String email, Rol rol, StateUsuario state, Pageable pageable) {
         Specification<Usuario> spec = (root, query, cb) -> cb.notEqual(root.get("state"), StateUsuario.INACTIVO);
 
         if (email != null && !email.isBlank()) {
@@ -69,7 +71,7 @@ public class UsuarioService {
             spec = spec.and(UsuarioSpecifications.hasState(state));
         }
 
-        return mapper.toResponseDtoList(usuarioRepository.findAll(spec));
+        return usuarioRepository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
     /** Busca una cuenta en Entra ID por correo para pre-registrarla. */
