@@ -70,14 +70,14 @@ GET /api/v1/notas/search?idEstudiante=1&page=0&size=20&sort=score,desc
 | Servicio | Puerto | Ruta | Filtros |
 | --- | --- | --- | --- |
 | `ms-usuarios-auth` | 8081 | `GET /api/v1/usuarios/search` | `email`, `rol`, `state` |
-| `ms-estudiantes` | 8082 | `GET /api/v1/estudiantes/search` | `rut`, nombres, `from`, `to`, `state` |
+| `ms-estudiantes` | 8083 | `GET /api/v1/estudiantes/search` | `rut`, nombres, `from`, `to`, `state` |
 | `ms-asignaturas` | 8086 | `GET /api/v1/asignaturas/search` | `name`, `tipo`, `semestre`, `area`, `idDocente`, `idClase`, `verificarCupos` |
 | `ms-asignaturas` | 8086 | `GET /api/v1/inscripciones/search` | `idAlumno`, `idAsignatura`, `estados` |
-| `ms-notas` | 8087 | `GET /api/v1/notas/search` | `idEstudiante`, `idEvaluacion`, `lessThanScore`, `greaterThanScore` |
-| `ms-docentes` | 8088 | `GET /api/v1/docentes/search` | `rut`, nombres, `from`, `to`, `area` |
-| `ms-apoderados` | 8089 | `GET /api/v1/apoderados/search` | `rut`, nombres, `idEstudiante` |
-| `ms-clases` | 8090 | `GET /api/v1/clases/search` | `nivel`, `letra`, `anioAcademico`, `idDocenteJefe` |
-| `ms-evaluaciones` | 8091 | `GET /api/v1/evaluaciones/search` | `nombre`, `tipo`, `idAsignatura` |
+| `ms-notas` | 8089 | `GET /api/v1/notas/search` | `idEstudiante`, `idEvaluacion`, `lessThanScore`, `greaterThanScore` |
+| `ms-docentes` | 8085 | `GET /api/v1/docentes/search` | `rut`, nombres, `from`, `to`, `area` |
+| `ms-apoderados` | 8084 | `GET /api/v1/apoderados/search` | `rut`, nombres, `idEstudiante` |
+| `ms-clases` | 8087 | `GET /api/v1/clases/search` | `nivel`, `letra`, `anioAcademico`, `idDocenteJefe` |
+| `ms-evaluaciones` | 8088 | `GET /api/v1/evaluaciones/search` | `nombre`, `tipo`, `idAsignatura` |
 
 Los demas endpoints (`GET /{id}`, `exists`, `POST`, `PUT`, `DELETE`) no cambian.
 
