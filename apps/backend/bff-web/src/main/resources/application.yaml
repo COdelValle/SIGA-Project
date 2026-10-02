@@ -18,13 +18,13 @@ services:
   usuarios:
     url: ${MS_USUARIOS_URL:http://localhost:8081}
   estudiantes:
-    url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
   asignaturas:
     url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
   notas:
-    url: ${MS_NOTAS_URL:http://localhost:8087}
+    url: ${MS_NOTAS_URL:http://localhost:8089}
   evaluaciones:
-    url: ${MS_EVALUACIONES_URL:http://localhost:8091}
+    url: ${MS_EVALUACIONES_URL:http://localhost:8088}
 
 # Documentacion OpenAPI / Swagger
 springdoc:

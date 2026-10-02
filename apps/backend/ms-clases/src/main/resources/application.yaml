@@ -1,5 +1,5 @@
 server:
-  port: 8090
+  port: 8087
 
 spring:
   application:
@@ -51,7 +51,7 @@ resilience4j:
 
 services:
   ms-docentes:
-    url: ${MS_DOCENTES_URL:http://localhost:8088}
+    url: ${MS_DOCENTES_URL:http://localhost:8085}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
