@@ -1,7 +1,7 @@
 {
   "name": "ms-asignaturas",
   "projectType": "application",
-  "implicitDependencies": ["core-share"],
+  "implicitDependencies": ["core-share", "ms-clases", "ms-docentes"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
