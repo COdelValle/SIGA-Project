@@ -26,14 +26,4 @@ public class AsignaturaElectiva extends Asignatura {
     @Builder.Default
     @OneToMany(mappedBy = "asignatura", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscripcion> inscripciones = new ArrayList<>();
-
-    @Override
-    @PrePersist
-    @PreUpdate
-    protected void formatFieldsAndValidate() {
-        super.formatFieldsAndValidate();
-        if (cupoMaximo == null || cupoMaximo < 1) {
-            throw new IllegalStateException("El cupo máximo de un electivo debe ser al menos 1.");
-        }
-    }
 }
