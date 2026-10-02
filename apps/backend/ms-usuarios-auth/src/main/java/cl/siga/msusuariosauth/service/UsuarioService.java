@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.validation.annotation.Validated;
 
 import cl.siga.coreshare.dto.usuario.ActualizarUsuarioRequestDTO;
@@ -106,7 +108,7 @@ public class UsuarioService {
         usuario.setState(StateUsuario.ACTIVO);
 
         Usuario saved = usuarioRepository.save(usuario);
-        syncRolesIfEnabled(saved);
+        syncRolesIfEnabledAfterCommit(saved);
         return mapper.toResponseDto(saved);
     }
 
@@ -144,7 +146,7 @@ public class UsuarioService {
                 log.info("Rol del usuario {} cambió de {} a {}; sincronizando con Entra ID.",
                         saved.getId(), previousRol, saved.getRol());
             }
-            syncRolesIfEnabled(saved);
+            syncRolesIfEnabledAfterCommit(saved);
         }
         return mapper.toResponseDto(saved);
     }
@@ -156,9 +158,7 @@ public class UsuarioService {
         existingUsuario.setState(StateUsuario.INACTIVO);
         usuarioRepository.save(existingUsuario);
 
-        if (graphDirectory.isEnabled()) {
-            graphDirectory.revokeRoles(existingUsuario.getId());
-        }
+        revokeRolesAfterCommit(existingUsuario.getId());
     }
 
     /**
@@ -190,6 +190,44 @@ public class UsuarioService {
             graphDirectory.revokeRoles(usuario.getId());
         } else {
             graphDirectory.syncRole(usuario.getId(), usuario.getRol());
+        }
+    }
+
+    /**
+     * Ejecuta la sincronizacion con Graph **despues** del commit para no hacer
+     * llamadas externas dentro de la transaccion; si Graph falla, se registra y
+     * no se revierte la operacion local.
+     */
+    private void syncRolesIfEnabledAfterCommit(Usuario usuario) {
+        if (!graphDirectory.isEnabled()) {
+            log.debug("Graph no configurado: se omite la sincronización de roles para {}", usuario.getId());
+            return;
+        }
+        runAfterCommit(() -> syncRolesIfEnabled(usuario),
+                "sincronizar roles", usuario.getId());
+    }
+
+    private void revokeRolesAfterCommit(String id) {
+        if (!graphDirectory.isEnabled()) {
+            return;
+        }
+        runAfterCommit(() -> graphDirectory.revokeRoles(id), "revocar roles", id);
+    }
+
+    private void runAfterCommit(Runnable action, String operacion, String id) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        action.run();
+                    } catch (RuntimeException ex) {
+                        log.error("Fallo al {} en Entra ID para {}: {}", operacion, id, ex.getMessage());
+                    }
+                }
+            });
+        } else {
+            action.run();
         }
     }
 }

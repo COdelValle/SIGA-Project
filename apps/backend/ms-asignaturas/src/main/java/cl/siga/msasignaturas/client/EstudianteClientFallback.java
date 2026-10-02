@@ -11,4 +11,9 @@ public class EstudianteClientFallback implements EstudianteClient {
     public EstudianteResponseDTO getEstudianteByIdUsuario(String idUsuario) {
         throw new ServiceUnavailableException("No se pudo verificar el estudiante con ID de usuario " + idUsuario);
     }
+
+    @Override 
+    public boolean existsById(Long id) {
+        throw new ServiceUnavailableException("No se pudo verificar la existencia del estudiante " + id);
+    }
 }

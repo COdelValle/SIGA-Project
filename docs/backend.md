@@ -201,6 +201,6 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 2. Conectar las pantallas del frontend a traves del BFF (contratos y paginacion ya definidos).
 3. Ampliar pruebas unitarias, de integracion y de contrato (hoy hay 25 unitarias en 5 modulos).
 4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los 8 microservicios + indices).
-5. Completar la observabilidad (logs estructurados, correlation ID, metricas, tracing).
+5. Completar la observabilidad (logs estructurados, metricas, tracing); el correlation ID ya esta implementado.
 6. Incorporar servicios futuros (`ms-asistencias`, `ms-auditoria`); docentes, apoderados, clases y evaluaciones ya estan implementados.
 7. ~~Resolver la decision de autorizacion~~ (hecho: se mantienen los 38 scopes con politica unificada; falta exponerlos/consentirlos en Azure).
