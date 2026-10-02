@@ -1,4 +1,4 @@
-package cl.siga.bffweb.integration.Notas;
+package cl.siga.bffweb.integration.notas;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 
 @FeignClient (
     name = "ms-notas",
-    url = "${microservices.notas.url}",
+    url = "${services.notas.url}",
     configuration = FeignClientConfig.class,
     fallback = NotaClientFallback.class
 )

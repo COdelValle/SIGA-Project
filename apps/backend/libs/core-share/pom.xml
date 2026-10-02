@@ -68,6 +68,13 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
+
+        <!-- Feign: solo para el auto-config de propagacion de token (opcional) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>

@@ -1,4 +1,4 @@
-package cl.siga.bffweb.integration.Notas;
+package cl.siga.bffweb.integration.notas;
 
 import java.util.List;
 
