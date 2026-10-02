@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 @RestController
 @RequestMapping("/api/v1/apoderados")
 @RequiredArgsConstructor
@@ -37,13 +41,14 @@ public class ApoderadoController {
 
   @GetMapping("/search")
   @PreAuthorize("hasAuthority('SCOPE_apoderados:read')")
-  public ResponseEntity<List<ApoderadoResponseDTO>> searchApoderados(
+  public ResponseEntity<Page<ApoderadoResponseDTO>> searchApoderados(
     @RequestParam(required = false) String rut,
     @RequestParam(required = false) String firstName,
     @RequestParam(required = false) String firstSurname,
-    @RequestParam(required = false) Long idEstudiante
+    @RequestParam(required = false) Long idEstudiante,
+    @PageableDefault(size = 20, sort = "id") Pageable pageable
   ) {
-    return ResponseEntity.ok(apoderadoService.searchApoderados(rut, firstName, firstSurname, idEstudiante));
+    return ResponseEntity.ok(apoderadoService.searchApoderados(rut, firstName, firstSurname, idEstudiante, pageable));
   }
 
   @PostMapping

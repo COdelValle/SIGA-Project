@@ -7,6 +7,10 @@ import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,7 +51,7 @@ public class EstudianteController {
 
     @GetMapping ("/search")
     @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
-    public ResponseEntity<List<EstudianteResponseDTO>> searchEstudiantes(
+    public ResponseEntity<Page<EstudianteResponseDTO>> searchEstudiantes(
             @RequestParam(required = false) String rut,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String middleName,
@@ -55,9 +59,10 @@ public class EstudianteController {
             @RequestParam(required = false) String secondSurname,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
-            @RequestParam(required = false) State state
+            @RequestParam(required = false) State state,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable
     ) {
-        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state));
+        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state, pageable));
     }
 
     @PostMapping 

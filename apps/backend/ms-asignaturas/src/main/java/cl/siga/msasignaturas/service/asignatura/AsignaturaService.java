@@ -2,6 +2,8 @@ package cl.siga.msasignaturas.service.asignatura;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +27,9 @@ public class AsignaturaService {
     private final AsignaturaMapper asignaturaMapper;
 
     @Transactional(readOnly = true)
-    public List<AsignaturaResponseDTO> searchAsignaturas(
+    public Page<AsignaturaResponseDTO> searchAsignaturas(
             String name, TipoAsignatura tipo, Semestre semestre, AreaAcademica area, 
-            Long idDocente, Long idClase, Boolean verificarCupos) {
+            Long idDocente, Long idClase, Boolean verificarCupos, Pageable pageable) {
         
         Specification<Asignatura> spec = Specification.where(AsignaturaSpecifications.isActive())
                 .and(AsignaturaSpecifications.hasName(name))
@@ -38,7 +40,7 @@ public class AsignaturaService {
                 .and(AsignaturaSpecifications.hasIdClase(idClase))
                 .and(AsignaturaSpecifications.hasCuposDisponibles(verificarCupos));
 
-        return asignaturaMapper.toResponseDtoList(asignaturaRepository.findAll(spec));
+        return asignaturaRepository.findAll(spec, pageable).map(asignaturaMapper::toResponseDto);
     }
 
     @Transactional(readOnly = true)

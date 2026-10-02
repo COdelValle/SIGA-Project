@@ -3,6 +3,8 @@ package cl.siga.msasignaturas.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -36,12 +38,12 @@ public class InscripcionService {
     private final EstudianteClient estudianteClient;
 
     @Transactional(readOnly = true)
-    public List<InscripcionResponseDTO> buscarInscripciones(Long idAlumno, Long idAsignatura, List<EstadoInscripcion> estados) {
+    public Page<InscripcionResponseDTO> buscarInscripciones(Long idAlumno, Long idAsignatura, List<EstadoInscripcion> estados, Pageable pageable) {
         Specification<Inscripcion> spec = Specification.where(InscripcionSpecifications.hasIdAlumno(idAlumno))
                 .and(InscripcionSpecifications.hasIdAsignatura(idAsignatura))
                 .and(InscripcionSpecifications.hasEstadoIn(estados));
 
-        return inscripcionMapper.toDtoList(inscripcionRepository.findAll(spec));
+        return inscripcionRepository.findAll(spec, pageable).map(inscripcionMapper::toDto);
     }
 
     @Transactional(readOnly = true)

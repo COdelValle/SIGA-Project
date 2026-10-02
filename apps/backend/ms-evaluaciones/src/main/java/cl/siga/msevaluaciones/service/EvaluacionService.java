@@ -13,6 +13,8 @@ import cl.siga.msevaluaciones.model.specifications.EvaluacionSpecifications;
 import cl.siga.msevaluaciones.repository.EvaluacionRepository;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -35,13 +37,13 @@ public class EvaluacionService {
   }
 
   @Transactional(readOnly = true)
-  public List<EvaluacionResponseDTO> searchEvaluaciones(String nombre, TipoEvaluacion tipo, Long idAsignatura) {
+  public Page<EvaluacionResponseDTO> searchEvaluaciones(String nombre, TipoEvaluacion tipo, Long idAsignatura, Pageable pageable) {
     Specification<Evaluacion> spec = EvaluacionSpecifications.isActive()
       .and(EvaluacionSpecifications.hasNombre(nombre))
       .and(EvaluacionSpecifications.hasTipo(tipo))
       .and(EvaluacionSpecifications.hasIdAsignatura(idAsignatura));
 
-    return mapper.toResponseDtoList(repository.findAll(spec));
+    return repository.findAll(spec, pageable).map(mapper::toResponseDto);
   }
 
   @Transactional

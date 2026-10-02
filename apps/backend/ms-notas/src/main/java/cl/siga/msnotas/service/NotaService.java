@@ -3,6 +3,8 @@ package cl.siga.msnotas.service;
 import java.util.List;
 
 import cl.siga.msnotas.client.EvaluacionClient;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,13 +42,13 @@ public class NotaService {
     }
 
     @Transactional (readOnly = true)
-    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore) {
+    public Page<NotaResponseDTO> searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore, Pageable pageable) {
         Specification<Nota> spec = NotaSpecifications.isActive()
                 .and(NotaSpecifications.hasIdEstudiante(idEstudiante))
                 .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))
                 .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))
                 .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));
-        return mapper.toResponseDtoList(repository.findAll(spec));
+        return repository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
     @Transactional
