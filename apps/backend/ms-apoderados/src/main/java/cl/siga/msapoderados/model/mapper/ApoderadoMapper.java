@@ -2,7 +2,7 @@ package cl.siga.msapoderados.model.mapper;
 
 import cl.siga.coreshare.dto.apoderado.ActualizarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
-import cl.siga.coreshare.dto.apoderado.RegistrarAdoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
 import cl.siga.msapoderados.model.entity.Apoderado;
 import cl.siga.msapoderados.model.entity.ApoderadoEstudiante;
@@ -17,7 +17,7 @@ import java.util.List;
 )
 public interface ApoderadoMapper {
   // Mapea un DTO de creación a una entidad de Apoderado.
-  Apoderado toEntity(RegistrarAdoderadoRequestDTO requestDto);
+  Apoderado toEntity(RegistrarApoderadoRequestDTO requestDto);
 
   // Mapea un DTO de modificación a una entidad de Apoderado.
   void updateEntityFromDto(ActualizarApoderadoRequestDTO dto, @MappingTarget Apoderado apoderado);

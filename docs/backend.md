@@ -162,7 +162,7 @@ Centraliza elementos reutilizables, sin logica de un dominio especifico:
 - **Seguridad**: `SharedSecurityConfig` (filtro stateless, rutas publicas de salud/documentacion y conversion de claims `scp`/`roles` a scopes/roles) y `SecurityUtils`.
 - **Excepciones**: `BusinessException`, `ResourceNotFoundException`, `BadRequestException`, `ServiceUnavailableException`, `GlobalExceptionHandler` y `ErrorResponseDTO`.
 - **OpenAPI**: `SharedOpenApiConfig` (esquema `bearerAuth`).
-- **Fechas**: `CommonDateFormatConfig` (`dd/MM/yyyy` para JSON y parametros).
+- **Fechas**: `CommonDateFormatConfig` (ISO 8601 `yyyy-MM-dd` para JSON y parametros); el frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 
 Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 
