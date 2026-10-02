@@ -168,6 +168,17 @@ CRUD como admin (Swagger de `ms-usuarios-auth`):
 - `DELETE /api/v1/usuarios/{id}` (soft delete: pasa a `INACTIVO`).
 - `POST /api/v1/usuarios/{id}/sync-roles`.
 
+Busquedas paginadas (cualquier servicio):
+
+```bash
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8081/api/v1/usuarios/search?page=0&size=5&sort=email,asc"
+```
+
+Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
+`number`, `size`, `first`, `last` y `empty`. Contrato completo en
+[`paginacion.md`](paginacion.md).
+
 ## 9. Fase 2 - Microsoft Graph
 
 1. Agregar `AZURE_CLIENT_SECRET` y `AZURE_API_APP_ID` a `.env`.
@@ -196,6 +207,7 @@ CRUD como admin (Swagger de `ms-usuarios-auth`):
 | 403 en perfil de estudiante | Los controllers piden `SCOPE_estudiantes:read`, etc., y el token solo trae `Acceso.Base`. | Exponer y solicitar esos scopes (pendiente conocido). |
 | `/error-acceso` tras iniciar sesion | Fallo al adquirir el token (scope no expuesto/consentido, redirect como Web en vez de SPA, o app role sin asignar). | Revisar el detalle que muestra la pantalla (AADSTS); corregir en Entra ID y limpiar el cache MSAL (`msal.*` en Local/Session Storage). |
 | Fechas `dd/MM/yyyy` rechazadas por la API | La API usa **ISO 8601** (`yyyy-MM-dd`) para `LocalDate` (JSON y parametros). | Enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`); el frontend normaliza a `dd/MM/yyyy` solo para mostrar. |
+| `search` responde 400 | `page` o `size` no numericos. | Enviar enteros (`page` >= 0, `size` 1..100); `sort` usa propiedades de la entidad (p. ej. `id,asc`). Ver [`paginacion.md`](paginacion.md). |
 | Frontend no llama al BFF | `bffBaseUrl` mal configurado o API inaccesible. | En AWS, usar el API Gateway; en `ng serve`, `proxy.conf.json`; en Docker local, el proxy `/api` de Nginx. |
 
 ## 11. Que se puede validar sin Azure

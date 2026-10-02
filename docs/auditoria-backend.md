@@ -4,7 +4,8 @@ Revision exhaustiva de los 10 modulos del backend (base `dev`, commit `6204d54`)
 Objetivo: dejar por escrito los hallazgos, su impacto y las decisiones pendientes
 para que el equipo priorice. Los PRs #49 a #53 ya corrigieron la compilacion del
 BFF, el contrato de notas/evaluaciones, las migraciones, Docker/CI y el resolver
-de nginx; esos puntos **no** se repiten aqui.
+de nginx; esos puntos **no** se repiten aqui. La seccion 8 resume el estado de
+remediacion (PRs #55 a #60) y lo que queda pendiente.
 
 ## 1. Resumen ejecutivo
 
@@ -192,3 +193,17 @@ nada hasta que el equipo decida.**
 - Build: `mvn -B -ntp package -DskipTests -Dtypescript-generator.skip=true` en `apps/backend`.
 - Stack: `docker compose config`, `docker compose up -d`, health en 8080-8091.
 - Migraciones: revisar `docker compose logs ms-*` (`Successfully applied`).
+
+## 8. Estado de remediacion (PRs abiertos)
+
+| Hallazgo | Estado | PR |
+| --- | --- | --- |
+| P1 - bugs funcionales (docente jefe, soft delete+unique, cupos, carreras, busqueda `state`, horarios, certificados) | Corregido | #55 |
+| P0 - ownership por `oid`, `idAlumno` autenticado, `state` fuera del update, FeignAuth en `ms-asignaturas`, circuit breaker del BFF | Corregido (sin tocar `@PreAuthorize`) | #56 |
+| P2 - paginacion completa (`Page<T>`, size 20/max 100) | Corregido | #57 (backend) y #58 (frontend) |
+| P2 - manejo de errores 400/405 con logging, `FeignAuthConfig` compartido, naming BFF, indices | Corregido | #59 |
+| P3 - tests unitarios (25), healthchecks, DTO de apoderado, docs de fechas | Corregido | #60 |
+| P0 - **decision de autorizacion** (roles + `Acceso.Base` vs 38 scopes granulares) | **Pendiente de decision del equipo** | A2 |
+
+Nota: mientras A2 no se resuelva, los endpoints con `hasAuthority('SCOPE_...')`
+siguen respondiendo 403 con los tokens actuales (el SPA solo pide `Acceso.Base`).

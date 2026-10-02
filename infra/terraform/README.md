@@ -20,8 +20,9 @@ API Gateway HTTP API (HTTPS)
 EC2 t3.medium (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8082/8086/8087
-  |- mariadb:3306    4 bases
+  |- ms-*:8081/8082/8086/8087/8088/8089/8090/8091
+  |- rabbitmq:5672
+  |- mariadb:3306    8 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
 ```
 
@@ -87,6 +88,8 @@ Outputs utiles:
 
 - Los datos de MariaDB viven en el volumen EBS etiquetado `siga-data`
   (`/home/ubuntu/siga-data`), separado del disco raíz.
+- Los datos de **RabbitMQ** viven en el mismo volumen
+  (`/home/ubuntu/siga-data/rabbitmq`).
 - Detener/arrancar la instancia ("End Lab" / "Start Lab") conserva los datos.
 - Reemplazar la instancia (cambio de AMI o de `user_data`) conserva los datos.
 - `prevent_destroy` evita que `terraform destroy` borre el volumen; para
@@ -97,10 +100,20 @@ Outputs utiles:
 
 ## Inicialización de la base
 
-1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 4 bases y el
+1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 8 bases y el
    usuario.
 2. **Flyway** en cada microservicio crea/evoluciona el esquema al arrancar
    (`ddl-auto: validate`). Una base vacía se auto-inicializa.
+3. En instancias existentes (el `init-db.sh` no se re-ejecuta), el CD crea las
+   bases nuevas de forma idempotente antes del `up`.
+
+## Imágenes ECR
+
+El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
+
+`siga-usuarios-auth`, `siga-estudiantes`, `siga-asignaturas`, `siga-notas`,
+`siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
+`siga-bff-web` y `siga-frontend`.
 
 ## Notas del laboratorio
 
@@ -131,6 +144,8 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AZURE_APP_ID_URI` | `api://<client-id>` |
 | `AZURE_CLIENT_SECRET` | secreto del cliente (Microsoft Graph) |
 | `AZURE_API_APP_ID` | app que define los app roles |
+| `RABBITMQ_USER` | usuario de RabbitMQ |
+| `RABBITMQ_PASSWORD` | password de RabbitMQ |
 
 `EC2_HOST` y `API_GW_INVOKE_URL` **no** se configuran como secrets: el CD los
 resuelve dinámicamente por tag/nombre (`SIGA-app` y `SIGA-http-api`) usando las

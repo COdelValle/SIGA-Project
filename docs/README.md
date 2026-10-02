@@ -10,6 +10,7 @@ inicio rápido, ver el [`README.md`](../README.md) de la raíz.
 | [`arquitectura.md`](arquitectura.md) | Visión general, capas, flujo de una solicitud, seguridad, comunicación, despliegue y estado actual frente a la arquitectura objetivo. |
 | [`backend.md`](backend.md) | Proyecto Maven multi-módulo, microservicios, endpoints, `core-share`, seguridad y datos. |
 | [`frontend.md`](frontend.md) | Aplicación Angular, MSAL, rutas por rol, librerías Nx y contratos con el BFF. |
+| [`paginacion.md`](paginacion.md) | Contrato de paginación (`Page<T>`) de los `GET /search`, ejemplos y guía para backend y frontend. |
 | [`testing-login.md`](testing-login.md) | Guía paso a paso para validar login con Azure AD y el sistema completo con Docker Compose. |
 | [`auditoria-backend.md`](auditoria-backend.md) | Hallazgos de la auditoría del backend (P0–P3), inventario de scopes y la decisión pendiente de autorización (roles vs scopes granulares). |
 | [`branch-cleanup.md`](branch-cleanup.md) | Modelo de ramas (`feature -> dev -> main -> deploy`) y limpieza de ramas ejecutada. |
@@ -26,5 +27,6 @@ inicio rápido, ver el [`README.md`](../README.md) de la raíz.
 
 1. [`arquitectura.md`](arquitectura.md) — entender el sistema completo.
 2. [`backend.md`](backend.md) y [`frontend.md`](frontend.md) — profundizar por capa.
-3. [`testing-login.md`](testing-login.md) — levantar y probar localmente.
-4. [`branch-cleanup.md`](branch-cleanup.md) — flujo de trabajo con Git.
+3. [`paginacion.md`](paginacion.md) — contrato de las búsquedas paginadas.
+4. [`testing-login.md`](testing-login.md) — levantar y probar localmente.
+5. [`branch-cleanup.md`](branch-cleanup.md) — flujo de trabajo con Git.

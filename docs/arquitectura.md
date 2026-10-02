@@ -83,17 +83,19 @@ La estrategia es OAuth2/JWT con **Azure AD** como proveedor de identidad.
 
 - Autenticacion: confirma quien es el usuario.
 - Autorizacion: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
+- **Ownership por `oid`**: APODERADO/DOCENTE/ESTUDIANTE solo modifican sus propios recursos (`SecurityUtils.requireOwnerOrAdmin`).
 - Rutas publicas limitadas a salud y documentacion tecnicas.
-- **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`RequestInterceptor`), de modo que la autorizacion se evalue en destino.
+- **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`SharedFeignAuthConfig`), de modo que la autorizacion se evalue en destino.
 - El frontend solo se comunica con el BFF.
 
-Aspectos a completar: contrato final de roles/permisos y validacion de audiencia/emisor en todos los flujos.
+Aspectos a completar: **decision pendiente del equipo** para unificar la autorizacion (roles + `Acceso.Base` vs scopes granulares; ver [`auditoria-backend.md`](auditoria-backend.md)) y validacion de audiencia/emisor en todos los flujos.
 
 ## 5. Comunicacion y contratos
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
-- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas, evaluaciones y usuarios), `ms-notas` (valida estudiante y evaluacion), `ms-asignaturas` (valida docente y clase), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
+- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas, evaluaciones y usuarios), `ms-notas` (valida estudiante y evaluacion), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
 - El BFF orquesta `/me` y el perfil de estudiante (resolviendo evaluacion -> asignatura); el resto de recursos se conectara de forma incremental.
+- Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
 ## 6. Despliegue
@@ -146,7 +148,8 @@ CI/CD:
 | Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
 | Flyway | Esquema + seed en los 8 microservicios | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
-| Pruebas | Unitarias en usuarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
+| Paginacion | `Page<T>` en los 9 `GET /search` + `siga-paginador` en el frontend | Busquedas paginadas end-to-end |
+| Pruebas | 25 tests unitarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
 
 ## 9. Principios de implementacion
 
