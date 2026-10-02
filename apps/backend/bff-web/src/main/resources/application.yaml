@@ -14,7 +14,7 @@ spring:
     import: "optional:classpath:common-properties.yaml"
 
 # URLs de los microservicios de dominio
-microservices:
+services:
   usuarios:
     url: ${MS_USUARIOS_URL:http://localhost:8081}
   estudiantes:

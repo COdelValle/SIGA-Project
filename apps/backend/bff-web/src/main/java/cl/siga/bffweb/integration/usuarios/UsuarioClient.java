@@ -8,7 +8,7 @@ import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 
 @FeignClient (
     name = "ms-usuarios-auth",
-    url = "${microservices.usuarios.url}",
+    url = "${services.usuarios.url}",
     configuration = FeignClientConfig.class
 )
 public interface UsuarioClient {
