@@ -115,7 +115,7 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 - El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
 - `MeService` consume `GET /api/me` para obtener rol y vinculos (p. ej. estudiantes del apoderado). **El BFF ya implementa `/me`**; el resto de recursos se conectara de forma incremental.
 - Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
-- **Paginacion**: los `GET /search` del backend devuelven `Page<T>` (modelo en `libs/core` con `pageQueryParams()` y `toPage()`); las vistas usan `siga-paginador` y, mientras trabajan con mocks, paginan en cliente con `toPage()`.
+- **Paginacion**: los `GET /search` del backend devuelven `Page<T>` (modelo en `libs/core` con `pageQueryParams()` y `toPage()`); las vistas usan `siga-paginador` y, mientras trabajan con mocks, paginan en cliente con `toPage()`. Contrato en [`paginacion.md`](paginacion.md).
 
 ## 8. Docker
 
@@ -134,6 +134,7 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 | Portal publico, `/sin-acceso` y `/error-acceso` | Disponible |
 | Tema oscuro/claro (oscuro por defecto) | Disponible |
 | Dashboards y pantallas por rol | Disponible (con **datos mock**) |
+| Paginacion (`Page<T>` + `siga-paginador`) | Disponible |
 | Fronteras Nx | Disponible |
 | Conexion real al BFF del resto de recursos | Pendiente |
 | Formularios y validaciones | Pendiente |
