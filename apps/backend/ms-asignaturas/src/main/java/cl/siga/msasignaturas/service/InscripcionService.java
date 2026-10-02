@@ -118,7 +118,13 @@ public class InscripcionService {
     }
 
     private void validarAlumnoAutenticado(Long idAlumno) {
-        if (SecurityUtils.isAdmin() || !SecurityUtils.hasRole("ESTUDIANTE")) {
+        if (SecurityUtils.isAdmin()) {
+            if (!estudianteClient.existsById(idAlumno)) {
+                throw new BusinessException("El estudiante con ID " + idAlumno + " no existe.");
+            }
+            return;
+        }
+        if (!SecurityUtils.hasRole("ESTUDIANTE")) {
             return;
         }
         String oid = SecurityUtils.getCurrentUserOid()

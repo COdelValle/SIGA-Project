@@ -41,11 +41,11 @@ public class AsignaturaController {
             @RequestParam(required = false) AreaAcademica area,
             @RequestParam(required = false) Long idDocente,
             @RequestParam(required = false) Long idClase,
-            @RequestParam(required = false) Boolean verificarCupos,
+            @RequestParam(required = false) Boolean conCupoDisponible,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         
         return ResponseEntity.ok(asignaturaService.searchAsignaturas(
-                name, tipo, semestre, area, idDocente, idClase, verificarCupos, pageable));
+                name, tipo, semestre, area, idDocente, idClase, conCupoDisponible, pageable));
     }
 
     @DeleteMapping("/{id}")

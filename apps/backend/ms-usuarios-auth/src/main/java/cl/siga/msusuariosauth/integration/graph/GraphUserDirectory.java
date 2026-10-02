@@ -55,7 +55,9 @@ public class GraphUserDirectory {
     public Optional<CandidatoUsuarioResponseDTO> findUserByEmail(String email) {
         requireEnabled();
         String normalized = email == null ? "" : email.trim().toLowerCase();
-        String filter = "mail eq '" + normalized + "' or userPrincipalName eq '" + normalized + "'";
+        // Escapa comillas simples para evitar inyeccion en el $filter de OData.
+        String escaped = normalized.replace("'", "''");
+        String filter = "mail eq '" + escaped + "' or userPrincipalName eq '" + escaped + "'";
 
         JsonNode body = get(ub -> ub.path("/users")
                 .queryParam("$filter", filter)

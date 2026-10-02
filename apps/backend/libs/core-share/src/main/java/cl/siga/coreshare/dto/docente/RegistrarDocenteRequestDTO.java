@@ -18,7 +18,7 @@ public record RegistrarDocenteRequestDTO(
     @Size(min = 2, max = 50)
     String firstName,
 
-    @Size(min = 0, max = 50)
+    @Size(max = 50)
     String middleName,
 
     @NotBlank(message = "El primer apellido es requerido")
