@@ -25,6 +25,8 @@ services:
     url: ${MS_NOTAS_URL:http://localhost:8089}
   evaluaciones:
     url: ${MS_EVALUACIONES_URL:http://localhost:8088}
+  apoderados:
+    url: ${MS_APODERADOS_URL:http://localhost:8084}
 
 # Documentacion OpenAPI / Swagger
 springdoc:

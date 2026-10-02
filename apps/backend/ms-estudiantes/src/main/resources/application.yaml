@@ -21,6 +21,35 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ms-apoderados:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      ms-apoderados:
+        timeoutDuration: 5s
+
+# URL del servicio que valida el vinculo apoderado-estudiante.
+services:
+  ms-apoderados:
+    url: ${MS_APODERADOS_URL:http://localhost:8084}
+
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:

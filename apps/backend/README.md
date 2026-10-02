@@ -74,6 +74,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | --- | --- | --- | --- |
 | `GET` | `/api/me` | Autenticado | Usuario actual (id, email, displayName, rol). |
 | `GET` | `/api/bff/v1/estudiantes/perfil/{idExterno}` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil agregado: estudiante + asignaturas + notas (resuelve evaluación → asignatura). |
+| `PUT` | `/api/bff/v1/apoderados/pupilos/{idEstudiante}` | `APODERADO` + `SCOPE_estudiantes:update` | Valida el vínculo apoderado-estudiante y actualiza el pupilo. |
 
 ### Usuarios y autenticación (`:8081`, `/api/v1/usuarios`)
 
