@@ -21,6 +21,44 @@ spring:
 
   config:
     import: "optional:classpath:common-properties.yaml"
+  
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ms-docentes:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      ms-clases:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      ms-docentes:
+        timeoutDuration: 5s
+      ms-clases:
+        timeoutDuration: 5s
+
+services:
+  ms-docentes:
+    url: ${MS_DOCENTES_URL:http://localhost:8088}
+  ms-clases:
+    url: ${MS_CLASES_URL:http://localhost:8090}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
