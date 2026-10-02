@@ -22,4 +22,8 @@ public interface AsignaturaBasicaRepository extends JpaRepository<AsignaturaBasi
     List<AsignaturaBasica> findAllByIdClaseAndActiveTrue(Long idClase);
 
     boolean existsByNameIgnoreCaseAndSemestreAndIdClaseAndActiveTrue(String name, Semestre semestre, Long idClase);
+
+    boolean existsByNameIgnoreCaseAndSemestreAndIdClaseAndActiveTrueAndIdNot(String name, Semestre semestre, Long idClase, Long id);
+
+    Optional<AsignaturaBasica> findFirstByNameIgnoreCaseAndSemestreAndIdClase(String name, Semestre semestre, Long idClase);
 }

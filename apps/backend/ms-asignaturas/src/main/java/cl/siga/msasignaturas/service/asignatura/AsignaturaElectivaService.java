@@ -2,6 +2,7 @@ package cl.siga.msasignaturas.service.asignatura;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -15,8 +16,10 @@ import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasignaturas.client.DocenteClient;
+import cl.siga.msasignaturas.model.InscripcionEstados;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
 import cl.siga.msasignaturas.model.mapper.AsignaturaMapper;
+import cl.siga.msasignaturas.repository.InscripcionRepository;
 import cl.siga.msasignaturas.repository.asignatura.AsignaturaElectivaRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +30,7 @@ public class AsignaturaElectivaService {
     private final AsignaturaElectivaRepository repository;
     private final AsignaturaMapper mapper;
     private final DocenteClient docenteClient;
+    private final InscripcionRepository inscripcionRepository;
 
     // Agrupación oficial MINEDUC para el Plan Diferenciado HC
     private static final Set<AreaAcademica> AREA_A = Set.of(
@@ -38,9 +42,34 @@ public class AsignaturaElectivaService {
 
     @Transactional 
     public AsignaturaResponseDTO crearElectiva(RegistrarAsignaturaElectivaRequestDTO dto) {
+        Optional<AsignaturaElectiva> existente = repository
+                .findFirstByNameIgnoreCaseAndSemestre(dto.name(), dto.semestre());
+
+        if (existente.isPresent() && existente.get().isActive()) {
+            throw new BusinessException("Ya existe una asignatura electiva con ese nombre y semestre.");
+        }
+
         // Validación de existencia de Docente
         if (dto.idDocente() != null && !docenteClient.existsById(dto.idDocente())) {
             throw new BusinessException("El docente con ID " + dto.idDocente() + " no existe o no está activo.");
+        }
+
+        // Si la asignatura fue eliminada logicamente, se reactiva en vez de chocar con el UNIQUE.
+        if (existente.isPresent()) {
+            AsignaturaElectiva entidad = existente.get();
+            AsignaturaElectiva nueva = mapper.toEntity(dto);
+            entidad.setName(nueva.getName());
+            entidad.setDescription(nueva.getDescription());
+            entidad.setArea(nueva.getArea());
+            entidad.setIdDocente(nueva.getIdDocente());
+            entidad.setCupoMaximo(nueva.getCupoMaximo());
+            entidad.setActive(true);
+            entidad.getHorarios().clear();
+            nueva.getHorarios().forEach(horario -> {
+                horario.setAsignatura(entidad);
+                entidad.getHorarios().add(horario);
+            });
+            return mapper.toResponseDto(repository.save(entidad));
         }
 
         AsignaturaElectiva entidad = mapper.toEntity(dto);
@@ -52,6 +81,10 @@ public class AsignaturaElectivaService {
         AsignaturaElectiva entidad = repository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura Electiva con ID " + id + " no encontrada."));
 
+        if (repository.existsByNameIgnoreCaseAndSemestreAndActiveTrueAndIdNot(dto.name(), entidad.getSemestre(), id)) {
+            throw new BusinessException("Ya existe una asignatura electiva con ese nombre y semestre.");
+        }
+
         // Validación si se actualiza el Docente
         if (dto.idDocente() != null && !dto.idDocente().equals(entidad.getIdDocente())) {
             if (!docenteClient.existsById(dto.idDocente())) {
@@ -59,9 +92,10 @@ public class AsignaturaElectivaService {
             }
         }
 
-        // Validar que no se reduzcan los cupos por debajo de las inscripciones actuales
+        // Validar que no se reduzcan los cupos por debajo de las inscripciones que ocupan cupo
         if (dto.cupoMaximo() != null) {
-            int inscritosActuales = entidad.getInscripciones() != null ? entidad.getInscripciones().size() : 0;
+            int inscritosActuales = inscripcionRepository.countByAsignaturaIdAndEstadoIn(
+                    entidad.getId(), InscripcionEstados.OCUPAN_CUPO);
             if (dto.cupoMaximo() < inscritosActuales) {
                 throw new BusinessException("El nuevo cupo máximo (" + dto.cupoMaximo() + 
                         ") no puede ser menor a la cantidad de alumnos ya inscritos (" + inscritosActuales + ").");

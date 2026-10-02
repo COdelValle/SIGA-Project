@@ -46,16 +46,16 @@ public class CertificadoService {
 
   @Transactional
   public void deleteCertificado(Long docenteId, Long certificadoId) {
-    long totalCertificados = certificadoRepository.countByDocenteId(docenteId);
-    if (totalCertificados <= 1) {
-      throw new BusinessException("No se puede eliminar. El docente debe mantener al menos un certificado registrado.");
-    }
-
     Certificado certificado = certificadoRepository.findById(certificadoId)
       .orElseThrow(() -> new ResourceNotFoundException("Certificado con ID " + certificadoId + " no encontrado."));
 
     if (!certificado.getDocente().getId().equals(docenteId)) {
-      throw new BusinessException("El certificado no pertenece al docente indicado.");
+      throw new ResourceNotFoundException("El certificado no pertenece al docente indicado.");
+    }
+
+    long totalCertificados = certificadoRepository.countByDocenteId(docenteId);
+    if (totalCertificados <= 1) {
+      throw new BusinessException("No se puede eliminar. El docente debe mantener al menos un certificado registrado.");
     }
 
     certificadoRepository.delete(certificado);

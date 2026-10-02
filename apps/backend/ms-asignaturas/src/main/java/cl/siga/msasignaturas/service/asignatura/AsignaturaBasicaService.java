@@ -1,5 +1,7 @@
 package cl.siga.msasignaturas.service.asignatura;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,13 @@ public class AsignaturaBasicaService {
 
     @Transactional 
     public AsignaturaResponseDTO crearBasica(RegistrarAsignaturaBasicaRequestDTO dto) {
+        Optional<AsignaturaBasica> existente = repository
+                .findFirstByNameIgnoreCaseAndSemestreAndIdClase(dto.name(), dto.semestre(), dto.idClase());
+
+        if (existente.isPresent() && existente.get().isActive()) {
+            throw new BusinessException("Ya existe una asignatura básica con ese nombre y semestre para esta clase.");
+        }
+
         // Validación de existencia de Clase
         if (dto.idClase() != null && !claseClient.existsById(dto.idClase())) {
             throw new BusinessException("La clase con ID " + dto.idClase() + " no existe o no está activa.");
@@ -36,10 +45,21 @@ public class AsignaturaBasicaService {
             throw new BusinessException("El docente con ID " + dto.idDocente() + " no existe o no está activo.");
         }
 
-        // Regla de Negocio: Evitar duplicidad exacta en la misma clase
-        if (repository.existsByNameIgnoreCaseAndSemestreAndIdClaseAndActiveTrue(
-                dto.name(), dto.semestre(), dto.idClase())) {
-            throw new BusinessException("Ya existe una asignatura básica con ese nombre y semestre para esta clase.");
+        // Si la asignatura fue eliminada logicamente, se reactiva en vez de chocar con el UNIQUE.
+        if (existente.isPresent()) {
+            AsignaturaBasica entidad = existente.get();
+            AsignaturaBasica nueva = mapper.toEntity(dto);
+            entidad.setName(nueva.getName());
+            entidad.setDescription(nueva.getDescription());
+            entidad.setArea(nueva.getArea());
+            entidad.setIdDocente(nueva.getIdDocente());
+            entidad.setActive(true);
+            entidad.getHorarios().clear();
+            nueva.getHorarios().forEach(horario -> {
+                horario.setAsignatura(entidad);
+                entidad.getHorarios().add(horario);
+            });
+            return mapper.toResponseDto(repository.save(entidad));
         }
 
         AsignaturaBasica entidad = mapper.toEntity(dto);
@@ -50,6 +70,11 @@ public class AsignaturaBasicaService {
     public AsignaturaResponseDTO actualizarBasica(Long id, ActualizarAsignaturaBasicaRequestDTO dto) {
         AsignaturaBasica entidad = repository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura Básica con ID " + id + " no encontrada."));
+
+        if (repository.existsByNameIgnoreCaseAndSemestreAndIdClaseAndActiveTrueAndIdNot(
+                dto.name(), entidad.getSemestre(), entidad.getIdClase(), id)) {
+            throw new BusinessException("Ya existe una asignatura básica con ese nombre y semestre para esta clase.");
+        }
 
         // Validación si se actualiza el Docente
         if (dto.idDocente() != null && !dto.idDocente().equals(entidad.getIdDocente())) {

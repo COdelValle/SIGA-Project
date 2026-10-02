@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Validated
@@ -48,7 +49,10 @@ public class ClaseService {
   @Transactional
   public ClaseResponseDTO saveClase(@Valid RegistrarClaseRequestDTO request) {
     String letraNormalizada = request.letra() != null ? request.letra().trim().toUpperCase() : null;
-    if (repository.existsByNivelAndLetraAndAnioAcademico(request.nivel(), letraNormalizada, request.anioAcademico())) {
+    Optional<Clase> existente = repository.findByNivelAndLetraAndAnioAcademico(
+      request.nivel(), letraNormalizada, request.anioAcademico());
+
+    if (existente.isPresent() && existente.get().isActive()) {
       throw new BusinessException(
         String.format("Ya existe la clase %s %s para el año académico %d.",
           request.nivel(), letraNormalizada, request.anioAcademico())
@@ -65,6 +69,14 @@ public class ClaseService {
       }
     }
 
+    // Si la clase fue eliminada logicamente, se reactiva en vez de chocar con el UNIQUE.
+    if (existente.isPresent()) {
+      Clase clase = existente.get();
+      clase.setIdDocenteJefe(request.idDocenteJefe());
+      clase.setActive(true);
+      return mapper.toResponseDto(repository.save(clase));
+    }
+
     return mapper.toResponseDto(repository.save(mapper.toEntity(request)));
   }
 
@@ -78,12 +90,13 @@ public class ClaseService {
         throw new BusinessException("El docente con ID " + request.idDocenteJefe() + " no existe o no está activo.");
       }
 
-      if (repository.existsByIdDocenteJefeAndActiveTrue(request.idDocenteJefe())) {
+      if (repository.existsByIdDocenteJefeAndActiveTrueAndIdNot(request.idDocenteJefe(), idClase)) {
         throw new BusinessException("El docente ya es jefe de otra clase activa.");
       }
     }
 
-    mapper.updateEntityFromDto(request, existingClase);
+    // Se asigna explicitamente para permitir limpiar el docente jefe (null).
+    existingClase.setIdDocenteJefe(request.idDocenteJefe());
     return mapper.toResponseDto(repository.save(existingClase));
   }
 
