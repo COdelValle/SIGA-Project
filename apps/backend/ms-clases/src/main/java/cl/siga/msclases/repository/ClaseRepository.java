@@ -17,4 +17,6 @@ public interface ClaseRepository extends JpaRepository<Clase, Long>, JpaSpecific
   Optional<Clase> findByNivelAndLetraAndAnioAcademico(Nivel nivel, String letra, Integer anioAcademico);
 
   boolean existsByIdDocenteJefeAndActiveTrue(Long idDocenteJefe);
+
+  boolean existsByIdDocenteJefeAndActiveTrueAndIdNot(Long idDocenteJefe, Long id);
 }

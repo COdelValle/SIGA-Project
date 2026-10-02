@@ -13,6 +13,7 @@ import cl.siga.coreshare.dto.asignatura.inscripcion.RegistrarInscripcionRequestD
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msasignaturas.model.InscripcionEstados;
 import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
 import cl.siga.msasignaturas.model.entity.Inscripcion;
@@ -29,11 +30,6 @@ public class InscripcionService {
     private final InscripcionRepository inscripcionRepository;
     private final AsignaturaRepository asignaturaRepository;
     private final InscripcionMapper inscripcionMapper;
-    
-    private final List<EstadoInscripcion> ESTADOS_OCUPAN_CUPO = List.of(
-            EstadoInscripcion.ACTIVO, 
-            EstadoInscripcion.PRE_INSCRITO
-    );
 
     @Transactional(readOnly = true)
     public List<InscripcionResponseDTO> buscarInscripciones(Long idAlumno, Long idAsignatura, List<EstadoInscripcion> estados) {
@@ -52,7 +48,8 @@ public class InscripcionService {
 
     @Transactional
     public InscripcionResponseDTO registrarInscripcion(RegistrarInscripcionRequestDTO request) {
-        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(request.idAsignatura())
+        // Bloqueo pesimista: serializa las inscripciones concurrentes de la asignatura.
+        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrueForUpdate(request.idAsignatura())
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura no encontrada o inactiva"));
 
         if (!(asignatura instanceof AsignaturaElectiva electiva)) {
@@ -64,7 +61,7 @@ public class InscripcionService {
 
         if (inscripcionExistente.isPresent()) {
             Inscripcion inscripcion = inscripcionExistente.get();
-            if (ESTADOS_OCUPAN_CUPO.contains(inscripcion.getEstado())) {
+            if (InscripcionEstados.OCUPAN_CUPO.contains(inscripcion.getEstado())) {
                 throw new BusinessException("El alumno ya posee una inscripción activa o en proceso para esta asignatura");
             }
             
@@ -87,11 +84,15 @@ public class InscripcionService {
         Inscripcion inscripcion = inscripcionRepository.findById(idInscripcion)
                 .orElseThrow(() -> new ResourceNotFoundException("Inscripción no encontrada"));
 
-        boolean ocupabaCupo = ESTADOS_OCUPAN_CUPO.contains(inscripcion.getEstado());
-        boolean ocuparaCupo = ESTADOS_OCUPAN_CUPO.contains(request.estado());
+        boolean ocupabaCupo = InscripcionEstados.OCUPAN_CUPO.contains(inscripcion.getEstado());
+        boolean ocuparaCupo = InscripcionEstados.OCUPAN_CUPO.contains(request.estado());
         
         if (!ocupabaCupo && ocuparaCupo) {
-            validarCuposDisponibles(inscripcion.getAsignatura());
+            Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrueForUpdate(inscripcion.getAsignatura().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Asignatura no encontrada o inactiva"));
+            if (asignatura instanceof AsignaturaElectiva electiva) {
+                validarCuposDisponibles(electiva);
+            }
         }
 
         inscripcion.setEstado(request.estado());
@@ -100,7 +101,7 @@ public class InscripcionService {
 
     private void validarCuposDisponibles(AsignaturaElectiva electiva) {
         int inscritosActuales = inscripcionRepository.countByAsignaturaIdAndEstadoIn(
-                electiva.getId(), ESTADOS_OCUPAN_CUPO);
+                electiva.getId(), InscripcionEstados.OCUPAN_CUPO);
         
         if (inscritosActuales >= electiva.getCupoMaximo()) {
             throw new BusinessException("No hay cupos disponibles para esta asignatura electiva");

@@ -43,15 +43,19 @@ public class EstudianteService {
 
     @Transactional (readOnly = true)
     public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
-        Specification<Estudiante> spec = EstudianteSpecifications.isActive()
+        // Si se pide un estado explicito se respeta (incluye INACTIVO); si no,
+        // se excluyen los inactivos por defecto.
+        Specification<Estudiante> spec = state != null
+                ? EstudianteSpecifications.hasState(state)
+                : EstudianteSpecifications.isActive();
+        spec = spec
                 .and(EstudianteSpecifications.hasRut(rut))
                 .and(EstudianteSpecifications.hasFirstName(firstName))
                 .and(EstudianteSpecifications.hasMiddleName(middleName))
                 .and(EstudianteSpecifications.hasFirstSurname(firstSurname))
                 .and(EstudianteSpecifications.hasSecondSurname(secondSurname))
                 .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))
-                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to))
-                .and(EstudianteSpecifications.hasState(state));
+                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to));
         return mapper.toResponseDtoList(repository.findAll(spec));
     }
 
