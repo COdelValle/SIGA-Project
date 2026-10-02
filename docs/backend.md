@@ -174,7 +174,7 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 - Rutas publicas limitadas a salud y documentacion tecnicas.
 - El frontend no accede a los microservicios: lo hara a traves del BFF.
 - Los contratos se definen en cada servicio y se reflejan en los DTOs de `core-share` y en los modelos TypeScript del frontend.
-- **Decision pendiente del equipo**: unificar autorizacion a roles + `Acceso.Base` o mantener los scopes granulares (ver [`auditoria-backend.md`](auditoria-backend.md)).
+- **Autorizacion unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido). Los 38 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID (ver [`testing-login.md`](testing-login.md)).
 
 ## 5. Datos y configuracion
 
@@ -203,4 +203,4 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los 8 microservicios + indices).
 5. Completar la observabilidad (logs estructurados, correlation ID, metricas, tracing).
 6. Incorporar servicios futuros (`ms-asistencias`, `ms-auditoria`); docentes, apoderados, clases y evaluaciones ya estan implementados.
-7. Resolver la **decision pendiente de autorizacion** (roles + `Acceso.Base` vs scopes granulares; ver [`auditoria-backend.md`](auditoria-backend.md)).
+7. ~~Resolver la decision de autorizacion~~ (hecho: se mantienen los 38 scopes con politica unificada; falta exponerlos/consentirlos en Azure).

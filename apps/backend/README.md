@@ -197,9 +197,10 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 - `core-share` aporta `SharedSecurityConfig` (filtro stateless y conversión de
   claims `scp`/`roles`) y `SecurityUtils`.
 - El frontend nunca accede a los microservicios directamente: lo hace a través del BFF.
-- **Decisión pendiente del equipo**: unificar autorización a roles + `Acceso.Base`
-  o mantener los scopes granulares; ver
-  [`docs/auditoria-backend.md`](../../docs/auditoria-backend.md).
+- **Autorización unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras
+  con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido).
+  Los 38 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID
+  (ver [`docs/testing-login.md`](../../docs/testing-login.md)).
 
 ## Datos y configuración
 
