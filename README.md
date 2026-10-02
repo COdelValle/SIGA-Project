@@ -121,15 +121,17 @@ Accesos del entorno local:
 | `frontend` | 4200 | SPA Angular servida por Nginx. |
 | `bff-web` | 8080 | Backend For Frontend (`/api/me`, perfil de estudiante). |
 | `ms-usuarios-auth` | 8081 | Usuarios, roles y sincronización con Microsoft Graph. |
-| `ms-estudiantes` | 8082 | Dominio estudiantes. |
+| `ms-estudiantes` | 8083 | Dominio estudiantes. |
 | `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
-| `ms-notas` | 8087 | Notas (valida estudiante y evaluación por Feign). |
-| `ms-docentes` | 8088 | Docentes y certificados. |
-| `ms-apoderados` | 8089 | Apoderados, teléfonos y estudiantes a cargo. |
-| `ms-clases` | 8090 | Cursos (nivel/letra/año) y docente jefe. |
-| `ms-evaluaciones` | 8091 | Evaluaciones por asignatura (tipo y ponderación). |
+| `ms-notas` | 8089 | Notas (valida estudiante y evaluación por Feign). |
+| `ms-docentes` | 8085 | Docentes y certificados. |
+| `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
+| `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
+| `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `rabbitmq` | 5672 / 15672 | Mensajería (15672 es la UI de management). |
 | `mariadb-*` | interno | Una instancia MariaDB por microservicio (8 bases). |
+
+> Puertos reservados para servicios futuros: `8082` (`ms-auditoria`) y `8090` (`ms-asistencias`).
 
 ## Comandos habituales
 

@@ -156,7 +156,7 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
    y sin unique en `apoderado_estudiantes(apoderado_id, estudiante_id)`.
 7. **Codigo duplicado.** `FeignAuthConfig` identico en 4 MS; `Specifications.isActive()`
    repetido en 6 MS.
-8. **Puertos con saltos** (8081, 8082, 8086, 8087, 8088-8091).
+8. **Puertos**: renumerados a `8081/8083-8089`; `8082` y `8090` quedan reservados para `ms-auditoria`/`ms-asistencias`.
 
 ## 5. P3 - Calidad
 
@@ -189,7 +189,7 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 ## 7. Anexo - verificacion
 
 - Build: `mvn -B -ntp package -DskipTests -Dtypescript-generator.skip=true` en `apps/backend`.
-- Stack: `docker compose config`, `docker compose up -d`, health en 8080-8091.
+- Stack: `docker compose config`, `docker compose up -d`, health en 8080-8088.
 - Migraciones: revisar `docker compose logs ms-*` (`Successfully applied`).
 
 ## 8. Estado de remediacion (PRs abiertos)

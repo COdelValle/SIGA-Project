@@ -199,10 +199,10 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8082:8082"
+      - "8083:8083"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8082"
+      SERVER_PORT: "8083"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-estudiantes:3306/siga_estudiantes_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
@@ -229,9 +229,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-asignaturas:3306/siga_asignaturas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
-      MS_DOCENTES_URL: http://ms-docentes:8088
-      MS_CLASES_URL: http://ms-clases:8090
-      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+      MS_DOCENTES_URL: http://ms-docentes:8085
+      MS_CLASES_URL: http://ms-clases:8087
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
     depends_on:
       mariadb-asignaturas:
         condition: service_healthy
@@ -254,14 +254,14 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8087:8087"
+      - "8089:8089"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8087"
+      SERVER_PORT: "8089"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-notas:3306/siga_notas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
-      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
     depends_on:
       mariadb-notas:
         condition: service_healthy
@@ -280,10 +280,10 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      - "8085:8085"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8088"
+      SERVER_PORT: "8085"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-docentes:3306/siga_docentes_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
@@ -303,14 +303,14 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8089:8089"
+      - "8084:8084"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8089"
+      SERVER_PORT: "8084"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-apoderados:3306/siga_apoderados_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
-      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
     depends_on:
       mariadb-apoderados:
         condition: service_healthy
@@ -329,14 +329,14 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8090:8090"
+      - "8087:8087"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8090"
+      SERVER_PORT: "8087"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-clases:3306/siga_clases_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
-      MS_DOCENTES_URL: http://ms-docentes:8088
+      MS_DOCENTES_URL: http://ms-docentes:8085
     depends_on:
       mariadb-clases:
         condition: service_healthy
@@ -355,10 +355,10 @@ services:
     healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8091:8091"
+      - "8088:8088"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8091"
+      SERVER_PORT: "8088"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-evaluaciones:3306/siga_evaluaciones_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
@@ -389,10 +389,10 @@ services:
       <<: *ms-common-env
       SERVER_PORT: "8080"
       MS_USUARIOS_URL: http://ms-usuarios-auth:8081
-      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
-      MS_NOTAS_URL: http://ms-notas:8087
-      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
+      MS_NOTAS_URL: http://ms-notas:8089
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy

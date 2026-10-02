@@ -1,5 +1,5 @@
 server:
-  port: 8089
+  port: 8084
 
 spring:
   application:
@@ -49,7 +49,7 @@ resilience4j:
 # URLs de microservicios con los que se relaciona
 services:
   ms-estudiantes:
-    url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
