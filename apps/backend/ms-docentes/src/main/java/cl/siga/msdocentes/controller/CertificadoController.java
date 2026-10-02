@@ -27,7 +27,7 @@ public class CertificadoController {
   }
 
   @PostMapping
-  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_docentes:write')")
+  @PreAuthorize("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_docentes:write')")
   public ResponseEntity<CertificadoResponseDTO> addCertificado(
     @PathVariable Long docenteId,
     @Valid @RequestBody CertificadoRequestDTO request) {
@@ -35,7 +35,7 @@ public class CertificadoController {
   }
 
   @DeleteMapping("/{certificadoId}")
-  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_docentes:delete')")
+  @PreAuthorize("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_docentes:delete')")
   public ResponseEntity<Void> deleteCertificado(
     @PathVariable Long docenteId,
     @PathVariable Long certificadoId) {

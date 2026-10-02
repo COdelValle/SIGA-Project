@@ -43,13 +43,13 @@ public class EvaluacionController {
   }
 
   @PostMapping
-  @PreAuthorize("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_evaluaciones:write'))")
+  @PreAuthorize("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:write'))")
   public ResponseEntity<EvaluacionResponseDTO> registrarEvaluacion(@RequestBody @Valid RegistrarEvaluacionRequestDTO request) {
     return ResponseEntity.status(HttpStatus.CREATED).body(evaluacionService.saveEvaluacion(request));
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_evaluaciones:update'))")
+  @PreAuthorize("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:update'))")
   public ResponseEntity<EvaluacionResponseDTO> updateEvaluacion(
     @PathVariable Long id,
     @RequestBody @Valid ActualizarEvaluacionRequestDTO request
@@ -58,7 +58,7 @@ public class EvaluacionController {
   }
 
   @DeleteMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_evaluaciones:delete'))")
+  @PreAuthorize("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:delete'))")
   public ResponseEntity<Void> deleteEvaluacion(@PathVariable Long id) {
     evaluacionService.deleteEvaluacion(id);
     return ResponseEntity.noContent().build();
