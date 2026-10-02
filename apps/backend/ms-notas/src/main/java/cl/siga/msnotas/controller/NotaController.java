@@ -53,19 +53,19 @@ public class NotaController {
     }
 
     @PostMapping
-    @PreAuthorize ("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write'))")
     public ResponseEntity<NotaResponseDTO> registrarNota(@RequestBody @Valid RegistrarNotaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));
     }
 
     @PutMapping ("/{id}")
-    @PreAuthorize ("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:update'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:update'))")
     public ResponseEntity<NotaResponseDTO> updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
         return ResponseEntity.ok(notaService.updateNota(id, request));
     }
 
     @DeleteMapping ("/{id}")
-    @PreAuthorize ("(hasRole('ADMIN') or (hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete'))")
     public ResponseEntity<Void> deleteNota(@PathVariable Long id) {
         notaService.deleteNota(id);
         return ResponseEntity.noContent().build();

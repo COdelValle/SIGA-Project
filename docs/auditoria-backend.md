@@ -11,7 +11,7 @@ remediacion (PRs #55 a #60) y lo que queda pendiente.
 
 | Prioridad | Tema | Hallazgos |
 | --- | --- | --- |
-| **P0** | Seguridad y autorizacion | Ownership ausente en 4 flujos, desfase de scopes frontend/backend (**decision pendiente**), `state` editable por APODERADO, fallbacks del BFF inactivos |
+| **P0** | Seguridad y autorizacion | Ownership ausente en 4 flujos, scopes granulares mantenidos (config pendiente en TI), `state` editable por APODERADO, fallbacks del BFF inactivos |
 | **P1** | Bugs funcionales | Docente jefe, soft delete + UNIQUE, criterio de cupos, condiciones de carrera, busqueda por `state`, deletes inconsistentes, duplicados en update |
 | **P2** | Consistencia y observabilidad | 500 en errores que deberian ser 400/405, sin paginacion, naming/enums/soft-delete dispares, sin indices, seeds con IDs fijos, codigo duplicado |
 | **P3** | Calidad | Cobertura de tests casi nula, encoding inconsistente, documentacion desactualizada, healthchecks ausentes |
@@ -40,33 +40,31 @@ hacerlo desde `ms-estudiantes` crearia un ciclo de dependencias, por lo que se
 propone restringir a ADMIN o al propio estudiante y definir el flujo de apoderado
 por separado.
 
-### 2.2 Decision pendiente: autorizacion (roles vs scopes)
+### 2.2 Decision tomada: se mantienen los scopes granulares
 
-**Como funciona hoy:**
+**Como funciona:**
 
 1. El SPA pide token con los scopes de `apps/frontend/public/config.json`
-   (solo `api://<client-id>/Acceso.Base`).
+   (`Acceso.Base` + los 38 granulares).
 2. Entra ID devuelve `scp` (delegado, por aplicacion) y `roles` (app roles, por usuario).
 3. `common-properties.yaml` mapea `scp -> SCOPE_` y `roles -> ROLE_`.
 4. Los controllers exigen `hasRole(...) and hasAuthority('SCOPE_x:y')`.
 
-**Problema:** un scope es una capacidad de la **aplicacion** (igual para todos los
-usuarios del SPA); el unico claim que varia por usuario es el rol. Ademas, los 38
-scopes granulares **no estan expuestos ni solicitados**, por lo que hoy todo
-endpoint con `hasAuthority('SCOPE_...')` responde **403**, incluido ADMIN.
-Referencia: `docs/testing-login.md:33`.
+**Decision del equipo:** los scopes granulares se **mantienen** (son un requisito del
+proyecto, aunque hoy sean codigo muerto si el tenant no los expone). Politica
+unificada:
 
-**Opcion A - No eliminarlos (configurarlos):** exponer los 38 scopes en Azure,
-agregarlos a `config.json` y dar consentimiento de admin. Funciona, pero todos los
-usuarios del SPA reciben los mismos scopes (la autorizacion real sigue siendo por
-rol), el token crece y cada endpoint nuevo exige tocar Azure + frontend + consentimiento.
+- **Lecturas:** `hasAuthority('SCOPE_x:read')` (usuario autenticado).
+- **Escrituras:** `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')`,
+  **incluido ADMIN** (ya no hay atajos `or` que dejen a ADMIN sin scope).
+- **Ownership por `oid`** para autoservicio (APODERADO/DOCENTE/ESTUDIANTE).
 
-**Opcion B - Eliminarlos (recomendada):** dejar `Acceso.Base` como unico scope
-(frontera "la app puede llamar a la API", idealmente exigido en
-`SharedSecurityConfig`) y autorizar con `hasRole(...)` + ownership por `oid`.
-Cero cambios en Azure, `config.json` ni consentimientos.
+**Pendiente en TI (Azure):** exponer los 38 scopes en la app de API, agregarlos al
+consentimiento de admin y mantenerlos en `config.json`. Hasta entonces, los
+endpoints con scope responden **403** con los tokens actuales. Checklist completo
+en `docs/testing-login.md`.
 
-**Inventario de los 38 scopes a eliminar:**
+**Inventario de los 38 scopes (se mantienen):**
 
 | Servicio | Scopes |
 | --- | --- |
@@ -81,8 +79,8 @@ Cero cambios en Azure, `config.json` ni consentimientos.
 | horarios | write, update, delete |
 | inscripciones | read, write, update |
 
-Impacto en codigo: 68 expresiones `@PreAuthorize` a simplificar. **No se toca
-nada hasta que el equipo decida.**
+Impacto en codigo: 68 expresiones `@PreAuthorize` unificadas (9 cambiadas para que
+ADMIN tambien requiera scope) + ownership en `updateDocente`.
 
 ### 2.3 Otros hallazgos P0
 
@@ -186,7 +184,7 @@ nada hasta que el equipo decida.**
 | E | Frontend `Page<T>` + `siga-paginador` | C1 |
 | C2 | Logging/handlers 400/405, naming, indices, seeds, `FeignAuthConfig` | B, A1, C1 |
 | D | Tests, encoding, docs, healthchecks | - |
-| A2 | Autorizacion (roles + `Acceso.Base` vs 38 scopes) | **decision del equipo** |
+| A2 | Autorizacion (se mantienen los 38 scopes; politica unificada) | **Resuelto en codigo; config Azure pendiente en TI** |
 
 ## 7. Anexo - verificacion
 
@@ -203,7 +201,7 @@ nada hasta que el equipo decida.**
 | P2 - paginacion completa (`Page<T>`, size 20/max 100) | Corregido | #57 (backend) y #58 (frontend) |
 | P2 - manejo de errores 400/405 con logging, `FeignAuthConfig` compartido, naming BFF, indices | Corregido | #59 |
 | P3 - tests unitarios (25), healthchecks, DTO de apoderado, docs de fechas | Corregido | #60 |
-| P0 - **decision de autorizacion** (roles + `Acceso.Base` vs 38 scopes granulares) | **Pendiente de decision del equipo** | A2 |
+| P0 - autorizacion: se mantienen los 38 scopes granulares y se unifica la politica (ADMIN tambien requiere scope) | Resuelto en codigo; **exponer/consentir scopes en Azure (TI)** | PR de scopes |
 
-Nota: mientras A2 no se resuelva, los endpoints con `hasAuthority('SCOPE_...')`
-siguen respondiendo 403 con los tokens actuales (el SPA solo pide `Acceso.Base`).
+Nota: mientras TI no exponga y consienta los scopes, los endpoints con
+`hasAuthority('SCOPE_...')` siguen respondiendo 403 con los tokens actuales.

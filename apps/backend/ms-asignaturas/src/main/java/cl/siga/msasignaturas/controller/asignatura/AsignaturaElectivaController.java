@@ -39,7 +39,7 @@ public class AsignaturaElectivaController {
     }
 
     @GetMapping("/validar-mineduc")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_asignaturas:read')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<Map<String, Object>> validarMineduc() {
         return ResponseEntity.ok(electivaService.validarCumplimientoMineduc());
     }

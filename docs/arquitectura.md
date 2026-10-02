@@ -88,7 +88,7 @@ La estrategia es OAuth2/JWT con **Azure AD** como proveedor de identidad.
 - **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`SharedFeignAuthConfig`), de modo que la autorizacion se evalue en destino.
 - El frontend solo se comunica con el BFF.
 
-Aspectos a completar: **decision pendiente del equipo** para unificar la autorizacion (roles + `Acceso.Base` vs scopes granulares; ver [`auditoria-backend.md`](auditoria-backend.md)) y validacion de audiencia/emisor en todos los flujos.
+Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID** (TI; el codigo ya los exige y el SPA ya los solicita) y validacion de audiencia/emisor en todos los flujos. Ver [`testing-login.md`](testing-login.md) y [`auditoria-backend.md`](auditoria-backend.md).
 
 ## 5. Comunicacion y contratos
 
