@@ -127,7 +127,8 @@ CI/CD:
 
 - Health checks: `/actuator/health` en cada servicio.
 - Documentacion OpenAPI por servicio (Swagger UI y Scalar).
-- Pendiente: logs estructurados, correlation ID, metricas y tracing.
+- Correlation ID (`X-Correlation-Id`) en logs y respuestas, propagado en las llamadas Feign.
+- Pendiente: logs estructurados, metricas y tracing.
 
 ## 8. Estado actual frente a la arquitectura objetivo
 

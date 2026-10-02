@@ -121,9 +121,9 @@ public class AsignaturaSpecifications {
      * Evalúa si el cupo máximo es estrictamente mayor a la cantidad de 
      * inscripciones actuales en estado ACTIVO o PRE_INSCRITO.
      */
-    public static Specification<Asignatura> hasCuposDisponibles(Boolean verificarCupos) {
+    public static Specification<Asignatura> hasCuposDisponibles(Boolean conCupoDisponible) {
         return (root, query, criteriaBuilder) -> {
-            if (verificarCupos == null || !verificarCupos) {
+            if (conCupoDisponible == null || !conCupoDisponible) {
                 return criteriaBuilder.conjunction();
             }
 

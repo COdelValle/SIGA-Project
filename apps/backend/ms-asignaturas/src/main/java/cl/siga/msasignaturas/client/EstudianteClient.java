@@ -14,4 +14,7 @@ import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 public interface EstudianteClient {
     @GetMapping ("/api/v1/estudiantes/idUsuario/{idUsuario}")
     EstudianteResponseDTO getEstudianteByIdUsuario(@PathVariable ("idUsuario") String idUsuario);
+
+    @GetMapping ("/api/v1/estudiantes/exists/{id}")
+    boolean existsById(@PathVariable ("id") Long id);
 }
