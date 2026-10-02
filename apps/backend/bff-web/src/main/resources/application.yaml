@@ -4,6 +4,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Habilita el uso de los fallbacks declarados en los clientes Feign
+  # (un fallo de un microservicio responde 503 en vez de 500).
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   config:
     import: "optional:classpath:common-properties.yaml"
 

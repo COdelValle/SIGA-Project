@@ -3,7 +3,6 @@ package cl.siga.coreshare.dto.estudiante;
 import java.time.LocalDate;
 import java.util.List;
 
-import cl.siga.coreshare.dto.estudiante.enums.State;
 import jakarta.validation.constraints.*;
 
 public record ActualizarEstudianteRequestDTO(
@@ -25,9 +24,6 @@ public record ActualizarEstudianteRequestDTO(
     @Past
     LocalDate birthDate,
 
-    List<String> allergies,
-
-    @NotNull(message = "El estado del usuario es obligatorio")
-    State state
+    List<String> allergies
 ) {
 }

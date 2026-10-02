@@ -6,6 +6,7 @@ import cl.siga.coreshare.dto.apoderado.RegistrarAdoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msapoderados.client.EstudianteClient;
 import cl.siga.msapoderados.model.entity.Apoderado;
 import cl.siga.msapoderados.model.entity.ApoderadoEstudiante;
@@ -80,6 +81,10 @@ public class ApoderadoService {
   public ApoderadoResponseDTO updateApoderado(Long id, @Valid ActualizarApoderadoRequestDTO request) {
     Apoderado apoderadoExistente = repository.findByIdAndActivoTrue(id)
       .orElseThrow(() -> new ResourceNotFoundException("Apoderado con ID " + id + " no encontrado."));
+
+    SecurityUtils.requireOwnerOrAdmin(
+      apoderadoExistente.getIdUsuario(),
+      "No tienes permiso para modificar este apoderado.");
 
     mapper.updateEntityFromDto(request, apoderadoExistente);
     return mapper.toResponseDto(repository.save(apoderadoExistente));
