@@ -1,10 +1,11 @@
 import { Component, computed, signal } from '@angular/core';
-import { SelectComponent, SelectOption } from '@siga/shared-ui';
+import { toPage } from '@siga/core';
+import { PaginadorComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
 
 @Component({
   selector: 'siga-admin-usuarios',
-  imports: [SelectComponent],
+  imports: [PaginadorComponent, SelectComponent],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Usuarios</h1>
@@ -49,7 +50,7 @@ import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
               </tr>
             </thead>
             <tbody>
-              @for (usuario of filtrados(); track usuario.id) {
+              @for (usuario of paginados().content; track usuario.id) {
                 <tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd">
                   <td class="px-4 py-3">{{ usuario.nombre }}</td>
                   <td class="px-4 py-3">{{ usuario.email }}</td>
@@ -64,9 +65,13 @@ import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
             </tbody>
           </table>
         </div>
-        <p class="mt-3 text-xs text-muted">
-          {{ filtrados().length }} de {{ usuarios.length }} usuarios (demo, pendiente backend).
-        </p>
+
+        <siga-paginador
+          [total]="filtrados().length"
+          [page]="page()"
+          [pageSize]="pageSize"
+          (pageChange)="cambiarPagina($event)"
+        />
       </section>
     </div>
   `,
@@ -76,6 +81,8 @@ export class AdminUsuariosComponent {
   protected readonly busqueda = signal('');
   protected readonly rol = signal('');
   protected readonly estado = signal('');
+  protected readonly page = signal(1);
+  protected readonly pageSize = 5;
 
   protected readonly opcionesRol: SelectOption[] = [
     { value: '', label: 'Todos los roles' },
@@ -105,15 +112,26 @@ export class AdminUsuariosComponent {
     });
   });
 
+  protected readonly paginados = computed(() =>
+    toPage(this.filtrados(), this.page() - 1, this.pageSize),
+  );
+
   protected buscar(event: Event): void {
     this.busqueda.set((event.target as HTMLInputElement).value);
+    this.page.set(1);
   }
 
   protected cambiarRol(value: string | number): void {
     this.rol.set(String(value));
+    this.page.set(1);
   }
 
   protected cambiarEstado(value: string | number): void {
     this.estado.set(String(value));
+    this.page.set(1);
+  }
+
+  protected cambiarPagina(pagina: number): void {
+    this.page.set(pagina);
   }
 }
