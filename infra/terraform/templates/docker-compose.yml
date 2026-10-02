@@ -99,11 +99,17 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_asignaturas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8088
+      MS_CLASES_URL: http://ms-clases:8090
     depends_on:
       mariadb:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      ms-docentes:
+        condition: service_started
+      ms-clases:
+        condition: service_started
 
   ms-notas:
     image: ${REGISTRY}/siga-notas:${IMAGE_TAG}
@@ -117,11 +123,95 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_notas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
     depends_on:
       mariadb:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      ms-evaluaciones:
+        condition: service_started
+
+  ms-docentes:
+    image: ${REGISTRY}/siga-docentes:${IMAGE_TAG}
+    container_name: ms-docentes
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8088"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_docentes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  ms-apoderados:
+    image: ${REGISTRY}/siga-apoderados:${IMAGE_TAG}
+    container_name: ms-apoderados
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8089"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_apoderados_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_started
+
+  ms-clases:
+    image: ${REGISTRY}/siga-clases:${IMAGE_TAG}
+    container_name: ms-clases
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8090"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_clases_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8088
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_started
+
+  ms-evaluaciones:
+    image: ${REGISTRY}/siga-evaluaciones:${IMAGE_TAG}
+    container_name: ms-evaluaciones
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8091"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_evaluaciones_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_started
 
   bff-web:
     image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
@@ -136,6 +226,7 @@ services:
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8087
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
     depends_on:
       ms-usuarios-auth:
         condition: service_started
@@ -144,6 +235,8 @@ services:
       ms-asignaturas:
         condition: service_started
       ms-notas:
+        condition: service_started
+      ms-evaluaciones:
         condition: service_started
       rabbitmq:
         condition: service_healthy
