@@ -13,13 +13,23 @@ flowchart LR
     B --> E[MS Estudiantes]
     B --> S[MS Asignaturas]
     B --> N[MS Notas]
-    N -. Feign: exists .-> E
-    N -. Feign: exists .-> S
+    B --> V[MS Evaluaciones]
+    N -. Feign .-> E
+    N -. Feign .-> V
+    V -. Feign .-> S
+    S -. Feign .-> D[MS Docentes]
+    S -. Feign .-> C[MS Clases]
+    C -. Feign .-> D
+    P[MS Apoderados] -. Feign .-> E
     A --> DA[(BD usuarios)]
     E --> DE[(BD estudiantes)]
     S --> DS[(BD asignaturas)]
     N --> DN[(BD notas)]
-    B -. contratos .-> C[core-share]
+    D --> DD[(BD docentes)]
+    P --> DP[(BD apoderados)]
+    C --> DC[(BD clases)]
+    V --> DV[(BD evaluaciones)]
+    B -. contratos .-> CS[core-share]
 ```
 
 Cada microservicio es dueno de su propia base de datos (database-per-service). El BFF ya orquesta los dominios: expone `/api/me` (usuario y rol) y el perfil agregado de estudiante combinando estudiantes, asignaturas y notas por Feign.
@@ -32,7 +42,7 @@ Cada microservicio es dueno de su propia base de datos (database-per-service). E
 
 ### Entrada y orquestacion
 
-`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + asignaturas + notas) usando clientes Feign con fallback.
+`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + asignaturas + notas, resolviendo evaluacion -> asignatura) usando clientes Feign con fallback.
 
 ### Dominio distribuido
 
@@ -40,8 +50,12 @@ Cada microservicio es dueno de un contexto funcional:
 
 - Usuarios y autenticacion: identidad, roles y estado de cuentas.
 - Estudiantes: datos personales y academicos del estudiante.
-- Asignaturas: asignaturas.
-- Notas: calificaciones y sus relaciones.
+- Asignaturas: asignaturas basicas y electivas, horarios e inscripciones.
+- Notas: calificaciones asociadas a evaluaciones.
+- Docentes: ficha del docente y certificados.
+- Apoderados: apoderados, telefonos y estudiantes a cargo.
+- Clases: cursos por nivel/letra/anio y docente jefe.
+- Evaluaciones: evaluaciones por asignatura (tipo y ponderacion).
 
 ### Compartidos transversales
 
@@ -78,16 +92,16 @@ Aspectos a completar: contrato final de roles/permisos y validacion de audiencia
 ## 5. Comunicacion y contratos
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
-- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas y usuarios) y en `ms-notas`, que valida la existencia de estudiante y asignatura (`exists`) con fallback **Resilience4j**.
-- El BFF orquesta `/me` y el perfil de estudiante; el resto de recursos se conectara de forma incremental.
+- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas, evaluaciones y usuarios), `ms-notas` (valida estudiante y evaluacion), `ms-asignaturas` (valida docente y clase), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
+- El BFF orquesta `/me` y el perfil de estudiante (resolviendo evaluacion -> asignatura); el resto de recursos se conectara de forma incremental.
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
 ## 6. Despliegue
 
 Hay dos entornos:
 
-- **Local**: `docker-compose.yml` levanta 4 MariaDB (una por servicio), los 4 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 4 bases, los 4 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **Local**: `docker-compose.yml` levanta 8 MariaDB (una por servicio), los 8 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 8 bases, los 8 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
@@ -100,7 +114,7 @@ Flujo de entrada:
 Esquema y datos:
 
 - **Flyway** en cada microservicio (`ddl-auto: validate`) crea y evoluciona el esquema; una base vacia se auto-inicializa.
-- `init-db.sh` crea las 4 bases y el usuario en el primer arranque de MariaDB.
+- `init-db.sh` crea las 8 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
 
 CI/CD:
 
@@ -121,12 +135,16 @@ CI/CD:
 | BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
-| Asignaturas | CRUD, listado, busqueda, `exists`, soft delete | Relacion con docentes y cursos |
+| Asignaturas | CRUD, basicas/electivas, horarios, inscripciones, Feign | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
+| Docentes | CRUD, certificados, busqueda, `exists` | Carga horaria y asignacion de clases |
+| Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Notificaciones y seguimiento |
+| Clases | CRUD, docente jefe, `exists`, Feign | Matricula y cupos por curso |
+| Evaluaciones | CRUD, tipos y ponderaciones, `exists`, Feign | Calculo de promedios ponderados |
 | core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
-| Docker Compose | Completo (database-per-service local + RabbitMQ) | Entorno local reproducible |
+| Docker Compose | Completo (8 servicios + RabbitMQ local) | Entorno local reproducible |
 | Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
-| Flyway | Esquema + seed en los 4 microservicios | Migraciones versionadas |
+| Flyway | Esquema + seed en los 8 microservicios | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
 | Pruebas | Unitarias en usuarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
 
