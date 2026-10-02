@@ -170,16 +170,18 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 
 - OAuth2/JWT con Azure AD (`spring.cloud.azure.active-directory`).
 - Autorizacion por metodo: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
+- **Ownership por `oid`**: APODERADO/DOCENTE/ESTUDIANTE solo modifican sus propios recursos (`SecurityUtils.requireOwnerOrAdmin`).
 - Rutas publicas limitadas a salud y documentacion tecnicas.
 - El frontend no accede a los microservicios: lo hara a traves del BFF.
 - Los contratos se definen en cada servicio y se reflejan en los DTOs de `core-share` y en los modelos TypeScript del frontend.
+- **Decision pendiente del equipo**: unificar autorizacion a roles + `Acceso.Base` o mantener los scopes granulares (ver [`auditoria-backend.md`](auditoria-backend.md)).
 
 ## 5. Datos y configuracion
 
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
 - `docker-compose.yml` levanta 8 MariaDB, los 8 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
-- **Busquedas paginadas**: los `GET /search` devuelven `Page<T>` (`content`, `totalElements`, `totalPages`, `number`, `size`) con parametros `page`, `size` y `sort`; tamano por defecto 20 y maximo 100 (configurado en `common-properties.yaml`).
+- **Busquedas paginadas**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`; default 20, maximo 100). Contrato, ejemplos y guia en [`paginacion.md`](paginacion.md).
 - En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
 - Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`, `MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
 
@@ -196,8 +198,9 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 ## 7. Estado y orden recomendado
 
 1. Completar la orquestacion del BFF para el resto de recursos (`/me` y perfil de estudiante ya estan implementados).
-2. Conectar las pantallas del frontend a traves del BFF.
-3. Anadir pruebas unitarias, de integracion y de contrato.
-4. Definir migraciones de esquema para produccion.
+2. Conectar las pantallas del frontend a traves del BFF (contratos y paginacion ya definidos).
+3. Ampliar pruebas unitarias, de integracion y de contrato (hoy hay 25 unitarias en 5 modulos).
+4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los 8 microservicios + indices).
 5. Completar la observabilidad (logs estructurados, correlation ID, metricas, tracing).
 6. Incorporar servicios futuros (`ms-asistencias`, `ms-auditoria`); docentes, apoderados, clases y evaluaciones ya estan implementados.
+7. Resolver la **decision pendiente de autorizacion** (roles + `Acceso.Base` vs scopes granulares; ver [`auditoria-backend.md`](auditoria-backend.md)).

@@ -122,6 +122,18 @@ Cada portal se carga con lazy loading y **rutas hijas** (layout `DashboardShell`
 
 `MsalGuard` valida la sesion y `roleGuard([...])` valida el rol. El rol autoritativo se obtiene del BFF (`GET /api/me`).
 
+## Paginacion
+
+- Modelo `Page<T>` y utilidades en `@siga/core`
+  (`libs/core/src/lib/models/page.model.ts`): `pageQueryParams()` construye los
+  parametros `page`/`size`/`sort` para HTTP y `toPage()` pagina en cliente
+  (util mientras las vistas usan mocks).
+- UI: `siga-paginador` (`@siga/shared-ui`) muestra "Mostrando X–Y de Z" y la
+  navegacion; emite la pagina seleccionada (1-indexada).
+- Vistas con paginador: `admin/usuarios` (resetea a pagina 1 al filtrar) y
+  `admin/asignaturas`; `academico/asistencia-historial` ya lo usaba.
+- Contrato completo del backend en [docs/paginacion.md](../../docs/paginacion.md).
+
 ## Docker
 
 - Build en dos etapas: `node:24-alpine` (build) → `nginx:alpine` (servido).
@@ -141,6 +153,7 @@ docker compose up -d --build frontend
 - Disponible: bootstrap, autenticacion MSAL, rutas por rol con guards, layout con header y sidebar, tema oscuro/claro y portal publico.
 - Disponible: consumo de `GET /api/me` (el BFF ya lo implementa) para resolver el rol autoritativo.
 - Disponible: **pantallas de los portales** (Inicio, Horarios, Notas, Asistencias, Progreso Academico, Cursos, Registrar notas/asistencias, Usuarios/Roles/Asignaturas) y componentes reutilizables.
+- Disponible: **paginacion** (`Page<T>` + `pageQueryParams()`/`toPage()` + `siga-paginador`).
 - **Datos mock**: esas pantallas usan datos de ejemplo en `libs/*/src/lib/mocks`; la conexion real al BFF esta pendiente para los recursos que aun no tienen endpoint.
 - Pendiente: integracion completa con el resto de recursos del BFF, formularios/validaciones y pruebas funcionales.
 
@@ -148,4 +161,5 @@ docker compose up -d --build frontend
 
 - [README raiz](../../README.md) · [Indice de docs](../../docs/README.md)
 - [docs/frontend.md](../../docs/frontend.md) · [docs/arquitectura.md](../../docs/arquitectura.md)
+- [docs/paginacion.md](../../docs/paginacion.md)
 - [docs/testing-login.md](../../docs/testing-login.md) · [apps/backend/README.md](../backend/README.md)

@@ -16,8 +16,15 @@ funcionales. La documentación ampliada está en [`docs/backend.md`](../../docs/
 | `bff-web` | 8080 | Backend For Frontend: `/api/me` y orquestación por Feign. |
 | `ms-usuarios-auth` | 8081 | Usuarios, roles, `/me` y sincronización con Microsoft Graph. |
 | `ms-estudiantes` | 8082 | Ficha personal y académica del estudiante. |
-| `ms-asignaturas` | 8086 | Asignaturas. |
-| `ms-notas` | 8087 | Calificaciones; valida estudiante/asignatura por Feign. |
+| `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
+| `ms-notas` | 8087 | Calificaciones; valida estudiante y evaluación por Feign. |
+| `ms-docentes` | 8088 | Docentes y certificados. |
+| `ms-apoderados` | 8089 | Apoderados, teléfonos y estudiantes a cargo. |
+| `ms-clases` | 8090 | Cursos (nivel/letra/año) y docente jefe. |
+| `ms-evaluaciones` | 8091 | Evaluaciones por asignatura (tipo y ponderación). |
+
+Los módulos `ms-asistencias` y `ms-auditoria` están declarados como futuros
+(comentados en el POM padre).
 
 ## Tecnologías
 
@@ -25,6 +32,7 @@ funcionales. La documentación ampliada está en [`docs/backend.md`](../../docs/
 - Spring Security / OAuth2 Resource Server con JWT (Azure AD).
 - Spring Data JPA + Hibernate · MapStruct · Lombok.
 - MariaDB 11.4 (una base por microservicio) + Flyway.
+- RabbitMQ 4 (mensajería; variables `SPRING_RABBITMQ_*` inyectadas por Docker Compose).
 - springdoc 2.8.14 (Swagger UI + Scalar).
 
 ## Requisitos
@@ -56,12 +64,15 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 
 ## Endpoints
 
+> Los `GET /search` son **paginados** (`page`, `size`, `sort`); ver
+> [`docs/paginacion.md`](../../docs/paginacion.md).
+
 ### BFF Web (`:8080`)
 
 | Método | Ruta | Autorización | Descripción |
 | --- | --- | --- | --- |
 | `GET` | `/api/me` | Autenticado | Usuario actual (id, email, displayName, rol). |
-| `GET` | `/api/bff/v1/estudiantes/perfil/{idExterno}` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil agregado: estudiante + asignaturas + notas. |
+| `GET` | `/api/bff/v1/estudiantes/perfil/{idExterno}` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil agregado: estudiante + asignaturas + notas (resuelve evaluación → asignatura). |
 
 ### Usuarios y autenticación (`:8081`, `/api/v1/usuarios`)
 
@@ -70,9 +81,9 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/me` | Autenticado |
 | `GET` | `/lookup?email=` | `ADMIN` + `SCOPE_usuarios:read` |
 | `GET` | `/{id}` | `ADMIN` + `SCOPE_usuarios:read` |
-| `GET` | `/search?email=&rol=&state=` | `ADMIN` + `SCOPE_usuarios:read` |
+| `GET` | `/search?email=&rol=&state=&page=&size=&sort=` | `ADMIN` + `SCOPE_usuarios:read` |
 | `POST` | `/` | `ADMIN` + `SCOPE_usuarios:write` |
-| `PUT` | `/{id}` | `ADMIN` + `SCOPE_usuarios:update` |
+| `PUT` | `/{id}` | `ADMIN` + `SCOPE_usuarios:update` (no puede desactivarse a sí mismo) |
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_usuarios:delete` (borrado lógico) |
 | `POST` | `/{id}/sync-roles` | `ADMIN` + `SCOPE_usuarios:update` |
 
@@ -82,70 +93,136 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | --- | --- | --- |
 | `GET` | `/{id}` | `SCOPE_estudiantes:read` |
 | `GET` | `/idUsuario/{idUsuario}` | `SCOPE_estudiantes:read` |
-| `GET` | `/search?rut=&firstName=&...&from=&to=&state=` | `SCOPE_estudiantes:read` |
+| `GET` | `/search?rut=&firstName=&...&from=&to=&state=&page=&size=&sort=` | `SCOPE_estudiantes:read` |
 | `GET` | `/exists/{id}` | `SCOPE_estudiantes:read` |
 | `POST` | `/` | `ADMIN` + `SCOPE_estudiantes:write` |
-| `PUT` | `/{id}` | `ADMIN` o `APODERADO` + `SCOPE_estudiantes:update` |
+| `PUT` | `/{id}` | `ADMIN` o el propio estudiante (ownership por `oid`); el estado no se cambia por PUT |
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_estudiantes:delete` (borrado lógico) |
 
-### Asignaturas (`:8086`, `/api/v1/asignaturas`)
+### Asignaturas (`:8086`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
-| `GET` | `/{id}` | `SCOPE_asignaturas:read` |
-| `GET` | `/` | `SCOPE_asignaturas:read` |
-| `GET` | `/search?name=` | `SCOPE_asignaturas:read` |
-| `GET` | `/name/{name}` | `SCOPE_asignaturas:read` |
-| `GET` | `/exists/{id}` | `SCOPE_asignaturas:read` |
-| `POST` | `/` | `ADMIN` + `SCOPE_asignaturas:write` |
-| `PUT` | `/{id}` | `ADMIN` + `SCOPE_asignaturas:update` |
-| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_asignaturas:delete` (borrado lógico) |
+| `GET` | `/api/v1/asignaturas/{id}` | `SCOPE_asignaturas:read` |
+| `GET` | `/api/v1/asignaturas/search?name=&tipo=&semestre=&area=&idDocente=&idClase=&page=&size=&sort=` | `SCOPE_asignaturas:read` |
+| `GET` | `/api/v1/asignaturas/exists/{id}` | `SCOPE_asignaturas:read` |
+| `DELETE` | `/api/v1/asignaturas/{id}` | `ADMIN` + `SCOPE_asignaturas:delete` (borrado lógico) |
+| `POST` | `/api/v1/asignaturas/basicas` | `ADMIN` + `SCOPE_asignaturas:write` |
+| `PUT` | `/api/v1/asignaturas/basicas/{id}` | `ADMIN` + `SCOPE_asignaturas:update` |
+| `POST` | `/api/v1/asignaturas/electivas` | `ADMIN` + `SCOPE_asignaturas:write` |
+| `PUT` | `/api/v1/asignaturas/electivas/{id}` | `ADMIN` + `SCOPE_asignaturas:update` |
+| `GET` | `/api/v1/asignaturas/electivas/validar-mineduc` | `ADMIN` o `SCOPE_asignaturas:read` |
+| `POST` | `/api/v1/horarios/asignatura/{asignaturaId}` | `ADMIN` + `SCOPE_horarios:write` |
+| `PUT` | `/api/v1/horarios/{id}` | `ADMIN` + `SCOPE_horarios:update` |
+| `DELETE` | `/api/v1/horarios/{id}` | `ADMIN` + `SCOPE_horarios:delete` |
+| `GET` | `/api/v1/inscripciones/{id}` | `SCOPE_inscripciones:read` |
+| `GET` | `/api/v1/inscripciones/search?idAlumno=&idAsignatura=&estados=&page=&size=&sort=` | `SCOPE_inscripciones:read` |
+| `POST` | `/api/v1/inscripciones` | `ADMIN` o el propio ESTUDIANTE (ownership por `oid`) + `SCOPE_inscripciones:write` |
+| `PUT` | `/api/v1/inscripciones/{id}/estado` | `ADMIN` + `SCOPE_inscripciones:update` |
 
 ### Notas (`:8087`, `/api/v1/notas`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
 | `GET` | `/{id}` | `SCOPE_notas:read` |
-| `GET` | `/search?idEstudiante=&idAsignatura=&lessThanScore=&greaterThanScore=` | `SCOPE_notas:read` |
+| `GET` | `/search?idEstudiante=&idEvaluacion=&lessThanScore=&greaterThanScore=&page=&size=&sort=` | `SCOPE_notas:read` |
 | `POST` | `/` | `ADMIN` o `DOCENTE` + `SCOPE_notas:write` |
 | `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_notas:update` |
 | `DELETE` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_notas:delete` (borrado lógico) |
 
+### Docentes (`:8088`, `/api/v1/docentes`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `GET` | `/{id}` · `/idUsuario/{idUsuario}` · `/exists/{id}` | `SCOPE_docentes:read` |
+| `GET` | `/search?rut=&firstName=&firstSurname=&from=&to=&area=&page=&size=&sort=` | `SCOPE_docentes:read` |
+| `POST` | `/` | `ADMIN` + `SCOPE_docentes:write` |
+| `PUT` | `/{id}` | `ADMIN` o `SCOPE_docentes:update` |
+| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_docentes:delete` (borrado lógico) |
+| `GET` | `/{docenteId}/certificados` | `SCOPE_docentes:read` |
+| `POST` | `/{docenteId}/certificados` | `ADMIN` o el propio DOCENTE (ownership) + `SCOPE_docentes:write` |
+| `DELETE` | `/{docenteId}/certificados/{certificadoId}` | `ADMIN` o el propio DOCENTE (ownership) + `SCOPE_docentes:delete` |
+
+### Apoderados (`:8089`, `/api/v1/apoderados`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `GET` | `/{id}` · `/idUsuario/{idUsuario}` · `/exists/{id}` | `SCOPE_apoderados:read` |
+| `GET` | `/search?rut=&firstName=&firstSurname=&idEstudiante=&page=&size=&sort=` | `SCOPE_apoderados:read` |
+| `POST` | `/` | `ADMIN` + `SCOPE_apoderados:write` |
+| `PUT` | `/{id}` | `ADMIN` o el propio APODERADO (ownership por `oid`) + `SCOPE_apoderados:update` |
+| `POST` | `/{id}/estudiantes` | `ADMIN` + `SCOPE_apoderados:update` |
+| `DELETE` | `/{id}/estudiantes/{idEstudiante}` | `ADMIN` + `SCOPE_apoderados:update` |
+| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_apoderados:delete` (borrado lógico) |
+
+### Clases (`:8090`, `/api/v1/clases`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `GET` | `/{id}` · `/exists/{id}` | `SCOPE_clases:read` |
+| `GET` | `/search?nivel=&letra=&anioAcademico=&idDocenteJefe=&page=&size=&sort=` | `SCOPE_clases:read` |
+| `POST` | `/` | `ADMIN` + `SCOPE_clases:write` |
+| `PUT` | `/{id}/docente-jefe` | `ADMIN` + `SCOPE_clases:update` (permite limpiar con `null`) |
+| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_clases:delete` (borrado lógico) |
+
+### Evaluaciones (`:8091`, `/api/v1/evaluaciones`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `GET` | `/{id}` · `/exists/{id}` | `SCOPE_evaluaciones:read` |
+| `GET` | `/search?nombre=&tipo=&idAsignatura=&page=&size=&sort=` | `SCOPE_evaluaciones:read` |
+| `POST` | `/` | `ADMIN` o `DOCENTE` + `SCOPE_evaluaciones:write` |
+| `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_evaluaciones:update` |
+| `DELETE` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_evaluaciones:delete` (borrado lógico) |
+
 ## Comunicación entre servicios
 
-- **Feign** es el cliente declarativo (p. ej. `bff-web` orquesta estudiantes,
-  asignaturas y notas; `ms-notas` verifica existencia de estudiante y asignatura).
+- **Feign** es el cliente declarativo: `bff-web` orquesta usuarios, estudiantes,
+  asignaturas, notas y evaluaciones; `ms-notas` valida estudiante y evaluación;
+  `ms-asignaturas` valida docente, clase y estudiante; `ms-clases` valida docente;
+  `ms-apoderados` valida estudiante; `ms-evaluaciones` valida asignatura.
 - **Resilience4j** aporta circuit breaker y timeouts; si un servicio no responde
-  se activa el fallback correspondiente (`*Fallback`).
-- **Propagación del token**: un `RequestInterceptor` reenvía el `Authorization`
-  entrante en las llamadas Feign, de modo que la autorización se evalúa en destino.
+  se activa el fallback correspondiente (`*Fallback`, respuesta 503).
+- **Propagación del token**: `SharedFeignAuthConfig` (en `core-share`) reenvía el
+  `Authorization` entrante en todas las llamadas Feign; el BFF usa su propio
+  `FeignClientConfig`.
 
 ## Seguridad
 
 - OAuth2/JWT con Azure AD (`spring.cloud.azure.active-directory`).
 - Autorización por método: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
+- **Ownership por `oid`**: APODERADO/DOCENTE/ESTUDIANTE solo modifican sus
+  propios recursos (`SecurityUtils.requireOwnerOrAdmin`).
 - Rutas públicas limitadas a salud y documentación técnica (`/actuator/**`, `/docs/**`, `/v3/api-docs/**`).
 - `core-share` aporta `SharedSecurityConfig` (filtro stateless y conversión de
   claims `scp`/`roles`) y `SecurityUtils`.
 - El frontend nunca accede a los microservicios directamente: lo hace a través del BFF.
+- **Decisión pendiente del equipo**: unificar autorización a roles + `Acceso.Base`
+  o mantener los scopes granulares; ver
+  [`docs/auditoria-backend.md`](../../docs/auditoria-backend.md).
 
 ## Datos y configuración
 
-- Patrón **database-per-service**: `siga_usuarios_db`, `siga_estudiantes_db`,
-  `siga_asignaturas_db` y `siga_notas_db`.
+- Patrón **database-per-service** (8 bases): `siga_usuarios_db`,
+  `siga_estudiantes_db`, `siga_asignaturas_db`, `siga_notas_db`,
+  `siga_docentes_db`, `siga_apoderados_db`, `siga_clases_db` y
+  `siga_evaluaciones_db`.
 - **Flyway** crea y evoluciona el esquema (`ddl-auto: validate`); una base vacía
   se auto-inicializa al arrancar.
+- **Paginación**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`;
+  default 20, máximo 100). Detalle en [`docs/paginacion.md`](../../docs/paginacion.md).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y
   parámetros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:*
   antes era `dd/MM/yyyy`; los consumidores deben usar `yyyy-MM-dd` (`birthDate`,
   `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - En Docker las variables se inyectan desde `.env`
-  (`SPRING_DATASOURCE_*`, `SERVER_PORT`, Azure, `MS_*_URL`).
+  (`SPRING_DATASOURCE_*`, `SERVER_PORT`, Azure, `MS_*_URL`, `SPRING_RABBITMQ_*`).
 
 Variables principales: `MARIADB_ROOT_PASSWORD`, `DB_USER`, `DB_PASS`,
 `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `AZURE_CLIENT_SECRET`,
 `AZURE_API_APP_ID`, `MS_USUARIOS_URL`, `MS_ESTUDIANTES_URL`,
-`MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`.
+`MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`,
+`MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
 
 ## Documentación de la API
 
@@ -158,11 +235,15 @@ Cada servicio expone (rutas públicas): `/actuator/health`, `/v3/api-docs`,
 mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTests=false
 ```
 
-Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
-datos y Azure AD.
+- Tests unitarios (Mockito) de validadores, cupos, ponderación, docente jefe y
+  horarios en `core-share`, `ms-asignaturas`, `ms-clases`, `ms-evaluaciones` y
+  `ms-usuarios-auth`.
+- Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
+  datos y Azure AD.
 
 ## Enlaces
 
 - [README raíz](../../README.md)
 - [`docs/backend.md`](../../docs/backend.md) · [`docs/arquitectura.md`](../../docs/arquitectura.md)
+- [`docs/paginacion.md`](../../docs/paginacion.md) · [`docs/auditoria-backend.md`](../../docs/auditoria-backend.md)
 - [`docs/testing-login.md`](../../docs/testing-login.md) · [Índice de docs](../../docs/README.md)
