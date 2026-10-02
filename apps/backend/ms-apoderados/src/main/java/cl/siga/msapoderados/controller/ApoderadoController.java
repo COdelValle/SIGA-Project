@@ -53,7 +53,7 @@ public class ApoderadoController {
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_apoderados:update')")
+  @PreAuthorize("(hasRole('ADMIN') or hasRole('APODERADO')) and hasAuthority('SCOPE_apoderados:update')")
   public ResponseEntity<ApoderadoResponseDTO> actualizarApoderado(
     @PathVariable Long id,
     @RequestBody @Valid ActualizarApoderadoRequestDTO request) {
@@ -63,7 +63,7 @@ public class ApoderadoController {
   // --- Endpoints para la gestión aislada de estudiantes ---
 
   @PostMapping("/{id}/estudiantes")
-  @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_apoderados:update')")
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:update')")
   public ResponseEntity<ApoderadoResponseDTO> addEstudiante(
     @PathVariable Long id,
     @RequestBody @Valid ParentescoEstudianteDTO request) {
@@ -71,7 +71,7 @@ public class ApoderadoController {
   }
 
   @DeleteMapping("/{id}/estudiantes/{idEstudiante}")
-  @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_apoderados:update')")
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:update')")
   public ResponseEntity<ApoderadoResponseDTO> removeEstudiante(
     @PathVariable Long id,
     @PathVariable Long idEstudiante) {
