@@ -20,7 +20,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MariaDB (una base por microservicio)
 - RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases` y `ms-evaluaciones` (quedan comentados `ms-asistencias` y `ms-auditoria`).
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases` y `ms-evaluaciones` (quedan comentados `ms-asistencias` y `ms-auditoria`, con puertos reservados `8090` y `8082`).
 
 ## 3. Componentes del backend
 
@@ -74,7 +74,7 @@ Pendientes: contrato final de identidad (Azure AD vs SIGA) y pruebas.
 
 ### 3.3 Servicio de estudiantes
 
-Ubicacion: `apps/backend/ms-estudiantes` · puerto `8082`
+Ubicacion: `apps/backend/ms-estudiantes` · puerto `8083`
 
 Administra la ficha personal y academica de los estudiantes.
 
@@ -120,7 +120,7 @@ Comportamiento:
 
 ### 3.5 Servicio de notas
 
-Ubicacion: `apps/backend/ms-notas` · puerto `8087`
+Ubicacion: `apps/backend/ms-notas` · puerto `8089`
 
 Registra y consulta calificaciones asociadas a evaluaciones.
 
@@ -145,10 +145,10 @@ Comportamiento e integracion:
 
 ### 3.6 Servicios de docentes, apoderados, clases y evaluaciones
 
-- **`ms-docentes`** · puerto `8088`: entidades `Docente` (idUsuario, RUT, nombres, fecha de contratacion, area academica, activo) y `Certificado`; CRUD + busqueda + `exists` + certificados como subrecurso (`/api/v1/docentes/{id}/certificados`). Scopes `docentes:*`.
-- **`ms-apoderados`** · puerto `8089`: entidad `Apoderado` (telefonos y estudiantes a cargo con parentesco); CRUD + `idUsuario` + busqueda + `exists` + alta/baja de estudiantes; Feign a `ms-estudiantes`. Scopes `apoderados:*`.
-- **`ms-clases`** · puerto `8090`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
-- **`ms-evaluaciones`** · puerto `8091`: entidad `Evaluacion` (nombre, tipo, ponderacion, idAsignatura, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas`. Scopes `evaluaciones:*`.
+- **`ms-docentes`** · puerto `8085`: entidades `Docente` (idUsuario, RUT, nombres, fecha de contratacion, area academica, activo) y `Certificado`; CRUD + busqueda + `exists` + certificados como subrecurso (`/api/v1/docentes/{id}/certificados`). Scopes `docentes:*`.
+- **`ms-apoderados`** · puerto `8084`: entidad `Apoderado` (telefonos y estudiantes a cargo con parentesco); CRUD + `idUsuario` + busqueda + `exists` + alta/baja de estudiantes; Feign a `ms-estudiantes`. Scopes `apoderados:*`.
+- **`ms-clases`** · puerto `8087`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
+- **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, idAsignatura, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas`. Scopes `evaluaciones:*`.
 
 ### 3.7 Biblioteca compartida
 

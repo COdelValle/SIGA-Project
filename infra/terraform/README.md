@@ -20,7 +20,7 @@ API Gateway HTTP API (HTTPS)
 EC2 t3.medium (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8082/8086/8087/8088/8089/8090/8091
+  |- ms-*:8081/8083-8089          (8082 y 8090 reservados: ms-auditoria / ms-asistencias)
   |- rabbitmq:5672
   |- mariadb:3306    8 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)

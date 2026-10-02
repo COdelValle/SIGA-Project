@@ -15,16 +15,17 @@ funcionales. La documentación ampliada está en [`docs/backend.md`](../../docs/
 | `libs/core-share` | — | DTOs, validadores, seguridad, excepciones y OpenAPI compartidos. |
 | `bff-web` | 8080 | Backend For Frontend: `/api/me` y orquestación por Feign. |
 | `ms-usuarios-auth` | 8081 | Usuarios, roles, `/me` y sincronización con Microsoft Graph. |
-| `ms-estudiantes` | 8082 | Ficha personal y académica del estudiante. |
+| `ms-estudiantes` | 8083 | Ficha personal y académica del estudiante. |
 | `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
-| `ms-notas` | 8087 | Calificaciones; valida estudiante y evaluación por Feign. |
-| `ms-docentes` | 8088 | Docentes y certificados. |
-| `ms-apoderados` | 8089 | Apoderados, teléfonos y estudiantes a cargo. |
-| `ms-clases` | 8090 | Cursos (nivel/letra/año) y docente jefe. |
-| `ms-evaluaciones` | 8091 | Evaluaciones por asignatura (tipo y ponderación). |
+| `ms-notas` | 8089 | Calificaciones; valida estudiante y evaluación por Feign. |
+| `ms-docentes` | 8085 | Docentes y certificados. |
+| `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
+| `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
+| `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 
 Los módulos `ms-asistencias` y `ms-auditoria` están declarados como futuros
-(comentados en el POM padre).
+(comentados en el POM padre); sus puertos quedan **reservados**: `8090`
+(`ms-asistencias`) y `8082` (`ms-auditoria`).
 
 ## Tecnologías
 
@@ -87,7 +88,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_usuarios:delete` (borrado lógico) |
 | `POST` | `/{id}/sync-roles` | `ADMIN` + `SCOPE_usuarios:update` |
 
-### Estudiantes (`:8082`, `/api/v1/estudiantes`)
+### Estudiantes (`:8083`, `/api/v1/estudiantes`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
@@ -120,7 +121,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `POST` | `/api/v1/inscripciones` | `ADMIN` o el propio ESTUDIANTE (ownership por `oid`) + `SCOPE_inscripciones:write` |
 | `PUT` | `/api/v1/inscripciones/{id}/estado` | `ADMIN` + `SCOPE_inscripciones:update` |
 
-### Notas (`:8087`, `/api/v1/notas`)
+### Notas (`:8089`, `/api/v1/notas`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
@@ -130,7 +131,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_notas:update` |
 | `DELETE` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_notas:delete` (borrado lógico) |
 
-### Docentes (`:8088`, `/api/v1/docentes`)
+### Docentes (`:8085`, `/api/v1/docentes`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
@@ -143,7 +144,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `POST` | `/{docenteId}/certificados` | `ADMIN` o el propio DOCENTE (ownership) + `SCOPE_docentes:write` |
 | `DELETE` | `/{docenteId}/certificados/{certificadoId}` | `ADMIN` o el propio DOCENTE (ownership) + `SCOPE_docentes:delete` |
 
-### Apoderados (`:8089`, `/api/v1/apoderados`)
+### Apoderados (`:8084`, `/api/v1/apoderados`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
@@ -155,7 +156,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `DELETE` | `/{id}/estudiantes/{idEstudiante}` | `ADMIN` + `SCOPE_apoderados:update` |
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_apoderados:delete` (borrado lógico) |
 
-### Clases (`:8090`, `/api/v1/clases`)
+### Clases (`:8087`, `/api/v1/clases`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |
@@ -165,7 +166,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `PUT` | `/{id}/docente-jefe` | `ADMIN` + `SCOPE_clases:update` (permite limpiar con `null`) |
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_clases:delete` (borrado lógico) |
 
-### Evaluaciones (`:8091`, `/api/v1/evaluaciones`)
+### Evaluaciones (`:8088`, `/api/v1/evaluaciones`)
 
 | Método | Ruta | Autorización |
 | --- | --- | --- |

@@ -104,9 +104,9 @@ Servicios esperados:
 | `frontend` | 4200 | SPA Angular via Nginx (solo sirve el SPA; el API va por `config.json`). |
 | `bff-web` | 8080 | Backend For Frontend (`/api/me` y perfil de estudiante). |
 | `ms-usuarios-auth` | 8081 | Usuarios (`/api/v1/usuarios`), lookup y sync con Graph. |
-| `ms-estudiantes` | 8082 | Dominio estudiantes. |
+| `ms-estudiantes` | 8083 | Dominio estudiantes. |
 | `ms-asignaturas` | 8086 | Dominio asignaturas. |
-| `ms-notas` | 8087 | Dominio notas. |
+| `ms-notas` | 8089 | Dominio notas. |
 | `mariadb-*` | interno | Una base por microservicio. |
 
 Logs utiles:
