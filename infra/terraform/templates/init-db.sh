@@ -6,16 +6,24 @@
 set -e
 
 mysql -uroot -p"$MARIADB_ROOT_PASSWORD" <<-EOSQL
-  CREATE DATABASE IF NOT EXISTS siga_usuarios_db    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE DATABASE IF NOT EXISTS siga_estudiantes_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE DATABASE IF NOT EXISTS siga_asignaturas_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE DATABASE IF NOT EXISTS siga_notas_db       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_usuarios_db     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_estudiantes_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_asignaturas_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_notas_db        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_docentes_db     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_apoderados_db   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_clases_db       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_evaluaciones_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
 
-  GRANT ALL PRIVILEGES ON siga_usuarios_db.*    TO '$DB_USER'@'%';
-  GRANT ALL PRIVILEGES ON siga_estudiantes_db.* TO '$DB_USER'@'%';
-  GRANT ALL PRIVILEGES ON siga_asignaturas_db.* TO '$DB_USER'@'%';
-  GRANT ALL PRIVILEGES ON siga_notas_db.*       TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_usuarios_db.*     TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_estudiantes_db.*  TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_asignaturas_db.*  TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_notas_db.*        TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_docentes_db.*     TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_apoderados_db.*   TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_clases_db.*       TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_evaluaciones_db.* TO '$DB_USER'@'%';
   FLUSH PRIVILEGES;
 EOSQL

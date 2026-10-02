@@ -9,6 +9,10 @@ volumes:
   mariadb_estudiantes_data:
   mariadb_asignaturas_data:
   mariadb_notas_data:
+  mariadb_docentes_data:
+  mariadb_apoderados_data:
+  mariadb_clases_data:
+  mariadb_evaluaciones_data:
   rabbitmq_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
@@ -82,6 +86,50 @@ services:
       MARIADB_PASSWORD: ${DB_PASS}
     volumes:
       - mariadb_notas_data:/var/lib/mysql
+
+  mariadb-docentes:
+    <<: *mariadb-common
+    container_name: mariadb-docentes
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_docentes_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_docentes_data:/var/lib/mysql
+
+  mariadb-apoderados:
+    <<: *mariadb-common
+    container_name: mariadb-apoderados
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_apoderados_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_apoderados_data:/var/lib/mysql
+
+  mariadb-clases:
+    <<: *mariadb-common
+    container_name: mariadb-clases
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_clases_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_clases_data:/var/lib/mysql
+
+  mariadb-evaluaciones:
+    <<: *mariadb-common
+    container_name: mariadb-evaluaciones
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_evaluaciones_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_evaluaciones_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
   # Mensajeria
@@ -170,11 +218,17 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-asignaturas:3306/siga_asignaturas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8088
+      MS_CLASES_URL: http://ms-clases:8090
     depends_on:
       mariadb-asignaturas:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      ms-docentes:
+        condition: service_started
+      ms-clases:
+        condition: service_started
     networks:
       - siga-network
 
@@ -192,11 +246,111 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-notas:3306/siga_notas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
     depends_on:
       mariadb-notas:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      ms-evaluaciones:
+        condition: service_started
+    networks:
+      - siga-network
+
+  ms-docentes:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-docentes/Dockerfile
+    container_name: ms-docentes
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8088"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-docentes:3306/siga_docentes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb-docentes:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - siga-network
+
+  ms-apoderados:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-apoderados/Dockerfile
+    container_name: ms-apoderados
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8089"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-apoderados:3306/siga_apoderados_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+    depends_on:
+      mariadb-apoderados:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_started
+    networks:
+      - siga-network
+
+  ms-clases:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-clases/Dockerfile
+    container_name: ms-clases
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8090"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-clases:3306/siga_clases_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8088
+    depends_on:
+      mariadb-clases:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_started
+    networks:
+      - siga-network
+
+  ms-evaluaciones:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-evaluaciones/Dockerfile
+    container_name: ms-evaluaciones
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8091"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-evaluaciones:3306/siga_evaluaciones_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb-evaluaciones:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_started
     networks:
       - siga-network
 
@@ -218,6 +372,7 @@ services:
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8087
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8091
     depends_on:
       ms-usuarios-auth:
         condition: service_started
@@ -226,6 +381,8 @@ services:
       ms-asignaturas:
         condition: service_started
       ms-notas:
+        condition: service_started
+      ms-evaluaciones:
         condition: service_started
       rabbitmq:
         condition: service_healthy
