@@ -33,6 +33,10 @@ public class Horario {
     @Column(length = 50, nullable = false)
     private String ubicacion;
 
+    @Builder.Default
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asignatura_id", nullable = false)
     private Asignatura asignatura;

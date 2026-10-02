@@ -60,6 +60,8 @@ public class AsignaturaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura con ID " + id + " no encontrada."));
         
         asignatura.setActive(false);
+        // Los horarios acompanan el borrado logico de la asignatura.
+        asignatura.getHorarios().forEach(horario -> horario.setActive(false));
         asignaturaRepository.save(asignatura);
     }
 }

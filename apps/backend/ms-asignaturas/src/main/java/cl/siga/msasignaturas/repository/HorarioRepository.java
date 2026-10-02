@@ -12,9 +12,9 @@ import cl.siga.msasignaturas.model.entity.Horario;
 @Repository 
 public interface HorarioRepository extends JpaRepository<Horario, Long>, JpaSpecificationExecutor<Horario> {
 
-    List<Horario> findByAsignaturaId(Long asignaturaId);
+    List<Horario> findByAsignaturaIdAndActiveTrue(Long asignaturaId);
 
-    List<Horario> findByUbicacionIgnoreCaseAndDia(String ubicacion, DiaSemana dia);
+    List<Horario> findByUbicacionIgnoreCaseAndDiaAndActiveTrue(String ubicacion, DiaSemana dia);
 
-    long countByAsignaturaId(Long asignaturaId);
+    long countByAsignaturaIdAndActiveTrue(Long asignaturaId);
 }

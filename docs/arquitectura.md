@@ -138,7 +138,7 @@ CI/CD:
 | BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
-| Asignaturas | CRUD, basicas/electivas, horarios, inscripciones, Feign | Relacion con docentes y cursos |
+| Asignaturas | CRUD, basicas/electivas, horarios (soft delete), inscripciones, Feign | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | Docentes | CRUD, certificados, busqueda, `exists` | Carga horaria y asignacion de clases |
 | Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Notificaciones y seguimiento |

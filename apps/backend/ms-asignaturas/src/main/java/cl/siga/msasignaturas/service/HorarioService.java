@@ -33,6 +33,7 @@ public class HorarioService {
 
         Horario horario = horarioMapper.toEntity(request);
         horario.setAsignatura(asignatura);
+        horario.setActive(true);
 
         return horarioMapper.toDto(horarioRepository.save(horario));
     }
@@ -42,6 +43,7 @@ public class HorarioService {
         validarRangoHorario(request);
 
         Horario horario = horarioRepository.findById(id)
+                .filter(Horario::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Horario no encontrado con ID: " + id));
 
         Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(horario.getAsignatura().getId())
@@ -60,11 +62,16 @@ public class HorarioService {
         Horario horario = horarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Horario no encontrado con ID: " + id));
 
-        if (horarioRepository.countByAsignaturaId(horario.getAsignatura().getId()) <= 1) {
+        if (!horario.isActive()) {
+            return;
+        }
+
+        if (horarioRepository.countByAsignaturaIdAndActiveTrue(horario.getAsignatura().getId()) <= 1) {
             throw new BusinessException("La asignatura debe mantener al menos un horario.");
         }
 
-        horarioRepository.delete(horario);
+        horario.setActive(false);
+        horarioRepository.save(horario);
     }
 
     private void validarRangoHorario(HorarioRequestDTO request) {
@@ -74,7 +81,7 @@ public class HorarioService {
     }
 
     private void validarSolapamiento(Long asignaturaId, HorarioRequestDTO request, Long idExcluir) {
-        boolean solapaAsignatura = horarioRepository.findByAsignaturaId(asignaturaId).stream()
+        boolean solapaAsignatura = horarioRepository.findByAsignaturaIdAndActiveTrue(asignaturaId).stream()
                 .filter(h -> idExcluir == null || !h.getId().equals(idExcluir))
                 .anyMatch(h -> h.getDia() == request.dia() && solapan(h, request));
         if (solapaAsignatura) {
@@ -82,7 +89,7 @@ public class HorarioService {
         }
 
         boolean solapaUbicacion = horarioRepository
-                .findByUbicacionIgnoreCaseAndDia(request.ubicacion(), request.dia()).stream()
+                .findByUbicacionIgnoreCaseAndDiaAndActiveTrue(request.ubicacion(), request.dia()).stream()
                 .filter(h -> idExcluir == null || !h.getId().equals(idExcluir))
                 .anyMatch(h -> solapan(h, request));
         if (solapaUbicacion) {
