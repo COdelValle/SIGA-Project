@@ -1,8 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
+import { toPage } from '@siga/core';
+import { PaginadorComponent } from '@siga/shared-ui';
 import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
 
 @Component({
   selector: 'siga-admin-asignaturas',
+  imports: [PaginadorComponent],
   template: `
     <div class="mx-auto flex max-w-4xl flex-col gap-6">
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Asignaturas</h1>
@@ -18,7 +21,7 @@ import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
               </tr>
             </thead>
             <tbody>
-              @for (asignatura of asignaturas; track asignatura.id) {
+              @for (asignatura of paginados().content; track asignatura.id) {
                 <tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd">
                   <td class="px-4 py-3">{{ asignatura.nombre }}</td>
                   <td class="px-4 py-3">{{ asignatura.descripcion }}</td>
@@ -28,10 +31,27 @@ import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
             </tbody>
           </table>
         </div>
+
+        <siga-paginador
+          [total]="asignaturas.length"
+          [page]="page()"
+          [pageSize]="pageSize"
+          (pageChange)="cambiarPagina($event)"
+        />
       </section>
     </div>
   `,
 })
 export class AdminAsignaturasComponent {
   protected readonly asignaturas = ASIGNATURAS_MOCK;
+  protected readonly page = signal(1);
+  protected readonly pageSize = 5;
+
+  protected readonly paginados = computed(() =>
+    toPage(this.asignaturas, this.page() - 1, this.pageSize),
+  );
+
+  protected cambiarPagina(pagina: number): void {
+    this.page.set(pagina);
+  }
 }
