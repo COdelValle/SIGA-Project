@@ -1,5 +1,6 @@
 export * from './lib/models/role.enum';
 export * from './lib/models/me.model';
+export * from './lib/models/page.model';
 export * from './lib/config/app-config.model';
 export * from './lib/config/app-config.loader';
 export * from './lib/auth/msal.factory';
