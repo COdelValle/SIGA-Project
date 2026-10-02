@@ -3,6 +3,8 @@ package cl.siga.msestudiantes.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +45,7 @@ public class EstudianteService {
     }
 
     @Transactional (readOnly = true)
-    public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
+    public Page<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state, Pageable pageable) {
         // Si se pide un estado explicito se respeta (incluye INACTIVO); si no,
         // se excluyen los inactivos por defecto.
         Specification<Estudiante> spec = state != null
@@ -57,7 +59,7 @@ public class EstudianteService {
                 .and(EstudianteSpecifications.hasSecondSurname(secondSurname))
                 .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))
                 .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to));
-        return mapper.toResponseDtoList(repository.findAll(spec));
+        return repository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
     @Transactional 

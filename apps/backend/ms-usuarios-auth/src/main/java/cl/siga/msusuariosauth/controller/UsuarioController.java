@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,12 +58,13 @@ public class UsuarioController {
     
     @GetMapping("/search")
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
-    public ResponseEntity<List<UsuarioResponseDTO>> searchUsuarios(
+    public ResponseEntity<Page<UsuarioResponseDTO>> searchUsuarios(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Rol rol,
-            @RequestParam(required = false) StateUsuario state
+            @RequestParam(required = false) StateUsuario state,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable
         ) {
-        return ResponseEntity.ok(usuarioService.searchUsuarios(email, rol, state));
+        return ResponseEntity.ok(usuarioService.searchUsuarios(email, rol, state, pageable));
     }
     
     @PostMapping()

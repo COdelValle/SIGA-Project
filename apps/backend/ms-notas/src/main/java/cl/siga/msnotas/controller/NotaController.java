@@ -2,6 +2,10 @@ package cl.siga.msnotas.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,13 +42,14 @@ public class NotaController {
 
     @GetMapping ("/search")
     @PreAuthorize ("hasAuthority('SCOPE_notas:read')")
-    public ResponseEntity<List<NotaResponseDTO>> searchNotas(
+    public ResponseEntity<Page<NotaResponseDTO>> searchNotas(
         @RequestParam (required = false) Long idEstudiante,
         @RequestParam (required = false) Long idEvaluacion,
         @RequestParam (required = false) Double lessThanScore,
-        @RequestParam (required = false) Double greaterThanScore
+        @RequestParam (required = false) Double greaterThanScore,
+        @PageableDefault(size = 20, sort = "id") Pageable pageable
     ){
-        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore));
+        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore, pageable));
     }
 
     @PostMapping

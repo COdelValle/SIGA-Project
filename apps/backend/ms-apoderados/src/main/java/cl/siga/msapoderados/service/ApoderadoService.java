@@ -15,6 +15,8 @@ import cl.siga.msapoderados.model.specifications.ApoderadoSpecifications;
 import cl.siga.msapoderados.repository.ApoderadoRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,14 +46,14 @@ public class ApoderadoService {
   }
 
   @Transactional(readOnly = true)
-  public List<ApoderadoResponseDTO> searchApoderados(String rut, String firstName, String firstSurname, Long idEstudiante) {
+  public Page<ApoderadoResponseDTO> searchApoderados(String rut, String firstName, String firstSurname, Long idEstudiante, Pageable pageable) {
     Specification<Apoderado> spec = ApoderadoSpecifications.isActivo()
       .and(ApoderadoSpecifications.hasRut(rut))
       .and(ApoderadoSpecifications.hasFirstName(firstName))
       .and(ApoderadoSpecifications.hasFirstSurname(firstSurname))
       .and(ApoderadoSpecifications.hasIdEstudiante(idEstudiante));
 
-    return mapper.toResponseDtoList(repository.findAll(spec));
+    return repository.findAll(spec, pageable).map(mapper::toResponseDto);
   }
 
   @Transactional

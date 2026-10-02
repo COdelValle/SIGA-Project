@@ -2,6 +2,10 @@ package cl.siga.msasignaturas.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,12 +42,13 @@ public class InscripcionController {
     )
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('SCOPE_inscripciones:read')")
-    public ResponseEntity<List<InscripcionResponseDTO>> searchInscripciones(
+    public ResponseEntity<Page<InscripcionResponseDTO>> searchInscripciones(
             @RequestParam(required = false) Long idAlumno,
             @RequestParam(required = false) Long idAsignatura,
-            @RequestParam(required = false) List<EstadoInscripcion> estados) {
+            @RequestParam(required = false) List<EstadoInscripcion> estados,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         
-        return ResponseEntity.ok(inscripcionService.buscarInscripciones(idAlumno, idAsignatura, estados));
+        return ResponseEntity.ok(inscripcionService.buscarInscripciones(idAlumno, idAsignatura, estados, pageable));
     }
 
     @Operation(summary = "Registrar un alumno en una asignatura electiva")
