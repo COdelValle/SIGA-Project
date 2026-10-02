@@ -2,7 +2,7 @@ package cl.siga.msapoderados.controller;
 
 import cl.siga.coreshare.dto.apoderado.ActualizarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
-import cl.siga.coreshare.dto.apoderado.RegistrarAdoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
 import cl.siga.msapoderados.service.ApoderadoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,7 +53,7 @@ public class ApoderadoController {
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:write')")
-  public ResponseEntity<ApoderadoResponseDTO> registrarApoderado(@RequestBody @Valid RegistrarAdoderadoRequestDTO request) {
+  public ResponseEntity<ApoderadoResponseDTO> registrarApoderado(@RequestBody @Valid RegistrarApoderadoRequestDTO request) {
     return ResponseEntity.status(HttpStatus.CREATED).body(apoderadoService.saveApoderado(request));
   }
 
