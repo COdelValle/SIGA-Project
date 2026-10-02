@@ -17,6 +17,8 @@ microservices:
     url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
   notas:
     url: ${MS_NOTAS_URL:http://localhost:8087}
+  evaluaciones:
+    url: ${MS_EVALUACIONES_URL:http://localhost:8091}
 
 # Documentacion OpenAPI / Swagger
 springdoc:
