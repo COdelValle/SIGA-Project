@@ -115,7 +115,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/api/v1/asignaturas/electivas/validar-mineduc` | `ADMIN` o `SCOPE_asignaturas:read` |
 | `POST` | `/api/v1/horarios/asignatura/{asignaturaId}` | `ADMIN` + `SCOPE_horarios:write` |
 | `PUT` | `/api/v1/horarios/{id}` | `ADMIN` + `SCOPE_horarios:update` |
-| `DELETE` | `/api/v1/horarios/{id}` | `ADMIN` + `SCOPE_horarios:delete` |
+| `DELETE` | `/api/v1/horarios/{id}` | `ADMIN` + `SCOPE_horarios:delete` (borrado lógico; mantiene al menos 1 activo) |
 | `GET` | `/api/v1/inscripciones/{id}` | `SCOPE_inscripciones:read` |
 | `GET` | `/api/v1/inscripciones/search?idAlumno=&idAsignatura=&estados=&page=&size=&sort=` | `SCOPE_inscripciones:read` |
 | `POST` | `/api/v1/inscripciones` | `ADMIN` o el propio ESTUDIANTE (ownership por `oid`) + `SCOPE_inscripciones:write` |

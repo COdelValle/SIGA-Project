@@ -14,7 +14,9 @@ import cl.siga.coreshare.dto.asignatura.basica.RegistrarAsignaturaBasicaRequestD
 import cl.siga.coreshare.dto.asignatura.electiva.ActualizarAsignaturaElectivaRequestDTO;
 import cl.siga.coreshare.dto.asignatura.electiva.RegistrarAsignaturaElectivaRequestDTO;
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.msasignaturas.model.entity.Horario;
 import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaBasica;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
@@ -95,13 +97,27 @@ public interface AsignaturaMapper {
     @Mapping(target = "cuposDisponibles", ignore = true)
     @Mapping(target = "totalInscritos", ignore = true)
     @Mapping(target = "inscripciones", ignore = true)
+    @Mapping(target = "horarios", expression = "java(horariosActivos(basica))")
     AsignaturaResponseDTO toBasicaResponseDto(AsignaturaBasica basica);
 
     @Mapping(target = "tipo", constant = "ELECTIVA")
     @Mapping(target = "idClase", ignore = true)
     @Mapping(target = "totalInscritos", expression = "java(calcularTotalInscritos(electiva))")
     @Mapping(target = "cuposDisponibles", expression = "java(calcularCuposDisponibles(electiva))")
+    @Mapping(target = "horarios", expression = "java(horariosActivos(electiva))")
     AsignaturaResponseDTO toElectivaResponseDto(AsignaturaElectiva electiva);
+
+    /** Devuelve solo los horarios activos (el soft delete no debe aparecer en la respuesta). */
+    default List<HorarioResponseDTO> horariosActivos(Asignatura asignatura) {
+        if (asignatura == null || asignatura.getHorarios() == null) {
+            return List.of();
+        }
+        return asignatura.getHorarios().stream()
+                .filter(Horario::isActive)
+                .map(h -> new HorarioResponseDTO(
+                        h.getId(), h.getDia(), h.getHorarioEntrada(), h.getHorarioSalida(), h.getUbicacion()))
+                .toList();
+    }
 
     // ==========================================
     // 4. Calculadores de cupos para electivos
