@@ -9,7 +9,7 @@ import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 
 @FeignClient (
     name = "ms-evaluaciones",
-    url = "${microservices.evaluaciones.url}",
+    url = "${services.evaluaciones.url}",
     configuration = FeignClientConfig.class,
     fallback = EvaluacionClientFallback.class
 )

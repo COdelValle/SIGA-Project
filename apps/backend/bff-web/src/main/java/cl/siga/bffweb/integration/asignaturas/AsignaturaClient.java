@@ -9,7 +9,7 @@ import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
 
 @FeignClient (
     name = "ms-asignaturas",
-    url = "${microservices.asignaturas.url}",
+    url = "${services.asignaturas.url}",
     configuration = FeignClientConfig.class,
     fallback = AsignaturaClientFallback.class
 )
