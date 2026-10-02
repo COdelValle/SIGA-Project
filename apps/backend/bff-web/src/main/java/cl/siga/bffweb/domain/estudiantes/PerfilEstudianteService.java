@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cl.siga.bffweb.domain.estudiantes.dto.api.PerfilEstudianteResponseDTO;
 import cl.siga.bffweb.domain.estudiantes.mapper.PerfilEstudianteMapper;
-import cl.siga.bffweb.integration.Notas.NotaClient;
+import cl.siga.bffweb.integration.notas.NotaClient;
 import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
