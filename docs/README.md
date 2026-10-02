@@ -11,6 +11,7 @@ inicio rápido, ver el [`README.md`](../README.md) de la raíz.
 | [`backend.md`](backend.md) | Proyecto Maven multi-módulo, microservicios, endpoints, `core-share`, seguridad y datos. |
 | [`frontend.md`](frontend.md) | Aplicación Angular, MSAL, rutas por rol, librerías Nx y contratos con el BFF. |
 | [`testing-login.md`](testing-login.md) | Guía paso a paso para validar login con Azure AD y el sistema completo con Docker Compose. |
+| [`auditoria-backend.md`](auditoria-backend.md) | Hallazgos de la auditoría del backend (P0–P3), inventario de scopes y la decisión pendiente de autorización (roles vs scopes granulares). |
 | [`branch-cleanup.md`](branch-cleanup.md) | Modelo de ramas (`feature -> dev -> main -> deploy`) y limpieza de ramas ejecutada. |
 
 ## Guías de componentes
