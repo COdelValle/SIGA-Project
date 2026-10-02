@@ -5,7 +5,7 @@ Objetivo: dejar por escrito los hallazgos, su impacto y las decisiones pendiente
 para que el equipo priorice. Los PRs #49 a #53 ya corrigieron la compilacion del
 BFF, el contrato de notas/evaluaciones, las migraciones, Docker/CI y el resolver
 de nginx; esos puntos **no** se repiten aqui. La seccion 8 resume el estado de
-remediacion (PRs #55 a #60) y lo que queda pendiente.
+remediacion (PRs #55 a #68) y lo que queda pendiente.
 
 ## 1. Resumen ejecutivo
 
@@ -160,19 +160,19 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 
 ## 5. P3 - Calidad
 
-1. **Tests.** Solo `UsuarioServiceTest`; el resto son `contextLoads` excluidos en
-   CI, por lo que servicios/controllers no tienen cobertura real.
-2. **Encoding inconsistente.** Varios archivos tienen mojibake (`Configuraci��n`,
-   `encontr��`, `vǭlido`), lo que puede corromper texto al editar.
-3. **Documentacion.** `docs/backend.md:158` dice que `CommonDateFormatConfig` usa
-   `dd/MM/yyyy` para JSON y parametros; el API usa ISO `yyyy-MM-dd`
-   (`CommonDateFormatConfig.java:20`) y `dd/MM/yyyy` es solo presentacion del frontend
-   (correcto en `docs/backend.md:174` y `docs/testing-login.md:198`).
-4. **Graph dentro de la transaccion** y `getTokenSync` bloqueante
-   (`GraphUserDirectory`).
-5. **Sin `@Version`** (optimistic locking) en entidades con contadores.
-6. **Dockerfiles** con `COPY . .` sin cache de dependencias y sin healthcheck de app.
-7. **Secreto local.** `.env` contiene `AZURE_CLIENT_SECRET` real (rotacion pendiente).
+1. **Tests.** 25 unitarios + 8 de contrato de errores + 2 de integracion con
+   Testcontainers; faltan pruebas de contrato end-to-end y de controllers.
+2. **Encoding**: **falso positivo** verificado: el codigo esta en UTF-8 valido
+   (0 caracteres U+FFFD); el "mojibake" era de la consola de PowerShell.
+3. **Documentacion.** Corregido: `docs/backend.md` indica ISO `yyyy-MM-dd` y
+   `dd/MM/yyyy` como presentacion del frontend.
+4. **Graph dentro de la transaccion.** Corregido: la sincronizacion/revocacion de
+   roles se ejecuta en `afterCommit`; `getTokenSync` se mantiene (el SDK cachea el token).
+5. **Sin `@Version`**: se mantiene; las carreras se cubren con **locks pesimistas**
+   (cupos y ponderacion).
+6. **Dockerfiles.** Corregido: cache de Maven (`--mount=type=cache`) + healthchecks
+   en compose.
+7. **Secreto local.** Pendiente manual: rotar `AZURE_CLIENT_SECRET` del `.env`.
 
 ## 6. Plan de correccion propuesto
 
@@ -201,7 +201,13 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 | P2 - paginacion completa (`Page<T>`, size 20/max 100) | Corregido | #57 (backend) y #58 (frontend) |
 | P2 - manejo de errores 400/405 con logging, `FeignAuthConfig` compartido, naming BFF, indices | Corregido | #59 |
 | P3 - tests unitarios (25), healthchecks, DTO de apoderado, docs de fechas | Corregido | #60 |
-| P0 - autorizacion: se mantienen los 38 scopes granulares y se unifica la politica (ADMIN tambien requiere scope) | Resuelto en codigo; **exponer/consentir scopes en Azure (TI)** | PR de scopes |
+| P0 - autorizacion: se mantienen los 38 scopes granulares y se unifica la politica (ADMIN tambien requiere scope) | Resuelto en codigo; **exponer/consentir scopes en Azure (TI)** | #62 |
+| P2 - puertos con saltos | Renumerados a `8081/8083-8089`; reservados `8082`/`8090` | #63 |
+| P0/P2/P3 - OData, BFF sin config escaneada, unique `id_usuario`, `PropertyReferenceException` 400, `conCupoDisponible`, DTOs, correlation ID, `ErrorResponseDTO` con `path`/`correlationId`, Graph `afterCommit` | Corregido | #64 |
+| P1 - horarios con hard delete | Soft delete real (minimo 1 activo) | #65 |
+| P0 - flujo apoderado -> pupilo | Endpoint BFF con validacion de vinculo | #66 |
+| P3 - tests de integracion/contrato | Handler de errores + Testcontainers (migraciones/unique/soft delete) | #67 |
+| P3 - Dockerfiles sin cache | Cache de Maven en los 9 Dockerfiles | #68 |
 
 Nota: mientras TI no exponga y consienta los scopes, los endpoints con
 `hasAuthority('SCOPE_...')` siguen respondiendo 403 con los tokens actuales.

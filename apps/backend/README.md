@@ -241,6 +241,9 @@ mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTes
 - Tests unitarios (Mockito) de validadores, cupos, ponderación, docente jefe y
   horarios en `core-share`, `ms-asignaturas`, `ms-clases`, `ms-evaluaciones` y
   `ms-usuarios-auth`.
+- Contrato de errores (`GlobalExceptionHandlerTest`) y migraciones con
+  **Testcontainers** (`MigracionesTest`: unicidad de `id_usuario`/asignatura y
+  soft delete de horarios). Los IT se omiten si no hay Docker (`disabledWithoutDocker`).
 - Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
   datos y Azure AD.
 
