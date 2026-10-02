@@ -14,6 +14,7 @@ import cl.siga.coreshare.dto.asignatura.basica.RegistrarAsignaturaBasicaRequestD
 import cl.siga.coreshare.dto.asignatura.electiva.ActualizarAsignaturaElectivaRequestDTO;
 import cl.siga.coreshare.dto.asignatura.electiva.RegistrarAsignaturaElectivaRequestDTO;
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaBasica;
 import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
@@ -75,7 +76,7 @@ public interface AsignaturaMapper {
         return switch (asignatura) {
             case AsignaturaBasica basica -> toBasicaResponseDto(basica);
             case AsignaturaElectiva electiva -> toElectivaResponseDto(electiva);
-            default -> throw new IllegalArgumentException("Tipo de asignatura no soportado: " + asignatura.getClass());
+            default -> throw new BusinessException("Tipo de asignatura no soportado: " + asignatura.getClass());
         };
     }
 

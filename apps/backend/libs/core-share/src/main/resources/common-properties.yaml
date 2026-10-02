@@ -19,3 +19,8 @@ spring:
           claim-to-authority-prefix-map:
             scp: SCOPE_
             roles: ROLE_
+
+# Incluye el correlation id (MDC) en el nivel de cada log.
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{correlationId:-}]"

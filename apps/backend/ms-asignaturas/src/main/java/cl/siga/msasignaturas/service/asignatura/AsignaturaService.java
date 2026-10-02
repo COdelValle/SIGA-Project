@@ -29,7 +29,7 @@ public class AsignaturaService {
     @Transactional(readOnly = true)
     public Page<AsignaturaResponseDTO> searchAsignaturas(
             String name, TipoAsignatura tipo, Semestre semestre, AreaAcademica area, 
-            Long idDocente, Long idClase, Boolean verificarCupos, Pageable pageable) {
+            Long idDocente, Long idClase, Boolean conCupoDisponible, Pageable pageable) {
         
         Specification<Asignatura> spec = Specification.where(AsignaturaSpecifications.isActive())
                 .and(AsignaturaSpecifications.hasName(name))
@@ -38,7 +38,7 @@ public class AsignaturaService {
                 .and(AsignaturaSpecifications.hasArea(area))
                 .and(AsignaturaSpecifications.hasIdDocente(idDocente))
                 .and(AsignaturaSpecifications.hasIdClase(idClase))
-                .and(AsignaturaSpecifications.hasCuposDisponibles(verificarCupos));
+                .and(AsignaturaSpecifications.hasCuposDisponibles(conCupoDisponible));
 
         return asignaturaRepository.findAll(spec, pageable).map(asignaturaMapper::toResponseDto);
     }

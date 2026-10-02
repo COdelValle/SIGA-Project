@@ -71,7 +71,7 @@ GET /api/v1/notas/search?idEstudiante=1&page=0&size=20&sort=score,desc
 | --- | --- | --- | --- |
 | `ms-usuarios-auth` | 8081 | `GET /api/v1/usuarios/search` | `email`, `rol`, `state` |
 | `ms-estudiantes` | 8083 | `GET /api/v1/estudiantes/search` | `rut`, nombres, `from`, `to`, `state` |
-| `ms-asignaturas` | 8086 | `GET /api/v1/asignaturas/search` | `name`, `tipo`, `semestre`, `area`, `idDocente`, `idClase`, `verificarCupos` |
+| `ms-asignaturas` | 8086 | `GET /api/v1/asignaturas/search` | `name`, `tipo`, `semestre`, `area`, `idDocente`, `idClase`, `conCupoDisponible` |
 | `ms-asignaturas` | 8086 | `GET /api/v1/inscripciones/search` | `idAlumno`, `idAsignatura`, `estados` |
 | `ms-notas` | 8089 | `GET /api/v1/notas/search` | `idEstudiante`, `idEvaluacion`, `lessThanScore`, `greaterThanScore` |
 | `ms-docentes` | 8085 | `GET /api/v1/docentes/search` | `rut`, nombres, `from`, `to`, `area` |
@@ -111,9 +111,7 @@ curl -H "Authorization: Bearer <token>" \
   `ErrorResponseDTO` (`{ timestamp, status, error, message, details }`).
 - `page` negativo se ajusta a `0`; `size` mayor al maximo se **recorta a 100** y
   un `size` menor a 1 usa el valor por defecto. No son errores.
-- Limitacion conocida: un `sort` con un campo inexistente lanza
-  `PropertyReferenceException` y hoy responde **500**. Usa nombres de propiedad
-  validos de la entidad.
+- Un `sort` con un campo inexistente responde **400** indicando el campo invalido.
 
 ## 7. Configuracion
 
