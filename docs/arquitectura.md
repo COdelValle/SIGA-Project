@@ -94,7 +94,8 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
 - Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas, evaluaciones y usuarios), `ms-notas` (valida estudiante y evaluacion), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
-- El BFF orquesta `/me` y el perfil de estudiante (resolviendo evaluacion -> asignatura); el resto de recursos se conectara de forma incremental.
+- El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> asignatura) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
+- Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
 - Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
