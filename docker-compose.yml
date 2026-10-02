@@ -254,6 +254,8 @@ services:
         condition: service_healthy
       ms-evaluaciones:
         condition: service_started
+    networks:
+      - siga-network
 
   ms-docentes:
     build:
@@ -274,6 +276,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - siga-network
 
   ms-apoderados:
     build:
@@ -297,6 +301,8 @@ services:
         condition: service_healthy
       ms-estudiantes:
         condition: service_started
+    networks:
+      - siga-network
 
   ms-clases:
     build:
@@ -320,6 +326,8 @@ services:
         condition: service_healthy
       ms-docentes:
         condition: service_started
+    networks:
+      - siga-network
 
   ms-evaluaciones:
     build:
