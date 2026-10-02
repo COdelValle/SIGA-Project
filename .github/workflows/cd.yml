@@ -49,6 +49,10 @@ jobs:
           echo "MS_GRADE_ECR=${REGISTRY}/siga-notas" >> $GITHUB_ENV
           echo "BFF_WEB_ECR=${REGISTRY}/siga-bff-web" >> $GITHUB_ENV
           echo "FRONTEND_ECR=${REGISTRY}/siga-frontend" >> $GITHUB_ENV
+          echo "MS_DOCENTES_ECR=${REGISTRY}/siga-docentes" >> $GITHUB_ENV
+          echo "MS_APODERADOS_ECR=${REGISTRY}/siga-apoderados" >> $GITHUB_ENV
+          echo "MS_CLASES_ECR=${REGISTRY}/siga-clases" >> $GITHUB_ENV
+          echo "MS_EVALUACIONES_ECR=${REGISTRY}/siga-evaluaciones" >> $GITHUB_ENV
 
       # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
       # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
@@ -98,6 +102,30 @@ jobs:
           docker buildx build --platform linux/amd64 \
             -t $MS_GRADE_ECR:${TAG_VERSION} -t $MS_GRADE_ECR:latest \
             -f ./apps/backend/ms-notas/Dockerfile ./apps/backend --push
+
+      - name: Build & Push - ms-docentes
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_DOCENTES_ECR:${TAG_VERSION} -t $MS_DOCENTES_ECR:latest \
+            -f ./apps/backend/ms-docentes/Dockerfile ./apps/backend --push
+
+      - name: Build & Push - ms-apoderados
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_APODERADOS_ECR:${TAG_VERSION} -t $MS_APODERADOS_ECR:latest \
+            -f ./apps/backend/ms-apoderados/Dockerfile ./apps/backend --push
+
+      - name: Build & Push - ms-clases
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_CLASES_ECR:${TAG_VERSION} -t $MS_CLASES_ECR:latest \
+            -f ./apps/backend/ms-clases/Dockerfile ./apps/backend --push
+
+      - name: Build & Push - ms-evaluaciones
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_EVALUACIONES_ECR:${TAG_VERSION} -t $MS_EVALUACIONES_ECR:latest \
+            -f ./apps/backend/ms-evaluaciones/Dockerfile ./apps/backend --push
 
       - name: Build & Push - bff-web
         run: |
@@ -183,6 +211,33 @@ jobs:
             # hay que preparar el directorio de RabbitMQ (uid 999) en el EBS.
             mkdir -p /home/ubuntu/siga-data/rabbitmq
             sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq
+
+            # init-db.sh solo corre con el directorio de datos vacio: en volumenes
+            # existentes se crean las bases nuevas de forma idempotente.
+            docker compose --env-file .env up -d mariadb rabbitmq
+            docker compose --env-file .env exec -T mariadb mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" <<SQL
+            CREATE DATABASE IF NOT EXISTS siga_docentes_db     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS siga_apoderados_db   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS siga_clases_db       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS siga_evaluaciones_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+            GRANT ALL PRIVILEGES ON siga_docentes_db.*     TO '$DB_USER'@'%';
+            GRANT ALL PRIVILEGES ON siga_apoderados_db.*   TO '$DB_USER'@'%';
+            GRANT ALL PRIVILEGES ON siga_clases_db.*       TO '$DB_USER'@'%';
+            GRANT ALL PRIVILEGES ON siga_evaluaciones_db.* TO '$DB_USER'@'%';
+            FLUSH PRIVILEGES;
+            SQL
+
+            # ms-asignaturas cambio su esquema: si la base quedo con el modelo viejo
+            # (sin tipo_asignatura) se recrea una sola vez para que Flyway aplique V1/V2.
+            docker compose --env-file .env exec -T mariadb mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -e "
+              SET @viejo := (SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA='siga_asignaturas_db' AND TABLE_NAME='asignaturas' AND COLUMN_NAME='tipo_asignatura');
+              SET @ddl := IF(@viejo = 0,
+                'DROP DATABASE IF EXISTS siga_asignaturas_db; CREATE DATABASE siga_asignaturas_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;',
+                'SELECT 1');
+              PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+              GRANT ALL PRIVILEGES ON siga_asignaturas_db.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;"
 
             docker compose --env-file .env pull
             docker compose --env-file .env up -d --remove-orphans
