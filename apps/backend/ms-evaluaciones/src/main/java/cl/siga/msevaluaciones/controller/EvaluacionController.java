@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 @RestController
 @RequestMapping("/api/v1/evaluaciones")
 @RequiredArgsConstructor
@@ -34,12 +38,13 @@ public class EvaluacionController {
 
   @GetMapping("/search")
   @PreAuthorize("hasAuthority('SCOPE_evaluaciones:read')")
-  public ResponseEntity<List<EvaluacionResponseDTO>> searchEvaluaciones(
+  public ResponseEntity<Page<EvaluacionResponseDTO>> searchEvaluaciones(
     @RequestParam(required = false) String nombre,
     @RequestParam(required = false) TipoEvaluacion tipo,
-    @RequestParam(required = false) Long idAsignatura
+    @RequestParam(required = false) Long idAsignatura,
+    @PageableDefault(size = 20, sort = "id") Pageable pageable
   ) {
-    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idAsignatura));
+    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idAsignatura, pageable));
   }
 
   @PostMapping

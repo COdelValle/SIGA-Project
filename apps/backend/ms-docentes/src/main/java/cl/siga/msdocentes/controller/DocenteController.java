@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 @RestController
 @RequestMapping("/api/v1/docentes")
 @RequiredArgsConstructor
@@ -37,15 +41,16 @@ public class DocenteController {
 
   @GetMapping("/search")
   @PreAuthorize("hasAuthority('SCOPE_docentes:read')")
-  public ResponseEntity<List<DocenteResponseDTO>> searchDocentes(
+  public ResponseEntity<Page<DocenteResponseDTO>> searchDocentes(
     @RequestParam(required = false) String rut,
     @RequestParam(required = false) String firstName,
     @RequestParam(required = false) String firstSurname,
     @RequestParam(required = false) LocalDate from,
     @RequestParam(required = false) LocalDate to,
-    @RequestParam(required = false) AreaAcademica area
+    @RequestParam(required = false) AreaAcademica area,
+    @PageableDefault(size = 20, sort = "id") Pageable pageable
   ) {
-    return ResponseEntity.ok(docenteService.searchDocentes(rut, firstName, firstSurname, from, to, area));
+    return ResponseEntity.ok(docenteService.searchDocentes(rut, firstName, firstSurname, from, to, area, pageable));
   }
 
   @PostMapping

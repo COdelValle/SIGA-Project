@@ -13,6 +13,8 @@ import cl.siga.msclases.model.specifications.ClaseSpecifications;
 import cl.siga.msclases.repository.ClaseRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,14 +38,14 @@ public class ClaseService {
   }
 
   @Transactional(readOnly = true)
-  public List<ClaseResponseDTO> searchClases(Nivel nivel, String letra, Integer anioAcademico, Long idDocenteJefe) {
+  public Page<ClaseResponseDTO> searchClases(Nivel nivel, String letra, Integer anioAcademico, Long idDocenteJefe, Pageable pageable) {
     Specification<Clase> spec = ClaseSpecifications.isActive()
       .and(ClaseSpecifications.hasNivel(nivel))
       .and(ClaseSpecifications.hasLetra(letra))
       .and(ClaseSpecifications.hasAnioAcademico(anioAcademico))
       .and(ClaseSpecifications.hasIdDocenteJefe(idDocenteJefe));
 
-    return mapper.toResponseDtoList(repository.findAll(spec));
+    return repository.findAll(spec, pageable).map(mapper::toResponseDto);
   }
 
   @Transactional

@@ -179,6 +179,7 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
 - `docker-compose.yml` levanta 8 MariaDB, los 8 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
+- **Busquedas paginadas**: los `GET /search` devuelven `Page<T>` (`content`, `totalElements`, `totalPages`, `number`, `size`) con parametros `page`, `size` y `sort`; tamano por defecto 20 y maximo 100 (configurado en `common-properties.yaml`).
 - En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
 - Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`, `MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
 
