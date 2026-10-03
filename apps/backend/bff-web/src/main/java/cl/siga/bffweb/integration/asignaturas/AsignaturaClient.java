@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 
 @FeignClient (
@@ -29,4 +30,10 @@ public interface AsignaturaClient {
 
     @GetMapping ("/api/v1/asignaturas/search")
     PageResponseDTO<AsignaturaResponseDTO> searchAsignaturas(@RequestParam ("size") int size);
+
+    /** Inscripciones del alumno (las electivas no tienen idClase). */
+    @GetMapping ("/api/v1/inscripciones/search")
+    PageResponseDTO<InscripcionResponseDTO> searchInscripcionesByAlumno(
+        @RequestParam ("idAlumno") Long idAlumno,
+        @RequestParam ("size") int size);
 }
