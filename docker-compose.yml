@@ -395,6 +395,8 @@ services:
       MS_NOTAS_URL: http://ms-notas:8089
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
       MS_APODERADOS_URL: http://ms-apoderados:8084
+      MS_CLASES_URL: http://ms-clases:8087
+      MS_DOCENTES_URL: http://ms-docentes:8085
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -407,6 +409,10 @@ services:
       ms-evaluaciones:
         condition: service_healthy
       ms-apoderados:
+        condition: service_healthy
+      ms-clases:
+        condition: service_healthy
+      ms-docentes:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

@@ -6,7 +6,9 @@ public record AsignaturaDetalleDTO(
     Long id,
     String name,
     String description,
-    List<NotaDetalleDTO> notas
+    Long idDocente,
+    String docente,
+    List<HorarioDetalleDTO> horarios,
+    List<EvaluacionDetalleDTO> evaluaciones
 ) {
-
 }

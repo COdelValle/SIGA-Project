@@ -9,8 +9,13 @@ import cl.siga.coreshare.exception.ServiceUnavailableException;
 @Component 
 public class EstudianteClientFallback implements EstudianteClient{
     @Override
-    public EstudianteResponseDTO getEstudianteById(String id) {
+    public EstudianteResponseDTO getEstudianteById(Long id) {
         throw new ServiceUnavailableException("No se pudo obtener el estudiante " + id);
+    }
+
+    @Override
+    public EstudianteResponseDTO getEstudianteByIdUsuario(String idUsuario) {
+        throw new ServiceUnavailableException("No se pudo obtener el estudiante con idUsuario " + idUsuario);
     }
 
     @Override

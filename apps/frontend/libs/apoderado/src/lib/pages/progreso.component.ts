@@ -1,5 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { NotasTablaComponent, PeriodoResumenComponent, formatearNota } from '@siga/academico';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  NotasTablaComponent,
+  PeriodoResumenComponent,
+  formatearNota,
+  periodoDePerfil,
+} from '@siga/academico';
 import { CONFIG_ACADEMICA_MOCK, notasDe } from '@siga/mocks';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
@@ -55,7 +60,10 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
 export class ApoderadoProgresoComponent {
   private readonly state = inject(ApoderadoStateService);
 
-  protected readonly periodos = computed(() => notasDe(this.state.pupiloId()));
+  protected readonly periodos = computed(() => {
+    const perfil = this.state.perfil();
+    return perfil ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK)] : notasDe(this.state.pupiloId());
+  });
   protected readonly opcionesPeriodo = computed<SelectOption[]>(() =>
     this.periodos().map((periodo) => ({
       value: periodo.anio,
@@ -69,6 +77,15 @@ export class ApoderadoProgresoComponent {
       this.periodos().find((periodo) => periodo.anio === this.anioSeleccionado()) ??
       this.periodos()[0],
   );
+
+  constructor() {
+    effect(() => {
+      const periodos = this.periodos();
+      if (periodos.length > 0 && !periodos.some((periodo) => periodo.anio === this.anioSeleccionado())) {
+        this.anioSeleccionado.set(periodos[0].anio);
+      }
+    });
+  }
   protected readonly asignaturas = computed(
     () =>
       this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())

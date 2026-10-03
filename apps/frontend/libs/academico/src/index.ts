@@ -1,4 +1,7 @@
 export * from './lib/models/academico.model';
+export * from './lib/models/perfil.model';
+export * from './lib/perfil.mapper';
+export * from './lib/state/perfil-estudiante.service';
 export * from './lib/components/horario-tabla.component';
 export * from './lib/components/horario-resumen.component';
 export * from './lib/components/asistencia-lista.component';

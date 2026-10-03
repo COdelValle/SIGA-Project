@@ -16,7 +16,10 @@ import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 )
 public interface EstudianteClient {
     @GetMapping ("/api/v1/estudiantes/{id}")
-    EstudianteResponseDTO getEstudianteById(@PathVariable String id);
+    EstudianteResponseDTO getEstudianteById(@PathVariable ("id") Long id);
+
+    @GetMapping ("/api/v1/estudiantes/idUsuario/{idUsuario}")
+    EstudianteResponseDTO getEstudianteByIdUsuario(@PathVariable ("idUsuario") String idUsuario);
 
     @PutMapping ("/api/v1/estudiantes/{id}")
     EstudianteResponseDTO updateEstudiante(
