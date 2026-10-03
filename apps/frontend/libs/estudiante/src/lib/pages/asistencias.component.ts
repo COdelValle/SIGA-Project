@@ -1,5 +1,6 @@
 import { Component, computed } from '@angular/core';
-import { AsistenciaTablaComponent, ESTUDIANTE_ACTUAL_ID, asistenciaResumenDe } from '@siga/academico';
+import { AsistenciaTablaComponent } from '@siga/academico';
+import { ESTUDIANTE_ACTUAL_ID, asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
 @Component({

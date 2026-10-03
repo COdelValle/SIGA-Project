@@ -14,7 +14,7 @@ import {
   promedioNotas,
   redondear1,
   resumirAsistencia,
-} from '../models/academico.model';
+} from '@siga/academico';
 
 /**
  * Datos de ejemplo (mock) para las vistas academicas mientras no exista el

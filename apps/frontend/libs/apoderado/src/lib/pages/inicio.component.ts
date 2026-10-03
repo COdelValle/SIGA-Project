@@ -6,12 +6,10 @@ import {
   DiaSemana,
   HorarioResumenComponent,
   NotasListaComponent,
-  asistenciaResumenDe,
   diaActual,
-  horarioDe,
-  notasResumenDe,
   resumirBloques,
 } from '@siga/academico';
+import { asistenciaResumenDe, horarioDe, notasResumenDe } from '@siga/mocks';
 import { MeService } from '@siga/core';
 import { DayTabsComponent, SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';

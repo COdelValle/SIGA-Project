@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { formatearFecha } from '@siga/academico';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
-import { Alumno, nombreCompleto } from '../mocks/docente.mock';
+import { Alumno, nombreCompleto } from '@siga/mocks';
 import {
   DocenteAcademicoService,
   EstadoAsistencia,

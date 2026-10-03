@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CONFIG_ACADEMICA_MOCK, NotasTablaComponent, formatearNota, notasDe } from '@siga/academico';
+import { NotasTablaComponent, formatearNota } from '@siga/academico';
+import { CONFIG_ACADEMICA_MOCK, notasDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 

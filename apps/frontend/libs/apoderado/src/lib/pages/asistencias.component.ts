@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { AsistenciaTablaComponent, asistenciaResumenDe } from '@siga/academico';
+import { AsistenciaTablaComponent } from '@siga/academico';
+import { asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 

@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { SelectComponent, SelectOption } from '@siga/shared-ui';
-import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
+import { PUPILOS_MOCK } from '@siga/mocks';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 /** Barra de contexto del apoderado: seleccion de pupilo, visible en todo el portal. */

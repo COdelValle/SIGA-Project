@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { PUPILOS_MOCK, Pupilo } from '../mocks/pupilos.mock';
+import { PUPILOS_MOCK, Pupilo } from '@siga/mocks';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({

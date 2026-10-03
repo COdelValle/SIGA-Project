@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { PUPILOS_MOCK } from '../mocks/pupilos.mock';
+import { PUPILOS_MOCK } from '@siga/mocks';
 
 /** Estado compartido del portal apoderado: pupilo seleccionado. */
 @Injectable({ providedIn: 'root' })

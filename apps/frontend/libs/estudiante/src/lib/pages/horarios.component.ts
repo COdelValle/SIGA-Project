@@ -1,13 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import {
-  DIAS_SEMANA,
-  DiaSemana,
-  ESTUDIANTE_ACTUAL_ID,
-  HorarioTablaComponent,
-  diaActual,
-  horarioDe,
-} from '@siga/academico';
+import { DIAS_SEMANA, DiaSemana, HorarioTablaComponent, diaActual } from '@siga/academico';
+import { ESTUDIANTE_ACTUAL_ID, horarioDe } from '@siga/mocks';
 import { DayTabsComponent } from '@siga/shared-ui';
 
 @Component({

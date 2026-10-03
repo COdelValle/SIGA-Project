@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ROLES_MOCK } from '../mocks/admin.mock';
+import { ROLES_MOCK } from '@siga/mocks';
 
 @Component({
   selector: 'siga-admin-roles',
