@@ -12,6 +12,9 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_PORT: "5672"
   SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
   SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+  # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
+  # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
+  SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
 
 # Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio)
 x-ms-healthcheck: &ms-healthcheck

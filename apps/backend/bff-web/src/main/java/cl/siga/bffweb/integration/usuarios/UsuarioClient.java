@@ -12,7 +12,7 @@ import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 @FeignClient (
     name = "ms-usuarios-auth",
     url = "${services.usuarios.url}",
-    fallback = UsuarioClientFallback.class
+    fallbackFactory = UsuarioClientFallbackFactory.class
 )
 public interface UsuarioClient {
     @GetMapping ("/api/v1/usuarios/me")
