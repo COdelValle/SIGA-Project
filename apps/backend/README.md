@@ -60,7 +60,7 @@ mvn -f apps/backend/pom.xml -pl ms-notas -am spring-boot:run
 mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 ```
 
-> `typescript-generator.skip=true` evita que `bff-web` escriba modelos TypeScript
+> `typescript.generator.skip=true` evita que `bff-web` escriba modelos TypeScript
 > fuera del workspace (lo usa el CI).
 
 ## Endpoints
