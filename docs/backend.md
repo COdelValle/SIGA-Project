@@ -183,6 +183,10 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 - `docker-compose.yml` levanta 8 MariaDB, los 8 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - **Busquedas paginadas**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`; default 20, maximo 100). Contrato, ejemplos y guia en [`paginacion.md`](paginacion.md).
+- **Borrado logico**: todos los `DELETE` son idempotentes. La mayoria usa un booleano `active`/`activo` (asignaturas, horarios, notas, docentes, apoderados, clases, evaluaciones); estudiantes y usuarios usan el enum `State`/`StateUsuario`. Convencion a unificar en el futuro.
+- **Enums** (ubicacion actual, deuda de consistencia): `Rol`/`StateUsuario` en `dto/usuario/enums`, `State` en `dto/estudiante/enums`, `AreaAcademica` en `coreshare/enums`.
+- **Seeds**: las migraciones `V2` insertan datos de ejemplo con IDs fijos e `INSERT IGNORE`; tenerlo en cuenta antes de cargar datos reales.
+- **Specifications**: cada servicio mantiene su `isActive()` local (core-share no depende de JPA); un helper compartido queda como mejora futura.
 - En desarrollo, `docker-compose` inyecta `SPRING_DATASOURCE_*`, `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` (Flyway gestiona el esquema) y las variables de Azure; no se requieren ficheros `application-*.yml` extra.
 - Variables principales: `DB_HOST`, `DB_USER`, `DB_PASS`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `MS_ESTUDIANTES_URL`, `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`, `MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS` (estas dos se exponen como `SPRING_RABBITMQ_*`).
 
