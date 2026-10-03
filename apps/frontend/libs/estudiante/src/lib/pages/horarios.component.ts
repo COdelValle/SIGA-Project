@@ -1,13 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   DIAS_SEMANA,
   DiaSemana,
-  ESTUDIANTE_ACTUAL_ID,
   HorarioTablaComponent,
+  PerfilEstudianteService,
   diaActual,
-  horarioDe,
+  horarioDePerfil,
 } from '@siga/academico';
+import { ESTUDIANTE_ACTUAL_ID, horarioDe } from '@siga/mocks';
 import { DayTabsComponent } from '@siga/shared-ui';
 
 @Component({
@@ -40,12 +42,18 @@ import { DayTabsComponent } from '@siga/shared-ui';
 export class EstudianteHorariosComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
 
   protected readonly dias = DIAS_SEMANA;
   protected readonly dia = signal<DiaSemana>(
     normalizarDia(this.route.snapshot.queryParamMap.get('dia')),
   );
-  protected readonly bloques = computed(() => horarioDe(ESTUDIANTE_ACTUAL_ID)[this.dia()]);
+  protected readonly bloques = computed(() => {
+    const perfil = this.perfil();
+    const horario = perfil ? horarioDePerfil(perfil) : horarioDe(ESTUDIANTE_ACTUAL_ID);
+    return horario[this.dia()];
+  });
 
   protected seleccionarDia(valor: string): void {
     const dia = normalizarDia(valor);

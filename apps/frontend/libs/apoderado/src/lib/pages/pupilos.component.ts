@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { PUPILOS_MOCK, Pupilo } from '../mocks/pupilos.mock';
+import { Pupilo } from '@siga/mocks';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 @Component({
@@ -10,7 +10,7 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Mis pupilos</h1>
 
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @for (pupilo of pupilos; track pupilo.id) {
+        @for (pupilo of pupilos(); track pupilo.id) {
           <article class="rounded-2xl bg-panel p-5 shadow-lg">
             <div class="flex items-center gap-3">
               <span
@@ -40,7 +40,7 @@ export class ApoderadoPupilosComponent {
   private readonly state = inject(ApoderadoStateService);
   private readonly router = inject(Router);
 
-  protected readonly pupilos = PUPILOS_MOCK;
+  protected readonly pupilos = this.state.pupilos;
 
   protected verInformacion(pupilo: Pupilo): void {
     this.state.seleccionar(pupilo.id);

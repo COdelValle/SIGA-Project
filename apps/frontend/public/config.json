@@ -1,5 +1,6 @@
 {
   "bffBaseUrl": "/api",
+  "useMocks": false,
   "msal": {
     "clientId": "448f165b-4fab-45c4-9088-766044e1a004",
     "authority": "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff",
@@ -44,7 +45,11 @@
       "api://448f165b-4fab-45c4-9088-766044e1a004/horarios:delete",
       "api://448f165b-4fab-45c4-9088-766044e1a004/inscripciones:read",
       "api://448f165b-4fab-45c4-9088-766044e1a004/inscripciones:write",
-      "api://448f165b-4fab-45c4-9088-766044e1a004/inscripciones:update"
+      "api://448f165b-4fab-45c4-9088-766044e1a004/inscripciones:update",
+      "api://448f165b-4fab-45c4-9088-766044e1a004/asistencias:read",
+      "api://448f165b-4fab-45c4-9088-766044e1a004/asistencias:write",
+      "api://448f165b-4fab-45c4-9088-766044e1a004/asistencias:update",
+      "api://448f165b-4fab-45c4-9088-766044e1a004/asistencias:delete"
     ]
   }
 }

@@ -1,65 +1,44 @@
 package cl.siga.bffweb.domain.estudiantes.mapper;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import cl.siga.bffweb.domain.estudiantes.dto.api.PerfilEstudianteResponseDTO;
 import cl.siga.bffweb.domain.estudiantes.dto.internal.AsignaturaDetalleDTO;
-import cl.siga.bffweb.domain.estudiantes.dto.internal.NotaDetalleDTO;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.ClaseDetalleDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
-import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 
 @Mapper (componentModel = "spring")
 public interface PerfilEstudianteMapper {
-    // 1. El método principal ahora recibe 4 parámetros
-    @Mapping(target = "asignaturas", expression = "java(mezclarAsignaturasYNotas(asignaturas, notas, evaluacionAAsignatura))")
+    @Mapping (target = "id", source = "estudiante.id")
+    @Mapping (target = "idUsuario", source = "estudiante.idUsuario")
+    @Mapping (target = "rut", source = "estudiante.rut")
+    @Mapping (target = "firstName", source = "estudiante.firstName")
+    @Mapping (target = "middleName", source = "estudiante.middleName")
+    @Mapping (target = "firstSurname", source = "estudiante.firstSurname")
+    @Mapping (target = "secondSurname", source = "estudiante.secondSurname")
+    @Mapping (target = "birthDate", source = "estudiante.birthDate")
+    @Mapping (target = "allergies", source = "estudiante.allergies")
+    @Mapping (target = "state", source = "estudiante.state")
+    @Mapping (target = "idClase", source = "estudiante.idClase")
+    @Mapping (target = "clase", expression = "java(toClaseDetalle(clase))")
+    @Mapping (target = "asignaturas", source = "asignaturas")
     PerfilEstudianteResponseDTO toResponse(
-            EstudianteResponseDTO estudiante, 
-            List<AsignaturaResponseDTO> asignaturas, 
-            List<NotaResponseDTO> notas,
-            Map<Long, Long> evaluacionAAsignatura
-    );
+            EstudianteResponseDTO estudiante,
+            ClaseResponseDTO clase,
+            List<AsignaturaDetalleDTO> asignaturas);
 
-    // 2. El método auxiliar que cruza la información de ambas listas
-    default List<AsignaturaDetalleDTO> mezclarAsignaturasYNotas(
-            List<AsignaturaResponseDTO> asignaturas, 
-            List<NotaResponseDTO> notas,
-            Map<Long, Long> evaluacionAAsignatura) {
-        
-        if (asignaturas == null || asignaturas.isEmpty()) {
-            return Collections.emptyList();
+    default ClaseDetalleDTO toClaseDetalle(ClaseResponseDTO clase) {
+        if (clase == null) {
+            return null;
         }
-        if (notas == null) {
-            notas = Collections.emptyList();
-        }
-        if (evaluacionAAsignatura == null) {
-            evaluacionAAsignatura = Collections.emptyMap();
-        }
-
-        // A. Agrupamos las notas por la asignatura de su evaluación
-        final Map<Long, Long> evaluacionAAsignaturaFinal = evaluacionAAsignatura;
-        Map<Long, List<NotaDetalleDTO>> mapaNotasPorAsignatura = notas.stream()
-            .filter(nota -> evaluacionAAsignaturaFinal.containsKey(nota.idEvaluacion()))
-            .collect(Collectors.groupingBy(
-                nota -> evaluacionAAsignaturaFinal.get(nota.idEvaluacion()),
-                Collectors.mapping(nota -> new NotaDetalleDTO(nota.id(), nota.score()), Collectors.toList())
-            ));
-
-        // B. Iteramos las asignaturas y les inyectamos las notas que acabamos de agrupar
-        return asignaturas.stream()
-            .map(asig -> new AsignaturaDetalleDTO(
-                asig.id(),
-                asig.name(),
-                asig.description(),
-                // Buscamos si hay notas para este ID, si no, pasamos lista vacía
-                mapaNotasPorAsignatura.getOrDefault(asig.id(), Collections.emptyList()) 
-            ))
-            .toList();
+        return new ClaseDetalleDTO(
+            clase.id(),
+            clase.nivel() == null ? null : clase.nivel().getDescripcion(),
+            clase.letra(),
+            clase.anioAcademico());
     }
 }

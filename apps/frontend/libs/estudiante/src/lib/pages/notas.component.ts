@@ -1,11 +1,13 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  CONFIG_ACADEMICA_MOCK,
-  ESTUDIANTE_ACTUAL_ID,
+  AsistenciaService,
   NotasTablaComponent,
+  PerfilEstudianteService,
   formatearNota,
-  periodoActualDe,
+  periodoDePerfil,
 } from '@siga/academico';
+import { CONFIG_ACADEMICA_MOCK, ESTUDIANTE_ACTUAL_ID, periodoActualDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
 @Component({
@@ -15,11 +17,11 @@ import { SeccionCardComponent } from '@siga/shared-ui';
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Notas</h1>
-        <p class="text-sm text-muted">{{ periodo.anio }} · {{ periodo.curso }}</p>
+        <p class="text-sm text-muted">{{ periodo().anio }} · {{ periodo().curso }}</p>
       </div>
 
       <div class="flex flex-wrap gap-2">
-        @for (semestre of periodo.semestres; track semestre.numero) {
+        @for (semestre of periodo().semestres; track semestre.numero) {
           <button
             type="button"
             (click)="seleccionar(semestre.numero)"
@@ -49,16 +51,28 @@ import { SeccionCardComponent } from '@siga/shared-ui';
   `,
 })
 export class EstudianteNotasComponent {
-  protected readonly periodo = periodoActualDe(ESTUDIANTE_ACTUAL_ID);
+  private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
+  private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+  private readonly asistencias = toSignal(this.asistenciaService.getAsistenciasMe(), {
+    initialValue: null,
+  });
+
+  protected readonly periodo = computed(() => {
+    const perfil = this.perfil();
+    return perfil
+      ? periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.asistencias() ?? [])
+      : periodoActualDe(ESTUDIANTE_ACTUAL_ID);
+  });
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly asignaturas = computed(
     () =>
-      this.periodo.semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
+      this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
         ?.asignaturas ?? [],
   );
   protected readonly promedioSemestre = computed(
     () =>
-      this.periodo.semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
+      this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
         ?.promedio ?? 0,
   );
   protected readonly leyenda =

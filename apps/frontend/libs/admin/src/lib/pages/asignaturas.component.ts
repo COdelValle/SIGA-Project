@@ -1,7 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { toPage } from '@siga/core';
 import { PaginadorComponent } from '@siga/shared-ui';
-import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
+import { ASIGNATURAS_MOCK } from '@siga/mocks';
+import { AdminService } from '../state/admin.service';
 
 @Component({
   selector: 'siga-admin-asignaturas',
@@ -33,7 +35,7 @@ import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
         </div>
 
         <siga-paginador
-          [total]="asignaturas.length"
+          [total]="asignaturas().length"
           [page]="page()"
           [pageSize]="pageSize"
           (pageChange)="cambiarPagina($event)"
@@ -43,12 +45,17 @@ import { ASIGNATURAS_MOCK } from '../mocks/admin.mock';
   `,
 })
 export class AdminAsignaturasComponent {
-  protected readonly asignaturas = ASIGNATURAS_MOCK;
+  private readonly adminService = inject(AdminService);
+  private readonly asignaturasRemotas = toSignal(this.adminService.getAsignaturas(), {
+    initialValue: null,
+  });
+
+  protected readonly asignaturas = computed(() => this.asignaturasRemotas() ?? ASIGNATURAS_MOCK);
   protected readonly page = signal(1);
   protected readonly pageSize = 5;
 
   protected readonly paginados = computed(() =>
-    toPage(this.asignaturas, this.page() - 1, this.pageSize),
+    toPage(this.asignaturas(), this.page() - 1, this.pageSize),
   );
 
   protected cambiarPagina(pagina: number): void {

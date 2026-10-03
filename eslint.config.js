@@ -27,6 +27,7 @@ module.exports = [
                 'scope:apoderado',
                 'scope:docente',
                 'scope:admin',
+                'scope:mocks',
               ],
             },
             {
@@ -35,23 +36,27 @@ module.exports = [
             },
             {
               sourceTag: 'scope:estudiante',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico'],
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico', 'scope:mocks'],
             },
             {
               sourceTag: 'scope:apoderado',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico'],
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico', 'scope:mocks'],
             },
             {
               sourceTag: 'scope:docente',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico'],
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico', 'scope:mocks'],
             },
             {
               sourceTag: 'scope:admin',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico'],
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:shared', 'scope:academico', 'scope:mocks'],
             },
             {
               sourceTag: 'scope:academico',
               onlyDependOnLibsWithTags: ['scope:core', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:mocks',
+              onlyDependOnLibsWithTags: ['scope:academico', 'scope:core', 'scope:shared'],
             },
             {
               sourceTag: 'scope:shared',

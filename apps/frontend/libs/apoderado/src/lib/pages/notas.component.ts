@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CONFIG_ACADEMICA_MOCK, NotasTablaComponent, formatearNota, notasDe } from '@siga/academico';
+import { NotasTablaComponent, formatearNota, periodoDePerfil } from '@siga/academico';
+import { CONFIG_ACADEMICA_MOCK, notasDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
@@ -48,6 +49,10 @@ export class ApoderadoNotasComponent {
 
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly periodo = computed(() => {
+    const perfil = this.state.perfil();
+    if (perfil) {
+      return periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.state.asistencias() ?? []);
+    }
     const periodos = notasDe(this.state.pupiloId());
     return periodos.find((item) => item.estado === 'EN_CURSO') ?? periodos[0];
   });

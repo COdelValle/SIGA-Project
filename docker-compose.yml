@@ -13,6 +13,7 @@ volumes:
   mariadb_apoderados_data:
   mariadb_clases_data:
   mariadb_evaluaciones_data:
+  mariadb_asistencias_data:
   rabbitmq_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
@@ -38,6 +39,9 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_PORT: "5672"
   SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
   SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+  # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
+  # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
+  SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
 
 # Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio)
 x-ms-healthcheck: &ms-healthcheck
@@ -138,6 +142,17 @@ services:
       MARIADB_PASSWORD: ${DB_PASS}
     volumes:
       - mariadb_evaluaciones_data:/var/lib/mysql
+
+  mariadb-asistencias:
+    <<: *mariadb-common
+    container_name: mariadb-asistencias
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_asistencias_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_asistencias_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
   # Mensajeria
@@ -374,6 +389,35 @@ services:
     networks:
       - siga-network
 
+  ms-asistencias:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-asistencias/Dockerfile
+    container_name: ms-asistencias
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8090"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-asistencias:3306/siga_asistencias_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb-asistencias:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+    networks:
+      - siga-network
+
   # ---------------------------------------------------------------
   # BFF Web y Frontend
   # ---------------------------------------------------------------
@@ -395,6 +439,9 @@ services:
       MS_NOTAS_URL: http://ms-notas:8089
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
       MS_APODERADOS_URL: http://ms-apoderados:8084
+      MS_CLASES_URL: http://ms-clases:8087
+      MS_DOCENTES_URL: http://ms-docentes:8085
+      MS_ASISTENCIAS_URL: http://ms-asistencias:8090
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -407,6 +454,12 @@ services:
       ms-evaluaciones:
         condition: service_healthy
       ms-apoderados:
+        condition: service_healthy
+      ms-clases:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_healthy
+      ms-asistencias:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

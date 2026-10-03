@@ -1,0 +1,13 @@
+{
+  "name": "mocks",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/frontend/mocks/src",
+  "prefix": "siga",
+  "tags": ["scope:mocks", "type:data-access"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -22,11 +22,12 @@ apps/frontend/
 │   ├── core/            # auth (MSAL), guards, interceptores, tema (ThemeService), config, modelos
 │   ├── shared-ui/       # layout (DashboardShell, PortalHeader, menu) y UI reutilizable (SeccionCard, DayTabs, Paginador)
 │   ├── public-portal/   # landing publico
-│   ├── academico/       # componentes academicos (horario, asistencia, notas, periodo) y mocks
+│   ├── academico/       # componentes academicos, modelos del perfil y servicios reales (perfil/asistencias)
 │   ├── estudiante/      # portal estudiante (inicio, horarios, notas, asistencias, progreso)
 │   ├── apoderado/       # portal apoderado (multipupilo: pupilos, horarios, notas, asistencias, progreso, solicitudes)
 │   ├── docente/         # portal docente (inicio, cursos, horarios, registrar-notas, registrar-asistencias)
-│   └── admin/           # portal administracion (inicio, usuarios, roles, asignaturas)
+│   ├── admin/           # portal administracion (inicio, usuarios, roles, asignaturas)
+│   └── mocks/           # datos mock centralizados (fallback de los servicios reales)
 ├── src/
 │   ├── app/             # app.ts, app.config.ts, app.routes.ts (rutas por rol) y auth-error
 │   ├── main.ts          # carga config runtime y hace bootstrap
@@ -127,7 +128,7 @@ Cada portal se carga con lazy loading y **rutas hijas** (layout `DashboardShell`
 - Modelo `Page<T>` y utilidades en `@siga/core`
   (`libs/core/src/lib/models/page.model.ts`): `pageQueryParams()` construye los
   parametros `page`/`size`/`sort` para HTTP y `toPage()` pagina en cliente
-  (util mientras las vistas usan mocks).
+  (util para los listados que aun paginan en memoria).
 - UI: `siga-paginador` (`@siga/shared-ui`) muestra "Mostrando X–Y de Z" y la
   navegacion; emite la pagina seleccionada (1-indexada).
 - Vistas con paginador: `admin/usuarios` (resetea a pagina 1 al filtrar) y
@@ -154,8 +155,8 @@ docker compose up -d --build frontend
 - Disponible: consumo de `GET /api/me` (el BFF ya lo implementa) para resolver el rol autoritativo.
 - Disponible: **pantallas de los portales** (Inicio, Horarios, Notas, Asistencias, Progreso Academico, Cursos, Registrar notas/asistencias, Usuarios/Roles/Asignaturas) y componentes reutilizables.
 - Disponible: **paginacion** (`Page<T>` + `pageQueryParams()`/`toPage()` + `siga-paginador`).
-- **Datos mock**: esas pantallas usan datos de ejemplo en `libs/*/src/lib/mocks`; la conexion real al BFF esta pendiente para los recursos que aun no tienen endpoint.
-- Pendiente: integracion completa con el resto de recursos del BFF, formularios/validaciones y pruebas funcionales.
+- Disponible: **datos reales del BFF** para perfil academico (`perfil/me`), pupilos, cursos/horario docente, admin (usuarios/asignaturas) y asistencias; cada servicio cae al mock de `libs/mocks` (`@siga/mocks`) si la llamada falla o `useMocks` es `true`.
+- Pendiente: escritura de notas por el docente contra el BFF, formularios/validaciones y pruebas funcionales.
 
 ## Documentacion
 
