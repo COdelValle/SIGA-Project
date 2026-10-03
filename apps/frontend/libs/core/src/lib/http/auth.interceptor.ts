@@ -30,6 +30,14 @@ export function authInterceptor(
   }
 
   return from(msal.instance.acquireTokenSilent({ scopes: config.msal.scopes, account })).pipe(
+    // Solo captura fallos de adquisicion del token; los errores HTTP del BFF
+    // deben propagarse sin marcarse como error de token.
+    catchError((error: unknown) => {
+      const normalized = normalizeAuthError(error);
+      console.error('[SIGA] No se pudo adquirir el token de acceso', normalized);
+      authError.set(normalized);
+      return throwError(() => error);
+    }),
     switchMap((result) =>
       next(
         req.clone({
@@ -37,11 +45,5 @@ export function authInterceptor(
         }),
       ),
     ),
-    catchError((error: unknown) => {
-      const normalized = normalizeAuthError(error);
-      console.error('[SIGA] No se pudo adquirir el token de acceso', normalized);
-      authError.set(normalized);
-      return throwError(() => error);
-    }),
   );
 }
