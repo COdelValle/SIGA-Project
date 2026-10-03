@@ -43,15 +43,20 @@ public class Asistencia {
 
   @NotNull (message = "El estado es obligatorio")
   @Enumerated(EnumType.STRING)
-  @Column(name = "estado", nullable = false)
+  @Column(name = "estado", nullable = false, length = 20)
   private State estado;
 
   @NotNull (message = "La justificación es obligatoria")
   @Enumerated(EnumType.STRING)
-  @Column(name = "justificacion", nullable = false)
+  @Column(name = "justificacion", nullable = false, length = 20)
   private Justificacion justificacion;
 
   @Size(max = 255, message = "La observación no puede superar los 255 caracteres")
   @Column(name = "observacion", length = 255)
   private String observacion;
+
+  @NotNull (message = "El estado activo es obligatorio")
+  @Column(name = "active", nullable = false)
+  @Builder.Default
+  private Boolean active = true;
 }

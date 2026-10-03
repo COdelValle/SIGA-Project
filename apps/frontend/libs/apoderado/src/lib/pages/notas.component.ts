@@ -51,7 +51,7 @@ export class ApoderadoNotasComponent {
   protected readonly periodo = computed(() => {
     const perfil = this.state.perfil();
     if (perfil) {
-      return periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK);
+      return periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.state.asistencias() ?? []);
     }
     const periodos = notasDe(this.state.pupiloId());
     return periodos.find((item) => item.estado === 'EN_CURSO') ?? periodos[0];

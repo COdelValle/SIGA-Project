@@ -1,7 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AsistenciaHistorialComponent } from '@siga/academico';
+import {
+  AsistenciaHistorialComponent,
+  AsistenciaService,
+  PerfilEstudianteService,
+  asistenciaRegistrosDePerfil,
+  asistenciaResumenDePerfil,
+} from '@siga/academico';
 import { ESTUDIANTE_ACTUAL_ID, asistenciaRegistrosDe, asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
@@ -32,14 +38,32 @@ export class EstudianteAsistenciaHistorialComponent {
     initialValue: this.route.snapshot.paramMap,
   });
 
+  private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
+  private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+  private readonly asistencias = toSignal(this.asistenciaService.getAsistenciasMe(), {
+    initialValue: null,
+  });
+
   private readonly id = computed(() => Number(this.idParam().get('id') ?? 0));
 
+  private readonly resumen = computed(() => {
+    const perfil = this.perfil();
+    const asistencias = this.asistencias();
+    return perfil && asistencias
+      ? asistenciaResumenDePerfil(perfil, asistencias)
+      : asistenciaResumenDe(ESTUDIANTE_ACTUAL_ID);
+  });
+  private readonly todosLosRegistros = computed(() => {
+    const perfil = this.perfil();
+    const asistencias = this.asistencias();
+    return perfil && asistencias
+      ? asistenciaRegistrosDePerfil(perfil, asistencias)
+      : asistenciaRegistrosDe(ESTUDIANTE_ACTUAL_ID);
+  });
+
   protected readonly asignatura = computed(
-    () =>
-      asistenciaResumenDe(ESTUDIANTE_ACTUAL_ID).find((item) => item.id === this.id())?.asignatura ??
-      'Asignatura',
+    () => this.resumen().find((item) => item.id === this.id())?.asignatura ?? 'Asignatura',
   );
-  protected readonly registros = computed(
-    () => asistenciaRegistrosDe(ESTUDIANTE_ACTUAL_ID)[this.id()] ?? [],
-  );
+  protected readonly registros = computed(() => this.todosLosRegistros()[this.id()] ?? []);
 }

@@ -34,7 +34,7 @@ export interface NotaItem {
 }
 
 export type TipoAsistencia = 'Presente' | 'Inasistencia';
-export type Justificacion = 'Sí' | 'No' | 'No aplica';
+export type Justificacion = 'Sí' | 'No' | 'Pendiente' | 'No aplica';
 
 export interface AsistenciaRegistro {
   /** Fecha en ISO 8601 (yyyy-MM-dd). */
