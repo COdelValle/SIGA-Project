@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { AsistenciaTablaComponent, asistenciaResumenDe } from '@siga/academico';
+import { AsistenciaTablaComponent, asistenciaResumenDePerfil } from '@siga/academico';
+import { asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
@@ -19,5 +20,11 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
 export class ApoderadoAsistenciasComponent {
   private readonly state = inject(ApoderadoStateService);
 
-  protected readonly asistencia = computed(() => asistenciaResumenDe(this.state.pupiloId()));
+  protected readonly asistencia = computed(() => {
+    const perfil = this.state.perfil();
+    const asistencias = this.state.asistencias();
+    return perfil && asistencias
+      ? asistenciaResumenDePerfil(perfil, asistencias)
+      : asistenciaResumenDe(this.state.pupiloId());
+  });
 }

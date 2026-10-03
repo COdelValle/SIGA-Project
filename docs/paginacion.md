@@ -9,7 +9,7 @@ el backend y el frontend.
 
 | Aspecto | Valor |
 | --- | --- |
-| Endpoints | Los 9 `GET /search` (ver tabla en la seccion 4) |
+| Endpoints | Los 10 `GET /search` (ver tabla en la seccion 4) |
 | Parametros | `page` (0-indexado), `size`, `sort` |
 | Tamano por defecto | `20` |
 | Tamano maximo | `100` (si se pide mas, se recorta) |
@@ -78,6 +78,7 @@ GET /api/v1/notas/search?idEstudiante=1&page=0&size=20&sort=score,desc
 | `ms-apoderados` | 8084 | `GET /api/v1/apoderados/search` | `rut`, nombres, `idEstudiante` |
 | `ms-clases` | 8087 | `GET /api/v1/clases/search` | `nivel`, `letra`, `anioAcademico`, `idDocenteJefe` |
 | `ms-evaluaciones` | 8088 | `GET /api/v1/evaluaciones/search` | `nombre`, `tipo`, `idAsignatura` |
+| `ms-asistencias` | 8090 | `GET /api/v1/asistencias/search` | `idEstudiante`, `idAsignatura`, `from`, `to`, `estado` |
 
 Los demas endpoints (`GET /{id}`, `exists`, `POST`, `PUT`, `DELETE`) no cambian.
 

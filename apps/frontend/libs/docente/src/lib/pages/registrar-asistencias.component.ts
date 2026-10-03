@@ -1,7 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { formatearFecha } from '@siga/academico';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
-import { Alumno, nombreCompleto } from '../mocks/docente.mock';
+import { Alumno, nombreCompleto } from '@siga/mocks';
 import {
   DocenteAcademicoService,
   EstadoAsistencia,
@@ -101,7 +101,7 @@ export class DocenteRegistrarAsistenciasComponent {
       label: `${curso.nombre} · ${curso.asignatura}`,
     })),
   );
-  protected readonly cursoId = signal(this.academico.cursosConClaseHoy()[0]?.id ?? 0);
+  protected readonly cursoId = signal(0);
   protected readonly curso = computed(() =>
     this.cursos().find((item) => item.id === this.cursoId()),
   );
@@ -113,6 +113,15 @@ export class DocenteRegistrarAsistenciasComponent {
   protected readonly pendiente = computed(() =>
     this.academico.pendiente(`asistencia|${this.cursoId()}|${this.fechaHoy}`),
   );
+
+  constructor() {
+    effect(() => {
+      const cursos = this.cursos();
+      if (cursos.length > 0 && !cursos.some((curso) => curso.id === this.cursoId())) {
+        this.cursoId.set(cursos[0].id);
+      }
+    });
+  }
 
   protected nombre(alumno: Alumno): string {
     return nombreCompleto(alumno);

@@ -14,6 +14,7 @@ mysql -uroot -p"$MARIADB_ROOT_PASSWORD" <<-EOSQL
   CREATE DATABASE IF NOT EXISTS siga_apoderados_db   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE DATABASE IF NOT EXISTS siga_clases_db       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE DATABASE IF NOT EXISTS siga_evaluaciones_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE IF NOT EXISTS siga_asistencias_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
 
@@ -25,5 +26,6 @@ mysql -uroot -p"$MARIADB_ROOT_PASSWORD" <<-EOSQL
   GRANT ALL PRIVILEGES ON siga_apoderados_db.*   TO '$DB_USER'@'%';
   GRANT ALL PRIVILEGES ON siga_clases_db.*       TO '$DB_USER'@'%';
   GRANT ALL PRIVILEGES ON siga_evaluaciones_db.* TO '$DB_USER'@'%';
+  GRANT ALL PRIVILEGES ON siga_asistencias_db.*  TO '$DB_USER'@'%';
   FLUSH PRIVILEGES;
 EOSQL

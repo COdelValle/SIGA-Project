@@ -10,6 +10,12 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: true
+    # Ejecuta la llamada en el hilo del request (semáforo) para que el token y
+    # el correlation id (ThreadLocals) se propaguen por Feign. El circuit
+    # breaker y los fallbacks siguen activos.
+    circuitbreaker:
+      resilience4j:
+        disable-thread-pool: true
   config:
     import: "optional:classpath:common-properties.yaml"
 
@@ -27,6 +33,12 @@ services:
     url: ${MS_EVALUACIONES_URL:http://localhost:8088}
   apoderados:
     url: ${MS_APODERADOS_URL:http://localhost:8084}
+  clases:
+    url: ${MS_CLASES_URL:http://localhost:8087}
+  docentes:
+    url: ${MS_DOCENTES_URL:http://localhost:8085}
+  asistencias:
+    url: ${MS_ASISTENCIAS_URL:http://localhost:8090}
 
 # Documentacion OpenAPI / Swagger
 springdoc:

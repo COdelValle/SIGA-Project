@@ -93,7 +93,7 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 ## 5. Comunicacion y contratos
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
-- Implementado en `bff-web` (clientes Feign a estudiantes, asignaturas, notas, evaluaciones y usuarios), `ms-notas` (valida estudiante y evaluacion), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
+- Implementado en `bff-web` (clientes Feign a estudiantes, clases, asignaturas, evaluaciones, notas, docentes, usuarios y asistencias), `ms-notas` (valida estudiante y evaluacion), `ms-asistencias` (valida estudiante y asignatura), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
 - El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> asignatura) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
 - Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
 - Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
@@ -103,8 +103,8 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 
 Hay dos entornos:
 
-- **Local**: `docker-compose.yml` levanta 8 MariaDB (una por servicio), los 8 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 8 bases, los 8 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **Local**: `docker-compose.yml` levanta 9 MariaDB (una por servicio), los 9 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 9 bases, los 9 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
@@ -117,7 +117,7 @@ Flujo de entrada:
 Esquema y datos:
 
 - **Flyway** en cada microservicio (`ddl-auto: validate`) crea y evoluciona el esquema; una base vacia se auto-inicializa.
-- `init-db.sh` crea las 8 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
+- `init-db.sh` crea las 9 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
 
 CI/CD:
 

@@ -40,11 +40,12 @@ apps/frontend/
 │   ├── core/                   # auth (MSAL), guards, interceptores, tema, http, config, modelos
 │   ├── shared-ui/              # layout (DashboardShell, PortalHeader, menu) y UI reutilizable
 │   ├── public-portal/          # landing publico de bienvenida
-│   ├── academico/              # componentes academicos (horario, asistencia, notas, periodo) y mocks
+│   ├── academico/              # componentes academicos (horario, asistencia, notas, periodo) y servicios del perfil/asistencias
 │   ├── estudiante/             # portal estudiante (inicio, horarios, notas, asistencias, progreso)
 │   ├── apoderado/              # portal apoderado (multipupilo)
 │   ├── docente/                # portal docente (inicio, cursos, horarios, registrar-notas/asistencias)
-│   └── admin/                  # portal administracion (inicio, usuarios, roles, asignaturas)
+│   ├── admin/                  # portal administracion (inicio, usuarios, roles, asignaturas)
+│   └── mocks/                  # datos mock centralizados (fallback de los servicios reales)
 ├── src/
 │   ├── app/
 │   │   ├── app.ts              # componente raiz (router-outlet)
@@ -103,19 +104,22 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 - **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`, `AuthErrorService`), tema (`ThemeService`), guards (`roleGuard`) e interceptores HTTP (`authInterceptor`, `errorInterceptor`).
 - **`shared-ui`**: layout (`DashboardShell`, `PortalHeader`, `PortalShell`, menu con iconos SVG) y UI reutilizable (`SeccionCard`, `DayTabs`, `Paginador`).
 - **`public-portal`**: landing publico con accesos por rol.
-- **`academico`**: componentes academicos reutilizables (horario, asistencia, notas, periodo) y datos mock.
+- **`academico`**: componentes academicos reutilizables (horario, asistencia, notas, periodo), modelos del perfil y servicios reales (`PerfilEstudianteService`, `AsistenciaService`).
+- **`mocks`**: los 4 archivos de datos mock centralizados; se usan como **fallback** cuando el BFF no responde o `useMocks` esta activo.
 - **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal con sus rutas hijas y paginas.
 
 ### Fronteras
 
-`eslint.config.js` aplica `@nx/enforce-module-boundaries` con `tags` (`scope:core`, `scope:shared`, `scope:academico`, `scope:estudiante`, etc.) y `depConstraints`: los portales pueden depender de `core`, `shared` y `academico`, pero no entre si.
+`eslint.config.js` aplica `@nx/enforce-module-boundaries` con `tags` (`scope:core`, `scope:shared`, `scope:academico`, `scope:mocks`, `scope:estudiante`, etc.) y `depConstraints`: los portales pueden depender de `core`, `shared`, `academico` y `mocks`, pero no entre si.
 
 ## 7. Contratos con el backend
 
 - El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
-- `MeService` consume `GET /api/me` para obtener rol y vinculos (p. ej. estudiantes del apoderado). **El BFF ya implementa `/me`**; el resto de recursos se conectara de forma incremental.
+- `MeService` consume `GET /api/me`; el portal estudiante usa `GET /api/bff/v1/estudiantes/perfil/me` (flujo estudiante → clase → asignaturas → evaluaciones → notas, con horarios y docente) y `/perfil/{id}` para los pupilos del apoderado.
+- Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario` y `admin/usuarios|asignaturas`; las asistencias usan `asistencias/estudiante/me|{id}` y los POST/PUT del BFF.
+- Cada servicio intenta el BFF y **cae al mock** (`@siga/mocks`) si falla o si `useMocks` es `true` en `config.json`.
 - Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
-- **Paginacion**: los `GET /search` del backend devuelven `Page<T>` (modelo en `libs/core` con `pageQueryParams()` y `toPage()`); las vistas usan `siga-paginador` y, mientras trabajan con mocks, paginan en cliente con `toPage()`. Contrato en [`paginacion.md`](paginacion.md).
+- **Paginacion**: los `GET /search` del backend devuelven `Page<T>` (modelo en `libs/core` con `pageQueryParams()` y `toPage()`); las vistas usan `siga-paginador` y paginan en cliente con `toPage()`. Contrato en [`paginacion.md`](paginacion.md).
 
 ## 8. Docker
 
@@ -133,13 +137,15 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 | Resolucion del rol via BFF (`GET /api/me`) | Disponible |
 | Portal publico, `/sin-acceso` y `/error-acceso` | Disponible |
 | Tema oscuro/claro (oscuro por defecto) | Disponible |
-| Dashboards y pantallas por rol | Disponible (con **datos mock**) |
+| Dashboards y pantallas por rol | Disponible |
+| Datos reales del BFF (perfil, pupilos, cursos, admin y asistencias) | Disponible con **fallback a mocks** (`useMocks`) |
 | Paginacion (`Page<T>` + `siga-paginador`) | Disponible |
 | Fronteras Nx | Disponible |
-| Conexion real al BFF del resto de recursos | Pendiente |
+| Escritura de notas/asistencias por el docente contra el BFF | Parcial (asistencia con rosters mock; endpoints listos) |
 | Formularios y validaciones | Pendiente |
 | Pruebas funcionales | Pendiente |
 
-Las pantallas academicas (horarios, notas, asistencias, progreso, cursos, usuarios) usan
-**datos mock** en `libs/*/src/lib/mocks`; el siguiente paso es conectarlas a los contratos
-del BFF a medida que se expongan los endpoints.
+Los mocks quedaron centralizados en `libs/mocks` (`@siga/mocks`) y solo actuan como
+fallback: con `useMocks: false` (default) las vistas cargan los datos reales del BFF
+y muestran el mock unicamente si la llamada falla (por ejemplo, sin scopes consentidos
+en Azure).

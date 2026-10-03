@@ -61,15 +61,16 @@ SIGA-Project/
 ├── apps/
 │   ├── backend/                  # Maven multi-módulo (ver apps/backend/README.md)
 │   │   ├── libs/core-share/      # DTOs, validadores, seguridad y OpenAPI compartidos
-│   │   ├── bff-web/              # BFF: /me y orquestación por Feign
+│   │   ├── bff-web/              # BFF: /me y orquestación de portales por Feign
 │   │   ├── ms-usuarios-auth/     # usuarios, roles y Microsoft Graph
-│   │   ├── ms-estudiantes/       # ficha del estudiante
+│   │   ├── ms-estudiantes/       # ficha del estudiante y curso
 │   │   ├── ms-asignaturas/       # asignaturas, horarios e inscripciones
 │   │   ├── ms-notas/             # calificaciones + Feign con fallback
 │   │   ├── ms-docentes/          # docentes y certificados
 │   │   ├── ms-apoderados/        # apoderados y estudiantes a cargo
 │   │   ├── ms-clases/            # cursos y docente jefe
-│   │   └── ms-evaluaciones/      # evaluaciones por asignatura
+│   │   ├── ms-evaluaciones/      # evaluaciones por asignatura
+│   │   └── ms-asistencias/       # asistencias por estudiante y asignatura
 │   └── frontend/                 # Angular + Nx (ver apps/frontend/README.md)
 ├── docs/                         # documentación (ver docs/README.md)
 ├── infra/terraform/              # infraestructura AWS (ver infra/terraform/README.md)
@@ -118,20 +119,21 @@ Accesos del entorno local:
 
 | Servicio | Puerto host | Descripción |
 | --- | --- | --- |
-| `frontend` | 4200 | SPA Angular servida por Nginx. |
-| `bff-web` | 8080 | Backend For Frontend (`/api/me`, perfil de estudiante). |
+| `frontend` | 4200 | SPA Angular servida por Nginx (datos reales del BFF con fallback a mocks). |
+| `bff-web` | 8080 | Backend For Frontend: `/api/me`, perfil académico, pupilos, cursos y admin. |
 | `ms-usuarios-auth` | 8081 | Usuarios, roles y sincronización con Microsoft Graph. |
-| `ms-estudiantes` | 8083 | Dominio estudiantes. |
+| `ms-estudiantes` | 8083 | Dominio estudiantes (incluye `id_clase`). |
 | `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
 | `ms-notas` | 8089 | Notas (valida estudiante y evaluación por Feign). |
 | `ms-docentes` | 8085 | Docentes y certificados. |
 | `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
 | `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
+| `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (soft delete y unique por fecha). |
 | `rabbitmq` | 5672 / 15672 | Mensajería (15672 es la UI de management). |
-| `mariadb-*` | interno | Una instancia MariaDB por microservicio (8 bases). |
+| `mariadb-*` | interno | Una instancia MariaDB por microservicio (9 bases). |
 
-> Puertos reservados para servicios futuros: `8082` (`ms-auditoria`) y `8090` (`ms-asistencias`).
+> Puerto reservado para el servicio futuro `ms-auditoria`: `8082`.
 
 ## Comandos habituales
 

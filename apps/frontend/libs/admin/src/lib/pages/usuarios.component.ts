@@ -1,7 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { toPage } from '@siga/core';
 import { PaginadorComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
-import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
+import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '@siga/mocks';
+import { AdminService } from '../state/admin.service';
 
 @Component({
   selector: 'siga-admin-usuarios',
@@ -77,7 +79,10 @@ import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
   `,
 })
 export class AdminUsuariosComponent {
-  protected readonly usuarios = USUARIOS_MOCK;
+  private readonly adminService = inject(AdminService);
+  private readonly usuariosRemotos = toSignal(this.adminService.getUsuarios(), { initialValue: null });
+
+  protected readonly usuarios = computed(() => this.usuariosRemotos() ?? USUARIOS_MOCK);
   protected readonly busqueda = signal('');
   protected readonly rol = signal('');
   protected readonly estado = signal('');
@@ -101,7 +106,7 @@ export class AdminUsuariosComponent {
 
   protected readonly filtrados = computed(() => {
     const q = this.busqueda().trim().toLowerCase();
-    return this.usuarios.filter((usuario) => {
+    return this.usuarios().filter((usuario) => {
       const coincide =
         !q ||
         usuario.nombre.toLowerCase().includes(q) ||

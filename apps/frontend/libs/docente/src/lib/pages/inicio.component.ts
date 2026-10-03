@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MeService } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
-import { horaDeFranja } from '../mocks/docente.mock';
+import { horaDeFranja } from '@siga/mocks';
 import { DocenteAcademicoService } from '../state/docente-academico.service';
 
 @Component({
@@ -17,7 +17,7 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
       <div class="grid gap-6 lg:grid-cols-2">
         <siga-seccion-card title="Mis cursos" actionLabel="Ver cursos" actionRoute="/docente/cursos">
           <ul class="flex flex-col gap-2">
-            @for (curso of cursos; track curso.id) {
+            @for (curso of cursos(); track curso.id) {
               <li class="flex items-center justify-between rounded-lg bg-surface px-4 py-3 text-sm">
                 <span class="text-ink">{{ curso.nombre }}</span>
                 <span class="text-muted">{{ curso.alumnos.length }} alumnos</span>
@@ -94,9 +94,9 @@ export class DocenteInicioComponent {
   protected readonly diaHoy = this.academico.diaHoy;
   protected readonly clasesHoy = this.academico.clasesDeHoy;
 
-  protected readonly lectivas = this.cursos.length * 3 * 1.5;
-  protected readonly noLectivas = 40 - this.lectivas;
-  protected readonly total = this.lectivas + this.noLectivas;
+  protected readonly lectivas = computed(() => this.cursos().length * 3 * 1.5);
+  protected readonly noLectivas = computed(() => 40 - this.lectivas());
+  protected readonly total = computed(() => this.lectivas() + this.noLectivas());
 
   protected hora(franja: number): string {
     return horaDeFranja(franja);

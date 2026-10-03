@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class MigracionesTest {
     static final MariaDBContainer<?> MARIADB = new MariaDBContainer<>(DockerImageName.parse("mariadb:11.4"))
             .withDatabaseName("siga_estudiantes_db")
             .withUsername("siga")
-            .withPassword("siga");
+            .withPassword(UUID.randomUUID().toString());
 
     @Test
     void aplicaMigracionesYValidaIdUsuarioUnico() throws Exception {
