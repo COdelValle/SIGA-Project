@@ -36,14 +36,14 @@ jobs:
 
       # Compila todos los modulos y corre los tests unitarios. Se excluyen los
       # contextLoads (*ApplicationTests) porque requieren base de datos y Azure AD.
-      # typescript-generator.skip evita que bff-web escriba fuera del workspace.
+      # typescript.generator.skip evita que bff-web escriba fuera del workspace.
       - name: Build + tests
         run: >-
           mvn -B -ntp package
           -Dtest='!*ApplicationTests'
           -DfailIfNoTests=false
           -Dsurefire.failIfNoSpecifiedTests=false
-          -Dtypescript-generator.skip=true
+          -Dtypescript.generator.skip=true
 
   frontend:
     name: Frontend (typecheck + tests + build)

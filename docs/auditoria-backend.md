@@ -188,7 +188,7 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 
 ## 7. Anexo - verificacion
 
-- Build: `mvn -B -ntp package -DskipTests -Dtypescript-generator.skip=true` en `apps/backend`.
+- Build: `mvn -B -ntp package -DskipTests -Dtypescript.generator.skip=true` en `apps/backend`.
 - Stack: `docker compose config`, `docker compose up -d`, health en 8080-8088.
 - Migraciones: revisar `docker compose logs ms-*` (`Successfully applied`).
 
