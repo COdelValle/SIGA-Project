@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Se salta el typescript-generator (genera tipos para el front) porque escribe fuera del contexto del contenedor.
-RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl bff-web -am -DskipTests -Dtypescript-generator.skip=true
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl bff-web -am -DskipTests -Dtypescript.generator.skip=true
 
 # ETAPA 2: Ejecucion ligera con Java 21
 FROM eclipse-temurin:21-jre-alpine
