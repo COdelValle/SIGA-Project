@@ -1,6 +1,6 @@
 {
   "bffBaseUrl": "/api",
-  "useMocks": true,
+  "useMocks": false,
   "msal": {
     "clientId": "448f165b-4fab-45c4-9088-766044e1a004",
     "authority": "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff",

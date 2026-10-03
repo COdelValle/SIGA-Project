@@ -7,9 +7,16 @@ import {
   HorarioResumenComponent,
   NotasListaComponent,
   diaActual,
+  horarioDePerfil,
+  notasResumenDePerfil,
   resumirBloques,
 } from '@siga/academico';
-import { asistenciaResumenDe, horarioDe, notasResumenDe } from '@siga/mocks';
+import {
+  CONFIG_ACADEMICA_MOCK,
+  asistenciaResumenDe,
+  horarioDe,
+  notasResumenDe,
+} from '@siga/mocks';
 import { MeService } from '@siga/core';
 import { DayTabsComponent, SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
@@ -66,11 +73,19 @@ export class ApoderadoInicioComponent {
   protected readonly nombre = computed(() => this.me()?.displayName ?? '');
   protected readonly dias = DIAS_SEMANA;
   protected readonly dia = signal<DiaSemana>(diaActual());
-  protected readonly resumen = computed(() =>
-    resumirBloques(horarioDe(this.state.pupiloId())[this.dia()]),
-  );
+  protected readonly resumen = computed(() => {
+    const perfil = this.state.perfil();
+    const horario = perfil ? horarioDePerfil(perfil) : horarioDe(this.state.pupiloId());
+    return resumirBloques(horario[this.dia()]);
+  });
+  // La asistencia real se conecta cuando ms-asistencias este operativo.
   protected readonly asistencia = computed(() => asistenciaResumenDe(this.state.pupiloId()));
-  protected readonly notas = computed(() => notasResumenDe(this.state.pupiloId()));
+  protected readonly notas = computed(() => {
+    const perfil = this.state.perfil();
+    return perfil
+      ? notasResumenDePerfil(perfil, CONFIG_ACADEMICA_MOCK)
+      : notasResumenDe(this.state.pupiloId());
+  });
 
   protected seleccionarDia(dia: string): void {
     this.dia.set(dia as DiaSemana);

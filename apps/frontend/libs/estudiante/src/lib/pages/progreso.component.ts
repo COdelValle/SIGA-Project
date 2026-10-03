@@ -1,5 +1,12 @@
-import { Component, computed, signal } from '@angular/core';
-import { NotasTablaComponent, PeriodoResumenComponent, formatearNota } from '@siga/academico';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  NotasTablaComponent,
+  PeriodoResumenComponent,
+  PerfilEstudianteService,
+  formatearNota,
+  periodoDePerfil,
+} from '@siga/academico';
 import { CONFIG_ACADEMICA_MOCK, ESTUDIANTE_ACTUAL_ID, notasDe } from '@siga/mocks';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 
@@ -12,7 +19,7 @@ import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/share
 
       <div class="w-full max-w-sm">
         <siga-select
-          [options]="opcionesPeriodo"
+          [options]="opcionesPeriodo()"
           [value]="anioSeleccionado()"
           ariaLabel="Seleccionar periodo"
           (valueChange)="cambiarPeriodo($event)"
@@ -52,17 +59,35 @@ import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/share
   `,
 })
 export class EstudianteProgresoComponent {
-  protected readonly periodos = notasDe(ESTUDIANTE_ACTUAL_ID);
-  protected readonly opcionesPeriodo: SelectOption[] = this.periodos.map((periodo) => ({
-    value: periodo.anio,
-    label: `${periodo.anio} · ${periodo.curso}`,
-  }));
-  protected readonly anioSeleccionado = signal(this.periodos[0]?.anio ?? 0);
+  private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+
+  protected readonly periodos = computed(() => {
+    const perfil = this.perfil();
+    return perfil ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK)] : notasDe(ESTUDIANTE_ACTUAL_ID);
+  });
+  protected readonly opcionesPeriodo = computed<SelectOption[]>(() =>
+    this.periodos().map((periodo) => ({
+      value: periodo.anio,
+      label: `${periodo.anio} · ${periodo.curso}`,
+    })),
+  );
+  protected readonly anioSeleccionado = signal(0);
   protected readonly semestreSeleccionado = signal<1 | 2>(2);
   protected readonly periodo = computed(
     () =>
-      this.periodos.find((periodo) => periodo.anio === this.anioSeleccionado()) ?? this.periodos[0],
+      this.periodos().find((periodo) => periodo.anio === this.anioSeleccionado()) ??
+      this.periodos()[0],
   );
+
+  constructor() {
+    effect(() => {
+      const periodos = this.periodos();
+      if (periodos.length > 0 && !periodos.some((periodo) => periodo.anio === this.anioSeleccionado())) {
+        this.anioSeleccionado.set(periodos[0].anio);
+      }
+    });
+  }
   protected readonly asignaturas = computed(
     () =>
       this.periodo().semestres.find((semestre) => semestre.numero === this.semestreSeleccionado())
