@@ -83,4 +83,13 @@ public class EstudianteSpecifications {
             return criteriaBuilder.equal(root.get("state"), state);
         };
     }
+
+    public static Specification<Estudiante> hasIdClase(Long idClase) {
+        return (root, query, criteriaBuilder) -> {
+            if (idClase == null) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(root.get("idClase"), idClase);
+        };
+    }
 }

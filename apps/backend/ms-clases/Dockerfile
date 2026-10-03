@@ -18,5 +18,5 @@ USER siga
 
 COPY --from=builder /app/ms-clases/target/ms-clases-*.jar app.jar
 
-EXPOSE 8090
+EXPOSE 8087
 ENTRYPOINT ["java", "-jar", "app.jar"]

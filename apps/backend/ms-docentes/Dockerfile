@@ -18,5 +18,5 @@ USER siga
 
 COPY --from=builder /app/ms-docentes/target/ms-docentes-*.jar app.jar
 
-EXPOSE 8088
+EXPOSE 8085
 ENTRYPOINT ["java", "-jar", "app.jar"]

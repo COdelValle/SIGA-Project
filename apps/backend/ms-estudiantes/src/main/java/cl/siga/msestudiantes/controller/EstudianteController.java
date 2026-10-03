@@ -60,9 +60,10 @@ public class EstudianteController {
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(required = false) State state,
+            @RequestParam(required = false) Long idClase,
             @PageableDefault(size = 20, sort = "id") Pageable pageable
     ) {
-        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state, pageable));
+        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state, idClase, pageable));
     }
 
     @PostMapping 
