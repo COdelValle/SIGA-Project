@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { formatearNota, parseNota } from '@siga/academico';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 import { Alumno, nombreCompleto } from '@siga/mocks';
@@ -13,7 +13,7 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
 
       <div class="w-full max-w-md">
         <siga-select
-          [options]="opcionesCurso"
+          [options]="opcionesCurso()"
           [value]="cursoId()"
           ariaLabel="Seleccionar curso"
           (valueChange)="cambiarCurso($event)"
@@ -98,18 +98,29 @@ export class DocenteRegistrarNotasComponent {
   private readonly academico = inject(DocenteAcademicoService);
 
   protected readonly cursos = this.academico.cursos;
-  protected readonly opcionesCurso: SelectOption[] = this.cursos.map((curso) => ({
-    value: curso.id,
-    label: `${curso.nombre} · ${curso.asignatura}`,
-  }));
-  protected readonly cursoId = signal(this.cursos[0]?.id ?? 0);
+  protected readonly opcionesCurso = computed<SelectOption[]>(() =>
+    this.cursos().map((curso) => ({
+      value: curso.id,
+      label: `${curso.nombre} · ${curso.asignatura}`,
+    })),
+  );
+  protected readonly cursoId = signal(0);
   protected readonly curso = computed(() =>
-    this.cursos.find((item) => item.id === this.cursoId()),
+    this.cursos().find((item) => item.id === this.cursoId()),
   );
   protected readonly alumnos = computed(() => this.curso()?.alumnos ?? []);
   protected readonly pendiente = computed(() =>
     this.academico.pendiente(`notas|${this.cursoId()}`),
   );
+
+  constructor() {
+    effect(() => {
+      const cursos = this.cursos();
+      if (cursos.length > 0 && !cursos.some((curso) => curso.id === this.cursoId())) {
+        this.cursoId.set(cursos[0].id);
+      }
+    });
+  }
 
   protected nombre(alumno: Alumno): string {
     return nombreCompleto(alumno);

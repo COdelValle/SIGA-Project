@@ -8,7 +8,7 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
       <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Mis cursos</h1>
 
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @for (curso of cursos; track curso.id) {
+        @for (curso of cursos(); track curso.id) {
           <article class="rounded-2xl bg-panel p-5 shadow-lg">
             <h3 class="text-lg font-semibold text-heading">{{ curso.nombre }}</h3>
             <p class="mt-1 text-sm text-muted">{{ curso.asignatura }}</p>

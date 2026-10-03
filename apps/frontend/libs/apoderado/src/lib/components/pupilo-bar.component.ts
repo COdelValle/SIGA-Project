@@ -1,6 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
 import { SelectComponent, SelectOption } from '@siga/shared-ui';
-import { PUPILOS_MOCK } from '@siga/mocks';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
 /** Barra de contexto del apoderado: seleccion de pupilo, visible en todo el portal. */
@@ -20,7 +19,7 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
 
       <div class="w-full max-w-md">
         <siga-select
-          [options]="opciones"
+          [options]="opciones()"
           [value]="pupiloId()"
           ariaLabel="Seleccionar pupilo"
           (valueChange)="seleccionar($event)"
@@ -32,14 +31,16 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
 export class PupiloBarComponent {
   private readonly state = inject(ApoderadoStateService);
 
-  protected readonly opciones: SelectOption[] = PUPILOS_MOCK.map((pupilo) => ({
-    value: pupilo.id,
-    label: `${pupilo.nombre} · ${pupilo.curso}`,
-  }));
+  protected readonly opciones = computed<SelectOption[]>(() =>
+    this.state.pupilos().map((pupilo) => ({
+      value: pupilo.id,
+      label: `${pupilo.nombre} · ${pupilo.curso}`,
+    })),
+  );
 
   protected readonly pupiloId = this.state.pupiloId;
   protected readonly pupilo = computed(() =>
-    PUPILOS_MOCK.find((item) => item.id === this.pupiloId()),
+    this.state.pupilos().find((item) => item.id === this.pupiloId()),
   );
 
   protected seleccionar(value: string | number): void {

@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MeService } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { RolAdmin, USUARIOS_MOCK } from '@siga/mocks';
+import { AdminService } from '../state/admin.service';
 
 const ROLES: RolAdmin[] = ['ADMIN', 'DOCENTE', 'APODERADO', 'ESTUDIANTE'];
 
@@ -34,14 +35,17 @@ const ROLES: RolAdmin[] = ['ADMIN', 'DOCENTE', 'APODERADO', 'ESTUDIANTE'];
 })
 export class AdminInicioComponent {
   private readonly meService = inject(MeService);
+  private readonly adminService = inject(AdminService);
 
   private readonly me = toSignal(this.meService.getMe(), { initialValue: null });
+  private readonly usuariosRemotos = toSignal(this.adminService.getUsuarios(), { initialValue: null });
 
   protected readonly nombre = computed(() => this.me()?.displayName ?? '');
-  protected readonly resumenes = computed(() =>
-    ROLES.map((rol) => ({
+  protected readonly resumenes = computed(() => {
+    const usuarios = this.usuariosRemotos() ?? USUARIOS_MOCK;
+    return ROLES.map((rol) => ({
       rol,
-      total: USUARIOS_MOCK.filter((usuario) => usuario.rol === rol).length,
-    })),
-  );
+      total: usuarios.filter((usuario) => usuario.rol === rol).length,
+    }));
+  });
 }

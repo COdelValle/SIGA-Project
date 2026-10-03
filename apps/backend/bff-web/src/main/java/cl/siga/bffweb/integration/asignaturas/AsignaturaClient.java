@@ -21,4 +21,12 @@ public interface AsignaturaClient {
     PageResponseDTO<AsignaturaResponseDTO> searchAsignaturasByClase(
         @RequestParam ("idClase") Long idClase,
         @RequestParam ("size") int size);
+
+    @GetMapping ("/api/v1/asignaturas/search")
+    PageResponseDTO<AsignaturaResponseDTO> searchAsignaturasByDocente(
+        @RequestParam ("idDocente") Long idDocente,
+        @RequestParam ("size") int size);
+
+    @GetMapping ("/api/v1/asignaturas/search")
+    PageResponseDTO<AsignaturaResponseDTO> searchAsignaturas(@RequestParam ("size") int size);
 }
