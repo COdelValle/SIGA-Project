@@ -33,6 +33,19 @@ export interface PerfilAsignaturaDTO {
   evaluaciones: PerfilEvaluacionDTO[];
 }
 
+export type EstadoAsistenciaDTO = 'PRESENTE' | 'AUSENTE' | 'ATRASADO';
+export type JustificacionAsistenciaDTO = 'SI' | 'NO' | 'PENDIENTE' | 'NO_APLICA';
+
+export interface AsistenciaDTO {
+  id: number;
+  idEstudiante: number;
+  idAsignatura: number;
+  fecha: string;
+  estado: EstadoAsistenciaDTO;
+  justificacion: JustificacionAsistenciaDTO;
+  observacion: string | null;
+}
+
 export interface PerfilEstudianteDTO {
   id: number;
   idUsuario: string;

@@ -62,7 +62,9 @@ export class ApoderadoProgresoComponent {
 
   protected readonly periodos = computed(() => {
     const perfil = this.state.perfil();
-    return perfil ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK)] : notasDe(this.state.pupiloId());
+    return perfil
+      ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.state.asistencias() ?? [])]
+      : notasDe(this.state.pupiloId());
   });
   protected readonly opcionesPeriodo = computed<SelectOption[]>(() =>
     this.periodos().map((periodo) => ({

@@ -31,6 +31,8 @@ services:
     url: ${MS_CLASES_URL:http://localhost:8087}
   docentes:
     url: ${MS_DOCENTES_URL:http://localhost:8085}
+  asistencias:
+    url: ${MS_ASISTENCIAS_URL:http://localhost:8090}
 
 # Documentacion OpenAPI / Swagger
 springdoc:

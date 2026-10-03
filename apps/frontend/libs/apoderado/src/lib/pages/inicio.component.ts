@@ -6,6 +6,7 @@ import {
   DiaSemana,
   HorarioResumenComponent,
   NotasListaComponent,
+  asistenciaResumenDePerfil,
   diaActual,
   horarioDePerfil,
   notasResumenDePerfil,
@@ -78,8 +79,13 @@ export class ApoderadoInicioComponent {
     const horario = perfil ? horarioDePerfil(perfil) : horarioDe(this.state.pupiloId());
     return resumirBloques(horario[this.dia()]);
   });
-  // La asistencia real se conecta cuando ms-asistencias este operativo.
-  protected readonly asistencia = computed(() => asistenciaResumenDe(this.state.pupiloId()));
+  protected readonly asistencia = computed(() => {
+    const perfil = this.state.perfil();
+    const asistencias = this.state.asistencias();
+    return perfil && asistencias
+      ? asistenciaResumenDePerfil(perfil, asistencias)
+      : asistenciaResumenDe(this.state.pupiloId());
+  });
   protected readonly notas = computed(() => {
     const perfil = this.state.perfil();
     return perfil

@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
+  AsistenciaService,
   NotasTablaComponent,
   PerfilEstudianteService,
   formatearNota,
@@ -51,12 +52,16 @@ import { SeccionCardComponent } from '@siga/shared-ui';
 })
 export class EstudianteNotasComponent {
   private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
   private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+  private readonly asistencias = toSignal(this.asistenciaService.getAsistenciasMe(), {
+    initialValue: null,
+  });
 
   protected readonly periodo = computed(() => {
     const perfil = this.perfil();
     return perfil
-      ? periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK)
+      ? periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.asistencias() ?? [])
       : periodoActualDe(ESTUDIANTE_ACTUAL_ID);
   });
   protected readonly semestreSeleccionado = signal<1 | 2>(2);

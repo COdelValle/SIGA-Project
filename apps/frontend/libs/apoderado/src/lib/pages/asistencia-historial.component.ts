@@ -1,7 +1,11 @@
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AsistenciaHistorialComponent } from '@siga/academico';
+import {
+  AsistenciaHistorialComponent,
+  asistenciaRegistrosDePerfil,
+  asistenciaResumenDePerfil,
+} from '@siga/academico';
 import { asistenciaRegistrosDe, asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
@@ -36,12 +40,23 @@ export class ApoderadoAsistenciaHistorialComponent {
 
   private readonly id = computed(() => Number(this.idParam().get('id') ?? 0));
 
+  private readonly resumen = computed(() => {
+    const perfil = this.state.perfil();
+    const asistencias = this.state.asistencias();
+    return perfil && asistencias
+      ? asistenciaResumenDePerfil(perfil, asistencias)
+      : asistenciaResumenDe(this.state.pupiloId());
+  });
+  private readonly todosLosRegistros = computed(() => {
+    const perfil = this.state.perfil();
+    const asistencias = this.state.asistencias();
+    return perfil && asistencias
+      ? asistenciaRegistrosDePerfil(perfil, asistencias)
+      : asistenciaRegistrosDe(this.state.pupiloId());
+  });
+
   protected readonly asignatura = computed(
-    () =>
-      asistenciaResumenDe(this.state.pupiloId()).find((item) => item.id === this.id())?.asignatura ??
-      'Asignatura',
+    () => this.resumen().find((item) => item.id === this.id())?.asignatura ?? 'Asignatura',
   );
-  protected readonly registros = computed(
-    () => asistenciaRegistrosDe(this.state.pupiloId())[this.id()] ?? [],
-  );
+  protected readonly registros = computed(() => this.todosLosRegistros()[this.id()] ?? []);
 }

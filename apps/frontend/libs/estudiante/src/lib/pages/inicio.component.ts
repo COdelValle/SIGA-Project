@@ -2,11 +2,13 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   AsistenciaListaComponent,
+  AsistenciaService,
   DIAS_SEMANA,
   DiaSemana,
   HorarioResumenComponent,
   NotasListaComponent,
   PerfilEstudianteService,
+  asistenciaResumenDePerfil,
   diaActual,
   horarioDePerfil,
   notasResumenDePerfil,
@@ -68,9 +70,13 @@ import { DayTabsComponent, SeccionCardComponent } from '@siga/shared-ui';
 export class EstudianteInicioComponent {
   private readonly meService = inject(MeService);
   private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
 
   private readonly me = toSignal(this.meService.getMe(), { initialValue: null });
   private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+  private readonly asistencias = toSignal(this.asistenciaService.getAsistenciasMe(), {
+    initialValue: null,
+  });
 
   protected readonly nombre = computed(() => this.me()?.displayName ?? '');
   protected readonly dias = DIAS_SEMANA;
@@ -80,8 +86,13 @@ export class EstudianteInicioComponent {
     const horario = perfil ? horarioDePerfil(perfil) : horarioDe(ESTUDIANTE_ACTUAL_ID);
     return resumirBloques(horario[this.dia()]);
   });
-  // La asistencia real se conecta cuando ms-asistencias este operativo.
-  protected readonly asistencia = computed(() => asistenciaResumenDe(ESTUDIANTE_ACTUAL_ID));
+  protected readonly asistencia = computed(() => {
+    const perfil = this.perfil();
+    const asistencias = this.asistencias();
+    return perfil && asistencias
+      ? asistenciaResumenDePerfil(perfil, asistencias)
+      : asistenciaResumenDe(ESTUDIANTE_ACTUAL_ID);
+  });
   protected readonly notas = computed(() => {
     const perfil = this.perfil();
     return perfil

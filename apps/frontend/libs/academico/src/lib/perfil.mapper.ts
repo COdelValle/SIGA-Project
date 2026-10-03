@@ -5,6 +5,7 @@ import {
   DIAS_SEMANA,
   DiaSemana,
   HorarioBloque,
+  Justificacion,
   NotaDetalle,
   NotaItem,
   PeriodoAcademico,
@@ -12,7 +13,11 @@ import {
   promedioAsignaturas,
   promedioNotas,
 } from './models/academico.model';
-import { PerfilEstudianteDTO } from './models/perfil.model';
+import {
+  AsistenciaDTO,
+  JustificacionAsistenciaDTO,
+  PerfilEstudianteDTO,
+} from './models/perfil.model';
 
 const NOMBRES_ASIGNATURA: Record<string, string> = {
   MATEMATICA: 'Matemáticas',
@@ -95,6 +100,7 @@ export function horarioDePerfil(perfil: PerfilEstudianteDTO): Record<DiaSemana, 
 export function periodoDePerfil(
   perfil: PerfilEstudianteDTO,
   config: ConfiguracionAcademica,
+  asistencias: AsistenciaDTO[] = [],
 ): PeriodoAcademico {
   const asignaturas = perfil.asignaturas.map((asignatura) => {
     const notas: NotaDetalle[] = asignatura.evaluaciones
@@ -129,7 +135,7 @@ export function periodoDePerfil(
     estado: 'EN_CURSO',
     semestres: [semestreAnterior, semestreActual],
     promedioFinal: semestreActual.promedio,
-    asistenciaGeneral: 0,
+    asistenciaGeneral: asistenciaGeneralDePerfil(asistencias),
   };
 }
 
@@ -153,15 +159,74 @@ export function notasResumenDePerfil(
   });
 }
 
-/** Asistencia del perfil: se completa cuando exista ms-asistencias. */
-export function asistenciaResumenDePerfil(perfil: PerfilEstudianteDTO): AsistenciaResumen[] {
-  void perfil;
-  return [];
+function agruparPorAsignatura(asistencias: AsistenciaDTO[]): Map<number, AsistenciaDTO[]> {
+  const porAsignatura = new Map<number, AsistenciaDTO[]>();
+  for (const asistencia of asistencias) {
+    const lista = porAsignatura.get(asistencia.idAsignatura) ?? [];
+    lista.push(asistencia);
+    porAsignatura.set(asistencia.idAsignatura, lista);
+  }
+  return porAsignatura;
 }
 
+function justificacionTexto(justificacion: JustificacionAsistenciaDTO): Justificacion {
+  switch (justificacion) {
+    case 'SI':
+      return 'Sí';
+    case 'NO':
+      return 'No';
+    case 'PENDIENTE':
+      return 'Pendiente';
+    default:
+      return 'No aplica';
+  }
+}
+
+/** Resumen de asistencia por asignatura a partir de las asistencias reales. */
+export function asistenciaResumenDePerfil(
+  perfil: PerfilEstudianteDTO,
+  asistencias: AsistenciaDTO[],
+): AsistenciaResumen[] {
+  const porAsignatura = agruparPorAsignatura(asistencias);
+  return perfil.asignaturas.map((asignatura) => {
+    const registros = porAsignatura.get(asignatura.id) ?? [];
+    const clasesRegistradas = registros.length;
+    const clasesAsistidas = registros.filter((registro) => registro.estado === 'PRESENTE').length;
+    const porcentaje =
+      clasesRegistradas === 0 ? 0 : Math.round((clasesAsistidas / clasesRegistradas) * 100);
+    return {
+      id: asignatura.id,
+      asignatura: nombreAsignatura(asignatura.name),
+      clasesRegistradas,
+      clasesAsistidas,
+      porcentaje,
+    };
+  });
+}
+
+/** Historial de asistencia por asignatura (fechas ISO ordenadas). */
 export function asistenciaRegistrosDePerfil(
   perfil: PerfilEstudianteDTO,
+  asistencias: AsistenciaDTO[],
 ): Record<number, AsistenciaRegistro[]> {
-  void perfil;
-  return {};
+  const porAsignatura = agruparPorAsignatura(asistencias);
+  const registros: Record<number, AsistenciaRegistro[]> = {};
+  for (const asignatura of perfil.asignaturas) {
+    registros[asignatura.id] = (porAsignatura.get(asignatura.id) ?? [])
+      .slice()
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+      .map((asistencia) => ({
+        fecha: asistencia.fecha,
+        tipo: asistencia.estado === 'PRESENTE' ? 'Presente' : 'Inasistencia',
+        justificado: justificacionTexto(asistencia.justificacion),
+      }));
+  }
+  return registros;
+}
+
+/** Porcentaje general de asistencia (presentes / registros). */
+export function asistenciaGeneralDePerfil(asistencias: AsistenciaDTO[]): number {
+  const total = asistencias.length;
+  const presentes = asistencias.filter((asistencia) => asistencia.estado === 'PRESENTE').length;
+  return total === 0 ? 0 : Math.round((presentes / total) * 100);
 }

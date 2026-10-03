@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
+  AsistenciaService,
   NotasTablaComponent,
   PeriodoResumenComponent,
   PerfilEstudianteService,
@@ -60,11 +61,17 @@ import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/share
 })
 export class EstudianteProgresoComponent {
   private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
   private readonly perfil = toSignal(this.perfilService.getPerfilMe(), { initialValue: null });
+  private readonly asistencias = toSignal(this.asistenciaService.getAsistenciasMe(), {
+    initialValue: null,
+  });
 
   protected readonly periodos = computed(() => {
     const perfil = this.perfil();
-    return perfil ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK)] : notasDe(ESTUDIANTE_ACTUAL_ID);
+    return perfil
+      ? [periodoDePerfil(perfil, CONFIG_ACADEMICA_MOCK, this.asistencias() ?? [])]
+      : notasDe(ESTUDIANTE_ACTUAL_ID);
   });
   protected readonly opcionesPeriodo = computed<SelectOption[]>(() =>
     this.periodos().map((periodo) => ({
