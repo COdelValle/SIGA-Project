@@ -92,6 +92,18 @@
             <groupId>cl.siga</groupId>
             <artifactId>core-share</artifactId>
         </dependency>
+
+        <!-- Tests de integracion con MariaDB real -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mariadb</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
