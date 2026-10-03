@@ -233,6 +233,31 @@ services:
       ms-asignaturas:
         condition: service_healthy
 
+  ms-asistencias:
+    image: ${REGISTRY}/siga-asistencias:${IMAGE_TAG}
+    container_name: ms-asistencias
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8090"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_asistencias_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+
   bff-web:
     image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
     container_name: bff-web
@@ -251,6 +276,7 @@ services:
       MS_APODERADOS_URL: http://ms-apoderados:8084
       MS_CLASES_URL: http://ms-clases:8087
       MS_DOCENTES_URL: http://ms-docentes:8085
+      MS_ASISTENCIAS_URL: http://ms-asistencias:8090
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -267,6 +293,8 @@ services:
       ms-clases:
         condition: service_healthy
       ms-docentes:
+        condition: service_healthy
+      ms-asistencias:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

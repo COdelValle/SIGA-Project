@@ -20,7 +20,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MariaDB (una base por microservicio)
 - RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases` y `ms-evaluaciones` (quedan comentados `ms-asistencias` y `ms-auditoria`, con puertos reservados `8090` y `8082`).
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones` y `ms-asistencias` (queda comentado `ms-auditoria`, con puerto reservado `8082`).
 
 ## 3. Componentes del backend
 
@@ -144,12 +144,13 @@ Comportamiento e integracion:
 - Propagacion del token: un `RequestInterceptor` reenvia el `Authorization` entrante en las llamadas Feign.
 - `DELETE` aplica **borrado logico** (`active = false`).
 
-### 3.6 Servicios de docentes, apoderados, clases y evaluaciones
+### 3.6 Servicios de docentes, apoderados, clases, evaluaciones y asistencias
 
 - **`ms-docentes`** · puerto `8085`: entidades `Docente` (idUsuario, RUT, nombres, fecha de contratacion, area academica, activo) y `Certificado`; CRUD + busqueda + `exists` + certificados como subrecurso (`/api/v1/docentes/{id}/certificados`). Scopes `docentes:*`.
 - **`ms-apoderados`** · puerto `8084`: entidad `Apoderado` (telefonos y estudiantes a cargo con parentesco); CRUD + `idUsuario` + busqueda + `exists` + alta/baja de estudiantes; Feign a `ms-estudiantes`. Scopes `apoderados:*`.
 - **`ms-clases`** · puerto `8087`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
 - **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, idAsignatura, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas`. Scopes `evaluaciones:*`.
+- **`ms-asistencias`** · puerto `8090`: entidad `Asistencia` (idEstudiante, idAsignatura, fecha, estado, justificacion, observacion, activa) con unique `(estudiante, asignatura, fecha)`; CRUD + busqueda por estudiante/asignatura/rango/estado; Feign a `ms-estudiantes` y `ms-asignaturas`. Scopes `asistencias:*`. Seed con Camila y Lilith (03-08 a 02-10-2026, solo dias habiles y segun horario).
 
 ### 3.7 Biblioteca compartida
 
@@ -157,8 +158,8 @@ Ubicacion: `apps/backend/libs/core-share`
 
 Centraliza elementos reutilizables, sin logica de un dominio especifico:
 
-- **DTOs** de usuario, estudiante, asignatura y notas.
-- **Enums**: `Rol`, `StateUsuario` y `State` (estudiante).
+- **DTOs** de usuario, estudiante, asignatura, notas y asistencias (incluye `PageResponseDTO` para clientes Feign).
+- **Enums**: `Rol`, `StateUsuario`, `State` (estudiante) y `State`/`Justificacion` (asistencia).
 - **Validadores**: `@RUT` (RUT chileno), `@Phone` y `@ChileanGrade` (nota 1.0 a 7.0).
 - **Seguridad**: `SharedSecurityConfig` (filtro stateless, rutas publicas de salud/documentacion y conversion de claims `scp`/`roles` a scopes/roles) y `SecurityUtils`.
 - **Excepciones**: `BusinessException`, `ResourceNotFoundException`, `BadRequestException`, `ServiceUnavailableException`, `GlobalExceptionHandler` y `ErrorResponseDTO`.
@@ -207,5 +208,5 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 3. Ampliar pruebas unitarias, de integracion y de contrato (hoy hay 25 unitarias en 5 modulos).
 4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los 8 microservicios + indices).
 5. Completar la observabilidad (logs estructurados, metricas, tracing); el correlation ID ya esta implementado.
-6. Incorporar servicios futuros (`ms-asistencias`, `ms-auditoria`); docentes, apoderados, clases y evaluaciones ya estan implementados.
+6. Incorporar el servicio futuro `ms-auditoria`; docentes, apoderados, clases, evaluaciones y asistencias ya estan implementados.
 7. ~~Resolver la decision de autorizacion~~ (hecho: se mantienen los 38 scopes con politica unificada; falta exponerlos/consentirlos en Azure).
