@@ -2,6 +2,7 @@ package cl.siga.bffweb.integration.estudiantes;
 
 import org.springframework.stereotype.Component;
 
+import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
 
@@ -10,5 +11,10 @@ public class EstudianteClientFallback implements EstudianteClient{
     @Override
     public EstudianteResponseDTO getEstudianteById(String id) {
         throw new ServiceUnavailableException("No se pudo obtener el estudiante " + id);
+    }
+
+    @Override
+    public EstudianteResponseDTO updateEstudiante(Long id, ActualizarEstudianteRequestDTO request) {
+        throw new ServiceUnavailableException("No se pudo actualizar el estudiante " + id);
     }
 }

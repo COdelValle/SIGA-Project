@@ -206,6 +206,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-estudiantes:3306/siga_estudiantes_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_APODERADOS_URL: http://ms-apoderados:8084
     depends_on:
       mariadb-estudiantes:
         condition: service_healthy
@@ -393,6 +394,7 @@ services:
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_NOTAS_URL: http://ms-notas:8089
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
+      MS_APODERADOS_URL: http://ms-apoderados:8084
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -403,6 +405,8 @@ services:
       ms-notas:
         condition: service_healthy
       ms-evaluaciones:
+        condition: service_healthy
+      ms-apoderados:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

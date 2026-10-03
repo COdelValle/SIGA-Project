@@ -6,16 +6,19 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
 import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msestudiantes.client.ApoderadoClient;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 import cl.siga.coreshare.dto.estudiante.enums.State;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
@@ -31,6 +34,8 @@ public class EstudianteService {
     private final EstudianteRepository repository;
 
     private final EstudianteMapper mapper;
+
+    private final ApoderadoClient apoderadoClient;
 
     @Transactional (readOnly = true)
     public EstudianteResponseDTO getEstudianteById(Long id) {
@@ -86,16 +91,37 @@ public class EstudianteService {
         Estudiante estudianteExistente = repository.findByIdAndStateNot(id, State.INACTIVO)
             .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
-        // 2. Solo ADMIN o el propio estudiante pueden modificar su ficha
-        SecurityUtils.requireOwnerOrAdmin(
-            estudianteExistente.getIdUsuario(),
-            "No tienes permiso para modificar este estudiante.");
+        // 2. ADMIN, el propio estudiante o un apoderado vinculado
+        validarPermisoActualizacion(estudianteExistente);
 
         // 3. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
         mapper.updateEntityFromDto(request, estudianteExistente);
 
         // 4. Guardas los cambios
         return mapper.toResponseDto(repository.save(estudianteExistente));
+    }
+
+    private void validarPermisoActualizacion(Estudiante estudiante) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+        String oid = SecurityUtils.getCurrentUserOid()
+                .orElseThrow(() -> new AccessDeniedException("No se pudo identificar al usuario autenticado."));
+
+        if (oid.equals(estudiante.getIdUsuario())) {
+            return;
+        }
+
+        if (SecurityUtils.hasRole("APODERADO")) {
+            ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid);
+            boolean vinculado = apoderado.estudiantes() != null && apoderado.estudiantes().stream()
+                    .anyMatch(vinculo -> estudiante.getId().equals(vinculo.idEstudiante()));
+            if (vinculado) {
+                return;
+            }
+        }
+
+        throw new AccessDeniedException("No tienes permiso para modificar este estudiante.");
     }
 
     @Transactional (readOnly = true)
