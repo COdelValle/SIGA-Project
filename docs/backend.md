@@ -42,6 +42,7 @@ Estado actual: **orquesta `/me` y el perfil de estudiante**. Incluye:
 
 - `MeController` (`GET /api/me`): resuelve el usuario via `UsuarioClient` y compone `{ id, email, displayName, roles }`.
 - `PerfilEstudianteController` (`GET /api/bff/v1/estudiantes/perfil/{idExterno}`): agrega estudiante, asignaturas y notas resolviendo evaluacion -> asignatura, usando `EstudianteClient`, `AsignaturaClient`, `NotaClient` y `EvaluacionClient` con mappers.
+- `ApoderadoPupiloController` (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`): valida el vinculo apoderado-estudiante (via `ms-apoderados`) y actualiza el pupilo en `ms-estudiantes`.
 - Clientes Feign con fallback para usuarios, estudiantes, asignaturas, notas y evaluaciones (`integration/*`).
 - `FeignClientConfig` con propagacion del `Authorization`.
 
