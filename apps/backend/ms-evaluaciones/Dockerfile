@@ -18,5 +18,5 @@ USER siga
 
 COPY --from=builder /app/ms-evaluaciones/target/ms-evaluaciones-*.jar app.jar
 
-EXPOSE 8091
+EXPOSE 8088
 ENTRYPOINT ["java", "-jar", "app.jar"]
