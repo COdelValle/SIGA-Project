@@ -53,6 +53,9 @@ public class Estudiante {
     @Column(unique = true, nullable = false)
     private String rut;
 
+    @Column(name = "id_clase", nullable = true)
+    private Long idClase;
+
     @NotBlank(message = "El nombre no puede estar vacio")
     @Size(min = 2, max = 50, message = "El nombre tiene que tener entre 2 a 50 caracteres")
     @Column(nullable = false)

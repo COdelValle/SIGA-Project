@@ -18,5 +18,5 @@ USER siga
 
 COPY --from=builder /app/ms-apoderados/target/ms-apoderados-*.jar app.jar
 
-EXPOSE 8089
+EXPOSE 8084
 ENTRYPOINT ["java", "-jar", "app.jar"]

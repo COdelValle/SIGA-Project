@@ -33,6 +33,8 @@ public record RegistrarEstudianteRequestDTO(
     @Past
     LocalDate birthDate,
 
-    List<String> allergies
+    List<String> allergies,
+
+    Long idClase
 ) {
 }

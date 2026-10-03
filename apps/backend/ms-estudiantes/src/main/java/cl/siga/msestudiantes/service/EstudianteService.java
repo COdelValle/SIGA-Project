@@ -50,7 +50,7 @@ public class EstudianteService {
     }
 
     @Transactional (readOnly = true)
-    public Page<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state, Pageable pageable) {
+    public Page<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state, Long idClase, Pageable pageable) {
         // Si se pide un estado explicito se respeta (incluye INACTIVO); si no,
         // se excluyen los inactivos por defecto.
         Specification<Estudiante> spec = state != null
@@ -63,7 +63,8 @@ public class EstudianteService {
                 .and(EstudianteSpecifications.hasFirstSurname(firstSurname))
                 .and(EstudianteSpecifications.hasSecondSurname(secondSurname))
                 .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))
-                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to));
+                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to))
+                .and(EstudianteSpecifications.hasIdClase(idClase));
         return repository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
