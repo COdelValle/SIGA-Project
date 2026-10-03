@@ -5,8 +5,9 @@ multi-módulo** basado en **Spring Boot 3.5 / Java 21** que separa el dominio
 académico en microservicios independientes, expone APIs REST protegidas con
 OAuth2/JWT (Azure AD) y centraliza los contratos en la librería `core-share`.
 
-El núcleo académico y la orquestación del BFF (`/me` y perfil de estudiante) son
-funcionales. La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
+El núcleo académico completo (estudiantes → clases → asignaturas → evaluaciones →
+notas, más asistencias) y la orquestación de portales del BFF son funcionales.
+La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
 
 ## Módulos
 
@@ -22,10 +23,10 @@ funcionales. La documentación ampliada está en [`docs/backend.md`](../../docs/
 | `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
 | `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
+| `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (unique por fecha y soft delete). |
 
-Los módulos `ms-asistencias` y `ms-auditoria` están declarados como futuros
-(comentados en el POM padre); sus puertos quedan **reservados**: `8090`
-(`ms-asistencias`) y `8082` (`ms-auditoria`).
+El módulo `ms-auditoria` sigue declarado como futuro (comentado en el POM padre);
+su puerto queda **reservado**: `8082`.
 
 ## Tecnologías
 
@@ -73,8 +74,15 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | Método | Ruta | Autorización | Descripción |
 | --- | --- | --- | --- |
 | `GET` | `/api/me` | Autenticado | Usuario actual (id, email, displayName, rol). |
-| `GET` | `/api/bff/v1/estudiantes/perfil/{idExterno}` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil agregado: estudiante + asignaturas + notas (resuelve evaluación → asignatura). |
+| `GET` | `/api/bff/v1/estudiantes/perfil/me` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil del estudiante autenticado (resuelve el `oid` del token). |
+| `GET` | `/api/bff/v1/estudiantes/perfil/{id}` | `SCOPE_estudiantes:read` + `asignaturas:read` + `notas:read` | Perfil agregado: estudiante → clase → asignaturas → evaluaciones → notas (incluye horarios y docente). |
+| `GET` | `/api/bff/v1/apoderados/pupilos` | `APODERADO` + `SCOPE_apoderados:read` | Pupilos del apoderado con curso. |
 | `PUT` | `/api/bff/v1/apoderados/pupilos/{idEstudiante}` | `APODERADO` + `SCOPE_estudiantes:update` | Valida el vínculo apoderado-estudiante y actualiza el pupilo. |
+| `GET` | `/api/bff/v1/docentes/cursos` · `/horario` | `DOCENTE` + `SCOPE_docentes:read` | Cursos con alumnos y horario semanal del docente autenticado. |
+| `GET` | `/api/bff/v1/admin/usuarios` · `/asignaturas` | `ADMIN` + `SCOPE_usuarios:read` / `asignaturas:read` | Usuarios y asignaturas para el portal admin. |
+| `GET` | `/api/bff/v1/asistencias/estudiante/me` · `/{id}` | `SCOPE_asistencias:read` (ownership para `{id}`) | Asistencias del estudiante autenticado, de un pupilo vinculado o de un docente. |
+| `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` | Registra asistencia. |
+| `PUT` | `/api/bff/v1/asistencias/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:update` | Actualiza justificación/observación. |
 
 ### Usuarios y autenticación (`:8081`, `/api/v1/usuarios`)
 
@@ -177,10 +185,21 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_evaluaciones:update` |
 | `DELETE` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_evaluaciones:delete` (borrado lógico) |
 
+### Asistencias (`:8090`, `/api/v1/asistencias`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `GET` | `/{id}` · `/exists/{id}` | `SCOPE_asistencias:read` |
+| `GET` | `/search?idEstudiante=&idAsignatura=&from=&to=&estado=&page=&size=&sort=` | `SCOPE_asistencias:read` |
+| `POST` | `/` | `ADMIN` o `DOCENTE` + `SCOPE_asistencias:write` (valida estudiante y asignatura por Feign) |
+| `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_asistencias:update` (justificación/observación) |
+| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_asistencias:delete` (borrado lógico) |
+
 ## Comunicación entre servicios
 
 - **Feign** es el cliente declarativo: `bff-web` orquesta usuarios, estudiantes,
-  asignaturas, notas y evaluaciones; `ms-notas` valida estudiante y evaluación;
+  clases, asignaturas, evaluaciones, notas, docentes y asistencias; `ms-notas`
+  valida estudiante y evaluación; `ms-asistencias` valida estudiante y asignatura;
   `ms-asignaturas` valida docente, clase y estudiante; `ms-clases` valida docente;
   `ms-apoderados` valida estudiante; `ms-evaluaciones` valida asignatura.
 - **Resilience4j** aporta circuit breaker y timeouts; si un servicio no responde
@@ -206,10 +225,10 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 
 ## Datos y configuración
 
-- Patrón **database-per-service** (8 bases): `siga_usuarios_db`,
+- Patrón **database-per-service** (9 bases): `siga_usuarios_db`,
   `siga_estudiantes_db`, `siga_asignaturas_db`, `siga_notas_db`,
-  `siga_docentes_db`, `siga_apoderados_db`, `siga_clases_db` y
-  `siga_evaluaciones_db`.
+  `siga_docentes_db`, `siga_apoderados_db`, `siga_clases_db`,
+  `siga_evaluaciones_db` y `siga_asistencias_db`.
 - **Flyway** crea y evoluciona el esquema (`ddl-auto: validate`); una base vacía
   se auto-inicializa al arrancar.
 - **Paginación**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`;
@@ -225,7 +244,7 @@ Variables principales: `MARIADB_ROOT_PASSWORD`, `DB_USER`, `DB_PASS`,
 `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `AZURE_CLIENT_SECRET`,
 `AZURE_API_APP_ID`, `MS_USUARIOS_URL`, `MS_ESTUDIANTES_URL`,
 `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`,
-`MS_EVALUACIONES_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
+`MS_EVALUACIONES_URL`, `MS_ASISTENCIAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
 
 ## Documentación de la API
 
@@ -238,9 +257,10 @@ Cada servicio expone (rutas públicas): `/actuator/health`, `/v3/api-docs`,
 mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTests=false
 ```
 
-- Tests unitarios (Mockito) de validadores, cupos, ponderación, docente jefe y
-  horarios en `core-share`, `ms-asignaturas`, `ms-clases`, `ms-evaluaciones` y
-  `ms-usuarios-auth`.
+- Tests unitarios (Mockito) de validadores, cupos, ponderación, docente jefe,
+  horarios, asistencias y de los servicios del BFF (`perfil`, `pupilos`, `cursos`,
+  `admin` y `asistencias`) en `core-share`, `bff-web`, `ms-asignaturas`,
+  `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-usuarios-auth`.
 - Contrato de errores (`GlobalExceptionHandlerTest`) y migraciones con
   **Testcontainers** (`MigracionesTest`: unicidad de `id_usuario`/asignatura y
   soft delete de horarios). Los IT se omiten si no hay Docker (`disabledWithoutDocker`).
