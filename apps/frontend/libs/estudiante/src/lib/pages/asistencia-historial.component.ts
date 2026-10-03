@@ -1,12 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import {
-  AsistenciaHistorialComponent,
-  ESTUDIANTE_ACTUAL_ID,
-  asistenciaRegistrosDe,
-  asistenciaResumenDe,
-} from '@siga/academico';
+import { AsistenciaHistorialComponent } from '@siga/academico';
+import { ESTUDIANTE_ACTUAL_ID, asistenciaRegistrosDe, asistenciaResumenDe } from '@siga/mocks';
 import { SeccionCardComponent } from '@siga/shared-ui';
 
 @Component({

@@ -1,12 +1,6 @@
 import { Component, computed, signal } from '@angular/core';
-import {
-  CONFIG_ACADEMICA_MOCK,
-  ESTUDIANTE_ACTUAL_ID,
-  NotasTablaComponent,
-  PeriodoResumenComponent,
-  formatearNota,
-  notasDe,
-} from '@siga/academico';
+import { NotasTablaComponent, PeriodoResumenComponent, formatearNota } from '@siga/academico';
+import { CONFIG_ACADEMICA_MOCK, ESTUDIANTE_ACTUAL_ID, notasDe } from '@siga/mocks';
 import { SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 
 @Component({

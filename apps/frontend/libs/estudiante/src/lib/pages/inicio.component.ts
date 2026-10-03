@@ -4,15 +4,17 @@ import {
   AsistenciaListaComponent,
   DIAS_SEMANA,
   DiaSemana,
-  ESTUDIANTE_ACTUAL_ID,
   HorarioResumenComponent,
   NotasListaComponent,
-  asistenciaResumenDe,
   diaActual,
-  horarioDe,
-  notasResumenDe,
   resumirBloques,
 } from '@siga/academico';
+import {
+  ESTUDIANTE_ACTUAL_ID,
+  asistenciaResumenDe,
+  horarioDe,
+  notasResumenDe,
+} from '@siga/mocks';
 import { MeService } from '@siga/core';
 import { DayTabsComponent, SeccionCardComponent } from '@siga/shared-ui';
 

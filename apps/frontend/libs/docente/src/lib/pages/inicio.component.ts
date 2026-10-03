@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MeService } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
-import { horaDeFranja } from '../mocks/docente.mock';
+import { horaDeFranja } from '@siga/mocks';
 import { DocenteAcademicoService } from '../state/docente-academico.service';
 
 @Component({

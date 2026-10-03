@@ -1,7 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { toPage } from '@siga/core';
 import { PaginadorComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
-import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
+import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '@siga/mocks';
 
 @Component({
   selector: 'siga-admin-usuarios',

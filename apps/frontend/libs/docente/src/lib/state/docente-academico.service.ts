@@ -6,7 +6,7 @@ import {
   CursoDocente,
   horarioDelDocente,
   cursosDelDocente,
-} from '../mocks/docente.mock';
+} from '@siga/mocks';
 
 export interface NotaAlumno {
   numero: number;

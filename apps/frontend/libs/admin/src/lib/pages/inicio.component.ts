@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MeService } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
-import { RolAdmin, USUARIOS_MOCK } from '../mocks/admin.mock';
+import { RolAdmin, USUARIOS_MOCK } from '@siga/mocks';
 
 const ROLES: RolAdmin[] = ['ADMIN', 'DOCENTE', 'APODERADO', 'ESTUDIANTE'];
 

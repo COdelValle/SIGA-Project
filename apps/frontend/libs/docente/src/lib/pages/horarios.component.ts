@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DIAS_SEMANA, DiaSemana, diaActual } from '@siga/academico';
 import { DayTabsComponent } from '@siga/shared-ui';
-import { horaDeFranja } from '../mocks/docente.mock';
+import { horaDeFranja } from '@siga/mocks';
 import { DocenteAcademicoService } from '../state/docente-academico.service';
 
 @Component({
