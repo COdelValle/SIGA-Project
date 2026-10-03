@@ -30,8 +30,8 @@
         <module>ms-apoderados</module>
         <module>ms-clases</module>
         <module>ms-evaluaciones</module>
-        <!--
         <module>ms-asistencias</module>
+        <!--
         <module>ms-auditoria</module>
         -->
     </modules>
