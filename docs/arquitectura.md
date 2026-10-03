@@ -151,7 +151,7 @@ CI/CD:
 | Flyway | Esquema + seed en los 8 microservicios | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
 | Paginacion | `Page<T>` en los 9 `GET /search` + `siga-paginador` en el frontend | Busquedas paginadas end-to-end |
-| Pruebas | 25 tests unitarios + `contextLoads` | Cobertura unitaria, integracion y contratos |
+| Pruebas | Unitarios + contrato de errores + IT con Testcontainers | Cobertura unitaria, integracion y contratos |
 
 ## 9. Principios de implementacion
 
