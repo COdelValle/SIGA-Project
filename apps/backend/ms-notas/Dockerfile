@@ -18,5 +18,5 @@ USER siga
 
 COPY --from=builder /app/ms-notas/target/ms-notas-*.jar app.jar
 
-EXPOSE 8087
+EXPOSE 8089
 ENTRYPOINT ["java", "-jar", "app.jar"]

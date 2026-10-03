@@ -24,6 +24,8 @@ public record ActualizarEstudianteRequestDTO(
     @Past
     LocalDate birthDate,
 
-    List<String> allergies
+    List<String> allergies,
+
+    Long idClase
 ) {
 }

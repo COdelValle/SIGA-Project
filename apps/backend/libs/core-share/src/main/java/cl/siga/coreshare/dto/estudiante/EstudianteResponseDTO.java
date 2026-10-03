@@ -13,6 +13,7 @@ public record EstudianteResponseDTO(
     String secondSurname,
     LocalDate birthDate,
     List<String> allergies,
-    String state
+    String state,
+    Long idClase
 ) {
 }
