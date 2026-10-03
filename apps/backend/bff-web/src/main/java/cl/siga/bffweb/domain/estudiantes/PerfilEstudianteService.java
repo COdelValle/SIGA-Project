@@ -2,8 +2,10 @@ package cl.siga.bffweb.domain.estudiantes;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,6 +25,8 @@ import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
 import cl.siga.bffweb.integration.notas.NotaClient;
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
@@ -67,10 +71,12 @@ public class PerfilEstudianteService {
             ? null
             : claseClient.getClaseById(estudiante.idClase());
 
-        // 2. Clase -> asignaturas (basicas y electivas del curso)
-        List<AsignaturaResponseDTO> asignaturas = estudiante.idClase() == null
+        // 2. Clase -> asignaturas basicas + electivas inscritas por el estudiante
+        List<AsignaturaResponseDTO> basicas = estudiante.idClase() == null
             ? Collections.emptyList()
             : contentOf(asignaturaClient.searchAsignaturasByClase(estudiante.idClase(), PAGE_SIZE));
+        List<AsignaturaResponseDTO> asignaturas =
+            unirAsignaturas(basicas, electivasDelEstudiante(estudiante.id()));
 
         // 3. Notas del estudiante (se cruzan por evaluacion); solo si hay asignaturas
         Map<Long, Double> notaPorEvaluacion = asignaturas.isEmpty()
@@ -86,6 +92,27 @@ public class PerfilEstudianteService {
             .toList();
 
         return mapper.toResponse(estudiante, clase, detalle);
+    }
+
+    /** Electivas del alumno via inscripciones (no tienen idClase en el modelo). */
+    private List<AsignaturaResponseDTO> electivasDelEstudiante(Long idEstudiante) {
+        return contentOf(asignaturaClient.searchInscripcionesByAlumno(idEstudiante, PAGE_SIZE)).stream()
+            .filter(inscripcion -> inscripcion.estado() != EstadoInscripcion.CANCELADO)
+            .map(InscripcionResponseDTO::idAsignatura)
+            .filter(Objects::nonNull)
+            .distinct()
+            .map(asignaturaClient::getAsignaturaById)
+            .filter(Objects::nonNull)
+            .toList();
+    }
+
+    private static List<AsignaturaResponseDTO> unirAsignaturas(
+            List<AsignaturaResponseDTO> basicas,
+            List<AsignaturaResponseDTO> electivas) {
+        Map<Long, AsignaturaResponseDTO> unicas = new LinkedHashMap<>();
+        basicas.forEach(asignatura -> unicas.putIfAbsent(asignatura.id(), asignatura));
+        electivas.forEach(asignatura -> unicas.putIfAbsent(asignatura.id(), asignatura));
+        return List.copyOf(unicas.values());
     }
 
     private Map<Long, String> docentePorId(List<AsignaturaResponseDTO> asignaturas) {

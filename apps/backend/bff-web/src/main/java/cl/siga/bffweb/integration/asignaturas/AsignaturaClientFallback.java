@@ -3,6 +3,7 @@ package cl.siga.bffweb.integration.asignaturas;
 import org.springframework.stereotype.Component;
 
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
 
@@ -26,5 +27,10 @@ public class AsignaturaClientFallback implements AsignaturaClient {
     @Override
     public PageResponseDTO<AsignaturaResponseDTO> searchAsignaturas(int size) {
         throw new ServiceUnavailableException("No se pudieron obtener las asignaturas");
+    }
+
+    @Override
+    public PageResponseDTO<InscripcionResponseDTO> searchInscripcionesByAlumno(Long idAlumno, int size) {
+        throw new ServiceUnavailableException("No se pudieron obtener las inscripciones del alumno " + idAlumno);
     }
 }

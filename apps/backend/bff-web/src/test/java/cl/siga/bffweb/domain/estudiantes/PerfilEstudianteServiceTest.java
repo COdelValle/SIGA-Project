@@ -2,12 +2,14 @@ package cl.siga.bffweb.domain.estudiantes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -30,6 +32,8 @@ import cl.siga.coreshare.dto.asignatura.enums.Semestre;
 import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
 import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.clase.enums.Nivel;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
@@ -95,6 +99,42 @@ class PerfilEstudianteServiceTest {
         assertThat(perfil.asignaturas().get(0).docente()).isEqualTo("CAMILA ANTONIA CASTRO MEDINA");
         assertThat(perfil.asignaturas().get(0).evaluaciones()).hasSize(1);
         assertThat(perfil.asignaturas().get(0).evaluaciones().get(0).nota()).isEqualTo(6.5);
+    }
+
+    @Test
+    void getPerfilIncluyeLasElectivasInscritasPorElEstudiante() {
+        when(estudianteClient.getEstudianteById(1L)).thenReturn(estudiante(1L, "oid-camila", 4L));
+        when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
+
+        AsignaturaResponseDTO matematica = new AsignaturaResponseDTO(
+            1L, "MATEMATICA", "matematica", Semestre.SEMESTRE_1, AreaAcademica.MATEMATICAS,
+            TipoAsignatura.BASICA, 6L,
+            List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")),
+            4L, null, null, null, List.of());
+        when(asignaturaClient.searchAsignaturasByClase(eq(4L), anyInt()))
+            .thenReturn(pagina(List.of(matematica)));
+
+        // Camila inscrita en EDUCACION FISICA (electiva sin idClase).
+        when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of(
+            new InscripcionResponseDTO(1L, 1L, 6L, EstadoInscripcion.ACTIVO, LocalDateTime.now()))));
+        AsignaturaResponseDTO educacionFisica = new AsignaturaResponseDTO(
+            6L, "EDUCACION FISICA", "educacion fisica", Semestre.SEMESTRE_2, AreaAcademica.EDUCACION_FISICA,
+            TipoAsignatura.ELECTIVA, 3L,
+            List.of(new HorarioResponseDTO(20L, DiaSemana.LUNES, LocalTime.of(13, 55), LocalTime.of(14, 40), "Cancha Techada 1")),
+            null, 25, null, null, List.of());
+        when(asignaturaClient.getAsignaturaById(6L)).thenReturn(educacionFisica);
+
+        when(evaluacionClient.searchEvaluacionesByAsignatura(anyLong(), anyInt()))
+            .thenReturn(pagina(List.of()));
+        when(notaClient.searchNotas(eq(1L), anyInt())).thenReturn(pagina(List.of()));
+        when(docenteClient.getDocenteById(anyLong())).thenReturn(null);
+
+        PerfilEstudianteResponseDTO perfil = service.getPerfil(1L);
+
+        assertThat(perfil.asignaturas()).hasSize(2);
+        assertThat(perfil.asignaturas().stream().map(asignatura -> asignatura.name()))
+            .containsExactly("MATEMATICA", "EDUCACION FISICA");
+        assertThat(perfil.asignaturas().get(1).horarios().get(0).dia()).isEqualTo("Lunes");
     }
 
     @Test
