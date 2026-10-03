@@ -11,4 +11,9 @@ public class DocenteClientFallback implements DocenteClient {
     public DocenteResponseDTO getDocenteById(Long id) {
         throw new ServiceUnavailableException("No se pudo obtener el docente " + id);
     }
+
+    @Override
+    public DocenteResponseDTO getDocenteByIdUsuario(String idUsuario) {
+        throw new ServiceUnavailableException("No se pudo obtener el docente con idUsuario " + idUsuario);
+    }
 }

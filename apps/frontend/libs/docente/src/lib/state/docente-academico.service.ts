@@ -1,12 +1,14 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { DiaSemana, formatearFecha } from '@siga/academico';
 import {
-  CURSOS_DOCENTE_MOCK,
+  ClaseDocente,
   DOCENTE_ACTUAL_ID,
   CursoDocente,
   horarioDelDocente,
   cursosDelDocente,
 } from '@siga/mocks';
+import { DocenteDatosService } from './docente-datos.service';
 
 export interface NotaAlumno {
   numero: number;
@@ -90,9 +92,19 @@ export class DocenteAcademicoService {
   private readonly storageKey = 'siga.docente.academico.v1';
   private readonly docenteId = DOCENTE_ACTUAL_ID;
   private readonly estado = signal<Persistencia>(this.cargar());
+  private readonly datosService = inject(DocenteDatosService);
 
-  readonly cursos: CursoDocente[] = cursosDelDocente(this.docenteId);
-  readonly horario = horarioDelDocente(this.docenteId);
+  private readonly cursosRemotos = toSignal(this.datosService.getCursos(), { initialValue: null });
+  private readonly horarioRemoto = toSignal(this.datosService.getHorario(), { initialValue: null });
+
+  /** Cursos del docente (BFF con fallback al mock). */
+  readonly cursos = computed<CursoDocente[]>(
+    () => this.cursosRemotos() ?? cursosDelDocente(this.docenteId),
+  );
+  /** Horario semanal del docente (BFF con fallback al mock). */
+  readonly horario = computed<Record<DiaSemana, ClaseDocente[]>>(
+    () => this.horarioRemoto() ?? horarioDelDocente(this.docenteId),
+  );
 
   readonly fechaHoy = isoLocal(new Date());
   readonly semestreActual = computed(() => this.semestreDe(this.fechaHoy));
@@ -100,10 +112,12 @@ export class DocenteAcademicoService {
   readonly diaHoy = computed<DiaSemana | null>(() => DIAS_JS[parseIso(this.fechaHoy).getUTCDay()] ?? null);
   readonly clasesDeHoy = computed(() => {
     const dia = this.diaHoy();
-    return dia ? this.horario[dia] : [];
+    return dia ? this.horario()[dia] : [];
   });
   readonly cursosConClaseHoy = computed(() =>
-    this.clasesDeHoy().map((clase) => CURSOS_DOCENTE_MOCK.find((curso) => curso.id === clase.cursoId)).filter((curso): curso is CursoDocente => !!curso),
+    this.clasesDeHoy()
+      .map((clase) => this.cursos().find((curso) => curso.id === clase.cursoId))
+      .filter((curso): curso is CursoDocente => !!curso),
   );
 
   constructor() {

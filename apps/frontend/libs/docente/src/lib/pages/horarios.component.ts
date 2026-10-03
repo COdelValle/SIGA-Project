@@ -63,7 +63,7 @@ export class DocenteHorariosComponent {
 
   protected readonly dias = DIAS_SEMANA;
   protected readonly dia = signal<DiaSemana>(diaActual());
-  protected readonly clases = computed(() => this.academico.horario[this.dia()]);
+  protected readonly clases = computed(() => this.academico.horario()[this.dia()]);
 
   protected seleccionarDia(valor: string): void {
     const dias: readonly string[] = DIAS_SEMANA;

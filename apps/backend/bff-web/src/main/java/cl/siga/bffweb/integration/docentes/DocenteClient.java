@@ -14,4 +14,7 @@ import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
 public interface DocenteClient {
     @GetMapping ("/api/v1/docentes/{id}")
     DocenteResponseDTO getDocenteById(@PathVariable ("id") Long id);
+
+    @GetMapping ("/api/v1/docentes/idUsuario/{idUsuario}")
+    DocenteResponseDTO getDocenteByIdUsuario(@PathVariable ("idUsuario") String idUsuario);
 }
