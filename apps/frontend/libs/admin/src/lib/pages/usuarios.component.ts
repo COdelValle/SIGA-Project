@@ -111,7 +111,7 @@ export class AdminUsuariosComponent {
   protected readonly rol = signal('');
   protected readonly estado = signal('');
   protected readonly page = signal(1);
-  protected readonly pageSize = 5;
+  protected readonly pageSize = 10;
 
   protected readonly opcionesRol: SelectOption[] = [
     { value: '', label: 'Todos los roles' },

@@ -1,5 +1,6 @@
 package cl.siga.msevaluaciones.service;
 
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.ActualizarEvaluacionRequestDTO;
 import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.RegistrarEvaluacionRequestDTO;
@@ -37,30 +38,29 @@ public class EvaluacionService {
   }
 
   @Transactional(readOnly = true)
-  public Page<EvaluacionResponseDTO> searchEvaluaciones(String nombre, TipoEvaluacion tipo, Long idAsignatura, Pageable pageable) {
+  public Page<EvaluacionResponseDTO> searchEvaluaciones(
+      String nombre, TipoEvaluacion tipo, Long idCursoAsignatura, Pageable pageable) {
     Specification<Evaluacion> spec = EvaluacionSpecifications.isActive()
       .and(EvaluacionSpecifications.hasNombre(nombre))
       .and(EvaluacionSpecifications.hasTipo(tipo))
-      .and(EvaluacionSpecifications.hasIdAsignatura(idAsignatura));
+      .and(EvaluacionSpecifications.hasIdCursoAsignatura(idCursoAsignatura));
 
     return repository.findAll(spec, pageable).map(mapper::toResponseDto);
   }
 
   @Transactional
   public EvaluacionResponseDTO saveEvaluacion(@Valid RegistrarEvaluacionRequestDTO request) {
-    if (!asignaturaClient.existsById(request.idAsignatura())) {
-      throw new BusinessException("La asignatura con ID " + request.idAsignatura() + " no existe o no está activa.");
-    }
+    validarDictacionCalificable(request.idCursoAsignatura());
 
     String nombreNormalizado = request.nombre() != null ? request.nombre().trim() : null;
-    if (repository.existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrue(nombreNormalizado, request.idAsignatura())) {
+    if (repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue(nombreNormalizado, request.idCursoAsignatura())) {
       throw new BusinessException(
-        String.format("Ya existe una evaluación llamada '%s' para la asignatura con ID %d.",
-          nombreNormalizado, request.idAsignatura())
+        String.format("Ya existe una evaluación llamada '%s' para la dictación con ID %d.",
+          nombreNormalizado, request.idCursoAsignatura())
       );
     }
 
-    validarPonderacionAcumulada(request.idAsignatura(), request.ponderacion(), null);
+    validarPonderacionAcumulada(request.idCursoAsignatura(), request.ponderacion(), null);
 
     return mapper.toResponseDto(repository.save(mapper.toEntity(request)));
   }
@@ -71,15 +71,15 @@ public class EvaluacionService {
       .orElseThrow(() -> new ResourceNotFoundException("Evaluación con ID " + idEvaluacion + " no encontrada."));
 
     String nombreNormalizado = request.nombre() != null ? request.nombre().trim() : null;
-    if (nombreNormalizado != null && repository.existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrueAndIdNot(
-        nombreNormalizado, existingEvaluacion.getIdAsignatura(), idEvaluacion)) {
+    if (nombreNormalizado != null && repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrueAndIdNot(
+        nombreNormalizado, existingEvaluacion.getIdCursoAsignatura(), idEvaluacion)) {
       throw new BusinessException(
-        String.format("Ya existe una evaluación llamada '%s' para la asignatura con ID %d.",
-          nombreNormalizado, existingEvaluacion.getIdAsignatura())
+        String.format("Ya existe una evaluación llamada '%s' para la dictación con ID %d.",
+          nombreNormalizado, existingEvaluacion.getIdCursoAsignatura())
       );
     }
 
-    validarPonderacionAcumulada(existingEvaluacion.getIdAsignatura(), request.ponderacion(), idEvaluacion);
+    validarPonderacionAcumulada(existingEvaluacion.getIdCursoAsignatura(), request.ponderacion(), idEvaluacion);
 
     mapper.updateEntityFromDto(request, existingEvaluacion);
     return mapper.toResponseDto(repository.save(existingEvaluacion));
@@ -100,12 +100,25 @@ public class EvaluacionService {
   }
 
   /**
-   * Valida que la inserción o actualización de una ponderación no supere el 100% en la asignatura.
+   * Valida que la dictación exista, esté activa y su asignatura sea calificable.
    */
-  private void validarPonderacionAcumulada(Long idAsignatura, Double nuevaPonderacion, Long idEvaluacionActual) {
-    List<Evaluacion> evaluacionesAsignatura = repository.findActiveByIdAsignaturaForUpdate(idAsignatura);
+  private void validarDictacionCalificable(Long idCursoAsignatura) {
+    CursoAsignaturaResponseDTO curso = asignaturaClient.getCursoAsignaturaById(idCursoAsignatura);
+    if (curso == null) {
+      throw new BusinessException("La dictación con ID " + idCursoAsignatura + " no existe o no está activa.");
+    }
+    if (!curso.calificable()) {
+      throw new BusinessException("La asignatura '" + curso.nombre() + "' no es calificable: no admite evaluaciones.");
+    }
+  }
 
-    double sumaActual = evaluacionesAsignatura.stream()
+  /**
+   * Valida que la inserción o actualización de una ponderación no supere el 100% en la dictación.
+   */
+  private void validarPonderacionAcumulada(Long idCursoAsignatura, Double nuevaPonderacion, Long idEvaluacionActual) {
+    List<Evaluacion> evaluacionesDictacion = repository.findActiveByIdCursoAsignaturaForUpdate(idCursoAsignatura);
+
+    double sumaActual = evaluacionesDictacion.stream()
       .filter(ev -> idEvaluacionActual == null || !ev.getId().equals(idEvaluacionActual))
       .mapToDouble(Evaluacion::getPonderacion)
       .sum();

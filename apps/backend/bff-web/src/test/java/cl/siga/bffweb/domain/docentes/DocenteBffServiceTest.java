@@ -21,9 +21,9 @@ import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.clases.ClaseClient;
 import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.enums.Semestre;
-import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
 import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
@@ -55,7 +55,8 @@ class DocenteBffServiceTest {
     void getCursosArmaCursoConAlumnosYDias() {
         autenticar();
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
-        when(asignaturaClient.searchAsignaturasByDocente(eq(1L), anyInt())).thenReturn(pagina(List.of(ciencias())));
+        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+            .thenReturn(pagina(List.of(ciencias())));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
         when(estudianteClient.searchEstudiantesByClase(eq(4L), anyInt())).thenReturn(pagina(List.of(estudiante())));
 
@@ -64,7 +65,8 @@ class DocenteBffServiceTest {
         assertThat(cursos).hasSize(1);
         assertThat(cursos.get(0).nombre()).isEqualTo("8vo Básico A");
         assertThat(cursos.get(0).nivel()).isEqualTo(8);
-        assertThat(cursos.get(0).asignatura()).isEqualTo("CIENCIAS");
+        assertThat(cursos.get(0).asignatura()).isEqualTo("Ciencias Naturales");
+        assertThat(cursos.get(0).idAsignatura()).isEqualTo(4L);
         assertThat(cursos.get(0).diasClase()).containsExactly("Lunes", "Miércoles", "Viernes");
         assertThat(cursos.get(0).alumnos()).hasSize(1);
         assertThat(cursos.get(0).alumnos().get(0).nombres()).isEqualTo("CAMILA ANTONIETA");
@@ -74,7 +76,8 @@ class DocenteBffServiceTest {
     void getHorarioCalculaLaFranja() {
         autenticar();
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
-        when(asignaturaClient.searchAsignaturasByDocente(eq(1L), anyInt())).thenReturn(pagina(List.of(ciencias())));
+        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+            .thenReturn(pagina(List.of(ciencias())));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
 
         var horario = service.getHorario();
@@ -96,15 +99,14 @@ class DocenteBffServiceTest {
             "11111111-1", LocalDate.of(2019, 3, 1), true, AreaAcademica.CIENCIAS, List.of());
     }
 
-    private static AsignaturaResponseDTO ciencias() {
-        return new AsignaturaResponseDTO(
-            3L, "CIENCIAS", "ciencias naturales", Semestre.SEMESTRE_1, AreaAcademica.CIENCIAS,
-            TipoAsignatura.BASICA, 1L,
+    private static CursoAsignaturaResponseDTO ciencias() {
+        return new CursoAsignaturaResponseDTO(
+            3L, 4L, "Ciencias Naturales", "ciencias naturales", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 1L, 4L, null, null, 0,
             List.of(
                 new HorarioResponseDTO(1L, DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(8, 45), "Sala 8° Básico A"),
                 new HorarioResponseDTO(2L, DiaSemana.MIERCOLES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A"),
-                new HorarioResponseDTO(3L, DiaSemana.VIERNES, LocalTime.of(13, 55), LocalTime.of(14, 40), "Sala 8° Básico A")),
-            4L, null, null, null, List.of());
+                new HorarioResponseDTO(3L, DiaSemana.VIERNES, LocalTime.of(13, 55), LocalTime.of(14, 40), "Sala 8° Básico A")));
     }
 
     private static EstudianteResponseDTO estudiante() {

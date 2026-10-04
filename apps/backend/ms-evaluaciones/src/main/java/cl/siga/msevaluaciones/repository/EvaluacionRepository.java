@@ -16,15 +16,15 @@ import java.util.Optional;
 public interface EvaluacionRepository extends JpaRepository<Evaluacion, Long>, JpaSpecificationExecutor<Evaluacion> {
   Optional<Evaluacion> findByIdAndActiveTrue(Long id);
   boolean existsByIdAndActiveTrue(Long id);
-  List<Evaluacion> findByIdAsignaturaAndActiveTrue(Long idAsignatura);
-  boolean existsByIdAsignaturaAndActiveTrue(Long idAsignatura);
-  boolean existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrue(String nombre, Long idAsignatura);
+  List<Evaluacion> findByIdCursoAsignaturaAndActiveTrue(Long idCursoAsignatura);
+  boolean existsByIdCursoAsignaturaAndActiveTrue(Long idCursoAsignatura);
+  boolean existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue(String nombre, Long idCursoAsignatura);
 
-  boolean existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrueAndIdNot(String nombre, Long idAsignatura, Long id);
+  boolean existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrueAndIdNot(String nombre, Long idCursoAsignatura, Long id);
 
-  // Bloquea las evaluaciones activas de la asignatura para serializar el calculo
-  // de la ponderacion acumulada (evita que dos altas concurrentes superen el 100%).
+  // Bloquea las evaluaciones activas de la dictación para serializar el cálculo
+  // de la ponderación acumulada (evita que dos altas concurrentes superen el 100%).
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select e from Evaluacion e where e.idAsignatura = :idAsignatura and e.active = true")
-  List<Evaluacion> findActiveByIdAsignaturaForUpdate(@Param("idAsignatura") Long idAsignatura);
+  @Query("select e from Evaluacion e where e.idCursoAsignatura = :idCursoAsignatura and e.active = true")
+  List<Evaluacion> findActiveByIdCursoAsignaturaForUpdate(@Param("idCursoAsignatura") Long idCursoAsignatura);
 }

@@ -10,16 +10,14 @@ import org.springframework.stereotype.Repository;
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.msasignaturas.model.entity.Inscripcion;
 
-@Repository 
+@Repository
 public interface InscripcionRepository extends JpaRepository<Inscripcion, Long>, JpaSpecificationExecutor<Inscripcion> {
-    
-    // Busca si ya existe un registro previo para el alumno y la asignatura
-    Optional<Inscripcion> findByIdAlumnoAndAsignaturaId(Long idAlumno, Long idAsignatura);
-    
-    // Cuenta los cupos ocupados (ignorando CANCELADO o EN_ESPERA)
-    int countByAsignaturaIdAndEstadoIn(Long idAsignatura, List<EstadoInscripcion> estadosOcupados);
-    
+
+    Optional<Inscripcion> findByIdAlumnoAndCursoAsignaturaId(Long idAlumno, Long idCursoAsignatura);
+
+    int countByCursoAsignaturaIdAndEstadoIn(Long idCursoAsignatura, List<EstadoInscripcion> estadosOcupados);
+
     List<Inscripcion> findByIdAlumno(Long idAlumno);
-    
-    List<Inscripcion> findByAsignaturaId(Long idAsignatura);
+
+    List<Inscripcion> findByCursoAsignaturaId(Long idCursoAsignatura);
 }

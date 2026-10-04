@@ -88,7 +88,7 @@ describe('DocenteNotasService (modo real)', () => {
       nombre: 'PRUEBA',
       tipo: 'SUMATIVA',
       ponderacion: 40,
-      idAsignatura: 3,
+      idCursoAsignatura: 3,
     });
     post.flush({ id: 9, nombre: 'PRUEBA', tipo: 'SUMATIVA', ponderacion: 40 });
 

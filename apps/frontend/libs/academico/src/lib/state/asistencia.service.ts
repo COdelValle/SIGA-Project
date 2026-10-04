@@ -6,7 +6,7 @@ import { AsistenciaDTO } from '../models/perfil.model';
 
 export interface RegistrarAsistenciaRequest {
   idEstudiante: number;
-  idAsignatura: number;
+  idCursoAsignatura: number;
   fecha: string;
   estado: 'PRESENTE' | 'AUSENTE' | 'ATRASADO';
   observacion?: string | null;
@@ -36,13 +36,13 @@ export class AsistenciaService {
     return this.getAsistencias(String(id));
   }
 
-  /** Asistencias de una asignatura en una fecha (portal docente). */
-  getAsistenciasAsignatura(idAsignatura: number, fecha: string): Observable<AsistenciaDTO[]> {
+  /** Asistencias de una dictación en una fecha (portal docente). */
+  getAsistenciasAsignatura(idCursoAsignatura: number, fecha: string): Observable<AsistenciaDTO[]> {
     if (this.config.useMocks) {
       return of<AsistenciaDTO[]>([]);
     }
     return this.http.get<AsistenciaDTO[]>(
-      `${this.config.bffBaseUrl}/bff/v1/asistencias/asignatura/${idAsignatura}`,
+      `${this.config.bffBaseUrl}/bff/v1/asistencias/asignatura/${idCursoAsignatura}`,
       { params: { fecha } },
     );
   }

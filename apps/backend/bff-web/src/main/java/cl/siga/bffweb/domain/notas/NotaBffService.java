@@ -19,7 +19,7 @@ import cl.siga.bffweb.integration.clases.ClaseClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
 import cl.siga.bffweb.integration.notas.NotaClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
@@ -45,14 +45,14 @@ public class NotaBffService {
     private final EstudianteClient estudianteClient;
     private final DocenteContextService docenteContext;
 
-    public CursoNotasDTO getCursoNotas(Long asignaturaId) {
-        AsignaturaResponseDTO asignatura = docenteContext.validarAsignaturaDelDocente(asignaturaId);
-        ClaseResponseDTO clase = asignatura.idClase() == null
+    public CursoNotasDTO getCursoNotas(Long idCursoAsignatura) {
+        CursoAsignaturaResponseDTO curso = docenteContext.validarCursoDelDocente(idCursoAsignatura);
+        ClaseResponseDTO clase = curso.idClase() == null
             ? null
-            : claseClient.getClaseById(asignatura.idClase());
+            : claseClient.getClaseById(curso.idClase());
 
         List<EvaluacionResponseDTO> evaluaciones = contentOf(
-            evaluacionClient.searchEvaluacionesByAsignatura(asignaturaId, PAGE_SIZE));
+            evaluacionClient.searchEvaluacionesByAsignatura(idCursoAsignatura, PAGE_SIZE));
 
         Map<Long, Map<Long, NotaResponseDTO>> notasPorEvaluacion = new HashMap<>();
         for (EvaluacionResponseDTO evaluacion : evaluaciones) {
@@ -64,9 +64,9 @@ public class NotaBffService {
             notasPorEvaluacion.put(evaluacion.id(), porEstudiante);
         }
 
-        List<AlumnoNotasDTO> alumnos = asignatura.idClase() == null
+        List<AlumnoNotasDTO> alumnos = curso.idClase() == null
             ? List.of()
-            : contentOf(estudianteClient.searchEstudiantesByClase(asignatura.idClase(), PAGE_SIZE)).stream()
+            : contentOf(estudianteClient.searchEstudiantesByClase(curso.idClase(), PAGE_SIZE)).stream()
                 .map(estudiante -> new AlumnoNotasDTO(
                     estudiante.id(),
                     nombres(estudiante),
@@ -76,9 +76,9 @@ public class NotaBffService {
                 .toList();
 
         return new CursoNotasDTO(
-            asignatura.id(),
-            clase == null ? asignatura.name() : nombreClase(clase),
-            asignatura.name(),
+            curso.id(),
+            clase == null ? curso.nombre() : nombreClase(clase),
+            curso.nombre(),
             evaluaciones.stream()
                 .map(evaluacion -> new EvaluacionNotasDTO(
                     evaluacion.id(),
@@ -116,7 +116,7 @@ public class NotaBffService {
 
     private void validarEvaluacionDelDocente(Long idEvaluacion) {
         EvaluacionResponseDTO evaluacion = evaluacionDe(idEvaluacion);
-        docenteContext.validarAsignaturaDelDocente(evaluacion.idAsignatura());
+        docenteContext.validarCursoDelDocente(evaluacion.idCursoAsignatura());
     }
 
     private EvaluacionResponseDTO evaluacionDe(Long idEvaluacion) {

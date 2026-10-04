@@ -71,14 +71,15 @@ GET /api/v1/notas/search?idEstudiante=1&page=0&size=20&sort=score,desc
 | --- | --- | --- | --- |
 | `ms-usuarios-auth` | 8081 | `GET /api/v1/usuarios/search` | `email`, `rol`, `state` |
 | `ms-estudiantes` | 8083 | `GET /api/v1/estudiantes/search` | `rut`, nombres, `from`, `to`, `state` |
-| `ms-asignaturas` | 8086 | `GET /api/v1/asignaturas/search` | `name`, `tipo`, `semestre`, `area`, `idDocente`, `idClase`, `conCupoDisponible` |
-| `ms-asignaturas` | 8086 | `GET /api/v1/inscripciones/search` | `idAlumno`, `idAsignatura`, `estados` |
+| `ms-asignaturas` | 8086 | `GET /api/v1/asignaturas/search` | `nombre`, `area`, `calificable` |
+| `ms-asignaturas` | 8086 | `GET /api/v1/curso-asignaturas/search` | `idClase`, `idDocente`, `idAsignatura`, `caracter`, `semestre`, `area`, `nombre`, `conCupoDisponible` |
+| `ms-asignaturas` | 8086 | `GET /api/v1/inscripciones/search` | `idAlumno`, `idCursoAsignatura`, `estados` |
 | `ms-notas` | 8089 | `GET /api/v1/notas/search` | `idEstudiante`, `idEvaluacion`, `lessThanScore`, `greaterThanScore` |
 | `ms-docentes` | 8085 | `GET /api/v1/docentes/search` | `rut`, nombres, `from`, `to`, `area` |
 | `ms-apoderados` | 8084 | `GET /api/v1/apoderados/search` | `rut`, nombres, `idEstudiante` |
 | `ms-clases` | 8087 | `GET /api/v1/clases/search` | `nivel`, `letra`, `anioAcademico`, `idDocenteJefe` |
-| `ms-evaluaciones` | 8088 | `GET /api/v1/evaluaciones/search` | `nombre`, `tipo`, `idAsignatura` |
-| `ms-asistencias` | 8090 | `GET /api/v1/asistencias/search` | `idEstudiante`, `idAsignatura`, `from`, `to`, `estado` |
+| `ms-evaluaciones` | 8088 | `GET /api/v1/evaluaciones/search` | `nombre`, `tipo`, `idCursoAsignatura` |
+| `ms-asistencias` | 8090 | `GET /api/v1/asistencias/search` | `idEstudiante`, `idCursoAsignatura`, `from`, `to`, `estado` |
 
 Los demas endpoints (`GET /{id}`, `exists`, `POST`, `PUT`, `DELETE`) no cambian.
 

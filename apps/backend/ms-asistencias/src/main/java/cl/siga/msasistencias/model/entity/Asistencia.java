@@ -13,8 +13,8 @@ import java.time.LocalDate;
   name = "asistencias",
   uniqueConstraints = {
     @UniqueConstraint(
-      name = "uk_id_estudiante_id_asignatura_fecha",
-      columnNames = {"id_estudiante", "id_asignatura", "fecha"}
+      name = "uk_asistencia_estudiante_curso_fecha",
+      columnNames = {"id_estudiante", "id_curso_asignatura", "fecha"}
     )
   }
 )
@@ -32,9 +32,9 @@ public class Asistencia {
   @Column(name = "id_estudiante", nullable = false)
   private Long idEstudiante;
 
-  @NotNull (message = "El ID del asignatura es obligatorio")
-  @Column(name = "id_asignatura", nullable = false)
-  private Long idAsignatura;
+  @NotNull (message = "El ID de la dictación es obligatorio")
+  @Column(name = "id_curso_asignatura", nullable = false)
+  private Long idCursoAsignatura;
 
   @NotNull (message = "La fecha es obligatoria")
   @PastOrPresent (message = "La fecha no puede ser futura")

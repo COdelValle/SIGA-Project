@@ -1,6 +1,9 @@
 package cl.siga.bffweb.domain.admin;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -9,6 +12,8 @@ import cl.siga.bffweb.domain.admin.dto.UsuarioAdminDTO;
 import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.usuarios.UsuarioClient;
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
@@ -36,12 +41,32 @@ public class AdminBffService {
     }
 
     public List<AsignaturaAdminDTO> getAsignaturas() {
-        return contentOf(asignaturaClient.searchAsignaturas(PAGE_SIZE)).stream()
+        List<AsignaturaResponseDTO> catalogo = contentOf(asignaturaClient.searchAsignaturas(PAGE_SIZE));
+        Map<Long, List<MallaCurricularResponseDTO>> mallaPorAsignatura = asignaturaClient.getMalla(null).stream()
+            .collect(Collectors.groupingBy(MallaCurricularResponseDTO::idAsignatura));
+
+        return catalogo.stream()
             .map(asignatura -> new AsignaturaAdminDTO(
                 asignatura.id(),
-                asignatura.name(),
-                asignatura.description(),
-                true))
+                asignatura.nombre(),
+                asignatura.area(),
+                asignatura.calificable(),
+                nivelesDe(mallaPorAsignatura.getOrDefault(asignatura.id(), List.of())),
+                asignatura.activa()))
+            .toList();
+    }
+
+    /** Filas de la malla curricular, opcionalmente acotadas a un nivel. */
+    public List<MallaCurricularResponseDTO> getMalla(Nivel nivel) {
+        return asignaturaClient.getMalla(nivel);
+    }
+
+    private static List<String> nivelesDe(List<MallaCurricularResponseDTO> filas) {
+        return filas.stream()
+            .map(MallaCurricularResponseDTO::nivel)
+            .distinct()
+            .sorted(Comparator.comparingInt(Nivel::ordinal))
+            .map(Nivel::getDescripcion)
             .toList();
     }
 

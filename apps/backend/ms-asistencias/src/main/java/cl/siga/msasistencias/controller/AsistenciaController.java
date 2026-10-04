@@ -30,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1/asistencias")
 @RequiredArgsConstructor
-@Tag(name = "Asistencias", description = "Registro y consulta de asistencias por estudiante y asignatura")
+@Tag(name = "Asistencias", description = "Registro y consulta de asistencias por estudiante y dictación")
 public class AsistenciaController {
     private final AsistenciaService asistenciaService;
 
@@ -44,13 +44,13 @@ public class AsistenciaController {
     @PreAuthorize("hasAuthority('SCOPE_asistencias:read')")
     public ResponseEntity<Page<AsistenciaResponseDTO>> searchAsistencias(
             @RequestParam(required = false) Long idEstudiante,
-            @RequestParam(required = false) Long idAsignatura,
+            @RequestParam(required = false) Long idCursoAsignatura,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(required = false) State estado,
             @PageableDefault(size = 20, sort = "fecha") Pageable pageable) {
         return ResponseEntity.ok(asistenciaService.searchAsistencias(
-            idEstudiante, idAsignatura, from, to, estado, pageable));
+            idEstudiante, idCursoAsignatura, from, to, estado, pageable));
     }
 
     @PostMapping

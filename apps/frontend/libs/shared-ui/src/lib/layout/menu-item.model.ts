@@ -8,6 +8,7 @@ export type MenuIconName =
   | 'users'
   | 'roles'
   | 'subjects'
+  | 'curriculum'
   | 'progress'
   | 'register-notes'
   | 'register-attendance';

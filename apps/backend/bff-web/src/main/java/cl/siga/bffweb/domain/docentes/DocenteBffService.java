@@ -14,7 +14,7 @@ import cl.siga.bffweb.domain.docentes.dto.ClaseDocenteDTO;
 import cl.siga.bffweb.domain.docentes.dto.CursoDocenteDTO;
 import cl.siga.bffweb.integration.clases.ClaseClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
@@ -23,7 +23,7 @@ import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Cursos y horario del docente autenticado: asignaturas (ms-asignaturas) ->
+ * Cursos y horario del docente autenticado: dictaciones (ms-asignaturas) ->
  * clases (ms-clases) -> alumnos (ms-estudiantes).
  */
 @Service
@@ -39,54 +39,54 @@ public class DocenteBffService {
 
     public List<CursoDocenteDTO> getCursos() {
         DocenteResponseDTO docente = docenteContext.docenteActual();
-        return docenteContext.asignaturasDelDocente(docente.id()).stream()
-            .filter(asignatura -> asignatura.idClase() != null)
-            .map(asignatura -> toCurso(docente.id(), asignatura))
+        return docenteContext.cursosDelDocente(docente.id()).stream()
+            .map(curso -> toCurso(docente.id(), curso))
             .toList();
     }
 
     public List<ClaseDocenteDTO> getHorario() {
         DocenteResponseDTO docente = docenteContext.docenteActual();
-        return docenteContext.asignaturasDelDocente(docente.id()).stream()
-            .flatMap(asignatura -> toClases(asignatura).stream())
+        return docenteContext.cursosDelDocente(docente.id()).stream()
+            .flatMap(curso -> toClases(curso).stream())
             .sorted(Comparator
                 .comparingInt((ClaseDocenteDTO clase) -> ORDEN_DIAS.indexOf(clase.dia()))
                 .thenComparingInt(ClaseDocenteDTO::franja))
             .toList();
     }
 
-    private CursoDocenteDTO toCurso(Long docenteId, AsignaturaResponseDTO asignatura) {
-        ClaseResponseDTO clase = claseClient.getClaseById(asignatura.idClase());
+    private CursoDocenteDTO toCurso(Long docenteId, CursoAsignaturaResponseDTO curso) {
+        ClaseResponseDTO clase = claseClient.getClaseById(curso.idClase());
         List<AlumnoDTO> alumnos = contentOf(
-                estudianteClient.searchEstudiantesByClase(asignatura.idClase(), PAGE_SIZE)).stream()
+                estudianteClient.searchEstudiantesByClase(curso.idClase(), PAGE_SIZE)).stream()
             .map(estudiante -> new AlumnoDTO(
                 estudiante.id(), nombres(estudiante),
                 estudiante.firstSurname(), estudiante.secondSurname()))
             .toList();
         return new CursoDocenteDTO(
-            asignatura.id(),
+            curso.id(),
+            curso.idAsignatura(),
             nombreClase(clase),
             clase.nivel().ordinal() + 1,
             clase.letra(),
-            asignatura.name(),
+            curso.nombre(),
             docenteId,
-            sala(asignatura, clase),
-            diasClase(asignatura),
+            sala(curso, clase),
+            diasClase(curso),
             alumnos);
     }
 
-    private List<ClaseDocenteDTO> toClases(AsignaturaResponseDTO asignatura) {
-        ClaseResponseDTO clase = asignatura.idClase() == null
+    private List<ClaseDocenteDTO> toClases(CursoAsignaturaResponseDTO curso) {
+        ClaseResponseDTO clase = curso.idClase() == null
             ? null
-            : claseClient.getClaseById(asignatura.idClase());
-        String curso = clase == null ? asignatura.name() : nombreClase(clase);
-        return (asignatura.horarios() == null ? Collections.<HorarioResponseDTO>emptyList() : asignatura.horarios())
+            : claseClient.getClaseById(curso.idClase());
+        String nombreCurso = clase == null ? curso.nombre() : nombreClase(clase);
+        return (curso.horarios() == null ? Collections.<HorarioResponseDTO>emptyList() : curso.horarios())
             .stream()
             .map(horario -> new ClaseDocenteDTO(
                 franja(horario.horarioEntrada()),
-                asignatura.id(),
-                curso,
-                asignatura.name(),
+                curso.id(),
+                nombreCurso,
+                curso.nombre(),
                 horario.ubicacion(),
                 horario.dia() == null ? null : horario.dia().getNombre(),
                 horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),
@@ -104,18 +104,18 @@ public class DocenteBffService {
         return clase.nivel().getDescripcion() + " " + clase.letra();
     }
 
-    private static String sala(AsignaturaResponseDTO asignatura, ClaseResponseDTO clase) {
-        if (asignatura.horarios() != null && !asignatura.horarios().isEmpty()) {
-            return asignatura.horarios().get(0).ubicacion();
+    private static String sala(CursoAsignaturaResponseDTO curso, ClaseResponseDTO clase) {
+        if (curso.horarios() != null && !curso.horarios().isEmpty()) {
+            return curso.horarios().get(0).ubicacion();
         }
         return "Sala " + clase.nivel().getDescripcion() + " " + clase.letra();
     }
 
-    private static List<String> diasClase(AsignaturaResponseDTO asignatura) {
-        if (asignatura.horarios() == null) {
+    private static List<String> diasClase(CursoAsignaturaResponseDTO curso) {
+        if (curso.horarios() == null) {
             return List.of();
         }
-        return asignatura.horarios().stream()
+        return curso.horarios().stream()
             .map(horario -> horario.dia() == null ? null : horario.dia().getNombre())
             .filter(dia -> dia != null)
             .distinct()

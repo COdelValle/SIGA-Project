@@ -9,12 +9,12 @@ import org.springframework.stereotype.Repository;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.msasignaturas.model.entity.Horario;
 
-@Repository 
+@Repository
 public interface HorarioRepository extends JpaRepository<Horario, Long>, JpaSpecificationExecutor<Horario> {
 
-    List<Horario> findByAsignaturaIdAndActiveTrue(Long asignaturaId);
+    List<Horario> findByCursoAsignaturaIdAndActiveTrue(Long cursoAsignaturaId);
 
     List<Horario> findByUbicacionIgnoreCaseAndDiaAndActiveTrue(String ubicacion, DiaSemana dia);
 
-    long countByAsignaturaIdAndActiveTrue(Long asignaturaId);
+    long countByCursoAsignaturaIdAndActiveTrue(Long cursoAsignaturaId);
 }
