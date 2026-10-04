@@ -137,6 +137,34 @@ class PerfilEstudianteServiceTest {
     }
 
     @Test
+    void getPerfilOcultaElectivasNoInscritasYConservaLaInscrita() {
+        when(estudianteClient.getEstudianteById(1L)).thenReturn(estudiante(1L, "oid-camila", 4L));
+        when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
+
+        CursoAsignaturaResponseDTO artes = dictacion(
+            7L, 11L, "Artes Visuales", AreaAcademica.ARTES, CaracterAsignatura.ELECTIVA,
+            8L, 4L, List.of());
+        CursoAsignaturaResponseDTO musica = dictacion(
+            9L, 12L, "Música", AreaAcademica.ARTES, CaracterAsignatura.ELECTIVA,
+            10L, 4L, List.of());
+        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+            .thenReturn(pagina(List.of(artes, musica)));
+
+        when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of(
+            new InscripcionResponseDTO(1L, 1L, 7L, EstadoInscripcion.ACTIVO, LocalDateTime.now()))));
+        when(asignaturaClient.getCursoAsignaturaById(7L)).thenReturn(artes);
+
+        when(evaluacionClient.searchEvaluacionesByAsignatura(anyLong(), anyInt())).thenReturn(pagina(List.of()));
+        when(notaClient.searchNotas(eq(1L), anyInt())).thenReturn(pagina(List.of()));
+        when(docenteClient.getDocenteById(anyLong())).thenReturn(null);
+
+        PerfilEstudianteResponseDTO perfil = service.getPerfil(1L);
+
+        assertThat(perfil.asignaturas().stream().map(asignatura -> asignatura.name()))
+            .containsExactly("Artes Visuales");
+    }
+
+    @Test
     void getPerfilSinClaseDevuelveAsignaturasVacias() {
         when(estudianteClient.getEstudianteById(9L)).thenReturn(estudiante(9L, "oid-x", null));
 
