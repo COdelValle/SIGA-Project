@@ -1,5 +1,6 @@
 package cl.siga.coreshare.dto.clase.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -49,5 +50,22 @@ public enum Nivel {
     @JsonValue
     public String getDescripcion() {
         return descripcion;
+    }
+
+    /**
+     * Acepta tanto el nombre de la constante (OCTAVO_BASICO) como el texto
+     * visible (8vo Básico), sin distinguir mayusculas.
+     */
+    @JsonCreator
+    public static Nivel desde(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        for (Nivel nivel : values()) {
+            if (nivel.name().equalsIgnoreCase(valor) || nivel.descripcion.equalsIgnoreCase(valor)) {
+                return nivel;
+            }
+        }
+        throw new IllegalArgumentException("Nivel inválido: " + valor);
     }
 }

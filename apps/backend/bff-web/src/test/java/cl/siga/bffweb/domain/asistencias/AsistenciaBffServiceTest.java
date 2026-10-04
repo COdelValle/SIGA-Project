@@ -2,6 +2,7 @@ package cl.siga.bffweb.domain.asistencias;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -18,25 +19,39 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
 import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.asistencias.AsistenciaClient;
+import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
+import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.Semestre;
+import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
+import cl.siga.coreshare.dto.asistencia.ActualizarAsistenciaRequestDTO;
 import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
+import cl.siga.coreshare.dto.asistencia.RegistrarAsistenciaRequestDTO;
 import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.enums.AreaAcademica;
 
 class AsistenciaBffServiceTest {
 
     private final AsistenciaClient asistenciaClient = mock(AsistenciaClient.class);
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final ApoderadoClient apoderadoClient = mock(ApoderadoClient.class);
+    private final DocenteClient docenteClient = mock(DocenteClient.class);
+    private final AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+    private final DocenteContextService docenteContext =
+        new DocenteContextService(docenteClient, asignaturaClient);
 
     private final AsistenciaBffService service = new AsistenciaBffService(
-        asistenciaClient, estudianteClient, apoderadoClient);
+        asistenciaClient, estudianteClient, apoderadoClient, docenteContext);
 
     @AfterEach
     void limpiarContexto() {
@@ -91,6 +106,78 @@ class AsistenciaBffServiceTest {
         when(asistenciaClient.searchAsistencias(eq(3L), anyInt())).thenReturn(pagina());
 
         assertThat(service.getAsistenciasEstudiante(3L)).hasSize(1);
+    }
+
+    @Test
+    void docenteVeAsistenciasDeSuAsignatura() {
+        autenticar("oid-alejandro", "DOCENTE");
+        when(asignaturaClient.getAsignaturaById(5L)).thenReturn(asignaturaDelDocente());
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        when(asistenciaClient.searchAsistenciasByAsignatura(
+            eq(5L), eq(fecha()), eq(fecha()), anyInt())).thenReturn(pagina());
+
+        assertThat(service.getAsistenciasAsignatura(5L, fecha())).hasSize(1);
+    }
+
+    @Test
+    void docenteAjenoNoVeAsistenciasDeOtraAsignatura() {
+        autenticar("oid-otro", "DOCENTE");
+        when(asignaturaClient.getAsignaturaById(5L)).thenReturn(asignaturaDelDocente());
+        when(docenteClient.getDocenteByIdUsuario("oid-otro")).thenReturn(docenteOtro());
+
+        assertThatThrownBy(() -> service.getAsistenciasAsignatura(5L, fecha()))
+            .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void registrarAsistenciaValidaPertenenciaDeLaAsignatura() {
+        autenticar("oid-alejandro", "DOCENTE");
+        when(asignaturaClient.getAsignaturaById(5L)).thenReturn(asignaturaDelDocente());
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        RegistrarAsistenciaRequestDTO request =
+            new RegistrarAsistenciaRequestDTO(1L, 5L, fecha(), State.PRESENTE, null);
+        when(asistenciaClient.saveAsistencia(request)).thenReturn(respuesta());
+
+        assertThat(service.registrarAsistencia(request).idAsignatura()).isEqualTo(5L);
+    }
+
+    @Test
+    void actualizarAsistenciaValidaPertenenciaDeLaAsignatura() {
+        autenticar("oid-alejandro", "DOCENTE");
+        when(asistenciaClient.getAsistenciaById(1L)).thenReturn(respuesta());
+        when(asignaturaClient.getAsignaturaById(5L)).thenReturn(asignaturaDelDocente());
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        when(asistenciaClient.updateAsistencia(eq(1L), any())).thenReturn(respuesta());
+
+        var actualizada = service.actualizarAsistencia(
+            1L, new ActualizarAsistenciaRequestDTO(Justificacion.SI, null, State.PRESENTE));
+
+        assertThat(actualizada.idAsignatura()).isEqualTo(5L);
+    }
+
+    private static LocalDate fecha() {
+        return LocalDate.of(2026, 10, 2);
+    }
+
+    private static DocenteResponseDTO docente() {
+        return new DocenteResponseDTO(1L, "oid-alejandro", "ALEJANDRO", "JAVIER", "SILVA", "MORALES",
+            "11111111-1", LocalDate.of(2019, 3, 1), true, AreaAcademica.CIENCIAS, List.of());
+    }
+
+    private static DocenteResponseDTO docenteOtro() {
+        return new DocenteResponseDTO(2L, "oid-otro", "OTRO", null, "PEREZ", "GOMEZ",
+            "22222222-2", LocalDate.of(2020, 3, 1), true, AreaAcademica.CIENCIAS, List.of());
+    }
+
+    private static AsignaturaResponseDTO asignaturaDelDocente() {
+        return new AsignaturaResponseDTO(
+            5L, "MATEMATICAS", "matematica", Semestre.SEMESTRE_1, AreaAcademica.CIENCIAS,
+            TipoAsignatura.BASICA, 1L, List.of(), 4L, null, null, null, List.of());
+    }
+
+    private static AsistenciaResponseDTO respuesta() {
+        return new AsistenciaResponseDTO(1L, 1L, 5L, fecha(),
+            State.AUSENTE, Justificacion.PENDIENTE, null);
     }
 
     private static void autenticar(String oid, String rol) {

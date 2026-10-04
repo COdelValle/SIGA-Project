@@ -1,10 +1,12 @@
 package cl.siga.bffweb.domain.asistencias;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
 import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
 import cl.siga.bffweb.integration.asistencias.AsistenciaClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
@@ -25,11 +27,12 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AsistenciaBffService {
-    private static final int PAGE_SIZE = 500;
+    private static final int PAGE_SIZE = 100;
 
     private final AsistenciaClient asistenciaClient;
     private final EstudianteClient estudianteClient;
     private final ApoderadoClient apoderadoClient;
+    private final DocenteContextService docenteContext;
 
     public List<AsistenciaResponseDTO> getAsistenciasMe() {
         EstudianteResponseDTO estudiante = estudianteClient.getEstudianteByIdUsuario(oid());
@@ -42,12 +45,32 @@ public class AsistenciaBffService {
         return asistenciasDe(idEstudiante);
     }
 
+    /** Asistencias de una asignatura en una fecha, solo para el docente dueno. */
+    public List<AsistenciaResponseDTO> getAsistenciasAsignatura(Long idAsignatura, LocalDate fecha) {
+        docenteContext.validarAsignaturaDelDocente(idAsignatura);
+        PageResponseDTO<AsistenciaResponseDTO> pagina = asistenciaClient.searchAsistenciasByAsignatura(
+            idAsignatura, fecha, fecha, PAGE_SIZE);
+        return pagina == null || pagina.content() == null ? List.of() : pagina.content();
+    }
+
     public AsistenciaResponseDTO registrarAsistencia(RegistrarAsistenciaRequestDTO request) {
+        validarAsignaturaParaEscritura(request.idAsignatura());
         return asistenciaClient.saveAsistencia(request);
     }
 
     public AsistenciaResponseDTO actualizarAsistencia(Long id, ActualizarAsistenciaRequestDTO request) {
+        AsistenciaResponseDTO actual = asistenciaClient.getAsistenciaById(id);
+        if (actual != null && actual.idAsignatura() != null) {
+            validarAsignaturaParaEscritura(actual.idAsignatura());
+        }
         return asistenciaClient.updateAsistencia(id, request);
+    }
+
+    private void validarAsignaturaParaEscritura(Long idAsignatura) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+        docenteContext.validarAsignaturaDelDocente(idAsignatura);
     }
 
     private List<AsistenciaResponseDTO> asistenciasDe(Long idEstudiante) {

@@ -1,6 +1,7 @@
 package cl.siga.coreshare.dto.asistencia;
 
 import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -9,7 +10,10 @@ public record ActualizarAsistenciaRequestDTO(
     Justificacion justificacion,
 
     @Size(max = 255, message = "La observación no puede superar los 255 caracteres")
-    String observacion
+    String observacion,
+
+    // Opcional: permite al docente corregir la marcacion (Presente/Ausente/Atrasado).
+    State estado
 ) {
 
 }
