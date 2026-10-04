@@ -27,9 +27,9 @@ import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
 import cl.siga.bffweb.integration.notas.NotaClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.enums.Semestre;
-import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
 import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
@@ -67,12 +67,11 @@ class PerfilEstudianteServiceTest {
         when(estudianteClient.getEstudianteById(1L)).thenReturn(estudiante(1L, "oid-camila", 4L));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
 
-        AsignaturaResponseDTO matematica = new AsignaturaResponseDTO(
-            1L, "MATEMATICA", "matematica", Semestre.SEMESTRE_1, AreaAcademica.MATEMATICAS,
-            TipoAsignatura.BASICA, 6L,
-            List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")),
-            4L, null, null, null, List.of());
-        when(asignaturaClient.searchAsignaturasByClase(eq(4L), anyInt()))
+        CursoAsignaturaResponseDTO matematica = dictacion(
+            1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
+            6L, 4L,
+            List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")));
+        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
             .thenReturn(pagina(List.of(matematica)));
 
         EvaluacionResponseDTO prueba = new EvaluacionResponseDTO(
@@ -94,6 +93,8 @@ class PerfilEstudianteServiceTest {
         assertThat(perfil.clase().letra()).isEqualTo("A");
         assertThat(perfil.clase().nivel()).isEqualTo("8vo Básico");
         assertThat(perfil.asignaturas()).hasSize(1);
+        assertThat(perfil.asignaturas().get(0).idAsignatura()).isEqualTo(3L);
+        assertThat(perfil.asignaturas().get(0).calificable()).isTrue();
         assertThat(perfil.asignaturas().get(0).horarios()).hasSize(1);
         assertThat(perfil.asignaturas().get(0).horarios().get(0).dia()).isEqualTo("Martes");
         assertThat(perfil.asignaturas().get(0).docente()).isEqualTo("CAMILA ANTONIA CASTRO MEDINA");
@@ -106,23 +107,21 @@ class PerfilEstudianteServiceTest {
         when(estudianteClient.getEstudianteById(1L)).thenReturn(estudiante(1L, "oid-camila", 4L));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
 
-        AsignaturaResponseDTO matematica = new AsignaturaResponseDTO(
-            1L, "MATEMATICA", "matematica", Semestre.SEMESTRE_1, AreaAcademica.MATEMATICAS,
-            TipoAsignatura.BASICA, 6L,
-            List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")),
-            4L, null, null, null, List.of());
-        when(asignaturaClient.searchAsignaturasByClase(eq(4L), anyInt()))
+        CursoAsignaturaResponseDTO matematica = dictacion(
+            1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
+            6L, 4L,
+            List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")));
+        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
             .thenReturn(pagina(List.of(matematica)));
 
-        // Camila inscrita en EDUCACION FISICA (electiva sin idClase).
+        // Camila inscrita en la optativa Educación Financiera de su curso.
         when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of(
             new InscripcionResponseDTO(1L, 1L, 6L, EstadoInscripcion.ACTIVO, LocalDateTime.now()))));
-        AsignaturaResponseDTO educacionFisica = new AsignaturaResponseDTO(
-            6L, "EDUCACION FISICA", "educacion fisica", Semestre.SEMESTRE_2, AreaAcademica.EDUCACION_FISICA,
-            TipoAsignatura.ELECTIVA, 3L,
-            List.of(new HorarioResponseDTO(20L, DiaSemana.LUNES, LocalTime.of(13, 55), LocalTime.of(14, 40), "Cancha Techada 1")),
-            null, 25, null, null, List.of());
-        when(asignaturaClient.getAsignaturaById(6L)).thenReturn(educacionFisica);
+        CursoAsignaturaResponseDTO educacionFisica = dictacion(
+            6L, 13L, "Educación Física y Salud", AreaAcademica.EDUCACION_FISICA, CaracterAsignatura.OBLIGATORIA,
+            3L, 4L,
+            List.of(new HorarioResponseDTO(20L, DiaSemana.LUNES, LocalTime.of(13, 55), LocalTime.of(14, 40), "Cancha Techada 1")));
+        when(asignaturaClient.getCursoAsignaturaById(6L)).thenReturn(educacionFisica);
 
         when(evaluacionClient.searchEvaluacionesByAsignatura(anyLong(), anyInt()))
             .thenReturn(pagina(List.of()));
@@ -133,7 +132,7 @@ class PerfilEstudianteServiceTest {
 
         assertThat(perfil.asignaturas()).hasSize(2);
         assertThat(perfil.asignaturas().stream().map(asignatura -> asignatura.name()))
-            .containsExactly("MATEMATICA", "EDUCACION FISICA");
+            .containsExactly("Matemática", "Educación Física y Salud");
         assertThat(perfil.asignaturas().get(1).horarios().get(0).dia()).isEqualTo("Lunes");
     }
 
@@ -161,6 +160,14 @@ class PerfilEstudianteServiceTest {
 
         assertThat(perfil.id()).isEqualTo(1L);
         verify(estudianteClient).getEstudianteByIdUsuario("oid-camila");
+    }
+
+    private static CursoAsignaturaResponseDTO dictacion(
+            Long id, Long idAsignatura, String nombre, AreaAcademica area, CaracterAsignatura caracter,
+            Long idDocente, Long idClase, List<HorarioResponseDTO> horarios) {
+        return new CursoAsignaturaResponseDTO(
+            id, idAsignatura, nombre, nombre.toLowerCase(), area, true, caracter,
+            Semestre.SEMESTRE_1, idDocente, idClase, null, null, 0, horarios);
     }
 
     private static EstudianteResponseDTO estudiante(Long id, String oid, Long idClase) {

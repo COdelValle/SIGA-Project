@@ -25,7 +25,7 @@ public interface EvaluacionClient {
 
     @GetMapping ("/api/v1/evaluaciones/search")
     PageResponseDTO<EvaluacionResponseDTO> searchEvaluacionesByAsignatura(
-        @RequestParam ("idAsignatura") Long idAsignatura,
+        @RequestParam ("idCursoAsignatura") Long idCursoAsignatura,
         @RequestParam ("size") int size);
 
     @PostMapping ("/api/v1/evaluaciones")

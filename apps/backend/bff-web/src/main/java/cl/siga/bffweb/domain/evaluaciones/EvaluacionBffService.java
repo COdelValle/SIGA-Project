@@ -22,19 +22,19 @@ public class EvaluacionBffService {
     private final DocenteContextService docenteContext;
 
     public EvaluacionResponseDTO crearEvaluacion(RegistrarEvaluacionRequestDTO request) {
-        docenteContext.validarAsignaturaDelDocente(request.idAsignatura());
+        docenteContext.validarCursoDelDocente(request.idCursoAsignatura());
         return evaluacionClient.saveEvaluacion(request);
     }
 
     public EvaluacionResponseDTO editarEvaluacion(Long id, ActualizarEvaluacionRequestDTO request) {
         EvaluacionResponseDTO evaluacion = evaluacionDe(id);
-        docenteContext.validarAsignaturaDelDocente(evaluacion.idAsignatura());
+        docenteContext.validarCursoDelDocente(evaluacion.idCursoAsignatura());
         return evaluacionClient.updateEvaluacion(id, request);
     }
 
     public void eliminarEvaluacion(Long id) {
         EvaluacionResponseDTO evaluacion = evaluacionDe(id);
-        docenteContext.validarAsignaturaDelDocente(evaluacion.idAsignatura());
+        docenteContext.validarCursoDelDocente(evaluacion.idCursoAsignatura());
         evaluacionClient.deleteEvaluacion(id);
     }
 

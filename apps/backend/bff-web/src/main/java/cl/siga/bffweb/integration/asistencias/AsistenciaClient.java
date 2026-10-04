@@ -28,7 +28,7 @@ public interface AsistenciaClient {
 
     @GetMapping ("/api/v1/asistencias/search")
     PageResponseDTO<AsistenciaResponseDTO> searchAsistenciasByAsignatura(
-        @RequestParam ("idAsignatura") Long idAsignatura,
+        @RequestParam ("idCursoAsignatura") Long idCursoAsignatura,
         @RequestParam ("from") LocalDate from,
         @RequestParam ("to") LocalDate to,
         @RequestParam ("size") int size);

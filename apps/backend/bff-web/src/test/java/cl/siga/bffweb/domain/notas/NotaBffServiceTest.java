@@ -26,9 +26,9 @@ import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
 import cl.siga.bffweb.integration.notas.NotaClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.enums.Semestre;
-import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.clase.enums.Nivel;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
@@ -76,7 +76,7 @@ class NotaBffServiceTest {
         var curso = service.getCursoNotas(3L);
 
         assertThat(curso.curso()).isEqualTo("8vo Básico A");
-        assertThat(curso.asignatura()).isEqualTo("CIENCIAS");
+        assertThat(curso.asignatura()).isEqualTo("Ciencias Naturales");
         assertThat(curso.evaluaciones()).hasSize(1);
         assertThat(curso.evaluaciones().get(0).tipo()).isEqualTo("SUMATIVA");
         assertThat(curso.alumnos()).hasSize(1);
@@ -100,7 +100,7 @@ class NotaBffServiceTest {
     @Test
     void crearNotaRechazaAsignaturaDeOtroDocente() {
         autenticar("oid-otro");
-        when(asignaturaClient.getAsignaturaById(3L)).thenReturn(ciencias());
+        when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-otro")).thenReturn(docente(2L, "oid-otro"));
         when(evaluacionClient.getEvaluacionById(9L)).thenReturn(evaluacion(9L, "PRUEBA", 60.0));
 
@@ -135,7 +135,7 @@ class NotaBffServiceTest {
     }
 
     private void cuandoEsDuenio() {
-        when(asignaturaClient.getAsignaturaById(3L)).thenReturn(ciencias());
+        when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente(1L, "oid-alejandro"));
     }
 
@@ -150,10 +150,10 @@ class NotaBffServiceTest {
             "11111111-1", LocalDate.of(2019, 3, 1), true, AreaAcademica.CIENCIAS, List.of());
     }
 
-    private static AsignaturaResponseDTO ciencias() {
-        return new AsignaturaResponseDTO(
-            3L, "CIENCIAS", "ciencias naturales", Semestre.SEMESTRE_1, AreaAcademica.CIENCIAS,
-            TipoAsignatura.BASICA, 1L, List.of(), 4L, null, null, null, List.of());
+    private static CursoAsignaturaResponseDTO ciencias() {
+        return new CursoAsignaturaResponseDTO(
+            3L, 4L, "Ciencias Naturales", "ciencias naturales", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 1L, 4L, null, null, 0, List.of());
     }
 
     private static EvaluacionResponseDTO evaluacion(Long id, String nombre, Double ponderacion) {

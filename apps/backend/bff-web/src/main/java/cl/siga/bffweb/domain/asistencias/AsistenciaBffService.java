@@ -45,32 +45,32 @@ public class AsistenciaBffService {
         return asistenciasDe(idEstudiante);
     }
 
-    /** Asistencias de una asignatura en una fecha, solo para el docente dueno. */
-    public List<AsistenciaResponseDTO> getAsistenciasAsignatura(Long idAsignatura, LocalDate fecha) {
-        docenteContext.validarAsignaturaDelDocente(idAsignatura);
+    /** Asistencias de una dictación en una fecha, solo para el docente dueno. */
+    public List<AsistenciaResponseDTO> getAsistenciasAsignatura(Long idCursoAsignatura, LocalDate fecha) {
+        docenteContext.validarCursoDelDocente(idCursoAsignatura);
         PageResponseDTO<AsistenciaResponseDTO> pagina = asistenciaClient.searchAsistenciasByAsignatura(
-            idAsignatura, fecha, fecha, PAGE_SIZE);
+            idCursoAsignatura, fecha, fecha, PAGE_SIZE);
         return pagina == null || pagina.content() == null ? List.of() : pagina.content();
     }
 
     public AsistenciaResponseDTO registrarAsistencia(RegistrarAsistenciaRequestDTO request) {
-        validarAsignaturaParaEscritura(request.idAsignatura());
+        validarCursoParaEscritura(request.idCursoAsignatura());
         return asistenciaClient.saveAsistencia(request);
     }
 
     public AsistenciaResponseDTO actualizarAsistencia(Long id, ActualizarAsistenciaRequestDTO request) {
         AsistenciaResponseDTO actual = asistenciaClient.getAsistenciaById(id);
-        if (actual != null && actual.idAsignatura() != null) {
-            validarAsignaturaParaEscritura(actual.idAsignatura());
+        if (actual != null && actual.idCursoAsignatura() != null) {
+            validarCursoParaEscritura(actual.idCursoAsignatura());
         }
         return asistenciaClient.updateAsistencia(id, request);
     }
 
-    private void validarAsignaturaParaEscritura(Long idAsignatura) {
+    private void validarCursoParaEscritura(Long idCursoAsignatura) {
         if (SecurityUtils.isAdmin()) {
             return;
         }
-        docenteContext.validarAsignaturaDelDocente(idAsignatura);
+        docenteContext.validarCursoDelDocente(idCursoAsignatura);
     }
 
     private List<AsistenciaResponseDTO> asistenciasDe(Long idEstudiante) {
