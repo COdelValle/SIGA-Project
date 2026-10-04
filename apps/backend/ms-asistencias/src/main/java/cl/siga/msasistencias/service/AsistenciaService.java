@@ -43,14 +43,14 @@ public class AsistenciaService {
     @Transactional(readOnly = true)
     public Page<AsistenciaResponseDTO> searchAsistencias(
             Long idEstudiante,
-            Long idAsignatura,
+            Long idCursoAsignatura,
             LocalDate from,
             LocalDate to,
             State estado,
             Pageable pageable) {
         Specification<Asistencia> spec = AsistenciaSpecifications.isActive()
             .and(AsistenciaSpecifications.hasIdEstudiante(idEstudiante))
-            .and(AsistenciaSpecifications.hasIdAsignatura(idAsignatura))
+            .and(AsistenciaSpecifications.hasIdCursoAsignatura(idCursoAsignatura))
             .and(AsistenciaSpecifications.hasFechaGreaterThanOrEqual(from))
             .and(AsistenciaSpecifications.hasFechaLessThanOrEqual(to))
             .and(AsistenciaSpecifications.hasEstado(estado));
@@ -62,13 +62,13 @@ public class AsistenciaService {
         if (!estudianteClient.existsById(request.idEstudiante())) {
             throw new BusinessException("El estudiante no existe: " + request.idEstudiante());
         }
-        if (!asignaturaClient.existsById(request.idAsignatura())) {
-            throw new BusinessException("La asignatura no existe: " + request.idAsignatura());
+        if (!asignaturaClient.existsById(request.idCursoAsignatura())) {
+            throw new BusinessException("La dictación no existe: " + request.idCursoAsignatura());
         }
-        if (repository.existsByIdEstudianteAndIdAsignaturaAndFecha(
-                request.idEstudiante(), request.idAsignatura(), request.fecha())) {
+        if (repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(
+                request.idEstudiante(), request.idCursoAsignatura(), request.fecha())) {
             throw new BusinessException("Ya existe asistencia para el estudiante "
-                + request.idEstudiante() + " en la asignatura " + request.idAsignatura()
+                + request.idEstudiante() + " en la dictación " + request.idCursoAsignatura()
                 + " el " + request.fecha() + ".");
         }
 

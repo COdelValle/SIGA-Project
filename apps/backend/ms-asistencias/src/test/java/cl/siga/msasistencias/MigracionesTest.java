@@ -47,15 +47,15 @@ class MigracionesTest {
 
             // Fecha fuera del rango del seed (03-08 a 02-10-2026) para probar el unique.
             statement.executeUpdate(
-                    "INSERT INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion) "
+                    "INSERT INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion) "
                             + "VALUES (1, 1, '2026-10-05', 'PRESENTE', 'NO_APLICA')");
             assertThrows(SQLException.class, () -> statement.executeUpdate(
-                    "INSERT INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion) "
+                    "INSERT INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion) "
                             + "VALUES (1, 1, '2026-10-05', 'AUSENTE', 'PENDIENTE')"));
 
             // active tiene default TRUE (soft delete).
             var activo = statement.executeQuery(
-                    "SELECT active FROM asistencias WHERE id_estudiante = 1 AND id_asignatura = 1 AND fecha = '2026-10-05'");
+                    "SELECT active FROM asistencias WHERE id_estudiante = 1 AND id_curso_asignatura = 1 AND fecha = '2026-10-05'");
             assertTrue(activo.next());
             assertTrue(activo.getBoolean(1));
         }

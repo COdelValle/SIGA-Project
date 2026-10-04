@@ -16,7 +16,7 @@ public record RegistrarEvaluacionRequestDTO(
   @DecimalMax(value = "100.0", message = "La ponderación debe ser menor o igual a 100")
   Double ponderacion,
 
-  @NotNull(message = "El ID de la asignatura es requerido")
-  Long idAsignatura
+  @NotNull(message = "El ID de la dictación es requerido")
+  Long idCursoAsignatura
   ) {
 }

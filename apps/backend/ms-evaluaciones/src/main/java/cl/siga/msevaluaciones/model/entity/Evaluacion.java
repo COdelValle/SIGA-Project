@@ -34,9 +34,9 @@ public class Evaluacion {
   @Column(name = "ponderacion", nullable = false)
   private Double ponderacion;
 
-  @NotNull(message = "El ID de la asignatura es requerido")
-  @Column(name = "id_asignatura", nullable = false)
-  private Long idAsignatura;
+  @NotNull(message = "El ID de la dictación es requerido")
+  @Column(name = "id_curso_asignatura", nullable = false)
+  private Long idCursoAsignatura;
 
   @Builder.Default
   @NotNull(message = "El estado activo es obligatorio")

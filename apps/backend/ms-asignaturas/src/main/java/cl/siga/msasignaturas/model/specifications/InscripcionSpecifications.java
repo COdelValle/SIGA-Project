@@ -16,10 +16,10 @@ public class InscripcionSpecifications {
         };
     }
 
-    public static Specification<Inscripcion> hasIdAsignatura(Long idAsignatura) {
+    public static Specification<Inscripcion> hasIdCursoAsignatura(Long idCursoAsignatura) {
         return (root, query, cb) -> {
-            if (idAsignatura == null) return cb.conjunction();
-            return cb.equal(root.get("asignatura").get("id"), idAsignatura);
+            if (idCursoAsignatura == null) return cb.conjunction();
+            return cb.equal(root.get("cursoAsignatura").get("id"), idCursoAsignatura);
         };
     }
 

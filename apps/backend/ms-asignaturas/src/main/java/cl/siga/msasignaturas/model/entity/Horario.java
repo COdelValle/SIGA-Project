@@ -3,7 +3,7 @@ package cl.siga.msasignaturas.model.entity;
 import java.time.LocalTime;
 
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
-import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,6 +38,6 @@ public class Horario {
     private boolean active = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asignatura_id", nullable = false)
-    private Asignatura asignatura;
+    @JoinColumn(name = "curso_asignatura_id", nullable = false)
+    private CursoAsignatura cursoAsignatura;
 }

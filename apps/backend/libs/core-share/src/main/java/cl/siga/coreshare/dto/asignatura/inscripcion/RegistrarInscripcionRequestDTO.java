@@ -6,6 +6,6 @@ public record RegistrarInscripcionRequestDTO(
         @NotNull(message = "El ID del alumno es obligatorio") 
         Long idAlumno,
         
-        @NotNull(message = "El ID de la asignatura es obligatorio") 
-        Long idAsignatura
+        @NotNull(message = "El ID de la dictación es obligatorio") 
+        Long idCursoAsignatura
 ) {}
