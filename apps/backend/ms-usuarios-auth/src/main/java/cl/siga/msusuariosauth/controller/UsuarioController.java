@@ -5,7 +5,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import cl.siga.coreshare.dto.usuario.ActualizarUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.CandidatoUsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.InvitacionLoteResponseDTO;
+import cl.siga.coreshare.dto.usuario.InvitacionUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
@@ -21,15 +24,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController 
 @RequestMapping ("/api/v1/usuarios")
@@ -69,8 +74,26 @@ public class UsuarioController {
     
     @PostMapping()
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
-    public ResponseEntity<UsuarioResponseDTO> postUsuario(@RequestBody @Valid RegistrarUsuarioRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.saveUsuario(request));
+    public ResponseEntity<RegistrarUsuarioResponseDTO> postUsuario(@RequestBody @Valid RegistrarUsuarioRequestDTO request) {
+        RegistrarUsuarioResponseDTO response = usuarioService.saveUsuario(request);
+        HttpStatus status = response.state() == StateUsuario.INVITADO
+                ? HttpStatus.ACCEPTED
+                : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @PostMapping("/invitaciones/lote")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
+    public ResponseEntity<InvitacionLoteResponseDTO> postInvitacionesLote(
+            @RequestBody List<InvitacionUsuarioRequestDTO> solicitudes) {
+        return ResponseEntity.ok(usuarioService.invitarLote(solicitudes));
+    }
+
+    @PostMapping(value = "/invitaciones/lote/csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
+    public ResponseEntity<InvitacionLoteResponseDTO> postInvitacionesLoteCsv(
+            @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(usuarioService.invitarLoteCsv(archivo));
     }
     
     @PutMapping("/{id}")

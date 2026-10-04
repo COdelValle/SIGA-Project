@@ -57,21 +57,32 @@ Administra usuarios, roles y estado de las cuentas, en conjunto con los claims d
 Incluye:
 
 - Entidad `Usuario` (PK = `id` de Azure, rol, estado).
-- `UsuarioRepository` (JPA + Specifications), `UsuarioSpecifications`.
-- `UsuarioService` y `UsuarioMapper` (MapStruct).
-- `UsuarioController` en `/api/v1/usuarios`: CRUD, `GET /me`, `GET /lookup?email=` y `POST /{id}/sync-roles`.
+- Entidad `InvitacionUsuario` (`invitaciones_usuarios`: correo, rol, estado, quién invitó y cuándo).
+- `UsuarioRepository` (JPA + Specifications), `UsuarioSpecifications`, `InvitacionUsuarioRepository`.
+- `UsuarioService`, `InvitacionVinculacionService` y `UsuarioMapper` (MapStruct).
+- `UsuarioController` en `/api/v1/usuarios`: CRUD, `GET /me`, `GET /lookup?email=`,
+  `POST /invitaciones/lote` (JSON), `POST /invitaciones/lote/csv` (multipart) y
+  `POST /{id}/sync-roles`.
 - Integracion con **Microsoft Graph** (opcional via `AZURE_CLIENT_SECRET`): pre-registro por correo, cambio de rol y sincronizacion de app roles.
-- DTOs de registro, actualizacion y respuesta en `core-share`.
+- DTOs de registro, invitacion, actualizacion y respuesta en `core-share`.
 
 Comportamiento:
 
-- `POST` crea el usuario con estado `ACTIVO`.
+- `POST` sin `id` resuelve el `oid` con Graph si esta configurado; si no, crea una
+  **invitacion** (`202`) que se vincula en el primer login. Con `id` explicito el
+  usuario queda `ACTIVO` (`201`); esa via es solo de compatibilidad (el oid no
+  deberia ingresarse a mano).
+- **Vinculacion automatica**: en `GET /me`, si el `oid` del token no tiene fila,
+  se busca una invitacion por el correo del JWT (`preferred_username`/`email`/`upn`)
+  y se crea el usuario `ACTIVO` con el rol invitado. Sin invitacion se responde
+  `404` (acceso cerrado: nadie se auto-registra).
 - `DELETE` aplica **borrado logico** (estado `INACTIVO`); los inactivos no se devuelven en consultas.
 - `GET /search` filtra por `email`, `rol` y `state`.
 
 Seguridad: `hasRole('ADMIN')` combinado con `hasAuthority('SCOPE_usuarios:read|write|update|delete')`.
 
-Pendientes: contrato final de identidad (Azure AD vs SIGA) y pruebas.
+Pendientes: UI/BFF de carga masiva, aprovisionamiento de cuentas en Entra ID
+(generador de correos y `POST /users`) y reconciliacion de OIDs de los datos mock.
 
 ### 3.3 Servicio de estudiantes
 
