@@ -8,10 +8,10 @@ import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasignaturas.model.entity.Horario;
-import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import cl.siga.msasignaturas.model.mapper.HorarioMapper;
 import cl.siga.msasignaturas.repository.HorarioRepository;
-import cl.siga.msasignaturas.repository.asignatura.AsignaturaRepository;
+import cl.siga.msasignaturas.repository.asignatura.CursoAsignaturaRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -19,20 +19,20 @@ import lombok.RequiredArgsConstructor;
 public class HorarioService {
 
     private final HorarioRepository horarioRepository;
-    private final AsignaturaRepository asignaturaRepository;
+    private final CursoAsignaturaRepository cursoAsignaturaRepository;
     private final HorarioMapper horarioMapper;
 
     @Transactional
-    public HorarioResponseDTO crearHorario(Long asignaturaId, HorarioRequestDTO request) {
+    public HorarioResponseDTO crearHorario(Long cursoAsignaturaId, HorarioRequestDTO request) {
         validarRangoHorario(request);
 
-        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(asignaturaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Asignatura activa no encontrada con ID: " + asignaturaId));
+        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoAsignaturaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dictación activa no encontrada con ID: " + cursoAsignaturaId));
 
-        validarSolapamiento(asignaturaId, request, null);
+        validarSolapamiento(cursoAsignaturaId, request, null);
 
         Horario horario = horarioMapper.toEntity(request);
-        horario.setAsignatura(asignatura);
+        horario.setCursoAsignatura(curso);
         horario.setActive(true);
 
         return horarioMapper.toDto(horarioRepository.save(horario));
@@ -46,13 +46,14 @@ public class HorarioService {
                 .filter(Horario::isActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Horario no encontrado con ID: " + id));
 
-        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(horario.getAsignatura().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Asignatura activa no encontrada con ID: " + horario.getAsignatura().getId()));
+        Long cursoId = horario.getCursoAsignatura().getId();
+        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dictación activa no encontrada con ID: " + cursoId));
 
-        validarSolapamiento(asignatura.getId(), request, id);
+        validarSolapamiento(curso.getId(), request, id);
 
         horarioMapper.updateEntityFromDto(request, horario);
-        horario.setAsignatura(asignatura);
+        horario.setCursoAsignatura(curso);
 
         return horarioMapper.toDto(horarioRepository.save(horario));
     }
@@ -66,8 +67,8 @@ public class HorarioService {
             return;
         }
 
-        if (horarioRepository.countByAsignaturaIdAndActiveTrue(horario.getAsignatura().getId()) <= 1) {
-            throw new BusinessException("La asignatura debe mantener al menos un horario.");
+        if (horarioRepository.countByCursoAsignaturaIdAndActiveTrue(horario.getCursoAsignatura().getId()) <= 1) {
+            throw new BusinessException("La dictación debe mantener al menos un horario.");
         }
 
         horario.setActive(false);
@@ -80,12 +81,12 @@ public class HorarioService {
         }
     }
 
-    private void validarSolapamiento(Long asignaturaId, HorarioRequestDTO request, Long idExcluir) {
-        boolean solapaAsignatura = horarioRepository.findByAsignaturaIdAndActiveTrue(asignaturaId).stream()
+    private void validarSolapamiento(Long cursoAsignaturaId, HorarioRequestDTO request, Long idExcluir) {
+        boolean solapaCurso = horarioRepository.findByCursoAsignaturaIdAndActiveTrue(cursoAsignaturaId).stream()
                 .filter(h -> idExcluir == null || !h.getId().equals(idExcluir))
                 .anyMatch(h -> h.getDia() == request.dia() && solapan(h, request));
-        if (solapaAsignatura) {
-            throw new BusinessException("La asignatura ya tiene un horario que se solapa con el indicado.");
+        if (solapaCurso) {
+            throw new BusinessException("La dictación ya tiene un horario que se solapa con el indicado.");
         }
 
         boolean solapaUbicacion = horarioRepository

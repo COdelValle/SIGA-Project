@@ -22,9 +22,9 @@ import cl.siga.bffweb.domain.docentes.DocenteContextService;
 import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
-import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.enums.Semestre;
-import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
 import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.ActualizarEvaluacionRequestDTO;
 import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
@@ -65,7 +65,7 @@ class EvaluacionBffServiceTest {
     @Test
     void crearEvaluacionRechazaAsignaturaDeOtroDocente() {
         autenticar("oid-otro");
-        when(asignaturaClient.getAsignaturaById(3L)).thenReturn(ciencias());
+        when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-otro")).thenReturn(docente(2L, "oid-otro"));
 
         assertThatThrownBy(() -> service.crearEvaluacion(
@@ -100,7 +100,7 @@ class EvaluacionBffServiceTest {
     }
 
     private void cuandoEsDuenio() {
-        when(asignaturaClient.getAsignaturaById(3L)).thenReturn(ciencias());
+        when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente(1L, "oid-alejandro"));
     }
 
@@ -115,10 +115,10 @@ class EvaluacionBffServiceTest {
             "11111111-1", LocalDate.of(2019, 3, 1), true, AreaAcademica.CIENCIAS, List.of());
     }
 
-    private static AsignaturaResponseDTO ciencias() {
-        return new AsignaturaResponseDTO(
-            3L, "CIENCIAS", "ciencias naturales", Semestre.SEMESTRE_1, AreaAcademica.CIENCIAS,
-            TipoAsignatura.BASICA, 1L, List.of(), 4L, null, null, null, List.of());
+    private static CursoAsignaturaResponseDTO ciencias() {
+        return new CursoAsignaturaResponseDTO(
+            3L, 4L, "Ciencias Naturales", "ciencias naturales", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 1L, 4L, null, null, 0, List.of());
     }
 
     private static EvaluacionResponseDTO evaluacion() {

@@ -10,8 +10,13 @@ import { AdminService } from '../state/admin.service';
   selector: 'siga-admin-asignaturas',
   imports: [PaginadorComponent, SeccionCardComponent],
   template: `
-    <div class="mx-auto flex max-w-4xl flex-col gap-6">
-      <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Asignaturas</h1>
+    <div class="mx-auto flex max-w-5xl flex-col gap-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Asignaturas</h1>
+        <p class="mt-1 text-sm text-muted">
+          Catálogo general de asignaturas. Los cursos, docentes y horarios se gestionan por curso.
+        </p>
+      </div>
 
       @if (hayError()) {
         <siga-seccion-card title="No se pudieron cargar los datos">
@@ -33,20 +38,26 @@ import { AdminService } from '../state/admin.service';
               <thead>
                 <tr class="bg-panel text-heading">
                   <th class="px-4 py-3 font-semibold">Nombre</th>
-                  <th class="px-4 py-3 font-semibold">Descripción</th>
+                  <th class="px-4 py-3 font-semibold">Área</th>
+                  <th class="px-4 py-3 font-semibold">Calificable</th>
+                  <th class="px-4 py-3 font-semibold">Niveles</th>
                   <th class="px-4 py-3 font-semibold">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 @for (asignatura of paginados().content; track asignatura.id) {
                   <tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd">
-                    <td class="px-4 py-3">{{ asignatura.nombre }}</td>
-                    <td class="px-4 py-3">{{ asignatura.descripcion }}</td>
+                    <td class="px-4 py-3 font-medium">{{ asignatura.nombre }}</td>
+                    <td class="px-4 py-3">{{ asignatura.area }}</td>
+                    <td class="px-4 py-3">{{ asignatura.calificable ? 'Sí' : 'Sin calificación' }}</td>
+                    <td class="px-4 py-3 text-xs text-muted">
+                      {{ asignatura.niveles.length > 0 ? rangoNiveles(asignatura.niveles) : '—' }}
+                    </td>
                     <td class="px-4 py-3">{{ asignatura.activa ? 'Activa' : 'Inactiva' }}</td>
                   </tr>
                 } @empty {
                   <tr class="bg-panel text-muted">
-                    <td class="px-4 py-6 text-center" colspan="3">Sin asignaturas registradas.</td>
+                    <td class="px-4 py-6 text-center" colspan="5">Sin asignaturas registradas.</td>
                   </tr>
                 }
               </tbody>
@@ -78,11 +89,19 @@ export class AdminAsignaturasComponent {
     this.config.useMocks ? ASIGNATURAS_MOCK : this.asignaturasRemotas().dato ?? [],
   );
   protected readonly page = signal(1);
-  protected readonly pageSize = 5;
+  protected readonly pageSize = 10;
 
   protected readonly paginados = computed(() =>
     toPage(this.asignaturas(), this.page() - 1, this.pageSize),
   );
+
+  /** Muestra "Primer nivel – Último nivel" para no saturar la tabla. */
+  protected rangoNiveles(niveles: string[]): string {
+    if (niveles.length === 1) {
+      return niveles[0];
+    }
+    return `${niveles[0]} – ${niveles[niveles.length - 1]}`;
+  }
 
   protected cambiarPagina(pagina: number): void {
     this.page.set(pagina);

@@ -50,7 +50,7 @@ class AsistenciaServiceTest {
 
     @Test
     void presenteQuedaConJustificacionNoAplica() {
-        when(repository.existsByIdEstudianteAndIdAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
 
         AsistenciaResponseDTO respuesta = service.saveAsistencia(
             new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.PRESENTE, null));
@@ -58,12 +58,12 @@ class AsistenciaServiceTest {
         assertThat(respuesta.estado()).isEqualTo(State.PRESENTE);
         assertThat(respuesta.justificacion()).isEqualTo(Justificacion.NO_APLICA);
         assertThat(respuesta.idEstudiante()).isEqualTo(1L);
-        assertThat(respuesta.idAsignatura()).isEqualTo(5L);
+        assertThat(respuesta.idCursoAsignatura()).isEqualTo(5L);
     }
 
     @Test
     void ausenteQuedaConJustificacionPendiente() {
-        when(repository.existsByIdEstudianteAndIdAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
 
         AsistenciaResponseDTO respuesta = service.saveAsistencia(
             new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.AUSENTE, "sin aviso"));
@@ -74,7 +74,7 @@ class AsistenciaServiceTest {
 
     @Test
     void rechazaDuplicadoDeEstudianteAsignaturaFecha() {
-        when(repository.existsByIdEstudianteAndIdAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(true);
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(true);
 
         assertThatThrownBy(() -> service.saveAsistencia(
             new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.PRESENTE, null)))
@@ -95,7 +95,7 @@ class AsistenciaServiceTest {
     @Test
     void actualizaJustificacionDeUnaAusencia() {
         Asistencia existente = Asistencia.builder()
-            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
             .estado(State.AUSENTE).justificacion(Justificacion.PENDIENTE).active(true).build();
         when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
 
@@ -109,7 +109,7 @@ class AsistenciaServiceTest {
     @Test
     void corrigeEstadoAAusenteYNormalizaJustificacion() {
         Asistencia existente = Asistencia.builder()
-            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
             .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
         when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
 
@@ -123,7 +123,7 @@ class AsistenciaServiceTest {
     @Test
     void corrigeEstadoAPresenteFuerzaJustificacionNoAplica() {
         Asistencia existente = Asistencia.builder()
-            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
             .estado(State.AUSENTE).justificacion(Justificacion.SI).active(true).build();
         when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
 
@@ -137,7 +137,7 @@ class AsistenciaServiceTest {
     @Test
     void deleteHaceSoftDelete() {
         Asistencia existente = Asistencia.builder()
-            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
             .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
         when(repository.findById(7L)).thenReturn(java.util.Optional.of(existente));
 

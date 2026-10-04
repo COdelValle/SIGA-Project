@@ -72,6 +72,16 @@ import { MenuIconName } from './menu-item.model';
           <path d="M12 6.5V21" />
         </svg>
       }
+      @case ('curriculum') {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full" aria-hidden="true">
+          <path d="M4 4h7v16H6a2 2 0 0 1-2-2z" />
+          <path d="M20 4h-7v16h5a2 2 0 0 0 2-2z" />
+          <path d="M7 8h1" />
+          <path d="M16 8h1" />
+          <path d="M7 12h1" />
+          <path d="M16 12h1" />
+        </svg>
+      }
       @case ('progress') {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full" aria-hidden="true">
           <path d="M4 20V10" />

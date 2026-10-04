@@ -5,13 +5,13 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
-import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaElectiva;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Table(name = "inscripciones", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"id_alumno", "asignatura_id"})
+    @UniqueConstraint(columnNames = {"id_alumno", "curso_asignatura_id"})
 })
 @Getter
 @Setter
@@ -28,8 +28,8 @@ public class Inscripcion {
     private Long idAlumno;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asignatura_id", nullable = false)
-    private AsignaturaElectiva asignatura;
+    @JoinColumn(name = "curso_asignatura_id", nullable = false)
+    private CursoAsignatura cursoAsignatura;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

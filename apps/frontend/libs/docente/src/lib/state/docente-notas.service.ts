@@ -114,7 +114,7 @@ export class DocenteNotasService {
     }
     return this.http.post<EvaluacionNotas>(`${this.config.bffBaseUrl}/bff/v1/evaluaciones`, {
       ...request,
-      idAsignatura: asignaturaId,
+      idCursoAsignatura: asignaturaId,
     });
   }
 

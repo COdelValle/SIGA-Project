@@ -18,11 +18,11 @@ import cl.siga.msasignaturas.model.entity.Horario;
 public interface HorarioMapper {
 
     @Mapping (target = "id", ignore = true)
-    @Mapping(target = "asignatura", ignore = true)
+    @Mapping(target = "cursoAsignatura", ignore = true)
     Horario toEntity(HorarioRequestDTO dto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "asignatura", ignore = true)
+    @Mapping(target = "cursoAsignatura", ignore = true)
     void updateEntityFromDto(HorarioRequestDTO dto, @MappingTarget Horario entity);
 
     HorarioResponseDTO toDto(Horario entity);

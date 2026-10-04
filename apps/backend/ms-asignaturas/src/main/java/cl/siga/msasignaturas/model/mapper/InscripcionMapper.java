@@ -12,13 +12,13 @@ import cl.siga.msasignaturas.model.entity.Inscripcion;
 @Mapper(componentModel = "spring")
 public interface InscripcionMapper {
 
-    @Mapping(target = "idAsignatura", source = "asignatura.id")
+    @Mapping(target = "idCursoAsignatura", source = "cursoAsignatura.id")
     InscripcionResponseDTO toDto(Inscripcion inscripcion);
 
     List<InscripcionResponseDTO> toDtoList(List<Inscripcion> inscripciones);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "asignatura", ignore = true)
+    @Mapping(target = "cursoAsignatura", ignore = true)
     @Mapping(target = "estado", ignore = true)
     @Mapping(target = "fechaInscripcion", ignore = true)
     Inscripcion toEntity(RegistrarInscripcionRequestDTO request);

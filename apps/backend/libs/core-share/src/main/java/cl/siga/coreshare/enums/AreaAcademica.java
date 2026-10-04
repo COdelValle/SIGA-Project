@@ -10,14 +10,23 @@ public enum AreaAcademica {
     @JsonProperty("CIENCIAS")
     CIENCIAS ("Ciencias Naturales y Exactas"),
 
+    @JsonProperty("CIENCIAS_CIUDADANIA")
+    CIENCIAS_CIUDADANIA ("Ciencias para la Ciudadanía"),
+
     @JsonProperty("LENGUAJE")
     LENGUAJE ("Lenguaje y Comunicación"),
 
     @JsonProperty("HISTORIA")
     HISTORIA ("Historia y Ciencias Sociales"),
 
+    @JsonProperty("CIUDADANIA")
+    CIUDADANIA ("Formación Ciudadana"),
+
+    @JsonProperty("FILOSOFIA")
+    FILOSOFIA ("Filosofía"),
+
     @JsonProperty("IDIOMAS")
-    IDIOMAS ("Idiomas Extranjeros"),
+    IDIOMAS ("Lenguas e Idiomas"),
 
     @JsonProperty("ARTES")
     ARTES ("Artes y Música"),
@@ -27,6 +36,15 @@ public enum AreaAcademica {
 
     @JsonProperty("TECNOLOGIA")
     TECNOLOGIA ("Tecnología e Informática"),
+
+    @JsonProperty("ORIENTACION")
+    ORIENTACION ("Orientación"),
+
+    @JsonProperty("RELIGION")
+    RELIGION ("Religión"),
+
+    @JsonProperty("ECONOMIA")
+    ECONOMIA ("Economía y Finanzas"),
 
     @JsonProperty("OTRA")
     OTRA ("Otra Área");

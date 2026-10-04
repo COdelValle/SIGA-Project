@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 3.2.1263 on 2026-10-03 20:26:53.
+// Generated using typescript-generator version 3.2.1263 on 2026-10-04 13:17:44.
 
 export interface PerfilEstudianteResponseDTO {
     id: number;
@@ -34,8 +34,12 @@ export interface ClaseDetalleDTO {
 
 export interface AsignaturaDetalleDTO {
     id: number;
+    idAsignatura: number;
     name: string;
     description: string;
+    area: AreaAcademica;
+    caracter: CaracterAsignatura;
+    calificable: boolean;
     idDocente: number;
     docente: string;
     horarios: HorarioDetalleDTO[];
@@ -59,3 +63,7 @@ export interface EvaluacionDetalleDTO {
 }
 
 export type Rol = "ADMIN" | "DOCENTE" | "APODERADO" | "ESTUDIANTE";
+
+export type AreaAcademica = "Matemáticas" | "Ciencias Naturales y Exactas" | "Ciencias para la Ciudadanía" | "Lenguaje y Comunicación" | "Historia y Ciencias Sociales" | "Formación Ciudadana" | "Filosofía" | "Lenguas e Idiomas" | "Artes y Música" | "Educación Física" | "Tecnología e Informática" | "Orientación" | "Religión" | "Economía y Finanzas" | "Otra Área";
+
+export type CaracterAsignatura = "OBLIGATORIA" | "OPTATIVA" | "ELECTIVA";

@@ -12,9 +12,13 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.Semestre;
 import cl.siga.coreshare.dto.evaluaciones.ActualizarEvaluacionRequestDTO;
 import cl.siga.coreshare.dto.evaluaciones.RegistrarEvaluacionRequestDTO;
 import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
+import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.msevaluaciones.client.AsignaturaClient;
 import cl.siga.msevaluaciones.model.entity.Evaluacion;
@@ -36,9 +40,25 @@ class EvaluacionServiceTest {
         service = new EvaluacionService(repository, mapper, asignaturaClient);
     }
 
+    private CursoAsignaturaResponseDTO dictacion(boolean calificable) {
+        return new CursoAsignaturaResponseDTO(
+                5L, 1L, "Matemática", "matemática", AreaAcademica.MATEMATICAS, calificable,
+                CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 6L, 4L,
+                null, null, 0, List.of());
+    }
+
     @Test
-    void rechazaEvaluacionDeAsignaturaInexistente() {
-        when(asignaturaClient.existsById(5L)).thenReturn(false);
+    void rechazaEvaluacionDeDictacionInexistente() {
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(null);
+
+        assertThrows(BusinessException.class, () -> service.saveEvaluacion(
+                new RegistrarEvaluacionRequestDTO("PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 5L)));
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rechazaEvaluacionDeAsignaturaNoCalificable() {
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(false));
 
         assertThrows(BusinessException.class, () -> service.saveEvaluacion(
                 new RegistrarEvaluacionRequestDTO("PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 5L)));
@@ -47,13 +67,13 @@ class EvaluacionServiceTest {
 
     @Test
     void rechazaPonderacionQueSuperaElCienPorCiento() {
-        when(asignaturaClient.existsById(5L)).thenReturn(true);
-        when(repository.existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrue("PRUEBA 2", 5L)).thenReturn(false);
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(true));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue("PRUEBA 2", 5L)).thenReturn(false);
 
         Evaluacion existente = new Evaluacion();
         existente.setId(1L);
         existente.setPonderacion(80.0);
-        when(repository.findActiveByIdAsignaturaForUpdate(5L)).thenReturn(List.of(existente));
+        when(repository.findActiveByIdCursoAsignaturaForUpdate(5L)).thenReturn(List.of(existente));
 
         assertThrows(BusinessException.class, () -> service.saveEvaluacion(
                 new RegistrarEvaluacionRequestDTO("PRUEBA 2", TipoEvaluacion.SUMATIVA, 30.0, 5L)));
@@ -64,10 +84,10 @@ class EvaluacionServiceTest {
     void rechazaNombreDuplicadoAlActualizar() {
         Evaluacion actual = new Evaluacion();
         actual.setId(2L);
-        actual.setIdAsignatura(5L);
+        actual.setIdCursoAsignatura(5L);
         actual.setPonderacion(30.0);
         when(repository.findByIdAndActiveTrue(2L)).thenReturn(Optional.of(actual));
-        when(repository.existsByNombreIgnoreCaseAndIdAsignaturaAndActiveTrueAndIdNot("PRUEBA 1", 5L, 2L))
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrueAndIdNot("PRUEBA 1", 5L, 2L))
                 .thenReturn(true);
 
         assertThrows(BusinessException.class, () -> service.updateEvaluacion(2L,

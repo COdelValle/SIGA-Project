@@ -22,24 +22,24 @@ import cl.siga.coreshare.dto.asignatura.horario.HorarioRequestDTO;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.msasignaturas.model.entity.Horario;
-import cl.siga.msasignaturas.model.entity.asignatura.AsignaturaBasica;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import cl.siga.msasignaturas.model.mapper.HorarioMapper;
 import cl.siga.msasignaturas.repository.HorarioRepository;
-import cl.siga.msasignaturas.repository.asignatura.AsignaturaRepository;
+import cl.siga.msasignaturas.repository.asignatura.CursoAsignaturaRepository;
 
 class HorarioServiceTest {
 
     private HorarioRepository horarioRepository;
-    private AsignaturaRepository asignaturaRepository;
+    private CursoAsignaturaRepository cursoAsignaturaRepository;
     private HorarioMapper horarioMapper;
     private HorarioService service;
 
     @BeforeEach
     void setUp() {
         horarioRepository = mock(HorarioRepository.class);
-        asignaturaRepository = mock(AsignaturaRepository.class);
+        cursoAsignaturaRepository = mock(CursoAsignaturaRepository.class);
         horarioMapper = mock(HorarioMapper.class);
-        service = new HorarioService(horarioRepository, asignaturaRepository, horarioMapper);
+        service = new HorarioService(horarioRepository, cursoAsignaturaRepository, horarioMapper);
     }
 
     private Horario existente(DiaSemana dia, LocalTime entrada, LocalTime salida) {
@@ -52,17 +52,17 @@ class HorarioServiceTest {
         return horario;
     }
 
-    private void asignaturaActiva() {
-        AsignaturaBasica asignatura = new AsignaturaBasica();
-        asignatura.setId(1L);
-        asignatura.setActive(true);
-        when(asignaturaRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(asignatura));
+    private void cursoActivo() {
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        curso.setActive(true);
+        when(cursoAsignaturaRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(curso));
     }
 
     @Test
-    void rechazaHorarioQueSeSolapaEnLaMismaAsignatura() {
-        asignaturaActiva();
-        when(horarioRepository.findByAsignaturaIdAndActiveTrue(1L))
+    void rechazaHorarioQueSeSolapaEnLaMismaDictacion() {
+        cursoActivo();
+        when(horarioRepository.findByCursoAsignaturaIdAndActiveTrue(1L))
                 .thenReturn(List.of(existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30))));
         when(horarioRepository.findByUbicacionIgnoreCaseAndDiaAndActiveTrue(anyString(), any())).thenReturn(List.of());
 
@@ -75,8 +75,8 @@ class HorarioServiceTest {
 
     @Test
     void rechazaHorarioQueOcupaUnaUbicacionEnUso() {
-        asignaturaActiva();
-        when(horarioRepository.findByAsignaturaIdAndActiveTrue(1L)).thenReturn(List.of());
+        cursoActivo();
+        when(horarioRepository.findByCursoAsignaturaIdAndActiveTrue(1L)).thenReturn(List.of());
         when(horarioRepository.findByUbicacionIgnoreCaseAndDiaAndActiveTrue(anyString(), any()))
                 .thenReturn(List.of(existente(DiaSemana.MARTES, LocalTime.of(8, 0), LocalTime.of(9, 30))));
 
@@ -89,8 +89,8 @@ class HorarioServiceTest {
 
     @Test
     void creaHorarioSinSolapamiento() {
-        asignaturaActiva();
-        when(horarioRepository.findByAsignaturaIdAndActiveTrue(1L))
+        cursoActivo();
+        when(horarioRepository.findByCursoAsignaturaIdAndActiveTrue(1L))
                 .thenReturn(List.of(existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30))));
         when(horarioRepository.findByUbicacionIgnoreCaseAndDiaAndActiveTrue(anyString(), any())).thenReturn(List.of());
 
@@ -102,19 +102,19 @@ class HorarioServiceTest {
 
         service.crearHorario(1L, request);
 
-        assertNotNull(nuevo.getAsignatura());
+        assertNotNull(nuevo.getCursoAsignatura());
         assertTrue(nuevo.isActive());
         verify(horarioRepository).save(nuevo);
     }
 
     @Test
-    void noEliminaElUltimoHorarioDeLaAsignatura() {
+    void noEliminaElUltimoHorarioDeLaDictacion() {
         Horario unico = existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30));
-        AsignaturaBasica asignatura = new AsignaturaBasica();
-        asignatura.setId(1L);
-        unico.setAsignatura(asignatura);
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        unico.setCursoAsignatura(curso);
         when(horarioRepository.findById(1L)).thenReturn(Optional.of(unico));
-        when(horarioRepository.countByAsignaturaIdAndActiveTrue(1L)).thenReturn(1L);
+        when(horarioRepository.countByCursoAsignaturaIdAndActiveTrue(1L)).thenReturn(1L);
 
         assertThrows(BusinessException.class, () -> service.eliminarHorario(1L));
         verify(horarioRepository, never()).save(any());
@@ -123,11 +123,11 @@ class HorarioServiceTest {
     @Test
     void eliminaLogicamenteCuandoHayMasDeUnHorario() {
         Horario horario = existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30));
-        AsignaturaBasica asignatura = new AsignaturaBasica();
-        asignatura.setId(1L);
-        horario.setAsignatura(asignatura);
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        horario.setCursoAsignatura(curso);
         when(horarioRepository.findById(1L)).thenReturn(Optional.of(horario));
-        when(horarioRepository.countByAsignaturaIdAndActiveTrue(1L)).thenReturn(2L);
+        when(horarioRepository.countByCursoAsignaturaIdAndActiveTrue(1L)).thenReturn(2L);
 
         service.eliminarHorario(1L);
 

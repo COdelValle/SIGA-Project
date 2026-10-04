@@ -7,7 +7,7 @@ public record EvaluacionResponseDTO(
   String nombre,
   TipoEvaluacion tipo,
   Double ponderacion,
-  Long idAsignatura,
+  Long idCursoAsignatura,
   boolean active
 ) {
 }

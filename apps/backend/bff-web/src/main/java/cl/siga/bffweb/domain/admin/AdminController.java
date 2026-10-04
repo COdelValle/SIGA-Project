@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import cl.siga.bffweb.domain.admin.dto.AsignaturaAdminDTO;
 import cl.siga.bffweb.domain.admin.dto.UsuarioAdminDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import lombok.RequiredArgsConstructor;
@@ -34,5 +36,12 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')")
     public ResponseEntity<List<AsignaturaAdminDTO>> getAsignaturas() {
         return ResponseEntity.ok(service.getAsignaturas());
+    }
+
+    @GetMapping("/malla")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')")
+    public ResponseEntity<List<MallaCurricularResponseDTO>> getMalla(
+            @RequestParam(required = false) Nivel nivel) {
+        return ResponseEntity.ok(service.getMalla(nivel));
     }
 }
