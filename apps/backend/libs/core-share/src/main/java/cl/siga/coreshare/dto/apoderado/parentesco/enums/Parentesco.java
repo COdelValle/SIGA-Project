@@ -1,5 +1,6 @@
 package cl.siga.coreshare.dto.apoderado.parentesco.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -34,5 +35,23 @@ public enum Parentesco {
     @JsonValue
     public String getTextoMostrado() {
         return this.textoMostrado;
+    }
+
+    /**
+     * Acepta tanto el nombre de la constante (MADRE_PADRE) como el texto
+     * visible (Madre/Padre), sin distinguir mayusculas.
+     */
+    @JsonCreator
+    public static Parentesco desde(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        for (Parentesco parentesco : values()) {
+            if (parentesco.name().equalsIgnoreCase(valor)
+                    || parentesco.textoMostrado.equalsIgnoreCase(valor)) {
+                return parentesco;
+            }
+        }
+        throw new IllegalArgumentException("Parentesco inválido: " + valor);
     }
 }

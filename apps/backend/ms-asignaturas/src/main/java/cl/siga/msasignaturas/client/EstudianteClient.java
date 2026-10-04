@@ -9,7 +9,7 @@ import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 @FeignClient (
     name = "ms-estudiantes",
     url = "${services.ms-estudiantes.url}",
-    fallback = EstudianteClientFallback.class
+    fallbackFactory = EstudianteClientFallbackFactory.class
 )
 public interface EstudianteClient {
     @GetMapping ("/api/v1/estudiantes/idUsuario/{idUsuario}")

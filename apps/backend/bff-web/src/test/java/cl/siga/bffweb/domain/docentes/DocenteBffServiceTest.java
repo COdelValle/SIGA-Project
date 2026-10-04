@@ -40,8 +40,11 @@ class DocenteBffServiceTest {
     private final ClaseClient claseClient = mock(ClaseClient.class);
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
 
+    private final DocenteContextService docenteContext =
+        new DocenteContextService(docenteClient, asignaturaClient);
+
     private final DocenteBffService service = new DocenteBffService(
-        docenteClient, asignaturaClient, claseClient, estudianteClient);
+        docenteContext, claseClient, estudianteClient);
 
     @AfterEach
     void limpiarContexto() {

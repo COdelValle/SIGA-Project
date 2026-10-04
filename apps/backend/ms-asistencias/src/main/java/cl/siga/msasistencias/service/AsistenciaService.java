@@ -86,6 +86,16 @@ public class AsistenciaService {
         Asistencia asistencia = repository.findByIdAndActiveTrue(id)
             .orElseThrow(() -> new ResourceNotFoundException("Asistencia con ID " + id + " no encontrada."));
         mapper.updateEntityFromDto(request, asistencia);
+        if (request.estado() != null) {
+            // Correccion de la marcacion por parte del docente: se normaliza la
+            // justificacion asociada al nuevo estado.
+            asistencia.setEstado(request.estado());
+            if (request.estado() == State.PRESENTE) {
+                asistencia.setJustificacion(Justificacion.NO_APLICA);
+            } else if (asistencia.getJustificacion() == Justificacion.NO_APLICA) {
+                asistencia.setJustificacion(Justificacion.PENDIENTE);
+            }
+        }
         return mapper.toResponseDto(repository.save(asistencia));
     }
 

@@ -7,6 +7,7 @@ import {
   asistenciaResumenDePerfil,
 } from '@siga/academico';
 import { asistenciaRegistrosDe, asistenciaResumenDe } from '@siga/mocks';
+import { APP_CONFIG } from '@siga/core';
 import { SeccionCardComponent } from '@siga/shared-ui';
 import { ApoderadoStateService } from '../state/apoderado-state.service';
 
@@ -25,13 +26,29 @@ import { ApoderadoStateService } from '../state/apoderado-state.service';
         </a>
       </div>
 
-      <siga-seccion-card [title]="asignatura()">
-        <siga-asistencia-historial [registros]="registros()" />
-      </siga-seccion-card>
+      @if (hayError()) {
+        <siga-seccion-card title="No se pudieron cargar los datos">
+          <div class="flex flex-col items-center gap-3 py-4 text-center">
+            <p class="text-sm text-muted">Revisa la conexión con el BFF e inténtalo nuevamente.</p>
+            <button
+              type="button"
+              (click)="reintentar()"
+              class="rounded-lg border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
+            >
+              Reintentar
+            </button>
+          </div>
+        </siga-seccion-card>
+      } @else {
+        <siga-seccion-card [title]="asignatura()">
+          <siga-asistencia-historial [registros]="registros()" />
+        </siga-seccion-card>
+      }
     </div>
   `,
 })
 export class ApoderadoAsistenciaHistorialComponent {
+  private readonly config = inject(APP_CONFIG);
   private readonly route = inject(ActivatedRoute);
   private readonly state = inject(ApoderadoStateService);
   private readonly idParam = toSignal(this.route.paramMap, {
@@ -40,23 +57,35 @@ export class ApoderadoAsistenciaHistorialComponent {
 
   private readonly id = computed(() => Number(this.idParam().get('id') ?? 0));
 
+  protected readonly hayError = computed(
+    () =>
+      this.state.estadoPupilos() === 'error' ||
+      this.state.estadoPerfil() === 'error' ||
+      this.state.estadoAsistencias() === 'error',
+  );
   private readonly resumen = computed(() => {
+    if (this.config.useMocks) {
+      return asistenciaResumenDe(this.state.pupiloId());
+    }
     const perfil = this.state.perfil();
     const asistencias = this.state.asistencias();
-    return perfil && asistencias
-      ? asistenciaResumenDePerfil(perfil, asistencias)
-      : asistenciaResumenDe(this.state.pupiloId());
+    return perfil && asistencias ? asistenciaResumenDePerfil(perfil, asistencias) : [];
   });
   private readonly todosLosRegistros = computed(() => {
+    if (this.config.useMocks) {
+      return asistenciaRegistrosDe(this.state.pupiloId());
+    }
     const perfil = this.state.perfil();
     const asistencias = this.state.asistencias();
-    return perfil && asistencias
-      ? asistenciaRegistrosDePerfil(perfil, asistencias)
-      : asistenciaRegistrosDe(this.state.pupiloId());
+    return perfil && asistencias ? asistenciaRegistrosDePerfil(perfil, asistencias) : {};
   });
 
   protected readonly asignatura = computed(
     () => this.resumen().find((item) => item.id === this.id())?.asignatura ?? 'Asignatura',
   );
   protected readonly registros = computed(() => this.todosLosRegistros()[this.id()] ?? []);
+
+  protected reintentar(): void {
+    this.state.reintentar();
+  }
 }

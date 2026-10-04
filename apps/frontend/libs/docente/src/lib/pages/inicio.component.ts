@@ -64,15 +64,15 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="rounded-xl bg-surface px-4 py-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-muted">Lectivas</p>
-            <p class="mt-1 text-2xl font-bold text-heading">{{ lectivas }}h</p>
+            <p class="mt-1 text-2xl font-bold text-heading">{{ lectivas() }}h</p>
           </div>
           <div class="rounded-xl bg-surface px-4 py-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-muted">No lectivas</p>
-            <p class="mt-1 text-2xl font-bold text-ink">{{ noLectivas }}h</p>
+            <p class="mt-1 text-2xl font-bold text-ink">{{ noLectivas() }}h</p>
           </div>
           <div class="rounded-xl bg-surface px-4 py-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-muted">Total contrato</p>
-            <p class="mt-1 text-2xl font-bold text-ok">{{ total }}h / 40h</p>
+            <p class="mt-1 text-2xl font-bold text-ok">{{ total() }}h / 40h</p>
           </div>
         </div>
         <p class="mt-3 text-xs text-muted">

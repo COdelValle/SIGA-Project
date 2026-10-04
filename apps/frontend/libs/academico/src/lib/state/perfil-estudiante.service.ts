@@ -1,13 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
-import { Observable, catchError, of, shareReplay } from 'rxjs';
+import { Observable, of, shareReplay } from 'rxjs';
 import { PerfilEstudianteDTO } from '../models/perfil.model';
 
 /**
- * Consume el perfil academico real del BFF. Devuelve `null` cuando el BFF no
- * responde (o `useMocks` esta activo) para que las vistas usen el mock de
- * respaldo.
+ * Consume el perfil academico real del BFF. En modo demo (`useMocks`) devuelve
+ * `null`; los errores reales se propagan a la vista (sin fallback a mocks).
  */
 @Injectable({ providedIn: 'root' })
 export class PerfilEstudianteService {
@@ -31,14 +30,21 @@ export class PerfilEstudianteService {
 
     const request$ = this.config.useMocks
       ? of<PerfilEstudianteDTO | null>(null)
-      : this.http
-          .get<PerfilEstudianteDTO>(
-            `${this.config.bffBaseUrl}/bff/v1/estudiantes/perfil/${clave}`,
-          )
-          .pipe(catchError(() => of<PerfilEstudianteDTO | null>(null)));
+      : this.http.get<PerfilEstudianteDTO>(
+          `${this.config.bffBaseUrl}/bff/v1/estudiantes/perfil/${clave}`,
+        );
 
     const compartido$ = request$.pipe(shareReplay(1));
     this.cache.set(clave, compartido$);
     return compartido$;
+  }
+
+  /** Invalida el cache de un perfil (o todos) para ver cambios sin recargar. */
+  invalidar(id?: number | 'me'): void {
+    if (id === undefined) {
+      this.cache.clear();
+      return;
+    }
+    this.cache.delete(String(id));
   }
 }
