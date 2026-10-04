@@ -28,12 +28,20 @@ public final class SecurityUtils {
     }
 
     /**
-     * Obtiene el email o nombre de usuario principal.
+     * Obtiene el correo o nombre de usuario principal (UPN) del token.
+     * Se prueban los claims {@code preferred_username}, {@code email} y
+     * {@code upn} para tolerar tenants con formatos distintos.
      */
     public static Optional<String> getCurrentUserEmail() {
         return getCurrentJwt().map(jwt -> {
-            String email = jwt.getClaimAsString("preferred_username");
-            return email != null ? email : jwt.getClaimAsString("email");
+            String[] claims = {"preferred_username", "email", "upn"};
+            for (String claim : claims) {
+                String value = jwt.getClaimAsString(claim);
+                if (value != null && !value.isBlank()) {
+                    return value;
+                }
+            }
+            return null;
         });
     }
 
