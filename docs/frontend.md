@@ -95,7 +95,7 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 | Estudiante | `inicio`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso` |
 | Apoderado | `inicio`, `pupilos`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso`, `solicitudes` |
 | Docente | `inicio`, `cursos`, `horarios`, `registrar-notas`, `registrar-asistencias` |
-| Admin | `inicio`, `usuarios`, `roles`, `asignaturas` |
+| Admin | `inicio`, `usuarios`, `roles`, `asignaturas`, `malla` |
 
 - `MsalGuard` valida la autenticacion y `roleGuard([...])` valida el rol (a partir del rol autoritativo del BFF via `MeService`).
 
@@ -115,8 +115,8 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 ## 7. Contratos con el backend
 
 - El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
-- `MeService` consume `GET /api/me`; el portal estudiante usa `GET /api/bff/v1/estudiantes/perfil/me` (flujo estudiante → clase → asignaturas → evaluaciones → notas, con horarios y docente) y `/perfil/{id}` para los pupilos del apoderado.
-- Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario`, `admin/usuarios|asignaturas`, `asistencias/estudiante/me|{id}` y `asistencias/asignatura/{id}?fecha=`.
+- `MeService` consume `GET /api/me`; el portal estudiante usa `GET /api/bff/v1/estudiantes/perfil/me` (flujo estudiante → clase → dictaciones → evaluaciones → notas, con horarios y docente) y `/perfil/{id}` para los pupilos del apoderado.
+- Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario`, `admin/usuarios|asignaturas|malla`, `asistencias/estudiante/me|{id}` y `asistencias/asignatura/{id}?fecha=`.
 - El portal docente escribe contra el BFF: `GET /docentes/cursos/{asignaturaId}/notas`, CRUD de `notas` y `evaluaciones` (ponderacion acumulada <= 100) y POST/PUT de asistencias, con auto-guardado por celda/fila.
 - Con `useMocks: false` (default) los servicios solo usan el BFF; si la llamada falla, la vista muestra estado vacio/error con boton "Reintentar" (helper `recursoRemoto`), sin caer a mocks. Con `useMocks: true` las vistas usan los mocks explicitamente como modo demo.
 - Al navegar (`NavigationEnd`) se invalidan los caches de perfil/asistencias para reflejar cambios hechos por el docente sin recargar la pagina.

@@ -101,23 +101,24 @@ Comportamiento y reglas:
 
 Ubicacion: `apps/backend/ms-asignaturas` · puerto `8086`
 
-Gestiona asignaturas. La entidad usa nombres en ingles (`name`, `description`).
+Modela el catalogo de asignaturas separado de su dictacion por curso:
 
-Incluye:
-
-- Entidad `Asignatura` (nombre unico, descripcion y `active`).
-- Repositorio, service, mapper.
-- `AsignaturaController` en `/api/v1/asignaturas`.
+- `Asignatura`: catalogo general (nombre oficial unico, descripcion, area, `calificable`, `active`).
+- `MallaCurricular`: que asignatura aplica a cada `Nivel`, con `caracter` (OBLIGATORIA/OPTATIVA/ELECTIVA), `plan` (COMUN o diferenciada) y horas.
+- `CursoAsignatura`: dictacion concreta (asignatura + clase + docente + semestre + `caracter` + `cupo_maximo`); de ella cuelgan `horarios` e `inscripciones`.
 
 Endpoints:
 
-- `GET /{id}`, `GET` (listado), `GET /search?name=`, `GET /name/{name}`, `GET /exists/{id}`.
-- `POST`, `PUT /{id}`, `DELETE /{id}`.
+- `GET/DELETE /api/v1/asignaturas/{id}`, `GET /search?nombre=&area=&calificable=`, `GET /exists/{id}`, `POST`, `PUT /{id}`.
+- `GET /api/v1/malla?nivel=&plan=`, `POST`, `PUT /{id}`, `DELETE /{id}`.
+- `GET/DELETE /api/v1/curso-asignaturas/{id}`, `GET /search?idClase=&idDocente=&idAsignatura=&caracter=&semestre=&area=&nombre=&conCupoDisponible=`, `GET /exists/{id}`, `POST`, `PUT /{id}` y `GET /validar-mineduc`.
+- `horarios` e `inscripciones` referencian `curso_asignatura_id`.
 
 Comportamiento:
 
+- La dictacion valida por Feign que la clase (`ms-clases`) y el docente (`ms-docentes`) existan, y que la asignatura este en la malla del nivel de la clase.
+- Solo las dictaciones OPTATIVA/ELECTIVA admiten cupo e inscripciones; `calificable = false` (Orientacion) no admite evaluaciones.
 - `DELETE` aplica **borrado logico** (`active = false`); listados y `exists` solo consideran activos.
-- Normaliza el nombre (mayusculas) para busquedas y unicidad.
 
 ### 3.5 Servicio de notas
 
@@ -149,8 +150,8 @@ Comportamiento e integracion:
 - **`ms-docentes`** · puerto `8085`: entidades `Docente` (idUsuario, RUT, nombres, fecha de contratacion, area academica, activo) y `Certificado`; CRUD + busqueda + `exists` + certificados como subrecurso (`/api/v1/docentes/{id}/certificados`). Scopes `docentes:*`.
 - **`ms-apoderados`** · puerto `8084`: entidad `Apoderado` (telefonos y estudiantes a cargo con parentesco); CRUD + `idUsuario` + busqueda + `exists` + alta/baja de estudiantes; Feign a `ms-estudiantes`. Scopes `apoderados:*`.
 - **`ms-clases`** · puerto `8087`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
-- **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, idAsignatura, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas`. Scopes `evaluaciones:*`.
-- **`ms-asistencias`** · puerto `8090`: entidad `Asistencia` (idEstudiante, idAsignatura, fecha, estado, justificacion, observacion, activa) con unique `(estudiante, asignatura, fecha)`; CRUD + busqueda por estudiante/asignatura/rango/estado; Feign a `ms-estudiantes` y `ms-asignaturas`. Scopes `asistencias:*`. Seed con Camila y Lilith (03-08 a 02-10-2026, solo dias habiles y segun horario).
+- **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, `idCursoAsignatura`, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas` (valida dictacion activa y calificable). Scopes `evaluaciones:*`.
+- **`ms-asistencias`** · puerto `8090`: entidad `Asistencia` (idEstudiante, `idCursoAsignatura`, fecha, estado, justificacion, observacion, activa) con unique `(estudiante, dictacion, fecha)`; CRUD + busqueda por estudiante/dictacion/rango/estado; Feign a `ms-estudiantes` y `ms-asignaturas`. Scopes `asistencias:*`. Seed con Camila y Lilith (03-08 a 02-10-2026, solo dias habiles y segun horario).
 
 ### 3.7 Biblioteca compartida
 
@@ -158,7 +159,7 @@ Ubicacion: `apps/backend/libs/core-share`
 
 Centraliza elementos reutilizables, sin logica de un dominio especifico:
 
-- **DTOs** de usuario, estudiante, asignatura, notas y asistencias (incluye `PageResponseDTO` para clientes Feign).
+- **DTOs** de usuario, estudiante, asignatura (catalogo y dictacion), malla, notas y asistencias (incluye `PageResponseDTO` para clientes Feign).
 - **Enums**: `Rol`, `StateUsuario`, `State` (estudiante) y `State`/`Justificacion` (asistencia).
 - **Validadores**: `@RUT` (RUT chileno), `@Phone` y `@ChileanGrade` (nota 1.0 a 7.0).
 - **Seguridad**: `SharedSecurityConfig` (filtro stateless, rutas publicas de salud/documentacion y conversion de claims `scp`/`roles` a scopes/roles) y `SecurityUtils`.
