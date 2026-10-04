@@ -13,6 +13,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  servlet:
+    multipart:
+      # Carga masiva de invitaciones por CSV (limite alineado con el servicio).
+      max-file-size: 2MB
+      max-request-size: 2MB
   config:
     import: "optional:classpath:common-properties.yaml"
   # Permite migrar bases que ya tenian tablas creadas por Hibernate (ddl-auto=update)

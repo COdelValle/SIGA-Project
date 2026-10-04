@@ -12,6 +12,8 @@ resto de lo implementado, levantando el sistema con Docker Compose.
 - Redireccion por rol (`/admin`, `/estudiante`, `/docente`, `/apoderado`) y navegacion por el dashboard.
 - Pantalla de rechazo `/sin-acceso`, pantalla de error `/error-acceso` y cierre de sesion de Microsoft.
 - CRUD de usuarios en `ms-usuarios-auth` (via Swagger/API).
+- Invitaciones por correo (individual y por lote JSON/CSV) y vinculacion automatica
+  del `oid` en el primer login.
 - Integracion con Microsoft Graph: lookup de `oid`, alta por correo, cambio de rol y
   `sync-roles` (Fase 2, requiere secreto de Azure).
 
@@ -136,24 +138,27 @@ curl http://localhost:8081/docs/swagger
 curl -i http://localhost:8080/api/me
 ```
 
-## 6. Bootstrap del primer admin
+## 6. Bootstrap del primer admin (sin copiar el oid)
 
-Sin un usuario `ADMIN` registrado no se puede crear ningun usuario via API.
+Sin un usuario `ADMIN` registrado no se puede crear ningun usuario via API. El
+`oid` ya no se ingresa a mano: se registra una **invitacion por correo** y el
+sistema la vincula con el `oid` del token en el primer inicio de sesion.
 
-1. Obtener el `oid` (Object ID) de tu cuenta:
-   - Azure Portal > Microsoft Entra ID > Users > seleccionar usuario > Object ID, o
-   - decodificar el JWT tras el primer login.
-2. Insertar la fila (reemplazando `<OID>` y `<email>`):
+1. Invitar el correo del administrador (reemplazando `<email>`):
 
 ```bash
 docker exec -it mariadb-usuarios mariadb -u<DB_USER> -p<DB_PASS> siga_usuarios_db \
-  -e "INSERT INTO usuarios (id,email,rol,state) VALUES ('<OID>','<email>','ADMIN','ACTIVO');"
+  -e "INSERT INTO invitaciones_usuarios (email,rol,state) VALUES ('<email>','ADMIN','INVITADO');"
 ```
 
+   La migracion `V4__invitaciones_usuarios.sql` deja una invitacion de ejemplo
+   (`admin@platformsiga.onmicrosoft.com`); para otro tenant, reemplazar el correo.
+2. Iniciar sesion en el portal: `GET /api/me` vincula el `oid` del token y crea la
+   fila en `usuarios` con el rol `ADMIN` (ya no se inserta el `oid` en la BD).
 3. En Azure: **Enterprise applications > <tu app> > Users and groups > Add** y asignar el
    App role `ADMIN` a tu usuario.
    - Sin este paso, el login funciona y te lleva a `/admin`, pero las APIs con
-     `hasRole('ADMIN')` responden 403.
+     `hasRole('ADMIN')` responden 403 (el claim `roles` sale de Entra, no de la BD).
    - Alternativa: `POST /api/v1/usuarios/{oid}/sync-roles` (requiere Graph configurado).
 
 ## 7. Casos de prueba de login
@@ -193,10 +198,24 @@ Respuesta esperada:
 CRUD como admin (Swagger de `ms-usuarios-auth`):
 
 - `GET /api/v1/usuarios/{id}` y `GET /api/v1/usuarios/search`.
-- `POST /api/v1/usuarios` (con `id` o solo `email` si Graph esta activo).
+- `POST /api/v1/usuarios` con solo `{ "email": "...", "rol": "DOCENTE" }` (recomendado):
+  con Graph activo resuelve el `oid` y responde `201`; si no, crea una invitacion y
+  responde `202` con `state: "INVITADO"`.
+- Carga masiva de invitaciones:
+  - `POST /api/v1/usuarios/invitaciones/lote` con `[{ "email": "...", "rol": "..." }]`.
+  - `POST /api/v1/usuarios/invitaciones/lote/csv` (multipart `archivo`, formato `email,rol`).
+  - Respuesta: `{ "creadas": n, "duplicadas": n, "invalidas": [{ "email": "...", "motivo": "..." }] }`.
 - `PUT /api/v1/usuarios/{id}` (permite cambiar `rol`).
 - `DELETE /api/v1/usuarios/{id}` (soft delete: pasa a `INACTIVO`).
 - `POST /api/v1/usuarios/{id}/sync-roles`.
+
+Invitacion y vinculacion:
+
+- Un usuario invitado entra al portal con su cuenta de Microsoft; en el primer
+  `GET /api/me` se crea la fila `usuarios` con su `oid` (claim del JWT) y el rol
+  invitado. Ya no hay que copiar el `oid`.
+- Una cuenta valida de Microsoft **sin** fila ni invitacion recibe `404` y termina
+  en `/sin-acceso`: el acceso sigue cerrado.
 
 Busquedas paginadas (cualquier servicio):
 
@@ -211,6 +230,10 @@ Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
 
 ## 9. Fase 2 - Microsoft Graph
 
+> Las invitaciones y la vinculacion automatica del `oid` **no requieren Graph**:
+> funcionan solo con la BD. Graph agrega el lookup previo, el alta inmediata con
+> `oid` y la sincronizacion de app roles en Entra.
+
 1. Agregar `AZURE_CLIENT_SECRET` y `AZURE_API_APP_ID` a `.env`.
 2. Recrear el servicio:
    ```bash
@@ -219,11 +242,12 @@ Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
 3. Pruebas:
    - `GET /api/v1/usuarios/lookup?email=<correo>` -> devuelve `{ oid, email, displayName }`.
    - `POST /api/v1/usuarios` con `{ "email": "...", "rol": "DOCENTE" }` -> resuelve el `oid`
-     y lo registra.
+     y lo registra (`201`, `state: "ACTIVO"`).
    - Cambiar rol con `PUT` -> en Azure se reasigna el App role.
    - `DELETE` -> se revocan los App roles del usuario.
-4. Si Graph no esta configurado, estos endpoints responden error de negocio/503 y el CRUD
-   basico sigue funcionando.
+4. Si Graph no esta configurado, el CRUD basico sigue funcionando: `POST` sin `oid`
+   crea una invitacion (`202`) que se vincula en el primer login; `lookup` y
+   `sync-roles` responden error de negocio/503.
 
 ## 10. Troubleshooting
 
@@ -264,4 +288,5 @@ Mientras no haya acceso al tenant se puede comprobar:
 - [ ] Caso C: portal si, API admin 403.
 - [ ] `/api/me` con token devuelve el rol.
 - [ ] CRUD de usuarios (crear/listar/editar/baja).
+- [ ] Invitacion individual y por lote (JSON/CSV) + vinculacion en primer login.
 - [ ] Fase 2: lookup, alta por correo y `sync-roles`.
