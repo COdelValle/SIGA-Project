@@ -70,11 +70,26 @@ function agruparPorDia(clases: ClaseDocenteDTO[]): Record<DiaSemana, ClaseDocent
     Jueves: [],
     Viernes: [],
   };
+  // El BFF envia cada bloque de 45 min como una clase; los bloques
+  // consecutivos de un mismo curso comparten franja. Se deja una fila por
+  // curso+franja para no duplicar (y no romper el track del @for).
+  const vistos: Record<DiaSemana, Set<string>> = {
+    Lunes: new Set(),
+    Martes: new Set(),
+    Miércoles: new Set(),
+    Jueves: new Set(),
+    Viernes: new Set(),
+  };
   for (const clase of clases) {
     const dia = normalizarDia(clase.dia);
     if (!dia) {
       continue;
     }
+    const clave = `${clase.cursoId}|${clase.franja}`;
+    if (vistos[dia].has(clave)) {
+      continue;
+    }
+    vistos[dia].add(clave);
     horario[dia].push({
       franja: clase.franja,
       cursoId: clase.cursoId,
