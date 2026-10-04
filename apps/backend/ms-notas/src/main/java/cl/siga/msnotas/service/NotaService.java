@@ -1,6 +1,7 @@
 package cl.siga.msnotas.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import cl.siga.msnotas.client.EvaluacionClient;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,7 @@ import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.model.entity.Nota;
@@ -58,6 +60,21 @@ public class NotaService {
         }
         if (!evaluacionClient.existsById(request.idEvaluacion())) {
             throw new BusinessException("La evaluación con ID " + request.idEvaluacion() + " no existe.");
+        }
+
+        Optional<Nota> existente = repository.findByIdEstudianteAndIdEvaluacion(
+                request.idEstudiante(), request.idEvaluacion());
+        if (existente.isPresent()) {
+            Nota nota = existente.get();
+            if (nota.isActive()) {
+                throw new ConflictException("Ya existe una nota del estudiante " + request.idEstudiante()
+                        + " en la evaluación " + request.idEvaluacion() + ".");
+            }
+            // Recreacion tras un delete logico: se reactiva la misma fila para
+            // mantener la unicidad (id_estudiante, id_evaluacion).
+            nota.setScore(request.score());
+            nota.setActive(true);
+            return mapper.toResponseDto(repository.save(nota));
         }
 
         Nota nota = mapper.toEntity(request);

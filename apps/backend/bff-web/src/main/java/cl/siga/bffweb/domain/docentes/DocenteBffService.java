@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 import cl.siga.bffweb.domain.docentes.dto.AlumnoDTO;
 import cl.siga.bffweb.domain.docentes.dto.ClaseDocenteDTO;
 import cl.siga.bffweb.domain.docentes.dto.CursoDocenteDTO;
-import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.clases.ClaseClient;
-import cl.siga.bffweb.integration.docentes.DocenteClient;
 import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
@@ -22,8 +20,6 @@ import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
-import cl.siga.coreshare.exception.BusinessException;
-import cl.siga.coreshare.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -33,26 +29,25 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DocenteBffService {
-    private static final int PAGE_SIZE = 200;
+    private static final int PAGE_SIZE = 100;
     private static final List<String> ORDEN_DIAS =
         List.of("Lunes", "Martes", "Miércoles", "Jueves", "Viernes");
 
-    private final DocenteClient docenteClient;
-    private final AsignaturaClient asignaturaClient;
+    private final DocenteContextService docenteContext;
     private final ClaseClient claseClient;
     private final EstudianteClient estudianteClient;
 
     public List<CursoDocenteDTO> getCursos() {
-        DocenteResponseDTO docente = docenteActual();
-        return asignaturasDelDocente(docente.id()).stream()
+        DocenteResponseDTO docente = docenteContext.docenteActual();
+        return docenteContext.asignaturasDelDocente(docente.id()).stream()
             .filter(asignatura -> asignatura.idClase() != null)
             .map(asignatura -> toCurso(docente.id(), asignatura))
             .toList();
     }
 
     public List<ClaseDocenteDTO> getHorario() {
-        DocenteResponseDTO docente = docenteActual();
-        return asignaturasDelDocente(docente.id()).stream()
+        DocenteResponseDTO docente = docenteContext.docenteActual();
+        return docenteContext.asignaturasDelDocente(docente.id()).stream()
             .flatMap(asignatura -> toClases(asignatura).stream())
             .sorted(Comparator
                 .comparingInt((ClaseDocenteDTO clase) -> ORDEN_DIAS.indexOf(clase.dia()))
@@ -97,16 +92,6 @@ public class DocenteBffService {
                 horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),
                 horario.horarioSalida() == null ? null : horario.horarioSalida().toString()))
             .toList();
-    }
-
-    private DocenteResponseDTO docenteActual() {
-        String oid = SecurityUtils.getCurrentUserOid()
-            .orElseThrow(() -> new BusinessException("No se pudo determinar el usuario autenticado."));
-        return docenteClient.getDocenteByIdUsuario(oid);
-    }
-
-    private List<AsignaturaResponseDTO> asignaturasDelDocente(Long idDocente) {
-        return contentOf(asignaturaClient.searchAsignaturasByDocente(idDocente, PAGE_SIZE));
     }
 
     private static String nombres(EstudianteResponseDTO estudiante) {

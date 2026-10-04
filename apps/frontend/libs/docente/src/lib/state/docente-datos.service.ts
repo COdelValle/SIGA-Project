@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
 import { DIAS_SEMANA, DiaSemana } from '@siga/academico';
 import { ClaseDocente, CursoDocente } from '@siga/mocks';
-import { Observable, catchError, map, of, shareReplay } from 'rxjs';
+import { Observable, map, of, shareReplay } from 'rxjs';
 
 export interface ClaseDocenteDTO extends ClaseDocente {
   dia: string;
@@ -12,8 +12,8 @@ export interface ClaseDocenteDTO extends ClaseDocente {
 }
 
 /**
- * Datos reales del portal docente (cursos y horario). Devuelve `null` cuando el
- * BFF no responde (o `useMocks` esta activo) para que el portal use el mock.
+ * Datos reales del portal docente (cursos y horario). En modo demo (`useMocks`)
+ * devuelve `null`; los errores reales se propagan a la vista.
  */
 @Injectable({ providedIn: 'root' })
 export class DocenteDatosService {
@@ -39,13 +39,16 @@ export class DocenteDatosService {
 
     const request$ = this.config.useMocks
       ? of<T | null>(null)
-      : this.http
-          .get<T>(`${this.config.bffBaseUrl}/bff/v1/docentes/${recurso}`)
-          .pipe(catchError(() => of<T | null>(null)));
+      : this.http.get<T>(`${this.config.bffBaseUrl}/bff/v1/docentes/${recurso}`);
 
     const compartido$ = request$.pipe(shareReplay(1));
     this.cache.set(recurso, compartido$);
     return compartido$;
+  }
+
+  /** Invalida el cache de cursos/horario para forzar una recarga. */
+  invalidar(): void {
+    this.cache.clear();
   }
 }
 

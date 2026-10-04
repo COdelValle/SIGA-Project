@@ -51,9 +51,11 @@ public class GlobalExceptionHandler {
     // 1c. Cuerpo o formato de dato ilegible (JSON inválido, enum/fecha inválida)
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponseDTO> handleNotReadable(HttpMessageNotReadableException ex) {
-        log.warn("Cuerpo o formato de datos invalido: {}", ex.getMessage());
+        String detalle = ex.getMostSpecificCause().getMessage();
+        log.warn("Cuerpo o formato de datos invalido: {}", detalle);
         return ResponseEntity.badRequest().body(ErrorResponseDTO.of(
-            HttpStatus.BAD_REQUEST, "Bad Request", "Cuerpo o formato de datos inválido", null));
+            HttpStatus.BAD_REQUEST, "Bad Request",
+            "Cuerpo o formato de datos inválido: " + detalle, null));
     }
 
     // 1d. Parametro de URL con tipo invalido (p. ej. enum o fecha mal formada)
@@ -130,6 +132,14 @@ public class GlobalExceptionHandler {
         log.warn("Conflicto de integridad de datos: {}", ex.getMostSpecificCause().getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponseDTO.of(
             HttpStatus.CONFLICT, "Conflict", "Conflicto de integridad de datos", null));
+    }
+
+    // 4b. Conflictos de estado (409) lanzados desde la capa de servicio
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponseDTO> handleConflict(ConflictException ex) {
+        log.warn("Conflicto de estado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponseDTO.of(
+            HttpStatus.CONFLICT, "Conflict", ex.getMessage(), null));
     }
 
     // 5. Servicio no disponible (503)

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MsalService } from '@azure/msal-angular';
+import { AsistenciaService, PerfilEstudianteService } from '@siga/academico';
 import { MeService } from '@siga/core';
 import { of } from 'rxjs';
 import { App } from './app';
@@ -19,6 +20,14 @@ describe('App', () => {
         {
           provide: MeService,
           useValue: { getMe: () => of({ roles: [] }), clear: () => undefined },
+        },
+        {
+          provide: PerfilEstudianteService,
+          useValue: { invalidar: () => undefined },
+        },
+        {
+          provide: AsistenciaService,
+          useValue: { invalidar: () => undefined },
         },
       ],
     }).compileComponents();

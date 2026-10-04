@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
-import { Observable, catchError, of, shareReplay } from 'rxjs';
+import { Observable, of, shareReplay, tap } from 'rxjs';
 import { AsistenciaDTO } from '../models/perfil.model';
 
 export interface RegistrarAsistenciaRequest {
@@ -15,11 +15,12 @@ export interface RegistrarAsistenciaRequest {
 export interface ActualizarAsistenciaRequest {
   justificacion: 'SI' | 'NO' | 'PENDIENTE' | 'NO_APLICA';
   observacion?: string | null;
+  estado?: 'PRESENTE' | 'AUSENTE' | 'ATRASADO' | null;
 }
 
 /**
- * Consume las asistencias reales del BFF. Devuelve `null` cuando el BFF no
- * responde (o `useMocks` esta activo) para que las vistas usen el mock.
+ * Consume las asistencias reales del BFF. En modo demo (`useMocks`) devuelve
+ * `null`/`[]`; los errores reales se propagan a la vista (sin fallback a mocks).
  */
 @Injectable({ providedIn: 'root' })
 export class AsistenciaService {
@@ -35,12 +36,36 @@ export class AsistenciaService {
     return this.getAsistencias(String(id));
   }
 
+  /** Asistencias de una asignatura en una fecha (portal docente). */
+  getAsistenciasAsignatura(idAsignatura: number, fecha: string): Observable<AsistenciaDTO[]> {
+    if (this.config.useMocks) {
+      return of<AsistenciaDTO[]>([]);
+    }
+    return this.http.get<AsistenciaDTO[]>(
+      `${this.config.bffBaseUrl}/bff/v1/asistencias/asignatura/${idAsignatura}`,
+      { params: { fecha } },
+    );
+  }
+
   registrar(request: RegistrarAsistenciaRequest): Observable<AsistenciaDTO> {
-    return this.http.post<AsistenciaDTO>(`${this.config.bffBaseUrl}/bff/v1/asistencias`, request);
+    return this.http
+      .post<AsistenciaDTO>(`${this.config.bffBaseUrl}/bff/v1/asistencias`, request)
+      .pipe(tap((asistencia) => this.invalidar(asistencia.idEstudiante)));
   }
 
   actualizar(id: number, request: ActualizarAsistenciaRequest): Observable<AsistenciaDTO> {
-    return this.http.put<AsistenciaDTO>(`${this.config.bffBaseUrl}/bff/v1/asistencias/${id}`, request);
+    return this.http
+      .put<AsistenciaDTO>(`${this.config.bffBaseUrl}/bff/v1/asistencias/${id}`, request)
+      .pipe(tap((asistencia) => this.invalidar(asistencia.idEstudiante)));
+  }
+
+  /** Invalida el cache de un estudiante (o todos) para ver cambios sin recargar. */
+  invalidar(idEstudiante?: number): void {
+    if (idEstudiante === undefined) {
+      this.cache.clear();
+      return;
+    }
+    this.cache.delete(String(idEstudiante));
   }
 
   private getAsistencias(clave: string): Observable<AsistenciaDTO[] | null> {
@@ -51,9 +76,9 @@ export class AsistenciaService {
 
     const request$ = this.config.useMocks
       ? of<AsistenciaDTO[] | null>(null)
-      : this.http
-          .get<AsistenciaDTO[]>(`${this.config.bffBaseUrl}/bff/v1/asistencias/estudiante/${clave}`)
-          .pipe(catchError(() => of<AsistenciaDTO[] | null>(null)));
+      : this.http.get<AsistenciaDTO[]>(
+          `${this.config.bffBaseUrl}/bff/v1/asistencias/estudiante/${clave}`,
+        );
 
     const compartido$ = request$.pipe(shareReplay(1));
     this.cache.set(clave, compartido$);

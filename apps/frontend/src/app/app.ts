@@ -1,7 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { MsalService } from '@azure/msal-angular';
+import { AsistenciaService, PerfilEstudianteService } from '@siga/academico';
 import { AuthErrorService, MeService, ROL_HOME, normalizeAuthError } from '@siga/core';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -13,8 +15,19 @@ export class App implements OnInit {
   private readonly meService = inject(MeService);
   private readonly router = inject(Router);
   private readonly authError = inject(AuthErrorService);
+  private readonly perfilService = inject(PerfilEstudianteService);
+  private readonly asistenciaService = inject(AsistenciaService);
 
   ngOnInit(): void {
+    // Al navegar se invalidan los caches de perfil/asistencias para que los
+    // portales vean cambios hechos por el docente sin recargar la pagina.
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.perfilService.invalidar();
+        this.asistenciaService.invalidar();
+      });
+
     // El retorno de Microsoft ya se proceso en el APP_INITIALIZER (app.config.ts).
     // Si fallo, se muestra la pantalla de error en vez de reintentar en silencio.
     if (this.authError.error()) {

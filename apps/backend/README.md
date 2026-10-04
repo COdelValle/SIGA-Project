@@ -79,10 +79,18 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/api/bff/v1/apoderados/pupilos` | `APODERADO` + `SCOPE_apoderados:read` | Pupilos del apoderado con curso. |
 | `PUT` | `/api/bff/v1/apoderados/pupilos/{idEstudiante}` | `APODERADO` + `SCOPE_estudiantes:update` | Valida el vínculo apoderado-estudiante y actualiza el pupilo. |
 | `GET` | `/api/bff/v1/docentes/cursos` · `/horario` | `DOCENTE` + `SCOPE_docentes:read` | Cursos con alumnos y horario semanal del docente autenticado. |
+| `GET` | `/api/bff/v1/docentes/cursos/{asignaturaId}/notas` | `DOCENTE` + `SCOPE_docentes:read` (ownership) | Evaluaciones y notas del curso para la grilla del docente. |
+| `POST` | `/api/bff/v1/notas` | `ADMIN`/`DOCENTE` + `SCOPE_notas:write` (ownership) | Crea una nota validando que la evaluación pertenezca al docente. |
+| `PUT` | `/api/bff/v1/notas/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_notas:update` (ownership) | Edita el score de una nota. |
+| `DELETE` | `/api/bff/v1/notas/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_notas:delete` (ownership) | Borrado lógico de una nota. |
+| `POST` | `/api/bff/v1/evaluaciones` | `ADMIN`/`DOCENTE` + `SCOPE_evaluaciones:write` (ownership) | Crea una evaluación; la ponderación acumulada ≤ 100 la valida ms-evaluaciones. |
+| `PUT` | `/api/bff/v1/evaluaciones/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_evaluaciones:update` (ownership) | Edita nombre/tipo/ponderación de una evaluación. |
+| `DELETE` | `/api/bff/v1/evaluaciones/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_evaluaciones:delete` (ownership) | Borrado lógico de una evaluación. |
 | `GET` | `/api/bff/v1/admin/usuarios` · `/asignaturas` | `ADMIN` + `SCOPE_usuarios:read` / `asignaturas:read` | Usuarios y asignaturas para el portal admin. |
 | `GET` | `/api/bff/v1/asistencias/estudiante/me` · `/{id}` | `SCOPE_asistencias:read` (ownership para `{id}`) | Asistencias del estudiante autenticado, de un pupilo vinculado o de un docente. |
-| `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` | Registra asistencia. |
-| `PUT` | `/api/bff/v1/asistencias/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:update` | Actualiza justificación/observación. |
+| `GET` | `/api/bff/v1/asistencias/asignatura/{id}?fecha=` | `DOCENTE` + `SCOPE_asistencias:read` (ownership) | Asistencias de una asignatura en una fecha, para el docente dueño. |
+| `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` (ownership) | Registra asistencia. |
+| `PUT` | `/api/bff/v1/asistencias/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:update` (ownership) | Actualiza justificación/observación y, opcionalmente, el estado. |
 
 ### Usuarios y autenticación (`:8081`, `/api/v1/usuarios`)
 

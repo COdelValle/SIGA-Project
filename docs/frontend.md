@@ -45,7 +45,7 @@ apps/frontend/
 │   ├── apoderado/              # portal apoderado (multipupilo)
 │   ├── docente/                # portal docente (inicio, cursos, horarios, registrar-notas/asistencias)
 │   ├── admin/                  # portal administracion (inicio, usuarios, roles, asignaturas)
-│   └── mocks/                  # datos mock centralizados (fallback de los servicios reales)
+│   └── mocks/                  # datos mock centralizados (solo modo demo useMocks)
 ├── src/
 │   ├── app/
 │   │   ├── app.ts              # componente raiz (router-outlet)
@@ -101,11 +101,11 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 
 ## 6. Librerias Nx
 
-- **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`, `AuthErrorService`), tema (`ThemeService`), guards (`roleGuard`) e interceptores HTTP (`authInterceptor`, `errorInterceptor`).
+- **`core`**: modelos (`Rol`, `Me`), configuracion (`AppConfig`, `APP_CONFIG`, `loadAppConfig`), autenticacion (`msal.factory`, `AuthService`, `MeService`, `AuthErrorService`), tema (`ThemeService`), guards (`roleGuard`), interceptores HTTP (`authInterceptor`, `errorInterceptor`) y helper de estado remoto (`recursoRemoto`).
 - **`shared-ui`**: layout (`DashboardShell`, `PortalHeader`, `PortalShell`, menu con iconos SVG) y UI reutilizable (`SeccionCard`, `DayTabs`, `Paginador`).
 - **`public-portal`**: landing publico con accesos por rol.
 - **`academico`**: componentes academicos reutilizables (horario, asistencia, notas, periodo), modelos del perfil y servicios reales (`PerfilEstudianteService`, `AsistenciaService`).
-- **`mocks`**: los 4 archivos de datos mock centralizados; se usan como **fallback** cuando el BFF no responde o `useMocks` esta activo.
+- **`mocks`**: los 4 archivos de datos mock centralizados; se usan **solo en modo demo** (`useMocks: true`) o como constantes (`CONFIG_ACADEMICA_MOCK`, `ROLES_MOCK`, `FRANJAS`). Ya no hay fallback automatico ante errores del BFF.
 - **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal con sus rutas hijas y paginas.
 
 ### Fronteras
@@ -116,8 +116,10 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 
 - El frontend se comunica **solo con el BFF** (`bffBaseUrl` en `config.json`, por defecto `/api`).
 - `MeService` consume `GET /api/me`; el portal estudiante usa `GET /api/bff/v1/estudiantes/perfil/me` (flujo estudiante → clase → asignaturas → evaluaciones → notas, con horarios y docente) y `/perfil/{id}` para los pupilos del apoderado.
-- Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario` y `admin/usuarios|asignaturas`; las asistencias usan `asistencias/estudiante/me|{id}` y los POST/PUT del BFF.
-- Cada servicio intenta el BFF y **cae al mock** (`@siga/mocks`) si falla o si `useMocks` es `true` en `config.json`.
+- Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario`, `admin/usuarios|asignaturas`, `asistencias/estudiante/me|{id}` y `asistencias/asignatura/{id}?fecha=`.
+- El portal docente escribe contra el BFF: `GET /docentes/cursos/{asignaturaId}/notas`, CRUD de `notas` y `evaluaciones` (ponderacion acumulada <= 100) y POST/PUT de asistencias, con auto-guardado por celda/fila.
+- Con `useMocks: false` (default) los servicios solo usan el BFF; si la llamada falla, la vista muestra estado vacio/error con boton "Reintentar" (helper `recursoRemoto`), sin caer a mocks. Con `useMocks: true` las vistas usan los mocks explicitamente como modo demo.
+- Al navegar (`NavigationEnd`) se invalidan los caches de perfil/asistencias para reflejar cambios hechos por el docente sin recargar la pagina.
 - Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
 - **Paginacion**: los `GET /search` del backend devuelven `Page<T>` (modelo en `libs/core` con `pageQueryParams()` y `toPage()`); las vistas usan `siga-paginador` y paginan en cliente con `toPage()`. Contrato en [`paginacion.md`](paginacion.md).
 
@@ -138,14 +140,15 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 | Portal publico, `/sin-acceso` y `/error-acceso` | Disponible |
 | Tema oscuro/claro (oscuro por defecto) | Disponible |
 | Dashboards y pantallas por rol | Disponible |
-| Datos reales del BFF (perfil, pupilos, cursos, admin y asistencias) | Disponible con **fallback a mocks** (`useMocks`) |
+| Datos reales del BFF (perfil, pupilos, cursos, admin, notas y asistencias) | Disponible (sin fallback; errores con estado vacio/error) |
 | Paginacion (`Page<T>` + `siga-paginador`) | Disponible |
 | Fronteras Nx | Disponible |
-| Escritura de notas/asistencias por el docente contra el BFF | Parcial (asistencia con rosters mock; endpoints listos) |
+| Escritura de notas/asistencias por el docente contra el BFF | Disponible (grilla evaluaciones x alumnos y asistencia con auto-guardado) |
 | Formularios y validaciones | Pendiente |
-| Pruebas funcionales | Pendiente |
+| Pruebas funcionales | Parcial (specs Vitest de servicios con `HttpTestingController`) |
 
-Los mocks quedaron centralizados en `libs/mocks` (`@siga/mocks`) y solo actuan como
-fallback: con `useMocks: false` (default) las vistas cargan los datos reales del BFF
-y muestran el mock unicamente si la llamada falla (por ejemplo, sin scopes consentidos
-en Azure).
+Los mocks quedaron centralizados en `libs/mocks` (`@siga/mocks`) y solo se usan en
+modo demo (`useMocks: true`) o como constantes (`CONFIG_ACADEMICA_MOCK`,
+`ROLES_MOCK`, `FRANJAS`). Con `useMocks: false` (default) las vistas cargan los
+datos reales del BFF y ante un error muestran estado vacio/error con reintento,
+sin caer al mock.

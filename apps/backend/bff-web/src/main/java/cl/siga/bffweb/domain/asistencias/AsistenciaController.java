@@ -1,7 +1,9 @@
 package cl.siga.bffweb.domain.asistencias;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import cl.siga.coreshare.dto.asistencia.ActualizarAsistenciaRequestDTO;
@@ -37,6 +40,15 @@ public class AsistenciaController {
     @PreAuthorize("hasAuthority('SCOPE_asistencias:read')")
     public ResponseEntity<List<AsistenciaResponseDTO>> getAsistenciasEstudiante(@PathVariable Long id) {
         return ResponseEntity.ok(service.getAsistenciasEstudiante(id));
+    }
+
+    /** Asistencias de una asignatura en una fecha, para el docente dueno. */
+    @GetMapping("/asignatura/{id}")
+    @PreAuthorize("hasRole('DOCENTE') and hasAuthority('SCOPE_asistencias:read')")
+    public ResponseEntity<List<AsistenciaResponseDTO>> getAsistenciasAsignatura(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(service.getAsistenciasAsignatura(id, fecha));
     }
 
     @PostMapping

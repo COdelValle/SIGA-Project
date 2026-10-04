@@ -16,7 +16,8 @@ import { SelectOption } from './select.model';
         [attr.aria-expanded]="abierto()"
         [attr.aria-label]="ariaLabel || null"
         [attr.title]="etiquetaSeleccionada()"
-        class="flex w-full items-center justify-between gap-3 border border-line bg-panel py-3 pl-4 pr-10 text-left text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        [disabled]="disabled"
+        class="flex w-full items-center justify-between gap-3 border border-line bg-panel py-3 pl-4 pr-10 text-left text-base text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-60"
         [class.rounded-xl]="!abierto()"
         [class.rounded-t-xl]="abierto()"
         [class.border-b-0]="abierto()"
@@ -64,6 +65,7 @@ export class SelectComponent {
   @Input() options: SelectOption[] = [];
   @Input() value: string | number | null = null;
   @Input() ariaLabel = '';
+  @Input() disabled = false;
   @Output() readonly valueChange = new EventEmitter<string | number>();
 
   protected readonly abierto = signal(false);
@@ -89,11 +91,17 @@ export class SelectComponent {
 
   protected alternar(event: MouseEvent): void {
     event.stopPropagation();
+    if (this.disabled) {
+      return;
+    }
     this.abierto.update((valor) => !valor);
   }
 
   protected seleccionar(opcion: SelectOption, event: MouseEvent): void {
     event.stopPropagation();
+    if (this.disabled) {
+      return;
+    }
     this.valueChange.emit(opcion.value);
     this.abierto.set(false);
   }

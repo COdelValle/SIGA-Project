@@ -9,7 +9,7 @@ import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
 @FeignClient(
     name = "ms-apoderados",
     url = "${services.ms-apoderados.url}",
-    fallback = ApoderadoClientFallback.class
+    fallbackFactory = ApoderadoClientFallbackFactory.class
 )
 public interface ApoderadoClient {
     @GetMapping("/api/v1/apoderados/idUsuario/{idUsuario}")

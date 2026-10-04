@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(
     name = "ms-docentes",
     url = "${services.ms-docentes.url}",
-    fallback = DocenteClientFallback.class
+    fallbackFactory = DocenteClientFallbackFactory.class
 )
 public interface DocenteClient {
 
