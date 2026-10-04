@@ -42,7 +42,7 @@ Cada microservicio es dueno de su propia base de datos (database-per-service). E
 
 ### Entrada y orquestacion
 
-`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + asignaturas + notas, resolviendo evaluacion -> asignatura) usando clientes Feign con fallback.
+`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + clase + dictaciones + notas, resolviendo evaluacion -> dictacion) usando clientes Feign con fallback.
 
 ### Dominio distribuido
 
@@ -50,7 +50,7 @@ Cada microservicio es dueno de un contexto funcional:
 
 - Usuarios y autenticacion: identidad, roles y estado de cuentas.
 - Estudiantes: datos personales y academicos del estudiante.
-- Asignaturas: asignaturas basicas y electivas, horarios e inscripciones.
+- Asignaturas: catalogo general, malla curricular por nivel, dictaciones por curso (docente, semestre y cupos), horarios e inscripciones.
 - Notas: calificaciones asociadas a evaluaciones.
 - Docentes: ficha del docente y certificados.
 - Apoderados: apoderados, telefonos y estudiantes a cargo.
@@ -94,7 +94,7 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 
 - Comunicacion interna HTTP; **Feign** es el cliente declarativo.
 - Implementado en `bff-web` (clientes Feign a estudiantes, clases, asignaturas, evaluaciones, notas, docentes, usuarios y asistencias), `ms-notas` (valida estudiante y evaluacion), `ms-asistencias` (valida estudiante y asignatura), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
-- El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> asignatura) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
+- El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> dictacion) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
 - Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
 - Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
@@ -139,7 +139,7 @@ CI/CD:
 | BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
-| Asignaturas | CRUD, basicas/electivas, horarios (soft delete), inscripciones, Feign | Relacion con docentes y cursos |
+| Asignaturas | Catalogo, malla curricular, dictaciones por curso, horarios (soft delete), inscripciones, Feign | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | Docentes | CRUD, certificados, busqueda, `exists` | Carga horaria y asignacion de clases |
 | Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Notificaciones y seguimiento |
