@@ -39,33 +39,34 @@ interface AsignaturaBase {
   id: number;
   nombre: string;
   docente: string;
+  calificable?: boolean;
 }
 
 const ASIGNATURAS_CAMILA: AsignaturaBase[] = [
-  { id: 1, nombre: 'Historia', docente: 'Augusto Andrés Figueroa Ríos' },
-  { id: 2, nombre: 'Lenguaje', docente: 'Romina Belén Cárdenas Pizarro' },
-  { id: 3, nombre: 'Matemáticas', docente: 'Camila Antonia Castro Medina' },
+  { id: 1, nombre: 'Historia, Geografía y Ciencias Sociales', docente: 'Augusto Andrés Figueroa Ríos' },
+  { id: 2, nombre: 'Lengua y Literatura', docente: 'Romina Belén Cárdenas Pizarro' },
+  { id: 3, nombre: 'Matemática', docente: 'Camila Antonia Castro Medina' },
   { id: 4, nombre: 'Ciencias Naturales', docente: 'Alejandro Javier Silva Morales' },
   { id: 5, nombre: 'Inglés', docente: 'Valeria Paz Contreras Navarro' },
-  { id: 6, nombre: 'Educación Física', docente: 'Carlos Alberto Mendoza Fuentes' },
+  { id: 6, nombre: 'Educación Física y Salud', docente: 'Carlos Alberto Mendoza Fuentes' },
   { id: 7, nombre: 'Artes Visuales', docente: 'Paula Andrea Salazar Muñoz' },
   { id: 8, nombre: 'Tecnología', docente: 'Francisco José Toledo Olivares' },
   { id: 9, nombre: 'Música', docente: 'Gabriel Antonio Miranda Lagos' },
-  { id: 10, nombre: 'Orientación', docente: 'Valentina Isabel Alarcón Bustos' },
+  { id: 10, nombre: 'Orientación', docente: 'Valentina Isabel Alarcón Bustos', calificable: false },
   { id: 11, nombre: 'Educación Financiera', docente: 'Claudia Marcela Espinoza Cortez' },
 ];
 
 const ASIGNATURAS_LILITH: AsignaturaBase[] = [
-  { id: 1, nombre: 'Historia', docente: 'Daniela Ignacia Paredes Rojas' },
-  { id: 2, nombre: 'Lenguaje', docente: 'Carolina Paz Vega Fuentes' },
-  { id: 3, nombre: 'Matemáticas', docente: 'Marcela Soledad Guzmán Rivas' },
+  { id: 1, nombre: 'Historia, Geografía y Ciencias Sociales', docente: 'Daniela Ignacia Paredes Rojas' },
+  { id: 2, nombre: 'Lenguaje y Comunicación', docente: 'Carolina Paz Vega Fuentes' },
+  { id: 3, nombre: 'Matemática', docente: 'Marcela Soledad Guzmán Rivas' },
   { id: 4, nombre: 'Ciencias Naturales', docente: 'Rodrigo Andrés Salinas Torres' },
   { id: 5, nombre: 'Inglés', docente: 'Javiera Paz Molina Sepúlveda' },
-  { id: 6, nombre: 'Educación Física', docente: 'Héctor Manuel Bravo Cárdenas' },
+  { id: 6, nombre: 'Educación Física y Salud', docente: 'Héctor Manuel Bravo Cárdenas' },
   { id: 7, nombre: 'Artes Visuales', docente: 'Ignacio Tomás Herrera Soto' },
   { id: 8, nombre: 'Tecnología', docente: 'Sebastián Andrés Cáceres Núñez' },
   { id: 9, nombre: 'Música', docente: 'Constanza Belén Reyes Fuentes' },
-  { id: 10, nombre: 'Orientación', docente: 'Patricia Elena Orellana Díaz' },
+  { id: 10, nombre: 'Orientación', docente: 'Patricia Elena Orellana Díaz', calificable: false },
   { id: 11, nombre: 'Religión', docente: 'Mónica Alejandra Leiva Campos' },
 ];
 
@@ -109,31 +110,31 @@ const SALA_LILITH = 'Sala 4° Básico B';
 const HORARIO_CAMILA: Record<DiaSemana, HorarioBloque[]> = {
   Lunes: [
     ...bloques('Ciencias Naturales', 'Alejandro Javier Silva Morales', SALA_CAMILA, 1),
-    ...bloques('Lenguaje', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 2),
-    ...bloques('Historia', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 3),
-    ...bloques('Educación Física', 'Carlos Alberto Mendoza Fuentes', 'Cancha Techada 1', 4),
+    ...bloques('Lengua y Literatura', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 2),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 3),
+    ...bloques('Educación Física y Salud', 'Carlos Alberto Mendoza Fuentes', 'Cancha Techada 1', 4),
   ],
   Martes: [
     ...bloques('Tecnología', 'Francisco José Toledo Olivares', SALA_CAMILA, 1),
-    ...bloques('Matemáticas', 'Camila Antonia Castro Medina', SALA_CAMILA, 2),
+    ...bloques('Matemática', 'Camila Antonia Castro Medina', SALA_CAMILA, 2),
     ...bloques('Música', 'Gabriel Antonio Miranda Lagos', SALA_CAMILA, 3),
     ...bloques('Inglés', 'Valeria Paz Contreras Navarro', SALA_CAMILA, 4),
   ],
   Miércoles: [
-    ...bloques('Historia', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 1),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 1),
     ...bloques('Ciencias Naturales', 'Alejandro Javier Silva Morales', SALA_CAMILA, 2),
-    ...bloques('Lenguaje', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 3),
+    ...bloques('Lengua y Literatura', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 3),
     ...bloques('Orientación', 'Valentina Isabel Alarcón Bustos', SALA_CAMILA, 4),
   ],
   Jueves: [
     ...bloques('Artes Visuales', 'Paula Andrea Salazar Muñoz', SALA_CAMILA, 1),
     ...bloques('Inglés', 'Valeria Paz Contreras Navarro', SALA_CAMILA, 2),
-    ...bloques('Matemáticas', 'Camila Antonia Castro Medina', SALA_CAMILA, 3),
-    ...bloques('Educación Física', 'Carlos Alberto Mendoza Fuentes', 'Cancha Techada 1', 4),
+    ...bloques('Matemática', 'Camila Antonia Castro Medina', SALA_CAMILA, 3),
+    ...bloques('Educación Física y Salud', 'Carlos Alberto Mendoza Fuentes', 'Cancha Techada 1', 4),
   ],
   Viernes: [
-    ...bloques('Lenguaje', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 1),
-    ...bloques('Historia', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 2),
+    ...bloques('Lengua y Literatura', 'Romina Belén Cárdenas Pizarro', SALA_CAMILA, 1),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Augusto Andrés Figueroa Ríos', SALA_CAMILA, 2),
     ...bloques('Ciencias Naturales', 'Alejandro Javier Silva Morales', SALA_CAMILA, 3),
     ...bloques('Educación Financiera', 'Claudia Marcela Espinoza Cortez', SALA_CAMILA, 4),
   ],
@@ -141,16 +142,16 @@ const HORARIO_CAMILA: Record<DiaSemana, HorarioBloque[]> = {
 
 const HORARIO_LILITH: Record<DiaSemana, HorarioBloque[]> = {
   Lunes: [
-    ...bloques('Lenguaje', 'Carolina Paz Vega Fuentes', SALA_LILITH, 1),
+    ...bloques('Lenguaje y Comunicación', 'Carolina Paz Vega Fuentes', SALA_LILITH, 1),
     ...bloques('Música', 'Constanza Belén Reyes Fuentes', SALA_LILITH, 2),
-    ...bloques('Matemáticas', 'Marcela Soledad Guzmán Rivas', SALA_LILITH, 3),
+    ...bloques('Matemática', 'Marcela Soledad Guzmán Rivas', SALA_LILITH, 3),
     ...bloques('Orientación', 'Patricia Elena Orellana Díaz', SALA_LILITH, 4),
   ],
   Martes: [
     ...bloques('Ciencias Naturales', 'Rodrigo Andrés Salinas Torres', SALA_LILITH, 1),
-    ...bloques('Historia', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 2),
-    ...bloques('Educación Física', 'Héctor Manuel Bravo Cárdenas', 'Patio Cubierto 2', 3),
-    ...bloques('Lenguaje', 'Carolina Paz Vega Fuentes', SALA_LILITH, 4),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 2),
+    ...bloques('Educación Física y Salud', 'Héctor Manuel Bravo Cárdenas', 'Patio Cubierto 2', 3),
+    ...bloques('Lenguaje y Comunicación', 'Carolina Paz Vega Fuentes', SALA_LILITH, 4),
   ],
   Miércoles: [
     ...bloques('Religión', 'Mónica Alejandra Leiva Campos', SALA_LILITH, 1),
@@ -160,15 +161,15 @@ const HORARIO_LILITH: Record<DiaSemana, HorarioBloque[]> = {
   ],
   Jueves: [
     ...bloques('Tecnología', 'Sebastián Andrés Cáceres Núñez', SALA_LILITH, 1),
-    ...bloques('Historia', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 2),
-    ...bloques('Lenguaje', 'Carolina Paz Vega Fuentes', SALA_LILITH, 3),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 2),
+    ...bloques('Lenguaje y Comunicación', 'Carolina Paz Vega Fuentes', SALA_LILITH, 3),
     ...bloques('Ciencias Naturales', 'Rodrigo Andrés Salinas Torres', SALA_LILITH, 4),
   ],
   Viernes: [
-    ...bloques('Matemáticas', 'Marcela Soledad Guzmán Rivas', SALA_LILITH, 1),
+    ...bloques('Matemática', 'Marcela Soledad Guzmán Rivas', SALA_LILITH, 1),
     ...bloques('Inglés', 'Javiera Paz Molina Sepúlveda', SALA_LILITH, 2),
-    ...bloques('Historia', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 3),
-    ...bloques('Educación Física', 'Héctor Manuel Bravo Cárdenas', 'Patio Cubierto 2', 4),
+    ...bloques('Historia, Geografía y Ciencias Sociales', 'Daniela Ignacia Paredes Rojas', SALA_LILITH, 3),
+    ...bloques('Educación Física y Salud', 'Héctor Manuel Bravo Cárdenas', 'Patio Cubierto 2', 4),
   ],
 };
 
@@ -455,18 +456,20 @@ function construirSemestre(
   config: ConfiguracionAcademica,
 ): SemestreNotas {
   const asignaturasBase = ASIGNATURAS_POR_ESTUDIANTE[estudianteId] ?? [];
-  const asignaturas = plan.map((item, index) => {
-    const base = asignaturasBase.find((asignatura) => asignatura.id === item.id);
-    const cantidad = numero === 1 ? item.s1 : item.s2;
-    const notas = generarNotas(item.promedio, cantidad, index + numero + estudianteId);
-    return {
-      id: item.id,
-      asignatura: base?.nombre ?? 'Asignatura',
-      docente: base?.docente ?? '',
-      notas,
-      promedio: promedioNotas(notas, config.modoCalculo),
-    };
-  });
+  const asignaturas = plan
+    .filter((item) => asignaturasBase.find((asignatura) => asignatura.id === item.id)?.calificable !== false)
+    .map((item, index) => {
+      const base = asignaturasBase.find((asignatura) => asignatura.id === item.id);
+      const cantidad = numero === 1 ? item.s1 : item.s2;
+      const notas = generarNotas(item.promedio, cantidad, index + numero + estudianteId);
+      return {
+        id: item.id,
+        asignatura: base?.nombre ?? 'Asignatura',
+        docente: base?.docente ?? '',
+        notas,
+        promedio: promedioNotas(notas, config.modoCalculo),
+      };
+    });
 
   return { numero, asignaturas, promedio: promedioAsignaturas(asignaturas) };
 }
@@ -528,10 +531,12 @@ export function periodoActualDe(estudianteId: number): PeriodoAcademico {
 export function notasResumenDe(estudianteId: number): NotaItem[] {
   const asignaturas = ASIGNATURAS_POR_ESTUDIANTE[estudianteId] ?? [];
   const periodo = periodoActualDe(estudianteId);
-  return asignaturas.map((asignatura) => ({
-    asignatura: asignatura.nombre,
-    nota: promedioAsignaturaPeriodo(periodo, asignatura.id, CONFIG_ACADEMICA_MOCK),
-  }));
+  return asignaturas
+    .filter((asignatura) => asignatura.calificable !== false)
+    .map((asignatura) => ({
+      asignatura: asignatura.nombre,
+      nota: promedioAsignaturaPeriodo(periodo, asignatura.id, CONFIG_ACADEMICA_MOCK),
+    }));
 }
 
 export function asistenciaActualDe(estudianteId: number): PeriodoAsistencia {

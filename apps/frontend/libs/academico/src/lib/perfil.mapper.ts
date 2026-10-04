@@ -19,27 +19,6 @@ import {
   PerfilEstudianteDTO,
 } from './models/perfil.model';
 
-const NOMBRES_ASIGNATURA: Record<string, string> = {
-  MATEMATICA: 'Matemáticas',
-  LENGUAJE: 'Lenguaje',
-  CIENCIAS: 'Ciencias Naturales',
-  HISTORIA: 'Historia',
-  'ARTES VISUALES': 'Artes Visuales',
-  TECNOLOGIA: 'Tecnología',
-  MUSICA: 'Música',
-  ORIENTACION: 'Orientación',
-  'EDUCACION FINANCIERA': 'Educación Financiera',
-  RELIGION: 'Religión',
-  INGLES: 'Inglés',
-  'EDUCACION FISICA': 'Educación Física',
-};
-
-/** Nombre de asignatura listo para mostrar (quita el sufijo de curso y restaura tildes). */
-export function nombreAsignatura(name: string): string {
-  const base = name.replace(/\s+\d+[A-C]$/i, '').trim().toUpperCase();
-  return NOMBRES_ASIGNATURA[base] ?? name;
-}
-
 /** Convierte "ROMINA BELÉN CÁRDENAS" en "Romina Belén Cárdenas". */
 export function nombrePropio(valor: string): string {
   return valor
@@ -83,7 +62,7 @@ export function horarioDePerfil(perfil: PerfilEstudianteDTO): Record<DiaSemana, 
       }
       horario[dia].push({
         hora: `${bloque.horarioEntrada} - ${bloque.horarioSalida}`,
-        asignatura: nombreAsignatura(asignatura.name),
+        asignatura: asignatura.name,
         profesor: asignatura.docente ? nombrePropio(asignatura.docente) : '',
         sala: bloque.ubicacion,
       });
@@ -102,23 +81,25 @@ export function periodoDePerfil(
   config: ConfiguracionAcademica,
   asistencias: AsistenciaDTO[] = [],
 ): PeriodoAcademico {
-  const asignaturas = perfil.asignaturas.map((asignatura) => {
-    const notas: NotaDetalle[] = asignatura.evaluaciones
-      .filter((evaluacion) => evaluacion.nota !== null)
-      .map((evaluacion, indice) => ({
-        numero: indice + 1,
-        valor: evaluacion.nota as number,
-        ponderacion: evaluacion.ponderacion,
-      }));
+  const asignaturas = perfil.asignaturas
+    .filter((asignatura) => asignatura.calificable)
+    .map((asignatura) => {
+      const notas: NotaDetalle[] = asignatura.evaluaciones
+        .filter((evaluacion) => evaluacion.nota !== null)
+        .map((evaluacion, indice) => ({
+          numero: indice + 1,
+          valor: evaluacion.nota as number,
+          ponderacion: evaluacion.ponderacion,
+        }));
 
-    return {
-      id: asignatura.id,
-      asignatura: nombreAsignatura(asignatura.name),
-      docente: asignatura.docente ? nombrePropio(asignatura.docente) : '',
-      notas,
-      promedio: promedioNotas(notas, config.modoCalculo),
-    };
-  });
+      return {
+        id: asignatura.id,
+        asignatura: asignatura.name,
+        docente: asignatura.docente ? nombrePropio(asignatura.docente) : '',
+        notas,
+        promedio: promedioNotas(notas, config.modoCalculo),
+      };
+    });
 
   // La base aun no distingue semestres: las evaluaciones vigentes se muestran
   // en el semestre 2 (periodo en curso) y el 1 queda vacio.
@@ -144,27 +125,29 @@ export function notasResumenDePerfil(
   perfil: PerfilEstudianteDTO,
   config: ConfiguracionAcademica,
 ): NotaItem[] {
-  return perfil.asignaturas.map((asignatura) => {
-    const notas: NotaDetalle[] = asignatura.evaluaciones
-      .filter((evaluacion) => evaluacion.nota !== null)
-      .map((evaluacion) => ({
-        numero: 0,
-        valor: evaluacion.nota as number,
-        ponderacion: evaluacion.ponderacion,
-      }));
-    return {
-      asignatura: nombreAsignatura(asignatura.name),
-      nota: promedioNotas(notas, config.modoCalculo),
-    };
-  });
+  return perfil.asignaturas
+    .filter((asignatura) => asignatura.calificable)
+    .map((asignatura) => {
+      const notas: NotaDetalle[] = asignatura.evaluaciones
+        .filter((evaluacion) => evaluacion.nota !== null)
+        .map((evaluacion) => ({
+          numero: 0,
+          valor: evaluacion.nota as number,
+          ponderacion: evaluacion.ponderacion,
+        }));
+      return {
+        asignatura: asignatura.name,
+        nota: promedioNotas(notas, config.modoCalculo),
+      };
+    });
 }
 
 function agruparPorAsignatura(asistencias: AsistenciaDTO[]): Map<number, AsistenciaDTO[]> {
   const porAsignatura = new Map<number, AsistenciaDTO[]>();
   for (const asistencia of asistencias) {
-    const lista = porAsignatura.get(asistencia.idAsignatura) ?? [];
+    const lista = porAsignatura.get(asistencia.idCursoAsignatura) ?? [];
     lista.push(asistencia);
-    porAsignatura.set(asistencia.idAsignatura, lista);
+    porAsignatura.set(asistencia.idCursoAsignatura, lista);
   }
   return porAsignatura;
 }
@@ -196,7 +179,7 @@ export function asistenciaResumenDePerfil(
       clasesRegistradas === 0 ? 0 : Math.round((clasesAsistidas / clasesRegistradas) * 100);
     return {
       id: asignatura.id,
-      asignatura: nombreAsignatura(asignatura.name),
+      asignatura: asignatura.name,
       clasesRegistradas,
       clasesAsistidas,
       porcentaje,

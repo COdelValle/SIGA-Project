@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
-import { AsignaturaAdmin, UsuarioAdmin } from '@siga/mocks';
+import { AsignaturaAdmin, MallaFila, UsuarioAdmin } from '@siga/mocks';
 import { Observable, of, shareReplay } from 'rxjs';
 
 /**
@@ -20,6 +20,10 @@ export class AdminService {
 
   getAsignaturas(): Observable<AsignaturaAdmin[] | null> {
     return this.obtener<AsignaturaAdmin[]>('asignaturas');
+  }
+
+  getMalla(): Observable<MallaFila[] | null> {
+    return this.obtener<MallaFila[]>('malla');
   }
 
   private obtener<T>(recurso: string): Observable<T | null> {

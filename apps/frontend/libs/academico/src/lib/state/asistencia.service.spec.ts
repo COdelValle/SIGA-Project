@@ -31,7 +31,7 @@ function configurar(useMocks: boolean): void {
 const asistencia: AsistenciaDTO = {
   id: 9,
   idEstudiante: 1,
-  idAsignatura: 5,
+  idCursoAsignatura: 5,
   fecha: '2026-10-02',
   estado: 'AUSENTE',
   justificacion: 'PENDIENTE',
@@ -75,7 +75,7 @@ describe('AsistenciaService (modo real)', () => {
     service
       .registrar({
         idEstudiante: 1,
-        idAsignatura: 5,
+        idCursoAsignatura: 5,
         fecha: '2026-10-02',
         estado: 'AUSENTE',
       })
