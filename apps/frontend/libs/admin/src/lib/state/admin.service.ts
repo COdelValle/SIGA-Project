@@ -2,11 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
 import { AsignaturaAdmin, UsuarioAdmin } from '@siga/mocks';
-import { Observable, catchError, of, shareReplay } from 'rxjs';
+import { Observable, of, shareReplay } from 'rxjs';
 
 /**
  * Datos de gestion institucional (usuarios y asignaturas) para el portal admin.
- * Devuelve `null` cuando el BFF no responde para que las vistas usen el mock.
+ * En modo demo (`useMocks`) devuelve `null`; los errores reales se propagan.
  */
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -30,12 +30,15 @@ export class AdminService {
 
     const request$ = this.config.useMocks
       ? of<T | null>(null)
-      : this.http
-          .get<T>(`${this.config.bffBaseUrl}/bff/v1/admin/${recurso}`)
-          .pipe(catchError(() => of<T | null>(null)));
+      : this.http.get<T>(`${this.config.bffBaseUrl}/bff/v1/admin/${recurso}`);
 
     const compartido$ = request$.pipe(shareReplay(1));
     this.cache.set(recurso, compartido$);
     return compartido$;
+  }
+
+  /** Invalida el cache para forzar una recarga en la proxima navegacion. */
+  invalidar(): void {
+    this.cache.clear();
   }
 }

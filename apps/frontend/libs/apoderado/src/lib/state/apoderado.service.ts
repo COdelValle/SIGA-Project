@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
 import { Pupilo } from '@siga/mocks';
-import { Observable, catchError, map, of, shareReplay } from 'rxjs';
+import { Observable, map, of, shareReplay } from 'rxjs';
 
 interface PupiloDTO {
   id: number;
@@ -31,8 +31,8 @@ function relacionDisplay(relacion: string | null): string {
 }
 
 /**
- * Pupilos reales del apoderado autenticado. Devuelve `null` cuando el BFF no
- * responde (o `useMocks` esta activo) para que el portal use el mock.
+ * Pupilos reales del apoderado autenticado. En modo demo (`useMocks`) devuelve
+ * `null`; los errores reales se propagan a la vista (sin fallback a mocks).
  */
 @Injectable({ providedIn: 'root' })
 export class ApoderadoService {
@@ -55,9 +55,13 @@ export class ApoderadoService {
                   curso: pupilo.curso ?? '',
                 })),
               ),
-              catchError(() => of<Pupilo[] | null>(null)),
             );
     }
     return this.cache$.pipe(shareReplay(1));
+  }
+
+  /** Invalida el cache de pupilos para forzar una recarga. */
+  invalidar(): void {
+    this.cache$ = undefined;
   }
 }
