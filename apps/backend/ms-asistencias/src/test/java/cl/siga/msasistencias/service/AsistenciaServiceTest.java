@@ -100,10 +100,38 @@ class AsistenciaServiceTest {
         when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
 
         AsistenciaResponseDTO respuesta = service.updateAsistencia(7L,
-            new ActualizarAsistenciaRequestDTO(Justificacion.SI, "certificado medico"));
+            new ActualizarAsistenciaRequestDTO(Justificacion.SI, "certificado medico", null));
 
         assertThat(respuesta.justificacion()).isEqualTo(Justificacion.SI);
         assertThat(respuesta.observacion()).isEqualTo("certificado medico");
+    }
+
+    @Test
+    void corrigeEstadoAAusenteYNormalizaJustificacion() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
+
+        AsistenciaResponseDTO respuesta = service.updateAsistencia(7L,
+            new ActualizarAsistenciaRequestDTO(Justificacion.PENDIENTE, null, State.AUSENTE));
+
+        assertThat(respuesta.estado()).isEqualTo(State.AUSENTE);
+        assertThat(respuesta.justificacion()).isEqualTo(Justificacion.PENDIENTE);
+    }
+
+    @Test
+    void corrigeEstadoAPresenteFuerzaJustificacionNoAplica() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idAsignatura(5L).fecha(fecha)
+            .estado(State.AUSENTE).justificacion(Justificacion.SI).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(java.util.Optional.of(existente));
+
+        AsistenciaResponseDTO respuesta = service.updateAsistencia(7L,
+            new ActualizarAsistenciaRequestDTO(Justificacion.NO_APLICA, null, State.PRESENTE));
+
+        assertThat(respuesta.estado()).isEqualTo(State.PRESENTE);
+        assertThat(respuesta.justificacion()).isEqualTo(Justificacion.NO_APLICA);
     }
 
     @Test

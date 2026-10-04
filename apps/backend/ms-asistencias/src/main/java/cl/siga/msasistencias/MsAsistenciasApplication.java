@@ -2,8 +2,10 @@ package cl.siga.msasistencias;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
+@EnableFeignClients
 public class MsAsistenciasApplication {
 
   public static void main(String[] args) {

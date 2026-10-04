@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient (
     name = "ms-clases",
     url = "${services.ms-clases.url}",
-    fallback = ClaseClientFallback.class
+    fallbackFactory = ClaseClientFallbackFactory.class
 )
 public interface ClaseClient {
     @GetMapping ("/api/v1/clases/exists/{id}")
