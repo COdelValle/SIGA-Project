@@ -29,9 +29,9 @@ public class EvaluacionClientFallbackFactory implements FallbackFactory<Evaluaci
 
             @Override
             public PageResponseDTO<EvaluacionResponseDTO> searchEvaluacionesByAsignatura(
-                    Long idAsignatura, int size) {
+                    Long idCursoAsignatura, int size) {
                 throw translator.traducir(cause,
-                    "No se pudieron obtener las evaluaciones de la asignatura " + idAsignatura);
+                    "No se pudieron obtener las evaluaciones de la dictación " + idCursoAsignatura);
             }
 
             @Override

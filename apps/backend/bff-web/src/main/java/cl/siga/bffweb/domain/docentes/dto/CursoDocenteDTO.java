@@ -4,6 +4,7 @@ import java.util.List;
 
 public record CursoDocenteDTO(
     Long id,
+    Long idAsignatura,
     String nombre,
     Integer nivel,
     String seccion,

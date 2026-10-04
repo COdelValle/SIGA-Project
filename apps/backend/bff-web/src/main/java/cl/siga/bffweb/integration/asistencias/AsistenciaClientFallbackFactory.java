@@ -32,9 +32,9 @@ public class AsistenciaClientFallbackFactory implements FallbackFactory<Asistenc
 
             @Override
             public PageResponseDTO<AsistenciaResponseDTO> searchAsistenciasByAsignatura(
-                    Long idAsignatura, LocalDate from, LocalDate to, int size) {
+                    Long idCursoAsignatura, LocalDate from, LocalDate to, int size) {
                 throw translator.traducir(cause,
-                    "No se pudieron obtener las asistencias de la asignatura " + idAsignatura);
+                    "No se pudieron obtener las asistencias de la dictación " + idCursoAsignatura);
             }
 
             @Override

@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test;
 import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.usuarios.UsuarioClient;
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
-import cl.siga.coreshare.dto.asignatura.enums.Semestre;
-import cl.siga.coreshare.dto.asignatura.enums.TipoAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.PlanFormacion;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
 import cl.siga.coreshare.dto.common.PageResponseDTO;
 import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
@@ -43,15 +45,25 @@ class AdminBffServiceTest {
     }
 
     @Test
-    void getAsignaturasMapeaNombreYDescripcion() {
+    void getAsignaturasMapeaCatalogoConNiveles() {
         when(asignaturaClient.searchAsignaturas(anyInt())).thenReturn(pagina(List.of(
-            new AsignaturaResponseDTO(1L, "MATEMATICA", "matematica", Semestre.SEMESTRE_1,
-                AreaAcademica.MATEMATICAS, TipoAsignatura.BASICA, 6L, List.of(), 4L, null, null, null, List.of()))));
+            new AsignaturaResponseDTO(1L, "Matemática", "Matemática", "matemática",
+                AreaAcademica.MATEMATICAS, true, true))));
+        when(asignaturaClient.getMalla(null)).thenReturn(List.of(
+            new MallaCurricularResponseDTO(1L, Nivel.OCTAVO_BASICO, 1L, "Matemática",
+                AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA, PlanFormacion.COMUN,
+                null, true, true),
+            new MallaCurricularResponseDTO(2L, Nivel.PRIMERO_BASICO, 1L, "Matemática",
+                AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA, PlanFormacion.COMUN,
+                null, true, true)));
 
         var asignaturas = service.getAsignaturas();
 
         assertThat(asignaturas).hasSize(1);
-        assertThat(asignaturas.get(0).nombre()).isEqualTo("MATEMATICA");
+        assertThat(asignaturas.get(0).nombre()).isEqualTo("Matemática");
+        assertThat(asignaturas.get(0).area()).isEqualTo(AreaAcademica.MATEMATICAS);
+        assertThat(asignaturas.get(0).calificable()).isTrue();
+        assertThat(asignaturas.get(0).niveles()).containsExactly("1ro Básico", "8vo Básico");
         assertThat(asignaturas.get(0).activa()).isTrue();
     }
 
