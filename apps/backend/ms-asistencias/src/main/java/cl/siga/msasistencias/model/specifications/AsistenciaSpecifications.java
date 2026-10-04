@@ -24,12 +24,12 @@ public class AsistenciaSpecifications {
         };
     }
 
-    public static Specification<Asistencia> hasIdAsignatura(Long idAsignatura) {
+    public static Specification<Asistencia> hasIdCursoAsignatura(Long idCursoAsignatura) {
         return (root, query, criteriaBuilder) -> {
-            if (idAsignatura == null) {
+            if (idCursoAsignatura == null) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("idAsignatura"), idAsignatura);
+            return criteriaBuilder.equal(root.get("idCursoAsignatura"), idCursoAsignatura);
         };
     }
 

@@ -14,7 +14,7 @@ public class AsignaturaClientFallbackFactory implements FallbackFactory<Asignatu
             @Override
             public boolean existsById(Long id) {
                 throw FeignFallbacks.noDisponible(cause,
-                    "No se pudo verificar la existencia de la asignatura " + id);
+                    "No se pudo verificar la existencia de la dictación " + id);
             }
         };
     }

@@ -9,8 +9,8 @@ public record RegistrarAsistenciaRequestDTO(
     @NotNull (message = "El ID del estudiante es obligatorio")
     Long idEstudiante,
 
-    @NotNull (message = "El ID del asignatura es obligatorio")
-    Long idAsignatura,
+    @NotNull (message = "El ID de la dictación es obligatorio")
+    Long idCursoAsignatura,
 
     @NotNull (message = "La fecha es obligatoria")
     @PastOrPresent (message = "La fecha no puede ser futura")

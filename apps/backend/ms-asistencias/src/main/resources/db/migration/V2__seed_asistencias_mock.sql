@@ -4,7 +4,7 @@
 -- 2026 (las ausencias de los ultimos 3 dias habiles quedan PENDIENTES).
 -- Idempotente por INSERT IGNORE (unique estudiante-asignatura-fecha).
 
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (1, 1, '2026-08-04', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 1, '2026-08-06', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 1, '2026-08-11', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -55,7 +55,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (1, 3, '2026-08-07', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 3, '2026-08-10', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 3, '2026-08-12', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (1, 3, '2026-08-14', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 3, '2026-08-17', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 3, '2026-08-19', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -106,7 +106,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (1, 4, '2026-09-30', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 4, '2026-10-02', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 7, '2026-08-06', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (1, 7, '2026-08-13', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 7, '2026-08-20', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 7, '2026-08-27', 'AUSENTE', 'SI', NULL, TRUE),
@@ -157,7 +157,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (1, 5, '2026-08-13', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 5, '2026-08-18', 'AUSENTE', 'SI', NULL, TRUE),
     (1, 5, '2026-08-20', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (1, 5, '2026-08-25', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 5, '2026-08-27', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (1, 5, '2026-09-01', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -208,7 +208,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (2, 12, '2026-10-02', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 13, '2026-08-03', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 13, '2026-08-04', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (2, 13, '2026-08-06', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 13, '2026-08-10', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 13, '2026-08-11', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -259,7 +259,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (2, 14, '2026-09-23', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 14, '2026-09-24', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 14, '2026-09-29', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (2, 14, '2026-09-30', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 14, '2026-10-01', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 15, '2026-08-04', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -310,7 +310,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (2, 18, '2026-08-03', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 18, '2026-08-10', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 18, '2026-08-17', 'PRESENTE', 'NO_APLICA', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (2, 18, '2026-08-24', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 18, '2026-08-31', 'AUSENTE', 'SI', NULL, TRUE),
     (2, 18, '2026-09-07', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
@@ -361,7 +361,7 @@ INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, jus
     (2, 22, '2026-08-21', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 22, '2026-08-25', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 22, '2026-08-28', 'AUSENTE', 'NO', NULL, TRUE);
-INSERT IGNORE INTO asistencias (id_estudiante, id_asignatura, fecha, estado, justificacion, observacion, active) VALUES
+INSERT IGNORE INTO asistencias (id_estudiante, id_curso_asignatura, fecha, estado, justificacion, observacion, active) VALUES
     (2, 22, '2026-09-01', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 22, '2026-09-04', 'PRESENTE', 'NO_APLICA', NULL, TRUE),
     (2, 22, '2026-09-08', 'AUSENTE', 'NO', NULL, TRUE),

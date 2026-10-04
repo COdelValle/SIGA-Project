@@ -7,7 +7,7 @@ import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 public record InscripcionResponseDTO(
     Long id,
     Long idAlumno,
-    Long idAsignatura,
+    Long idCursoAsignatura,
     EstadoInscripcion estado,
     LocalDateTime fechaInscripcion
 ) {}

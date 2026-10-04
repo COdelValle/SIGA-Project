@@ -41,10 +41,10 @@ public class EvaluacionController {
   public ResponseEntity<Page<EvaluacionResponseDTO>> searchEvaluaciones(
     @RequestParam(required = false) String nombre,
     @RequestParam(required = false) TipoEvaluacion tipo,
-    @RequestParam(required = false) Long idAsignatura,
+    @RequestParam(required = false) Long idCursoAsignatura,
     @PageableDefault(size = 20, sort = "id") Pageable pageable
   ) {
-    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idAsignatura, pageable));
+    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idCursoAsignatura, pageable));
   }
 
   @PostMapping

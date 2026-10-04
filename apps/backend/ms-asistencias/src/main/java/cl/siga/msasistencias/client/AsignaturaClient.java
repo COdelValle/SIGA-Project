@@ -11,6 +11,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 )
 public interface AsignaturaClient {
 
-    @GetMapping("/api/v1/asignaturas/exists/{id}")
+    @GetMapping("/api/v1/curso-asignaturas/exists/{id}")
     boolean existsById(@PathVariable("id") Long id);
 }

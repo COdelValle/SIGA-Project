@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RestController 
 @RequestMapping("/api/v1/inscripciones")
 @RequiredArgsConstructor 
-@Tag (name = "Inscripciones", description = "Gestión de inscripciones a asignaturas electivas y búsqueda dinámica")
+@Tag (name = "Inscripciones", description = "Gestión de inscripciones a dictaciones optativas/electivas y búsqueda dinámica")
 public class InscripcionController {
 
     private final InscripcionService inscripcionService;
@@ -38,20 +38,20 @@ public class InscripcionController {
 
     @Operation(
         summary = "Buscar inscripciones dinámicamente", 
-        description = "Filtra de forma opcional por idAlumno, idAsignatura y/o múltiples estados (ej. ?estados=ACTIVO,PRE_INSCRITO)"
+        description = "Filtra de forma opcional por idAlumno, idCursoAsignatura y/o múltiples estados (ej. ?estados=ACTIVO,PRE_INSCRITO)"
     )
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('SCOPE_inscripciones:read')")
     public ResponseEntity<Page<InscripcionResponseDTO>> searchInscripciones(
             @RequestParam(required = false) Long idAlumno,
-            @RequestParam(required = false) Long idAsignatura,
+            @RequestParam(required = false) Long idCursoAsignatura,
             @RequestParam(required = false) List<EstadoInscripcion> estados,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         
-        return ResponseEntity.ok(inscripcionService.buscarInscripciones(idAlumno, idAsignatura, estados, pageable));
+        return ResponseEntity.ok(inscripcionService.buscarInscripciones(idAlumno, idCursoAsignatura, estados, pageable));
     }
 
-    @Operation(summary = "Registrar un alumno en una asignatura electiva")
+    @Operation(summary = "Registrar un alumno en una dictación optativa o electiva")
     @PostMapping
     @PreAuthorize("(hasRole('ADMIN') or hasRole('ESTUDIANTE')) and hasAuthority('SCOPE_inscripciones:write')")
     public ResponseEntity<InscripcionResponseDTO> registrar(

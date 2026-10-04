@@ -1,5 +1,7 @@
 package cl.siga.msasignaturas;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,8 +19,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Aplica las migraciones Flyway sobre un MariaDB real y valida la unicidad de
- * asignaturas y el soft delete de horarios (columna active con default TRUE).
+ * Aplica las migraciones Flyway sobre un MariaDB real y valida el catálogo,
+ * la malla, la unicidad de dictaciones y el soft delete de horarios.
  */
 @Testcontainers(disabledWithoutDocker = true)
 class MigracionesTest {
@@ -30,7 +32,7 @@ class MigracionesTest {
             .withPassword(UUID.randomUUID().toString());
 
     @Test
-    void aplicaMigracionesYValidaUnicidadYHorarios() throws Exception {
+    void aplicaMigracionesYValidaCatalogoMallaYHorarios() throws Exception {
         Flyway.configure()
                 .dataSource(MARIADB.getJdbcUrl(), MARIADB.getUsername(), MARIADB.getPassword())
                 .locations("classpath:db/migration")
@@ -41,14 +43,31 @@ class MigracionesTest {
                 MARIADB.getJdbcUrl(), MARIADB.getUsername(), MARIADB.getPassword());
              Statement statement = connection.createStatement()) {
 
-            // name es UNIQUE: duplicar MATEMATICA (seed) debe fallar
+            var catalogo = statement.executeQuery("SELECT COUNT(*) FROM asignaturas");
+            assertTrue(catalogo.next());
+            assertEquals(22, catalogo.getInt(1));
+
+            var dictaciones = statement.executeQuery("SELECT COUNT(*) FROM cursos_asignaturas");
+            assertTrue(dictaciones.next());
+            assertEquals(143, dictaciones.getInt(1));
+
+            var malla = statement.executeQuery("SELECT COUNT(*) FROM malla_curricular");
+            assertTrue(malla.next());
+            assertTrue(malla.getInt(1) >= 100);
+
+            var orientacion = statement.executeQuery(
+                    "SELECT calificable FROM asignaturas WHERE nombre = 'Orientación'");
+            assertTrue(orientacion.next());
+            assertFalse(orientacion.getBoolean(1));
+
+            // nombre es UNIQUE: duplicar el catálogo (seed) debe fallar
             assertThrows(SQLException.class, () -> statement.executeUpdate(
-                    "INSERT INTO asignaturas (tipo_asignatura, name, description, semestre, area, id_docente, active, id_clase, cupo_maximo) "
-                            + "VALUES ('BASICA', 'MATEMATICA', 'duplicada', 'SEMESTRE_1', 'MATEMATICAS', 1, TRUE, 1, NULL)"));
+                    "INSERT INTO asignaturas (nombre, descripcion, area, calificable, active) "
+                            + "VALUES ('Matemática', 'duplicada', 'MATEMATICAS', TRUE, TRUE)"));
 
             // horarios.active tiene default TRUE (soft delete)
             statement.executeUpdate(
-                    "INSERT INTO horarios (dia, horario_entrada, horario_salida, ubicacion, asignatura_id) "
+                    "INSERT INTO horarios (dia, horario_entrada, horario_salida, ubicacion, curso_asignatura_id) "
                             + "VALUES ('LUNES', '07:00:00', '07:45:00', 'SALA TEST', 1)");
 
             var active = statement.executeQuery("SELECT active FROM horarios WHERE ubicacion = 'SALA TEST'");
