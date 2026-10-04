@@ -6,6 +6,7 @@ import {
   HorarioTablaComponent,
   diaActual,
   horarioDePerfil,
+  resumirBloques,
 } from '@siga/academico';
 import { horarioDe } from '@siga/mocks';
 import { APP_CONFIG } from '@siga/core';
@@ -69,10 +70,10 @@ export class ApoderadoHorariosComponent {
   );
   protected readonly bloques = computed(() => {
     if (this.config.useMocks) {
-      return horarioDe(this.state.pupiloId())[this.dia()];
+      return resumirBloques(horarioDe(this.state.pupiloId())[this.dia()]);
     }
     const perfil = this.state.perfil();
-    return perfil ? horarioDePerfil(perfil)[this.dia()] : [];
+    return perfil ? resumirBloques(horarioDePerfil(perfil)[this.dia()]) : [];
   });
 
   protected seleccionarDia(valor: string): void {

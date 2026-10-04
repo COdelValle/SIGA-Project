@@ -36,7 +36,7 @@ import { DocenteAcademicoService } from '../state/docente-academico.service';
                 </tr>
               </thead>
               <tbody>
-                @for (clase of clases(); track clase.franja) {
+                @for (clase of clases(); track clase.cursoId + '-' + clase.franja) {
                   <tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd">
                     <td class="px-4 py-3 align-middle">{{ hora(clase.franja) }}</td>
                     <td class="px-4 py-3 align-middle">{{ clase.curso }}</td>

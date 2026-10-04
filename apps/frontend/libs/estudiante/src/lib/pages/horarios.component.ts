@@ -8,6 +8,7 @@ import {
   PerfilEstudianteService,
   diaActual,
   horarioDePerfil,
+  resumirBloques,
 } from '@siga/academico';
 import { ESTUDIANTE_ACTUAL_ID, horarioDe } from '@siga/mocks';
 import { APP_CONFIG, recursoRemoto } from '@siga/core';
@@ -74,10 +75,10 @@ export class EstudianteHorariosComponent {
   protected readonly hayError = computed(() => this.perfil().estado === 'error');
   protected readonly bloques = computed(() => {
     if (this.config.useMocks) {
-      return horarioDe(ESTUDIANTE_ACTUAL_ID)[this.dia()];
+      return resumirBloques(horarioDe(ESTUDIANTE_ACTUAL_ID)[this.dia()]);
     }
     const perfil = this.perfil().dato;
-    return perfil ? horarioDePerfil(perfil)[this.dia()] : [];
+    return perfil ? resumirBloques(horarioDePerfil(perfil)[this.dia()]) : [];
   });
 
   protected seleccionarDia(valor: string): void {
