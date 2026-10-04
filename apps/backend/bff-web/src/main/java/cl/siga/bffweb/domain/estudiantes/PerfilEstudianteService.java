@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,6 +26,7 @@ import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
 import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
 import cl.siga.bffweb.integration.notas.NotaClient;
 import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
@@ -75,8 +77,22 @@ public class PerfilEstudianteService {
         List<CursoAsignaturaResponseDTO> delCurso = estudiante.idClase() == null
             ? Collections.emptyList()
             : contentOf(asignaturaClient.searchCursoAsignaturasByClase(estudiante.idClase(), PAGE_SIZE));
+        List<InscripcionResponseDTO> inscripciones = estudiante.idClase() == null
+            ? Collections.emptyList()
+            : inscripcionesDelEstudiante(estudiante.id());
+        Set<Long> cursosInscritos = inscripciones.stream()
+            .filter(inscripcion -> inscripcion.estado() != EstadoInscripcion.CANCELADO)
+            .map(InscripcionResponseDTO::idCursoAsignatura)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        // Las electivas (p. ej. Artes o Musica en 7-8) solo se muestran si el
+        // alumno esta inscrito en esa dictacion; las obligatorias/optativas del
+        // curso siempre van.
         List<CursoAsignaturaResponseDTO> asignaturas =
-            unirDictaciones(delCurso, electivasDelEstudiante(estudiante.id()));
+            unirDictaciones(delCurso, electivasDe(inscripciones)).stream()
+                .filter(asignatura -> asignatura.caracter() != CaracterAsignatura.ELECTIVA
+                    || cursosInscritos.contains(asignatura.id()))
+                .toList();
 
         // 3. Notas del estudiante (se cruzan por evaluacion); solo si hay asignaturas
         Map<Long, Double> notaPorEvaluacion = asignaturas.isEmpty()
@@ -94,9 +110,13 @@ public class PerfilEstudianteService {
         return mapper.toResponse(estudiante, clase, detalle);
     }
 
-    /** Optativas/electivas del alumno vía inscripciones. */
-    private List<CursoAsignaturaResponseDTO> electivasDelEstudiante(Long idEstudiante) {
-        return contentOf(asignaturaClient.searchInscripcionesByAlumno(idEstudiante, PAGE_SIZE)).stream()
+    private List<InscripcionResponseDTO> inscripcionesDelEstudiante(Long idEstudiante) {
+        return contentOf(asignaturaClient.searchInscripcionesByAlumno(idEstudiante, PAGE_SIZE));
+    }
+
+    /** Dictaciones de las inscripciones vigentes del alumno. */
+    private List<CursoAsignaturaResponseDTO> electivasDe(List<InscripcionResponseDTO> inscripciones) {
+        return inscripciones.stream()
             .filter(inscripcion -> inscripcion.estado() != EstadoInscripcion.CANCELADO)
             .map(InscripcionResponseDTO::idCursoAsignatura)
             .filter(Objects::nonNull)
