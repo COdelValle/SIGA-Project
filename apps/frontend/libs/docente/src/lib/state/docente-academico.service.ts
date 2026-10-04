@@ -1,36 +1,15 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Injectable, computed, inject } from '@angular/core';
+import { APP_CONFIG, EstadoRemoto, recursoRemoto } from '@siga/core';
 import { DiaSemana, formatearFecha } from '@siga/academico';
 import {
   ClaseDocente,
-  DOCENTE_ACTUAL_ID,
   CursoDocente,
+  DOCENTE_ACTUAL_ID,
   horarioDelDocente,
   cursosDelDocente,
 } from '@siga/mocks';
+import { Subject, startWith, switchMap } from 'rxjs';
 import { DocenteDatosService } from './docente-datos.service';
-
-export interface NotaAlumno {
-  numero: number;
-  valor: number;
-}
-
-export type EstadoAsistencia = 'Presente' | 'Ausente';
-export type Justificacion = 'No aplica' | 'Pendiente' | 'Sí' | 'No';
-
-export interface RegistroAsistencia {
-  alumnoId: number;
-  estado: EstadoAsistencia;
-  justificacion: Justificacion;
-  /** Fecha limite (ISO) para gestionar el justificado (solo Ausente). */
-  limite?: string;
-}
-
-interface Persistencia {
-  notas: Record<string, NotaAlumno[]>;
-  asistencia: Record<string, RegistroAsistencia[]>;
-  guardados: string[];
-}
 
 const DIAS_JS: Record<number, DiaSemana> = {
   1: 'Lunes',
@@ -40,9 +19,13 @@ const DIAS_JS: Record<number, DiaSemana> = {
   5: 'Viernes',
 };
 
-function isoDe(fecha: Date): string {
-  return fecha.toISOString().slice(0, 10);
-}
+const HORARIO_VACIO: Record<DiaSemana, ClaseDocente[]> = {
+  Lunes: [],
+  Martes: [],
+  Miércoles: [],
+  Jueves: [],
+  Viernes: [],
+};
 
 /** Fecha ISO (yyyy-MM-dd) usando la fecha LOCAL del navegador. */
 function isoLocal(fecha: Date): string {
@@ -57,59 +40,59 @@ function parseIso(iso: string): Date {
   return new Date(Date.UTC(anio, mes - 1, dia));
 }
 
-function sumarDiasHabiles(iso: string, dias: number): string {
-  const cursor = parseIso(iso);
-  let restantes = dias;
-  while (restantes > 0) {
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-    const dia = cursor.getUTCDay();
-    if (dia !== 0 && dia !== 6) {
-      restantes -= 1;
-    }
-  }
-  return isoDe(cursor);
-}
-
-function claveNotas(cursoId: number, alumnoId: number): string {
-  return `${cursoId}|${alumnoId}`;
-}
-
-function claveAsistencia(cursoId: number, fecha: string): string {
-  return `${cursoId}|${fecha}`;
-}
-
-function semillaNotas(cursoId: number, alumnoId: number): NotaAlumno[] {
-  const base = 5 + ((cursoId + alumnoId) % 15) / 10;
-  const cantidad = 2 + ((cursoId + alumnoId) % 3);
-  return Array.from({ length: cantidad }, (_, index) => ({
-    numero: index + 1,
-    valor: Math.round(Math.min(7, base + ((index * 7) % 9) / 10 - 0.3) * 10) / 10,
-  }));
-}
-
+/**
+ * Calendario del docente y sus cursos/horario reales. En modo demo (`useMocks`)
+ * usa los mocks; en modo real los errores quedan a la vista (estado remoto).
+ */
 @Injectable({ providedIn: 'root' })
 export class DocenteAcademicoService {
-  private readonly storageKey = 'siga.docente.academico.v1';
+  private readonly config = inject(APP_CONFIG);
   private readonly docenteId = DOCENTE_ACTUAL_ID;
-  private readonly estado = signal<Persistencia>(this.cargar());
   private readonly datosService = inject(DocenteDatosService);
 
-  private readonly cursosRemotos = toSignal(this.datosService.getCursos(), { initialValue: null });
-  private readonly horarioRemoto = toSignal(this.datosService.getHorario(), { initialValue: null });
+  private readonly refresco = new Subject<void>();
 
-  /** Cursos del docente (BFF con fallback al mock). */
-  readonly cursos = computed<CursoDocente[]>(
-    () => this.cursosRemotos() ?? cursosDelDocente(this.docenteId),
+  private readonly cursosRemotos = recursoRemoto(
+    this.refresco.pipe(
+      startWith(void 0),
+      switchMap(() => this.datosService.getCursos()),
+    ),
   );
-  /** Horario semanal del docente (BFF con fallback al mock). */
-  readonly horario = computed<Record<DiaSemana, ClaseDocente[]>>(
-    () => this.horarioRemoto() ?? horarioDelDocente(this.docenteId),
+  private readonly horarioRemoto = recursoRemoto(
+    this.refresco.pipe(
+      startWith(void 0),
+      switchMap(() => this.datosService.getHorario()),
+    ),
+  );
+
+  readonly estadoCursos = computed<EstadoRemoto>(() =>
+    this.config.useMocks ? 'listo' : this.cursosRemotos().estado,
+  );
+
+  readonly estadoHorario = computed<EstadoRemoto>(() =>
+    this.config.useMocks ? 'listo' : this.horarioRemoto().estado,
+  );
+
+  /** Cursos del docente (BFF en real, mocks en modo demo). */
+  readonly cursos = computed<CursoDocente[]>(() =>
+    this.config.useMocks
+      ? cursosDelDocente(this.docenteId)
+      : this.cursosRemotos().dato ?? [],
+  );
+
+  /** Horario semanal del docente (BFF en real, mocks en modo demo). */
+  readonly horario = computed<Record<DiaSemana, ClaseDocente[]>>(() =>
+    this.config.useMocks
+      ? horarioDelDocente(this.docenteId)
+      : this.horarioRemoto().dato ?? HORARIO_VACIO,
   );
 
   readonly fechaHoy = isoLocal(new Date());
   readonly semestreActual = computed(() => this.semestreDe(this.fechaHoy));
 
-  readonly diaHoy = computed<DiaSemana | null>(() => DIAS_JS[parseIso(this.fechaHoy).getUTCDay()] ?? null);
+  readonly diaHoy = computed<DiaSemana | null>(
+    () => DIAS_JS[parseIso(this.fechaHoy).getUTCDay()] ?? null,
+  );
   readonly clasesDeHoy = computed(() => {
     const dia = this.diaHoy();
     return dia ? this.horario()[dia] : [];
@@ -120,10 +103,10 @@ export class DocenteAcademicoService {
       .filter((curso): curso is CursoDocente => !!curso),
   );
 
-  constructor() {
-    effect(() => {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.estado()));
-    });
+  /** Invalida el cache y reintenta cursos/horario. */
+  recargarDatos(): void {
+    this.datosService.invalidar();
+    this.refresco.next();
   }
 
   semestreDe(fecha: string): 1 | 2 {
@@ -133,139 +116,5 @@ export class DocenteAcademicoService {
 
   hoyLegible(): string {
     return formatearFecha(this.fechaHoy);
-  }
-
-  // --- Notas ---
-
-  notasDe(cursoId: number, alumnoId: number): NotaAlumno[] {
-    const clave = claveNotas(cursoId, alumnoId);
-    return this.estado().notas[clave] ?? semillaNotas(cursoId, alumnoId);
-  }
-
-  siguienteNumero(cursoId: number, alumnoId: number): number {
-    return this.notasDe(cursoId, alumnoId).length + 1;
-  }
-
-  crearNota(cursoId: number, alumnoId: number, valor: number): void {
-    const clave = claveNotas(cursoId, alumnoId);
-    const actuales = this.notasDe(cursoId, alumnoId);
-    this.guardarNotas(clave, [...actuales, { numero: actuales.length + 1, valor }]);
-    this.marcarPendiente(`notas|${cursoId}`);
-  }
-
-  editarNota(cursoId: number, alumnoId: number, numero: number, valor: number): void {
-    const clave = claveNotas(cursoId, alumnoId);
-    const actualizadas = this.notasDe(cursoId, alumnoId).map((nota) =>
-      nota.numero === numero ? { ...nota, valor } : nota,
-    );
-    this.guardarNotas(clave, actualizadas);
-    this.marcarPendiente(`notas|${cursoId}`);
-  }
-
-  eliminarNota(cursoId: number, alumnoId: number, numero: number): void {
-    const clave = claveNotas(cursoId, alumnoId);
-    const restantes = this.notasDe(cursoId, alumnoId)
-      .filter((nota) => nota.numero !== numero)
-      .map((nota, index) => ({ ...nota, numero: index + 1 }));
-    this.guardarNotas(clave, restantes);
-    this.marcarPendiente(`notas|${cursoId}`);
-  }
-
-  // --- Asistencia ---
-
-  asistenciaDe(cursoId: number, fecha: string): RegistroAsistencia[] {
-    return this.estado().asistencia[claveAsistencia(cursoId, fecha)] ?? [];
-  }
-
-  registroDe(cursoId: number, fecha: string, alumnoId: number): RegistroAsistencia | undefined {
-    return this.asistenciaDe(cursoId, fecha).find((registro) => registro.alumnoId === alumnoId);
-  }
-
-  marcar(cursoId: number, fecha: string, alumnoId: number, estado: EstadoAsistencia): void {
-    if (!this.fechaEditable(fecha)) {
-      return;
-    }
-    const clave = claveAsistencia(cursoId, fecha);
-    const registro: RegistroAsistencia =
-      estado === 'Presente'
-        ? { alumnoId, estado, justificacion: 'No aplica' }
-        : { alumnoId, estado, justificacion: 'Pendiente', limite: sumarDiasHabiles(fecha, 3) };
-
-    const actuales = this.asistenciaDe(cursoId, fecha).filter((item) => item.alumnoId !== alumnoId);
-    this.estado.update((valor) => ({
-      ...valor,
-      asistencia: { ...valor.asistencia, [clave]: [...actuales, registro] },
-    }));
-    this.marcarPendiente(`asistencia|${cursoId}|${fecha}`);
-  }
-
-  justificacionDe(registro: RegistroAsistencia, fecha: string): Justificacion {
-    if (registro.estado === 'Presente') {
-      return 'No aplica';
-    }
-    if (registro.justificacion === 'Pendiente' && registro.limite && this.fechaHoy > registro.limite) {
-      return 'No';
-    }
-    void fecha;
-    return registro.justificacion;
-  }
-
-  fechaEditable(fecha: string): boolean {
-    return this.fechaHoy <= sumarDiasHabiles(fecha, 3);
-  }
-
-  // --- Borradores / guardado ---
-
-  pendiente(clave: string): boolean {
-    return !this.estado().guardados.includes(clave);
-  }
-
-  guardarNotasCurso(cursoId: number): void {
-    this.marcarGuardado(`notas|${cursoId}`);
-  }
-
-  guardarAsistenciaCurso(cursoId: number, fecha: string): void {
-    this.marcarGuardado(`asistencia|${cursoId}|${fecha}`);
-  }
-
-  // --- Internos ---
-
-  private guardarNotas(clave: string, notas: NotaAlumno[]): void {
-    this.estado.update((valor) => ({
-      ...valor,
-      notas: { ...valor.notas, [clave]: notas },
-    }));
-  }
-
-  private marcarPendiente(clave: string): void {
-    this.estado.update((valor) => ({
-      ...valor,
-      guardados: valor.guardados.filter((item) => item !== clave),
-    }));
-  }
-
-  private marcarGuardado(clave: string): void {
-    this.estado.update((valor) => ({
-      ...valor,
-      guardados: valor.guardados.includes(clave) ? valor.guardados : [...valor.guardados, clave],
-    }));
-  }
-
-  private cargar(): Persistencia {
-    const vacio: Persistencia = { notas: {}, asistencia: {}, guardados: [] };
-    const raw = localStorage.getItem(this.storageKey);
-    if (!raw) {
-      return vacio;
-    }
-    try {
-      const data = JSON.parse(raw) as Partial<Persistencia>;
-      return {
-        notas: data.notas ?? {},
-        asistencia: data.asistencia ?? {},
-        guardados: data.guardados ?? [],
-      };
-    } catch {
-      return vacio;
-    }
   }
 }
