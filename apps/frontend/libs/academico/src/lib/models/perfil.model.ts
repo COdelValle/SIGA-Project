@@ -24,9 +24,15 @@ export interface PerfilEvaluacionDTO {
 }
 
 export interface PerfilAsignaturaDTO {
+  /** ID de la dictación (curso + asignatura); es el que usan evaluaciones y asistencias. */
   id: number;
+  /** ID de la asignatura del catálogo general. */
+  idAsignatura: number;
   name: string;
   description: string;
+  area: string;
+  caracter: 'OBLIGATORIA' | 'OPTATIVA' | 'ELECTIVA';
+  calificable: boolean;
   idDocente: number;
   docente: string | null;
   horarios: PerfilHorarioDTO[];
@@ -39,7 +45,7 @@ export type JustificacionAsistenciaDTO = 'SI' | 'NO' | 'PENDIENTE' | 'NO_APLICA'
 export interface AsistenciaDTO {
   id: number;
   idEstudiante: number;
-  idAsignatura: number;
+  idCursoAsignatura: number;
   fecha: string;
   estado: EstadoAsistenciaDTO;
   justificacion: JustificacionAsistenciaDTO;

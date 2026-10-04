@@ -254,7 +254,7 @@ export class DocenteRegistrarAsistenciasComponent {
         })
       : this.asistenciaService.registrar({
           idEstudiante: alumnoId,
-          idAsignatura: this.cursoId(),
+          idCursoAsignatura: this.cursoId(),
           fecha: this.fechaHoy,
           estado,
         });
