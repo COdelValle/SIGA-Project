@@ -62,15 +62,17 @@ class BusquedaTextoTest {
 
     @Test
     void buscaPorRutConPuntosSinPuntosYPorNombreApellido() {
-        repository.save(estudiante("oid-1", "22126386-3", "CATALINA", "ORMEÑO"));
-        repository.save(estudiante("oid-2", "21000001-1", "OTRO", "ALUMNO"));
+        String oidCatalina = UUID.randomUUID().toString();
+        String oidOtro = UUID.randomUUID().toString();
+        repository.save(estudiante(oidCatalina, "22126386-3", "CATALINA", "ORMEÑO"));
+        repository.save(estudiante(oidOtro, "21000001-1", "OTRO", "ALUMNO"));
 
         var porRutConPuntos = repository.findAll(
                 EstudianteSpecifications.isActive()
                         .and(EstudianteSpecifications.hasTextoLibre("22.126.386-3")),
                 PageRequest.of(0, 10));
         assertEquals(1, porRutConPuntos.getTotalElements());
-        assertEquals("oid-1", porRutConPuntos.getContent().get(0).getIdUsuario());
+        assertEquals(oidCatalina, porRutConPuntos.getContent().get(0).getIdUsuario());
 
         var porRutSinPuntos = repository.findAll(
                 EstudianteSpecifications.hasTextoLibre("22126386"),
