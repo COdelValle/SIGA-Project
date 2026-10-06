@@ -18,6 +18,7 @@ import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msnotas.client.EstudianteClient;
+import cl.siga.msnotas.mensajeria.PublicadorNota;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapper;
 import cl.siga.msnotas.model.specifications.NotaSpecifications;
@@ -36,6 +37,8 @@ public class NotaService {
     private final EstudianteClient estudianteClient;
 
     private final EvaluacionClient evaluacionClient;
+
+    private final PublicadorNota publicador; // Productor RabbitMQ (misma lógica que las otras colas)
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
@@ -71,14 +74,19 @@ public class NotaService {
                         + " en la evaluación " + request.idEvaluacion() + ".");
             }
             // Recreacion tras un delete logico: se reactiva la misma fila para
-            // mantener la unicidad (id_estudiante, id_evaluacion).
+            // mantener la unicidad (id_estudiante, id_evaluacion). La fila ya
+            // existía, así que se avisa como ACTUALIZADA.
             nota.setScore(request.score());
             nota.setActive(true);
-            return mapper.toResponseDto(repository.save(nota));
+            NotaResponseDTO reactivada = mapper.toResponseDto(repository.save(nota));
+            publicador.publicarActualizada(reactivada);
+            return reactivada;
         }
 
         Nota nota = mapper.toEntity(request);
-        return mapper.toResponseDto(repository.save(nota));
+        NotaResponseDTO creada = mapper.toResponseDto(repository.save(nota));
+        publicador.publicarCreada(creada);
+        return creada;
     }
 
     @Transactional
@@ -88,7 +96,9 @@ public class NotaService {
 
         mapper.updateEntityFromDto(request, existingNota);
 
-        return mapper.toResponseDto(repository.save(existingNota));
+        NotaResponseDTO actualizada = mapper.toResponseDto(repository.save(existingNota));
+        publicador.publicarActualizada(actualizada);
+        return actualizada;
     }
 
     @Transactional

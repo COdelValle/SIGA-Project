@@ -1,0 +1,17 @@
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoApoderadoFactory.class
+cl\siga\msnotificaciones\cliente\ClienteInscripcion.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoApoderadoFactory$1.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoEstudianteFactory$1.class
+cl\siga\msnotificaciones\MsNotificacionesApplication.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoInscripcionFactory$1.class
+cl\siga\msnotificaciones\cliente\ClienteEstudiante.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoEstudianteFactory.class
+cl\siga\msnotificaciones\mensajeria\ConfiguracionMensajeriaNotificaciones.class
+cl\siga\msnotificaciones\cliente\ClienteAsignatura.class
+cl\siga\msnotificaciones\mensajeria\EscuchadorAsistencia.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoAsignaturaFactory$1.class
+cl\siga\msnotificaciones\mensajeria\EscuchadorNota.class
+cl\siga\msnotificaciones\mensajeria\EscuchadorEvaluacion.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoInscripcionFactory.class
+cl\siga\msnotificaciones\cliente\respaldo\RespaldoAsignaturaFactory.class
+cl\siga\msnotificaciones\cliente\ClienteApoderado.class
