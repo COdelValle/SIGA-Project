@@ -1,5 +1,6 @@
 package cl.siga.msapoderados.model.specifications;
 
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.msapoderados.model.entity.Apoderado;
 import cl.siga.msapoderados.model.entity.ApoderadoEstudiante;
 import jakarta.persistence.criteria.Join;
@@ -15,7 +16,7 @@ public class ApoderadoSpecifications {
       if (rut == null || rut.trim().isEmpty()) {
         return criteriaBuilder.conjunction();
       }
-      return criteriaBuilder.equal(root.get("rut"), rut.trim().toUpperCase());
+      return criteriaBuilder.equal(root.get("rut"), RutNormalizer.normalizar(rut));
     };
   }
 

@@ -67,6 +67,12 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
+        <!-- Validación síncrona de estudiantes referenciados en el alta de apoderados -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <!-- Documentación API (Swagger + Scalar) (Versiones heredadas de dependencyManagement) -->
         <dependency>
             <groupId>org.springdoc</groupId>

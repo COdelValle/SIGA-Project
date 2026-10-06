@@ -27,9 +27,41 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
   rabbitmq:
+    # Confirmaciones del broker para el outbox del registro asincrono.
+    publisher-confirm-type: correlated
     listener:
       simple:
+        # Al agotar reintentos el mensaje se rechaza y cae a su DLQ.
         default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2s
+          multiplier: 2
+          max-interval: 30s
+          max-attempts: 3
+
+# Microservicios consultados de forma sincrona por este servicio.
+services:
+  estudiantes:
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
+
+# Registro asincrono de usuarios (usuario + perfil de rol, con aprovisionamiento
+# en Entra ID). Deshabilitado por defecto: activar solo con Graph configurado.
+siga:
+  registro-async:
+    enabled: ${REGISTRO_ASYNC_ENABLED:false}
+    # Reservado para el futuro servicio de notificaciones (opcion 3): emite un
+    # evento user.credentials.notify cuando la cuenta queda creada.
+    notify-credentials-enabled: ${REGISTRO_NOTIFY_CREDENTIALS_ENABLED:false}
+    # Clave AES-256 en Base64 (32 bytes) para cifrar la clave temporal en reposo.
+    # Obligatoria cuando enabled=true.
+    credential-key: ${REGISTRO_CRED_KEY:}
+    credential-ttl-hours: 48
+    # Dominio del correo institucional generado a partir del nombre.
+    email-domain: ${REGISTRO_EMAIL_DOMAIN:platformsiga.onmicrosoft.com}
+    outbox-poll-ms: 2000
+    outbox-max-attempts: 10
+    outbox-confirm-timeout-seconds: 5
 
 # Integración con Microsoft Graph (client credentials).
 # Si AZURE_CLIENT_SECRET está vacío, la integración queda deshabilitada y el CRUD
@@ -41,13 +73,13 @@ azure:
     client-secret: ${AZURE_CLIENT_SECRET:}
     api-app-id: ${AZURE_API_APP_ID:}
 
-# ConfiguraciÃ³n de OpenAPI / Swagger
+# Documentación OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /docs/swagger
-# ConfiguraciÃ³n de Scalar UI
+# Scalar UI
 scalar:
   enabled: true
   path: /docs/scalar

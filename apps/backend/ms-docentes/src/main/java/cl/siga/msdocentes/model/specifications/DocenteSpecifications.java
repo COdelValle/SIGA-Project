@@ -1,6 +1,7 @@
 package cl.siga.msdocentes.model.specifications;
 
 import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.msdocentes.model.entity.Docente;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -16,7 +17,7 @@ public class DocenteSpecifications {
       if (rut == null || rut.trim().isEmpty()) {
         return criteriaBuilder.conjunction();
       }
-      return criteriaBuilder.equal(root.get("rut"), rut.trim().toUpperCase());
+      return criteriaBuilder.equal(root.get("rut"), RutNormalizer.normalizar(rut));
     };
   }
 
