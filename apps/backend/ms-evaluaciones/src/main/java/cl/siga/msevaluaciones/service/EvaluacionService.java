@@ -8,6 +8,7 @@ import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msevaluaciones.client.AsignaturaClient;
+import cl.siga.msevaluaciones.mensajeria.PublicadorEvaluacion;
 import cl.siga.msevaluaciones.model.entity.Evaluacion;
 import cl.siga.msevaluaciones.model.mapper.EvaluacionMapper;
 import cl.siga.msevaluaciones.model.specifications.EvaluacionSpecifications;
@@ -30,6 +31,7 @@ public class EvaluacionService {
   private final EvaluacionRepository repository;
   private final EvaluacionMapper mapper;
   private final AsignaturaClient asignaturaClient; // Cliente Feign para validar contra ms-asignaturas
+  private final PublicadorEvaluacion publicador; // Productor RabbitMQ (opción 1)
 
   @Transactional(readOnly = true)
   public EvaluacionResponseDTO getEvaluacionById(Long id) {
@@ -62,7 +64,10 @@ public class EvaluacionService {
 
     validarPonderacionAcumulada(request.idCursoAsignatura(), request.ponderacion(), null);
 
-    return mapper.toResponseDto(repository.save(mapper.toEntity(request)));
+    EvaluacionResponseDTO creada = mapper.toResponseDto(repository.save(mapper.toEntity(request)));
+    // Productor: avisa a estudiantes y apoderados sin bloquear la respuesta.
+    publicador.publicarCreada(creada);
+    return creada;
   }
 
   @Transactional
@@ -82,7 +87,10 @@ public class EvaluacionService {
     validarPonderacionAcumulada(existingEvaluacion.getIdCursoAsignatura(), request.ponderacion(), idEvaluacion);
 
     mapper.updateEntityFromDto(request, existingEvaluacion);
-    return mapper.toResponseDto(repository.save(existingEvaluacion));
+    EvaluacionResponseDTO actualizada = mapper.toResponseDto(repository.save(existingEvaluacion));
+    // Productor: avisa el cambio de nombre, tipo o ponderación.
+    publicador.publicarActualizada(actualizada);
+    return actualizada;
   }
 
   @Transactional(readOnly = true)
@@ -96,7 +104,9 @@ public class EvaluacionService {
       .orElseThrow(() -> new ResourceNotFoundException("Evaluación con ID " + id + " no encontrada."));
 
     existingEvaluacion.setActive(false);
-    repository.save(existingEvaluacion);
+    EvaluacionResponseDTO eliminada = mapper.toResponseDto(repository.save(existingEvaluacion));
+    // Productor: avisa que se canceló la evaluación.
+    publicador.publicarEliminada(eliminada);
   }
 
   /**

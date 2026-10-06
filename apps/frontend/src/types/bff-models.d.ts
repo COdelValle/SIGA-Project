@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 3.2.1263 on 2026-10-04 13:17:44.
+// Generated using typescript-generator version 3.2.1263 on 2026-10-05 23:54:21.
 
 export interface PerfilEstudianteResponseDTO {
     id: number;

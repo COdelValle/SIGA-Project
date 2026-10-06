@@ -21,6 +21,7 @@ import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.msevaluaciones.client.AsignaturaClient;
+import cl.siga.msevaluaciones.mensajeria.PublicadorEvaluacion;
 import cl.siga.msevaluaciones.model.entity.Evaluacion;
 import cl.siga.msevaluaciones.model.mapper.EvaluacionMapper;
 import cl.siga.msevaluaciones.repository.EvaluacionRepository;
@@ -30,6 +31,7 @@ class EvaluacionServiceTest {
     private EvaluacionRepository repository;
     private EvaluacionMapper mapper;
     private AsignaturaClient asignaturaClient;
+    private PublicadorEvaluacion publicador;
     private EvaluacionService service;
 
     @BeforeEach
@@ -37,7 +39,8 @@ class EvaluacionServiceTest {
         repository = mock(EvaluacionRepository.class);
         mapper = mock(EvaluacionMapper.class);
         asignaturaClient = mock(AsignaturaClient.class);
-        service = new EvaluacionService(repository, mapper, asignaturaClient);
+        publicador = mock(PublicadorEvaluacion.class);
+        service = new EvaluacionService(repository, mapper, asignaturaClient, publicador);
     }
 
     private CursoAsignaturaResponseDTO dictacion(boolean calificable) {

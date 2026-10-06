@@ -4,3 +4,4 @@ cl.siga.coreshare.config.SharedOpenApiConfig
 cl.siga.coreshare.config.CommonDateFormatConfig
 cl.siga.coreshare.config.SharedFeignAuthConfig
 cl.siga.coreshare.config.CorrelationIdConfig
+cl.siga.coreshare.mensajeria.ConfiguracionMensajeriaCompartida
