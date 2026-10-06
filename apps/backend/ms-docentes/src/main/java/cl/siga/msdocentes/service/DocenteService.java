@@ -4,9 +4,11 @@ import cl.siga.coreshare.dto.docente.ActualizarDocenteRequestDTO;
 import cl.siga.coreshare.dto.docente.RegistrarDocenteRequestDTO;
 import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msdocentes.model.entity.Docente;
+import cl.siga.msdocentes.model.mapper.CertificadoMapper;
 import cl.siga.msdocentes.model.mapper.DocenteMapper;
 import cl.siga.msdocentes.model.specifications.DocenteSpecifications;
 import cl.siga.msdocentes.repository.DocenteRepository;
@@ -22,6 +24,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Validated
@@ -29,6 +32,7 @@ import java.util.List;
 public class DocenteService {
   private final DocenteRepository repository;
   private final DocenteMapper mapper;
+  private final CertificadoMapper certificadoMapper;
 
   @Transactional(readOnly = true)
   public DocenteResponseDTO getDocenteById(Long id) {
@@ -56,11 +60,19 @@ public class DocenteService {
 
   @Transactional
   public DocenteResponseDTO saveDocente(@Valid RegistrarDocenteRequestDTO request) {
-    if (repository.existsByIdUsuario(request.idUsuario())) {
-      throw new BusinessException("El ID de usuario ya está registrado: " + request.idUsuario());
+    String normalizedRut = RutNormalizer.normalizar(request.rut());
+
+    // Docente que vuelve: si el perfil existe inactivo, se reactiva con los datos recibidos.
+    Optional<Docente> existente = repository.findByIdUsuario(request.idUsuario());
+    if (existente.isPresent()) {
+      Docente docente = existente.get();
+      if (Boolean.TRUE.equals(docente.getActivo())) {
+        throw new BusinessException("El ID de usuario ya está registrado: " + request.idUsuario());
+      }
+      reactivarPerfil(docente, request, normalizedRut);
+      return mapper.toResponseDto(repository.save(docente));
     }
 
-    String normalizedRut = request.rut() == null ? null : request.rut().trim().toUpperCase();
     if (repository.existsByRut(normalizedRut)) {
       throw new BusinessException("El RUT ya está registrado: " + request.rut());
     }
@@ -69,6 +81,28 @@ public class DocenteService {
     docente.setActivo(true);
 
     return mapper.toResponseDto(repository.save(docente));
+  }
+
+  private void reactivarPerfil(Docente docente, RegistrarDocenteRequestDTO request, String normalizedRut) {
+    if (normalizedRut != null && !normalizedRut.equalsIgnoreCase(docente.getRut())
+      && repository.existsByRut(normalizedRut)) {
+      throw new BusinessException("El RUT ya está registrado: " + request.rut());
+    }
+    if (normalizedRut != null) {
+      docente.setRut(normalizedRut);
+    }
+    docente.setFirstName(request.firstName());
+    docente.setMiddleName(request.middleName());
+    docente.setFirstSurname(request.firstSurname());
+    docente.setSecondSurname(request.secondSurname());
+    docente.setFechaContratacion(request.fechaContratacion());
+    docente.setArea(request.area());
+    docente.getCertificados().clear();
+    if (request.certificados() != null) {
+      request.certificados().forEach(certificado ->
+        docente.addCertificado(certificadoMapper.toEntity(certificado)));
+    }
+    docente.setActivo(true);
   }
 
   @Transactional

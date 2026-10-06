@@ -28,6 +28,11 @@ public interface EstudianteClient {
         @RequestParam ("idClase") Long idClase,
         @RequestParam ("size") int size);
 
+    @GetMapping ("/api/v1/estudiantes/search")
+    PageResponseDTO<EstudianteResponseDTO> searchEstudiantes(
+        @RequestParam ("q") String q,
+        @RequestParam ("size") int size);
+
     @PutMapping ("/api/v1/estudiantes/{id}")
     EstudianteResponseDTO updateEstudiante(
         @PathVariable ("id") Long id,

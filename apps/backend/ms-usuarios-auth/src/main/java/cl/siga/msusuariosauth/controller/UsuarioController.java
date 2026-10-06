@@ -10,6 +10,7 @@ import cl.siga.coreshare.dto.usuario.InvitacionUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioCompuestoRequestDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationCredentialResponseDTO;
 import cl.siga.coreshare.dto.usuario.UserRegistrationStatusResponseDTO;
 import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
@@ -134,5 +135,17 @@ public class UsuarioController {
     @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
     public ResponseEntity<UserRegistrationStatusResponseDTO> getRegistroCompuestoStatus(@PathVariable String processId) {
         return ResponseEntity.ok(asyncUserRegistrationService.getStatus(processId));
+    }
+
+    @GetMapping("/registraciones/{processId}/credencial")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
+    public ResponseEntity<UserRegistrationCredentialResponseDTO> getCredencialTemporal(@PathVariable String processId) {
+        return ResponseEntity.ok(asyncUserRegistrationService.obtenerCredencial(processId));
+    }
+
+    @PostMapping("/{id}/reset-password")
+    @PreAuthorize ("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')")
+    public ResponseEntity<UserRegistrationCredentialResponseDTO> resetPassword(@PathVariable String id) {
+        return ResponseEntity.ok(asyncUserRegistrationService.resetPassword(id));
     }
 }

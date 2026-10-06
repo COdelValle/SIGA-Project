@@ -25,6 +25,11 @@ public class EstudianteClientFallback implements EstudianteClient{
     }
 
     @Override
+    public PageResponseDTO<EstudianteResponseDTO> searchEstudiantes(String q, int size) {
+        throw new ServiceUnavailableException("No se pudieron buscar estudiantes para '" + q + "'");
+    }
+
+    @Override
     public EstudianteResponseDTO updateEstudiante(Long id, ActualizarEstudianteRequestDTO request) {
         throw new ServiceUnavailableException("No se pudo actualizar el estudiante " + id);
     }
