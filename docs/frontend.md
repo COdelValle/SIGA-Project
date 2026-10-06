@@ -44,7 +44,7 @@ apps/frontend/
 │   ├── estudiante/             # portal estudiante (inicio, horarios, notas, asistencias, progreso)
 │   ├── apoderado/              # portal apoderado (multipupilo)
 │   ├── docente/                # portal docente (inicio, cursos, horarios, registrar-notas/asistencias)
-│   ├── admin/                  # portal administracion (inicio, usuarios, roles, asignaturas)
+│   ├── admin/                  # portal administracion (inicio, usuarios con CRUD y registro por rol, roles, asignaturas, malla), modales y helpers propios
 │   └── mocks/                  # datos mock centralizados (solo modo demo useMocks)
 ├── src/
 │   ├── app/
@@ -105,8 +105,9 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 - **`shared-ui`**: layout (`DashboardShell`, `PortalHeader`, `PortalShell`, menu con iconos SVG) y UI reutilizable (`SeccionCard`, `DayTabs`, `Paginador`).
 - **`public-portal`**: landing publico con accesos por rol.
 - **`academico`**: componentes academicos reutilizables (horario, asistencia, notas, periodo), modelos del perfil y servicios reales (`PerfilEstudianteService`, `AsistenciaService`).
-- **`mocks`**: los 4 archivos de datos mock centralizados; se usan **solo en modo demo** (`useMocks: true`) o como constantes (`CONFIG_ACADEMICA_MOCK`, `ROLES_MOCK`, `FRANJAS`). Ya no hay fallback automatico ante errores del BFF.
-- **`estudiante` / `apoderado` / `docente` / `admin`**: contenedores de cada portal con sus rutas hijas y paginas.
+- **`mocks`**: los 4 archivos de datos mock centralizados; se usan **solo en modo demo** (`useMocks: true`) o como constantes (`CONFIG_ACADEMICA_MOCK`, `ROLES_MOCK`, `FRANJAS`). Ya no hay fallback automatico ante errores del BFF. Expone ademas el espejo TypeScript de la normalizacion del backend para el formulario de registro: capitalizacion de nombres (`NombrePropio`), mascara/formato de RUT, nombre completo y correo institucional sugeridos.
+- **`admin`**: portal de administracion; incluye la tabla de `usuarios` (CRUD, detalle "Ver", restablecer clave y eliminar), la pagina `nuevo-usuario` (formulario por rol con selectores de clase/alumno, preview de nombre/correo y credencial temporal), los componentes `credencial-temporal` y `detalle-usuario`, y el helper `utils/clipboard.ts` compartido.
+- **`estudiante` / `apoderado` / `docente`**: contenedores de cada portal con sus rutas hijas y paginas.
 
 ### Fronteras
 
@@ -118,6 +119,8 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 - `MeService` consume `GET /api/me`; el portal estudiante usa `GET /api/bff/v1/estudiantes/perfil/me` (flujo estudiante → clase → dictaciones → evaluaciones → notas, con horarios y docente) y `/perfil/{id}` para los pupilos del apoderado.
 - Los portales de apoderado, docente y admin consumen `pupilos`, `docentes/cursos|horario`, `admin/usuarios|asignaturas|malla`, `asistencias/estudiante/me|{id}` y `asistencias/asignatura/{id}?fecha=`.
 - El portal docente escribe contra el BFF: `GET /docentes/cursos/{asignaturaId}/notas`, CRUD de `notas` y `evaluaciones` (ponderacion acumulada <= 100) y POST/PUT de asistencias, con auto-guardado por celda/fila.
+- **Admin / registro de usuarios**: `POST /admin/registraciones` (`202` + `processId`), polling `GET /admin/registraciones/{processId}`, credencial de un solo uso `GET /admin/registraciones/{processId}/credencial` y `POST /admin/usuarios/{idUsuario}/reset-password`. Selectores y CRUD: `GET /admin/clases?anioAcademico=`, `GET /admin/estudiantes?q=`, `GET /admin/usuarios/{idUsuario}` (detalle) y `DELETE /admin/usuarios/{idUsuario}` (soft delete + Entra). En el formulario `email`/`fullName` son opcionales: el preview solo sugiere el correo y el nombre derivados.
+- **Estandares de entrada**: RUT con mascara en vivo (puntos y guion automatico del DV, `maxlength=12`) y nombres normalizados en vivo con la misma regla del backend; una mayuscula intermedia tecleada con Shift (p. ej. `DiCaprio`) se respeta como excepcion manual.
 - Con `useMocks: false` (default) los servicios solo usan el BFF; si la llamada falla, la vista muestra estado vacio/error con boton "Reintentar" (helper `recursoRemoto`), sin caer a mocks. Con `useMocks: true` las vistas usan los mocks explicitamente como modo demo.
 - Al navegar (`NavigationEnd`) se invalidan los caches de perfil/asistencias para reflejar cambios hechos por el docente sin recargar la pagina.
 - Los tipos TypeScript se generan desde los DTOs del BFF con `typescript-generator` (`src/types/bff-models.d.ts`).
@@ -144,7 +147,10 @@ Cada portal se carga con **lazy loading** y define **rutas hijas** bajo un layou
 | Paginacion (`Page<T>` + `siga-paginador`) | Disponible |
 | Fronteras Nx | Disponible |
 | Escritura de notas/asistencias por el docente contra el BFF | Disponible (grilla evaluaciones x alumnos y asistencia con auto-guardado) |
-| Formularios y validaciones | Pendiente |
+| Registro de usuarios por rol (estudiante/docente/apoderado) con polling y credencial | Disponible |
+| CRUD admin de usuarios: select de clases, buscador de alumnos, detalle "Ver" y eliminacion | Disponible (soft delete + reactivacion en Entra desde el backend) |
+| Formularios y validaciones | Disponible (RUT con mascara, nombres normalizados en vivo, reglas del backend reflejadas en la UI) |
+| Estandar visual del admin (tema claro/oscuro, botones y tabla) | Disponible |
 | Pruebas funcionales | Parcial (specs Vitest de servicios con `HttpTestingController`) |
 
 Los mocks quedaron centralizados en `libs/mocks` (`@siga/mocks`) y solo se usan en

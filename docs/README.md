@@ -12,6 +12,7 @@ inicio rápido, ver el [`README.md`](../README.md) de la raíz.
 | [`frontend.md`](frontend.md) | Aplicación Angular, MSAL, rutas por rol, librerías Nx y contratos con el BFF. |
 | [`paginacion.md`](paginacion.md) | Contrato de paginación (`Page<T>`) de los `GET /search`, ejemplos y guía para backend y frontend. |
 | [`testing-login.md`](testing-login.md) | Guía paso a paso para validar login con Azure AD y el sistema completo con Docker Compose. |
+| [`registro-pruebas.md`](registro-pruebas.md) | Bitácora reutilizable de pruebas y pasos por sesión: plantilla, entradas registradas, runbook (comandos, SQL y colas) y checklist de cierre. |
 | [`auditoria-backend.md`](auditoria-backend.md) | Hallazgos de la auditoría del backend (P0–P3), inventario de scopes y la decisión pendiente de autorización (roles vs scopes granulares). |
 | [`branch-cleanup.md`](branch-cleanup.md) | Modelo de ramas (`feature -> dev -> main -> deploy`) y limpieza de ramas ejecutada. |
 
@@ -29,4 +30,5 @@ inicio rápido, ver el [`README.md`](../README.md) de la raíz.
 2. [`backend.md`](backend.md) y [`frontend.md`](frontend.md) — profundizar por capa.
 3. [`paginacion.md`](paginacion.md) — contrato de las búsquedas paginadas.
 4. [`testing-login.md`](testing-login.md) — levantar y probar localmente.
-5. [`branch-cleanup.md`](branch-cleanup.md) — flujo de trabajo con Git.
+5. [`registro-pruebas.md`](registro-pruebas.md) — registrar y reproducir pruebas entre sesiones.
+6. [`branch-cleanup.md`](branch-cleanup.md) — flujo de trabajo con Git.
