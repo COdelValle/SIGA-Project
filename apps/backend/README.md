@@ -87,6 +87,14 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `PUT` | `/api/bff/v1/evaluaciones/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_evaluaciones:update` (ownership) | Edita nombre/tipo/ponderación de una evaluación. |
 | `DELETE` | `/api/bff/v1/evaluaciones/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_evaluaciones:delete` (ownership) | Borrado lógico de una evaluación. |
 | `GET` | `/api/bff/v1/admin/usuarios` · `/asignaturas` | `ADMIN` + `SCOPE_usuarios:read` / `asignaturas:read` | Usuarios y asignaturas para el portal admin. |
+| `GET` | `/api/bff/v1/admin/clases?anioAcademico=` | `ADMIN` + `SCOPE_clases:read` | Clases activas del año para el select del formulario. |
+| `GET` | `/api/bff/v1/admin/estudiantes?q=` | `ADMIN` + `SCOPE_estudiantes:read` | Busca alumnos por RUT (con/sin puntos) o nombre (mínimo 2 caracteres). |
+| `GET` | `/api/bff/v1/admin/usuarios/{idUsuario}` | `ADMIN` + `SCOPE_usuarios:read` | Detalle de la cuenta + resumen del perfil del rol (estudiante/docente/apoderado). |
+| `DELETE` | `/api/bff/v1/admin/usuarios/{idUsuario}` | `ADMIN` + `SCOPE_usuarios:delete` | Soft delete en SIGA y deshabilitación/revocación en Entra ID. |
+| `POST` | `/api/bff/v1/admin/registraciones` | `ADMIN` + `SCOPE_usuarios:write` | Inicia el registro asíncrono (`202` + `processId`). |
+| `GET` | `/api/bff/v1/admin/registraciones/{processId}` | `ADMIN` + `SCOPE_usuarios:read` | Estado del proceso (polling). |
+| `GET` | `/api/bff/v1/admin/registraciones/{processId}/credencial` | `ADMIN` + `SCOPE_usuarios:read` | Credencial temporal de un solo uso (solo el admin iniciador). |
+| `POST` | `/api/bff/v1/admin/usuarios/{idUsuario}/reset-password` | `ADMIN` + `SCOPE_usuarios:update` | Regenera la clave temporal (requiere el rol User Administrator en Graph). |
 | `GET` | `/api/bff/v1/asistencias/estudiante/me` · `/{id}` | `SCOPE_asistencias:read` (ownership para `{id}`) | Asistencias del estudiante autenticado, de un pupilo vinculado o de un docente. |
 | `GET` | `/api/bff/v1/asistencias/asignatura/{id}?fecha=` | `DOCENTE` + `SCOPE_asistencias:read` (ownership) | Asistencias de una asignatura en una fecha, para el docente dueño. |
 | `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` (ownership) | Registra asistencia. |
@@ -102,8 +110,12 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/search?email=&rol=&state=&page=&size=&sort=` | `ADMIN` + `SCOPE_usuarios:read` |
 | `POST` | `/` | `ADMIN` + `SCOPE_usuarios:write` |
 | `PUT` | `/{id}` | `ADMIN` + `SCOPE_usuarios:update` (no puede desactivarse a sí mismo) |
-| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_usuarios:delete` (borrado lógico) |
+| `DELETE` | `/{id}` | `ADMIN` + `SCOPE_usuarios:delete` (borrado lógico + offboarding en Entra) |
 | `POST` | `/{id}/sync-roles` | `ADMIN` + `SCOPE_usuarios:update` |
+| `POST` | `/registraciones/async` | `ADMIN` + `SCOPE_usuarios:write` (`202` + `processId`) |
+| `GET` | `/registraciones/{processId}` | `ADMIN` + `SCOPE_usuarios:read` |
+| `GET` | `/registraciones/{processId}/credencial` | `ADMIN` + `SCOPE_usuarios:read` (una sola lectura; `409`/`410`) |
+| `POST` | `/{id}/reset-password` | `ADMIN` + `SCOPE_usuarios:update` |
 
 ### Estudiantes (`:8083`, `/api/v1/estudiantes`)
 
@@ -242,17 +254,28 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 - **Paginación**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`;
   default 20, máximo 100). Detalle en [`docs/paginacion.md`](../../docs/paginacion.md).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y
-  parámetros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:*
-  antes era `dd/MM/yyyy`; los consumidores deben usar `yyyy-MM-dd` (`birthDate`,
-  `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
+  parámetros de URL), definido en `CommonDateFormatConfig` y en
+  `SharedFeignFormatConfig` (OpenFeign no usa los formatters de MVC; sin esta
+  configuración las llamadas Feign enviaban `from`/`to` con formatos localizados).
+  *Cambio de contrato:* antes era `dd/MM/yyyy`; los consumidores deben usar
+  `yyyy-MM-dd` (`birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy`
+  solo para mostrar.
+- **Estándar de datos**: RUT canónico sin puntos (`13789943-2`) vía
+  `RutNormalizer` y nombres capitalizados con `NombrePropio` (partículas en
+  minúscula, `Mc`/`Mac`, apóstrofes y guiones). El backend normaliza antes de
+  guardar; el frontend lo espeja en vivo. Las migraciones `V7`/`V7`/`V5`/`V9`
+  normalizan los seeds y `tools/normalizar-datos.ps1` cubre data previa no seed.
 - En Docker las variables se inyectan desde `.env`
-  (`SPRING_DATASOURCE_*`, `SERVER_PORT`, Azure, `MS_*_URL`, `SPRING_RABBITMQ_*`).
+  (`SPRING_DATASOURCE_*`, `SERVER_PORT`, Azure, `MS_*_URL`, `SPRING_RABBITMQ_*`,
+  `REGISTRO_*`).
 
 Variables principales: `MARIADB_ROOT_PASSWORD`, `DB_USER`, `DB_PASS`,
 `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `AZURE_CLIENT_SECRET`,
 `AZURE_API_APP_ID`, `MS_USUARIOS_URL`, `MS_ESTUDIANTES_URL`,
 `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`,
-`MS_EVALUACIONES_URL`, `MS_ASISTENCIAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`.
+`MS_EVALUACIONES_URL`, `MS_ASISTENCIAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`,
+`REGISTRO_ASYNC_ENABLED`, `REGISTRO_CRED_KEY`,
+`REGISTRO_NOTIFY_CREDENTIALS_ENABLED` y `REGISTRO_EMAIL_DOMAIN`.
 
 ## Documentación de la API
 
@@ -267,11 +290,17 @@ mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTes
 
 - Tests unitarios (Mockito) de validadores, cupos, ponderación, docente jefe,
   horarios, asistencias y de los servicios del BFF (`perfil`, `pupilos`, `cursos`,
-  `admin` y `asistencias`) en `core-share`, `bff-web`, `ms-asignaturas`,
-  `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-usuarios-auth`.
+  `admin`, `asistencias`, `detalle/eliminación de usuarios`) en `core-share`,
+  `bff-web`, `ms-asignaturas`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y
+  `ms-usuarios-auth`.
+- Registro asíncrono: `AsyncUserRegistrationServiceTest`, `CredentialCipherTest`,
+  `EmailInstitucionalGeneratorTest` y pruebas de normalización de formatos
+  (`RutNormalizerTest`, `NombrePropioTest`, `SharedFeignFormatConfigTest`).
+  Reactivación de perfiles y búsqueda `q` en los dominios (`BusquedaTextoTest`).
 - Contrato de errores (`GlobalExceptionHandlerTest`) y migraciones con
-  **Testcontainers** (`MigracionesTest`: unicidad de `id_usuario`/asignatura y
-  soft delete de horarios). Los IT se omiten si no hay Docker (`disabledWithoutDocker`).
+  **Testcontainers** (`MigracionesTest`/`MigracionesRegistroAsyncTest`: unicidad de
+  `id_usuario`/asignatura, outbox, credenciales y soft delete). Los IT se omiten si
+  no hay Docker (`disabledWithoutDocker`).
 - Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
   datos y Azure AD.
 
@@ -280,4 +309,5 @@ mvn -f apps/backend/pom.xml -B package -Dtest='!*ApplicationTests' -DfailIfNoTes
 - [README raíz](../../README.md)
 - [`docs/backend.md`](../../docs/backend.md) · [`docs/arquitectura.md`](../../docs/arquitectura.md)
 - [`docs/paginacion.md`](../../docs/paginacion.md) · [`docs/auditoria-backend.md`](../../docs/auditoria-backend.md)
-- [`docs/testing-login.md`](../../docs/testing-login.md) · [Índice de docs](../../docs/README.md)
+- [`docs/testing-login.md`](../../docs/testing-login.md) · [`docs/registro-pruebas.md`](../../docs/registro-pruebas.md)
+- [Índice de docs](../../docs/README.md)

@@ -16,6 +16,14 @@ resto de lo implementado, levantando el sistema con Docker Compose.
   del `oid` en el primer login.
 - Integracion con Microsoft Graph: lookup de `oid`, alta por correo, cambio de rol y
   `sync-roles` (Fase 2, requiere secreto de Azure).
+- Registro asincrono de usuarios desde el admin (crea cuenta en Entra con clave temporal
+  y perfil del rol), credencial de un solo uso y `reset-password` (requiere permisos de
+  escritura de Graph; ver seccion 9).
+- CRUD admin: select de clases del año, buscador de alumnos y eliminacion (soft delete en
+  SIGA + deshabilitar cuenta/revocar roles y sesiones en Entra).
+
+Las pruebas manuales y los pasos detallados de cada sesion se registran en
+[`registro-pruebas.md`](registro-pruebas.md).
 
 **Pantallas de negocio (datos mock):** los portales (estudiante, apoderado, docente, admin)
 ya tienen dashboards con opciones (Inicio, Horarios, Notas, Asistencias, Progreso Academico,
@@ -37,7 +45,8 @@ solicitar:
 | Redirect URI `/auth` | `http://localhost:4200/auth` (plataforma SPA). |
 | Redirect URI logout `/sin-acceso` | `http://localhost:4200/sin-acceso` (plataforma SPA). |
 | Fase 2 - Secreto | Client secret de la app de API. |
-| Fase 2 - Permisos Graph | `User.Read.All` y `AppRoleAssignment.ReadWrite.All` (permisos de aplicacion con consentimiento de admin). |
+| Fase 2 - Permisos Graph | `User.Read.All`, `User.ReadWrite.All` y `AppRoleAssignment.ReadWrite.All` (permisos de **aplicacion** con consentimiento de admin). `User.ReadWrite.All` es indispensable para crear cuentas y fijar claves. |
+| Fase 2 - Rol de directorio | **User Administrator** asignado al service principal de la app (Graph lo exige para actualizar `passwordProfile` en cuentas existentes: `reset-password` y reutilizacion). Para asignarlo se necesita `RoleManagement.ReadWrite.Directory` de forma temporal. |
 
 ### 2.1 Scopes requeridos (exponer y consentir)
 
@@ -87,6 +96,10 @@ Pasos en Entra ID (TI):
 | `AZURE_APP_ID_URI` | `api://<client-id>` de la app de API. |
 | `AZURE_CLIENT_SECRET` | (Fase 2) Secreto para llamar a Graph. Si esta vacio, Graph queda deshabilitado. |
 | `AZURE_API_APP_ID` | (Fase 2) App id que define los app roles. Si se omite, usa `AZURE_CLIENT_ID`. |
+| `REGISTRO_ASYNC_ENABLED` | Registro asincrono de usuarios (default `false`). Requiere Graph configurado y `REGISTRO_CRED_KEY`. |
+| `REGISTRO_CRED_KEY` | Clave AES-256 en Base64 (32 bytes) que cifra la credencial temporal en reposo; generarla con `openssl rand -base64 32`. Obligatoria al habilitar el flujo. |
+| `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | Emite `user.credentials.notify` al completar Graph (reservado para el futuro envio de la clave por correo). |
+| `REGISTRO_EMAIL_DOMAIN` | Dominio del correo institucional generado (default `platformsiga.onmicrosoft.com`). |
 
 ### `apps/frontend/public/config.json`
 
@@ -234,7 +247,8 @@ Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
 > funcionan solo con la BD. Graph agrega el lookup previo, el alta inmediata con
 > `oid` y la sincronizacion de app roles en Entra.
 
-1. Agregar `AZURE_CLIENT_SECRET` y `AZURE_API_APP_ID` a `.env`.
+1. Agregar `AZURE_CLIENT_SECRET`, `AZURE_API_APP_ID` y los permisos de Graph de la
+   seccion 2 (aplicacion, con consentimiento de admin) a `.env`.
 2. Recrear el servicio:
    ```bash
    docker compose up -d ms-usuarios-auth
@@ -244,10 +258,15 @@ Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
    - `POST /api/v1/usuarios` con `{ "email": "...", "rol": "DOCENTE" }` -> resuelve el `oid`
      y lo registra (`201`, `state: "ACTIVO"`).
    - Cambiar rol con `PUT` -> en Azure se reasigna el App role.
-   - `DELETE` -> se revocan los App roles del usuario.
+   - `DELETE` -> se revocan los App roles y sesiones y se deshabilita la cuenta en Entra
+     (`accountEnabled=false`), sin borrarla.
 4. Si Graph no esta configurado, el CRUD basico sigue funcionando: `POST` sin `oid`
    crea una invitacion (`202`) que se vincula en el primer login; `lookup` y
    `sync-roles` responden error de negocio/503.
+5. **Registro asincrono** (opcional): activar `REGISTRO_ASYNC_ENABLED=true` y
+   `REGISTRO_CRED_KEY`, recrear `ms-usuarios-auth` y probar el flujo completo;
+   pasos, verificacion SQL, colas y limpieza en
+   [`registro-pruebas.md`](registro-pruebas.md) (seccion 5).
 
 ## 10. Troubleshooting
 
@@ -261,6 +280,8 @@ Respuesta esperada: un `Page<T>` con `content`, `totalElements`, `totalPages`,
 | 403 en perfil de estudiante | Los controllers piden `SCOPE_estudiantes:read`, etc., y el token solo trae `Acceso.Base`. | Exponer y solicitar esos scopes (pendiente conocido). |
 | `/error-acceso` tras iniciar sesion | Fallo al adquirir el token (scope no expuesto/consentido, redirect como Web en vez de SPA, o app role sin asignar). | Revisar el detalle que muestra la pantalla (AADSTS); corregir en Entra ID y limpiar el cache MSAL (`msal.*` en Local/Session Storage). |
 | Fechas `dd/MM/yyyy` rechazadas por la API | La API usa **ISO 8601** (`yyyy-MM-dd`) para `LocalDate` (JSON y parametros). | Enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`); el frontend normaliza a `dd/MM/yyyy` solo para mostrar. |
+| 400 `El parametro 'from' tiene un formato invalido` en asistencias del docente | Bug preexistente de OpenFeign: serializa fechas con el formato corto localizado (`6/10/26`) al margen de MVC. Corregido con `SharedFeignFormatConfig` en `core-share`. | Reconstruir `bff-web`; si persiste, verificar que el `core-share` desplegado incluya la config. |
+| 403 de Graph al fijar clave en una cuenta existente o en `reset-password` | La app de Graph no tiene asignado el rol de directorio **User Administrator** (con `User.ReadWrite.All` basta para crear cuentas nuevas, no para actualizar `passwordProfile`). | Asignar el rol User Administrator al service principal de la app (ver seccion 2). |
 | `search` responde 400 | `page` o `size` no numericos. | Enviar enteros (`page` >= 0, `size` 1..100); `sort` usa propiedades de la entidad (p. ej. `id,asc`). Ver [`paginacion.md`](paginacion.md). |
 | Frontend no llama al BFF | `bffBaseUrl` mal configurado o API inaccesible. | En AWS, usar el API Gateway; en `ng serve`, `proxy.conf.json`; en Docker local, el proxy `/api` de Nginx. |
 
