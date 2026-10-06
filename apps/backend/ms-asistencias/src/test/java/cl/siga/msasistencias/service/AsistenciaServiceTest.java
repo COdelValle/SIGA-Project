@@ -20,6 +20,7 @@ import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
 import cl.siga.msasistencias.model.entity.Asistencia;
 import cl.siga.msasistencias.model.mapper.AsistenciaMapperImpl;
 import cl.siga.msasistencias.repository.AsistenciaRepository;
@@ -29,9 +30,10 @@ class AsistenciaServiceTest {
     private final AsistenciaRepository repository = mock(AsistenciaRepository.class);
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+    private final PublicadorAsistencia publicador = mock(PublicadorAsistencia.class);
 
     private final AsistenciaService service = new AsistenciaService(
-        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient);
+        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient, publicador);
 
     private final LocalDate fecha = LocalDate.of(2026, 10, 1);
 
@@ -46,6 +48,11 @@ class AsistenciaServiceTest {
             }
             return asistencia;
         });
+        // Por defecto el mes parte sin inasistencia (salvo los tests que lo cambian).
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            any(), any(), any(), any(), any())).thenReturn(0L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            any(), any(), any(), any())).thenReturn(1L);
     }
 
     @Test
@@ -152,5 +159,47 @@ class AsistenciaServiceTest {
 
         assertThatThrownBy(() -> service.getAsistenciaById(404L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void presenteNoPublicaEvento() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.PRESENTE, null));
+
+        org.mockito.Mockito.verify(publicador, org.mockito.Mockito.never())
+            .publicarRegistrada(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyBoolean());
+    }
+
+    @Test
+    void ausenteConBajaInasistenciaPublicaSinUmbral() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        // 2 faltas de 10 registros del mes = 20%.
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(2L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(10L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.AUSENTE, "sin aviso"));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
+            org.mockito.Mockito.eq(20.0), org.mockito.Mockito.eq(false));
+    }
+
+    @Test
+    void ausenteConAltaInasistenciaPublicaConUmbral() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        // 7 faltas de 10 registros del mes = 70% (supera el 60%).
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(7L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(10L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.AUSENTE, "sin aviso"));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
+            org.mockito.Mockito.eq(70.0), org.mockito.Mockito.eq(true));
     }
 }
