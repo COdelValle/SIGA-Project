@@ -76,19 +76,16 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Mensajería RabbitMQ: JSON + RabbitTemplate / @RabbitListener -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- PropertyReferenceException (sort invalido) para el manejador global -->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-commons</artifactId>
-        </dependency>
-
-        <!-- Mensajeria (topologia compartida del registro asincrono). Opcional:
-             solo los servicios que agregan spring-boot-starter-amqp obtienen
-             la auto-configuracion de colas. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 

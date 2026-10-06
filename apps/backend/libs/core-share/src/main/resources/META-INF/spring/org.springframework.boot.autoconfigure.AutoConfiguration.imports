@@ -6,3 +6,4 @@ cl.siga.coreshare.config.SharedFeignAuthConfig
 cl.siga.coreshare.config.SharedFeignFormatConfig
 cl.siga.coreshare.config.CorrelationIdConfig
 cl.siga.coreshare.messaging.RegistrationMessagingConfig
+cl.siga.coreshare.mensajeria.ConfiguracionMensajeriaCompartida

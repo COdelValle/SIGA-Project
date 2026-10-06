@@ -20,7 +20,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MariaDB (una base por microservicio)
 - RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones` y `ms-asistencias` (queda comentado `ms-auditoria`, con puerto reservado `8082`).
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-notificaciones` (queda comentado `ms-auditoria`, con puerto reservado `8082`). `ms-notificaciones` es el consumidor de las colas RabbitMQ (actualmente la cola de evaluaciones; solo registra en log).
 
 ## 3. Componentes del backend
 
