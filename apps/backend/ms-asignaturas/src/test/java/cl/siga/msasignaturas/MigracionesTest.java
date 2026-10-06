@@ -49,7 +49,7 @@ class MigracionesTest {
 
             var dictaciones = statement.executeQuery("SELECT COUNT(*) FROM cursos_asignaturas");
             assertTrue(dictaciones.next());
-            assertEquals(143, dictaciones.getInt(1));
+            assertEquals(155, dictaciones.getInt(1));
 
             var malla = statement.executeQuery("SELECT COUNT(*) FROM malla_curricular");
             assertTrue(malla.next());
