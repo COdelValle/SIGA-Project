@@ -76,6 +76,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Mensajería RabbitMQ: JSON + RabbitTemplate / @RabbitListener -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- PropertyReferenceException (sort invalido) para el manejador global -->
         <dependency>
             <groupId>org.springframework.data</groupId>

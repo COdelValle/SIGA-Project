@@ -1,0 +1,20 @@
+{
+  "name": "ms-notificaciones",
+  "projectType": "application",
+  "implicitDependencies": ["core-share", "ms-asignaturas", "ms-estudiantes", "ms-apoderados"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/ms-notificaciones",
+        "command": "./mvnw clean package -DskipTests"
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker buildx build --platform linux/amd64 -t $MS_NOTIF_ECR:$TAG_VERSION -t $MS_NOTIF_ECR:latest -f apps/backend/ms-notificaciones/Dockerfile apps/backend --push"
+      }
+    }
+  }
+}

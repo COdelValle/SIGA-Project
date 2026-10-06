@@ -54,6 +54,7 @@ jobs:
           echo "MS_CLASES_ECR=${REGISTRY}/siga-clases" >> $GITHUB_ENV
           echo "MS_EVALUACIONES_ECR=${REGISTRY}/siga-evaluaciones" >> $GITHUB_ENV
           echo "MS_ASIS_ECR=${REGISTRY}/siga-asistencias" >> $GITHUB_ENV
+          echo "MS_NOTIF_ECR=${REGISTRY}/siga-notificaciones" >> $GITHUB_ENV
 
       # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
       # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
@@ -133,6 +134,12 @@ jobs:
           docker buildx build --platform linux/amd64 \
             -t $MS_ASIS_ECR:${TAG_VERSION} -t $MS_ASIS_ECR:latest \
             -f ./apps/backend/ms-asistencias/Dockerfile ./apps/backend --push
+
+      - name: Build & Push - ms-notificaciones
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_NOTIF_ECR:${TAG_VERSION} -t $MS_NOTIF_ECR:latest \
+            -f ./apps/backend/ms-notificaciones/Dockerfile ./apps/backend --push
 
       - name: Build & Push - bff-web
         run: |
