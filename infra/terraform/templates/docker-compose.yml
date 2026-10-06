@@ -272,6 +272,29 @@ services:
       ms-asignaturas:
         condition: service_healthy
 
+  ms-notificaciones:
+    image: ${REGISTRY}/siga-notificaciones:${IMAGE_TAG}
+    container_name: ms-notificaciones
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8091"
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_APODERADOS_URL: http://ms-apoderados:8084
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-apoderados:
+        condition: service_healthy
+
   bff-web:
     image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
     container_name: bff-web

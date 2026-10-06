@@ -24,9 +24,35 @@ La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
 | `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (unique por fecha y soft delete). |
+| `ms-notificaciones` | 8091 | Consumidor de colas RabbitMQ (cola de evaluaciones; por ahora registra en log). |
 
 El módulo `ms-auditoria` sigue declarado como futuro (comentado en el POM padre);
 su puerto queda **reservado**: `8082`.
+
+### Mensajería (RabbitMQ)
+
+Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
+
+- Intercambio: `intercambio-notificaciones` (compartido para las 3 colas de notificaciones).
+- Cola 1: `cola-notificaciones-evaluaciones`, enlazada con el patrón `evaluacion.*`
+  (`evaluacion.creada`, `evaluacion.actualizada`, `evaluacion.eliminada`).
+- Cola 2: `cola-notificaciones-asistencias`, enlazada con el patrón `asistencia.*`
+  (clave `asistencia.registrada`). Se publica solo al **crear** (POST) con estado
+  `AUSENTE` o `ATRASADO`; el PUT de justificación no notifica. El mensaje lleva el
+  porcentaje de inasistencia del mes (faltas `AUSENTE` / registros del estudiante en
+  la dictación) y el campo `superaUmbralInasistencia` (>= 60%).
+- Cola 3: `cola-notificaciones-notas`, enlazada con el patrón `nota.*`
+  (`nota.creada`, `nota.actualizada`). Se publica al **crear** y **modificar**;
+  el DELETE lógico no notifica. El POST que reactiva una nota borrada
+  lógicamente se avisa como `ACTUALIZADA` (la fila ya existía).
+- Productor: `ms-evaluaciones` publica un `EventoEvaluacion` (DTO en `core-share`)
+  después de crear, actualizar o eliminar una evaluación; si RabbitMQ está caído solo loguea.
+- Consumidor: `ms-notificaciones` (`EscuchadorEvaluacion`) registra el evento en log
+  (por ahora sin base de datos ni envío real). Los clientes Feign para resolver
+  estudiantes/apoderados/inscritos ya existen, pero requieren resolver la
+  autenticación servicio-a-servicio (el listener no tiene token JWT).
+- Nombres en español en `core-share`: `NombresMensajeria`, `ConfiguracionMensajeriaCompartida`
+  (conversor JSON) y `EventoEvaluacion`/`AccionEvaluacion`.
 
 ## Tecnologías
 

@@ -17,6 +17,7 @@ import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.client.EvaluacionClient;
+import cl.siga.msnotas.mensajeria.PublicadorNota;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapperImpl;
 import cl.siga.msnotas.repository.NotaRepository;
@@ -26,9 +27,10 @@ class NotaServiceTest {
     private final NotaRepository repository = mock(NotaRepository.class);
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
+    private final PublicadorNota publicador = mock(PublicadorNota.class);
 
     private final NotaService service = new NotaService(
-        repository, new NotaMapperImpl(), estudianteClient, evaluacionClient);
+        repository, new NotaMapperImpl(), estudianteClient, evaluacionClient, publicador);
 
     @BeforeEach
     void existenciasOk() {
@@ -97,5 +99,30 @@ class NotaServiceTest {
         assertThatThrownBy(() -> service.saveNota(new RegistrarNotaRequestDTO(1L, 404L, 5.0)))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("evaluación");
+    }
+
+    @Test
+    void guardarNotaNuevaPublicaCreada() {
+        when(repository.findByIdEstudianteAndIdEvaluacion(1L, 9L)).thenReturn(Optional.empty());
+
+        service.saveNota(new RegistrarNotaRequestDTO(1L, 9L, 6.5));
+
+        org.mockito.Mockito.verify(publicador).publicarCreada(any(NotaResponseDTO.class));
+        org.mockito.Mockito.verify(publicador, org.mockito.Mockito.never())
+            .publicarActualizada(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void reactivarNotaPublicaActualizadaYNoCreada() {
+        Nota inactiva = Nota.builder()
+            .id(7L).idEstudiante(1L).idEvaluacion(9L).score(4.0).active(false).build();
+        when(repository.findByIdEstudianteAndIdEvaluacion(1L, 9L))
+            .thenReturn(Optional.of(inactiva));
+
+        service.saveNota(new RegistrarNotaRequestDTO(1L, 9L, 6.2));
+
+        org.mockito.Mockito.verify(publicador).publicarActualizada(any(NotaResponseDTO.class));
+        org.mockito.Mockito.verify(publicador, org.mockito.Mockito.never())
+            .publicarCreada(org.mockito.ArgumentMatchers.any());
     }
 }
