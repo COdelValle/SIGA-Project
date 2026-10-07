@@ -6,6 +6,7 @@ import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
 import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msapoderados.client.EstudianteClient;
 import cl.siga.msapoderados.model.entity.Apoderado;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Validated
@@ -58,25 +60,77 @@ public class ApoderadoService {
 
   @Transactional
   public ApoderadoResponseDTO saveApoderado(@Valid RegistrarApoderadoRequestDTO request) {
-    if (repository.existsByIdUsuario(request.idUsuario())) {
-      throw new BusinessException("El ID de usuario de Azure ya está registrado: " + request.idUsuario());
+    return guardar(request, true);
+  }
+
+  /**
+   * Alta usada por el consumidor del registro asíncrono: los pupilos ya fueron
+   * validados de forma síncrona al aceptar la solicitud, así que no se repite
+   * la llamada Feign (el listener no tiene JWT de usuario).
+   */
+  @Transactional
+  public ApoderadoResponseDTO saveApoderadoDesdeEvento(@Valid RegistrarApoderadoRequestDTO request) {
+    return guardar(request, false);
+  }
+
+  private ApoderadoResponseDTO guardar(RegistrarApoderadoRequestDTO request, boolean validarEstudiantes) {
+    String normalizedRut = RutNormalizer.normalizar(request.rut());
+
+    // Apoderado que vuelve: si el perfil existe inactivo, se reactiva con los datos recibidos.
+    Optional<Apoderado> existente = repository.findByIdUsuario(request.idUsuario());
+    if (existente.isPresent()) {
+      Apoderado apoderado = existente.get();
+      if (Boolean.TRUE.equals(apoderado.getActivo())) {
+        throw new BusinessException("El ID de usuario de Azure ya está registrado: " + request.idUsuario());
+      }
+      reactivarPerfil(apoderado, request, normalizedRut, validarEstudiantes);
+      return mapper.toResponseDto(repository.save(apoderado));
     }
 
-    String normalizedRut = request.rut() == null ? null : request.rut().trim().toUpperCase();
     if (repository.existsByRut(normalizedRut)) {
       throw new BusinessException("El RUT ya está registrado: " + request.rut());
     }
 
-    for (ParentescoEstudianteDTO estudianteRelacion : request.estudiantes()) {
-      if (!estudianteClient.existsById(estudianteRelacion.idEstudiante())) {
-        throw new BusinessException("El estudiante con ID " + estudianteRelacion.idEstudiante() + " no existe.");
-      }
+    if (validarEstudiantes) {
+      validarEstudiantes(request);
     }
 
     Apoderado apoderado = mapper.toEntity(request);
     apoderado.setActivo(true);
 
     return mapper.toResponseDto(repository.save(apoderado));
+  }
+
+  private void reactivarPerfil(Apoderado apoderado, RegistrarApoderadoRequestDTO request,
+      String normalizedRut, boolean validarEstudiantes) {
+    if (normalizedRut != null && !normalizedRut.equalsIgnoreCase(apoderado.getRut())
+      && repository.existsByRut(normalizedRut)) {
+      throw new BusinessException("El RUT ya está registrado: " + request.rut());
+    }
+    if (validarEstudiantes) {
+      validarEstudiantes(request);
+    }
+    if (normalizedRut != null) {
+      apoderado.setRut(normalizedRut);
+    }
+    apoderado.setFirstName(request.firstName());
+    apoderado.setMiddleName(request.middleName());
+    apoderado.setFirstSurname(request.firstSurname());
+    apoderado.setSecondSurname(request.secondSurname());
+    apoderado.getTelefonos().clear();
+    apoderado.getTelefonos().addAll(request.telefonos());
+    apoderado.getEstudiantes().clear();
+    request.estudiantes().forEach(vinculo ->
+      apoderado.getEstudiantes().add(mapper.toApoderadoEstudianteEntity(vinculo)));
+    apoderado.setActivo(true);
+  }
+
+  private void validarEstudiantes(RegistrarApoderadoRequestDTO request) {
+    for (ParentescoEstudianteDTO estudianteRelacion : request.estudiantes()) {
+      if (!estudianteClient.existsById(estudianteRelacion.idEstudiante())) {
+        throw new BusinessException("El estudiante con ID " + estudianteRelacion.idEstudiante() + " no existe.");
+      }
+    }
   }
 
   @Transactional

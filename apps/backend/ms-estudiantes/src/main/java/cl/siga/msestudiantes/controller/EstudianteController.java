@@ -52,6 +52,7 @@ public class EstudianteController {
     @GetMapping ("/search")
     @PreAuthorize ("hasAuthority('SCOPE_estudiantes:read')")
     public ResponseEntity<Page<EstudianteResponseDTO>> searchEstudiantes(
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) String rut,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String middleName,
@@ -63,7 +64,7 @@ public class EstudianteController {
             @RequestParam(required = false) Long idClase,
             @PageableDefault(size = 20, sort = "id") Pageable pageable
     ) {
-        return ResponseEntity.ok(estudianteService.searchEstudiantes(rut, firstName, middleName, firstSurname, secondSurname, from, to, state, idClase, pageable));
+        return ResponseEntity.ok(estudianteService.searchEstudiantes(q, rut, firstName, middleName, firstSurname, secondSurname, from, to, state, idClase, pageable));
     }
 
     @PostMapping 

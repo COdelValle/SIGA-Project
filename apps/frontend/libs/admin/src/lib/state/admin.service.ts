@@ -1,7 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { APP_CONFIG } from '@siga/core';
-import { AsignaturaAdmin, MallaFila, UsuarioAdmin } from '@siga/mocks';
+import {
+  AsignaturaAdmin,
+  ClaseOpcion,
+  CredencialTemporal,
+  EstudianteOpcion,
+  MallaFila,
+  RegistroUsuarioEstado,
+  RegistroUsuarioPayload,
+  UsuarioAdmin,
+  UsuarioDetalle,
+} from '@siga/mocks';
 import { Observable, of, shareReplay } from 'rxjs';
 
 /**
@@ -24,6 +34,65 @@ export class AdminService {
 
   getMalla(): Observable<MallaFila[] | null> {
     return this.obtener<MallaFila[]>('malla');
+  }
+
+  iniciarRegistro(payload: RegistroUsuarioPayload): Observable<RegistroUsuarioEstado | null> {
+    if (this.config.useMocks) {
+      return of<RegistroUsuarioEstado | null>(null);
+    }
+    return this.http.post<RegistroUsuarioEstado>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/registraciones`,
+      payload,
+    );
+  }
+
+  getRegistro(processId: string): Observable<RegistroUsuarioEstado> {
+    return this.http.get<RegistroUsuarioEstado>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/registraciones/${processId}`,
+    );
+  }
+
+  getCredencialTemporal(processId: string): Observable<CredencialTemporal> {
+    return this.http.get<CredencialTemporal>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/registraciones/${processId}/credencial`,
+    );
+  }
+
+  resetPassword(idUsuario: string): Observable<CredencialTemporal> {
+    return this.http.post<CredencialTemporal>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/usuarios/${idUsuario}/reset-password`,
+      {},
+    );
+  }
+
+  eliminarUsuario(idUsuario: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/usuarios/${idUsuario}`,
+    );
+  }
+
+  getUsuarioDetalle(idUsuario: string): Observable<UsuarioDetalle> {
+    return this.http.get<UsuarioDetalle>(
+      `${this.config.bffBaseUrl}/bff/v1/admin/usuarios/${idUsuario}`,
+    );
+  }
+
+  getClases(anioAcademico: number): Observable<ClaseOpcion[] | null> {
+    if (this.config.useMocks) {
+      return of<ClaseOpcion[] | null>(null);
+    }
+    return this.http.get<ClaseOpcion[]>(`${this.config.bffBaseUrl}/bff/v1/admin/clases`, {
+      params: { anioAcademico },
+    });
+  }
+
+  buscarEstudiantes(texto: string): Observable<EstudianteOpcion[] | null> {
+    if (this.config.useMocks) {
+      return of<EstudianteOpcion[] | null>(null);
+    }
+    return this.http.get<EstudianteOpcion[]>(`${this.config.bffBaseUrl}/bff/v1/admin/estudiantes`, {
+      params: { q: texto },
+    });
   }
 
   private obtener<T>(recurso: string): Observable<T | null> {

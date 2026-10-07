@@ -97,6 +97,19 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 - El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> dictacion) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
 - Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
 - Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
+- **Mensajeria (RabbitMQ)**: el registro asincrono de usuarios usa el exchange
+  `user.topic.exchange` con outbox transaccional en `ms-usuarios-auth`, colas por
+  etapa/rol (`user.azure.sync.queue`, `ms.estudiantes.queue`,
+  `ms.docentes.queue`, `ms.apoderados.queue`), canal de resultados
+  (`user.registration.status.queue`) y DLQ por cola. La topologia vive en
+  `core-share` (`RegistrationMessagingConfig`) y solo se activa en los servicios
+  con `spring-boot-starter-amqp`; los eventos son JSON versionados (`v1`) con
+  `X-Correlation-Id` como header AMQP. Detalle funcional en
+  [`backend.md`](backend.md) (seccion 3.2).
+- La gestion CRUD del admin (clases, busqueda de alumnos, eliminacion de
+  usuarios y reactivacion) es **sincrona por HTTP**; no agrega colas nuevas. La
+  propagacion de la desactivacion a los perfiles de dominio via evento queda
+  como iteracion futura.
 - Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
 
 ## 6. Despliegue

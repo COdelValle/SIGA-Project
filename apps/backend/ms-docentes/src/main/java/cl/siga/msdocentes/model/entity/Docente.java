@@ -1,6 +1,8 @@
 package cl.siga.msdocentes.model.entity;
 
 import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.coreshare.format.NombrePropio;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
@@ -89,20 +91,10 @@ public class Docente {
   @PrePersist
   @PreUpdate
   public void prePersist() {
-    if (this.rut != null) {
-      this.rut = this.rut.trim().toUpperCase();
-    }
-    if (this.firstName != null) {
-      this.firstName = this.firstName.trim().toUpperCase();
-    }
-    if (this.middleName != null) {
-      this.middleName = this.middleName.trim().toUpperCase();
-    }
-    if (this.firstSurname != null) {
-      this.firstSurname = this.firstSurname.trim().toUpperCase();
-    }
-    if (this.secondSurname != null) {
-      this.secondSurname = this.secondSurname.trim().toUpperCase();
-    }
+    this.rut = RutNormalizer.normalizar(this.rut);
+    this.firstName = NombrePropio.normalizar(this.firstName);
+    this.middleName = NombrePropio.normalizar(this.middleName);
+    this.firstSurname = NombrePropio.normalizar(this.firstSurname);
+    this.secondSurname = NombrePropio.normalizar(this.secondSurname);
   }
 }

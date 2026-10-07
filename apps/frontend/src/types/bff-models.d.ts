@@ -1,6 +1,32 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 3.2.1263 on 2026-10-05 23:54:21.
+// Generated using typescript-generator version 3.2.1263 on 2026-10-06 19:12:50.
+
+export interface ClaseOpcionDTO {
+    id: number;
+    nivel: string;
+    letra: string;
+    anioAcademico: number;
+}
+
+export interface EstudianteOpcionDTO {
+    id: number;
+    rut: string;
+    firstName: string;
+    firstSurname: string;
+}
+
+export interface UsuarioDetalleDTO {
+    id: string;
+    fullName: string;
+    email: string;
+    rol: string;
+    estado: string;
+    rut: string;
+    fechaNacimiento: string;
+    detalle: string;
+    etiquetas: string[];
+}
 
 export interface PerfilEstudianteResponseDTO {
     id: number;

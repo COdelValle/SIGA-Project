@@ -1,17 +1,47 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { APP_CONFIG, recursoRemoto, toPage } from '@siga/core';
 import { PaginadorComponent, SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
-import { EstadoAdmin, RolAdmin, USUARIOS_MOCK } from '@siga/mocks';
+import { CredencialTemporal, EstadoAdmin, RolAdmin, USUARIOS_MOCK, UsuarioAdmin } from '@siga/mocks';
 import { switchMap } from 'rxjs';
 import { AdminService } from '../state/admin.service';
+import { CredencialTemporalComponent } from '../components/credencial-temporal.component';
+import { DetalleUsuarioComponent } from '../components/detalle-usuario.component';
+import { NuevoUsuarioComponent } from './nuevo-usuario.component';
 
 @Component({
   selector: 'siga-admin-usuarios',
-  imports: [PaginadorComponent, SelectComponent, SeccionCardComponent],
+  imports: [
+    PaginadorComponent,
+    SelectComponent,
+    SeccionCardComponent,
+    NuevoUsuarioComponent,
+    CredencialTemporalComponent,
+    DetalleUsuarioComponent,
+  ],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-6">
-      <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Usuarios</h1>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-semibold text-ink sm:text-3xl">Usuarios</h1>
+        @if (!usarMocks) {
+          <button
+            type="button"
+            (click)="alternarFormulario()"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-page transition hover:brightness-110"
+          >
+            {{ mostrarFormulario() ? 'Ocultar registro' : 'Nuevo usuario' }}
+          </button>
+        }
+      </div>
+
+      @if (mensaje()) {
+        <p class="rounded-xl border border-gold/60 bg-panel px-4 py-3 text-sm text-ink">{{ mensaje() }}</p>
+      }
+
+      @if (mostrarFormulario()) {
+        <siga-admin-nuevo-usuario (cerrar)="mostrarFormulario.set(false)" (finalizado)="refrescar()" />
+      }
 
       @if (hayError()) {
         <siga-seccion-card title="No se pudieron cargar los datos">
@@ -64,19 +94,61 @@ import { AdminService } from '../state/admin.service';
                   <th class="px-4 py-3 font-semibold">Correo</th>
                   <th class="px-4 py-3 font-semibold">Rol</th>
                   <th class="px-4 py-3 font-semibold">Estado</th>
+                  @if (!usarMocks) {
+                    <th class="whitespace-nowrap px-4 py-3 font-semibold">Acciones</th>
+                  }
                 </tr>
               </thead>
               <tbody>
                 @for (usuario of paginados().content; track usuario.id) {
                   <tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd">
-                    <td class="px-4 py-3">{{ usuario.nombre }}</td>
-                    <td class="px-4 py-3">{{ usuario.email }}</td>
+                    <td class="px-4 py-3">
+                      <span class="block max-w-[220px] truncate" [title]="usuario.nombre">
+                        {{ usuario.nombre }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="block max-w-[240px] truncate" [title]="usuario.email">
+                        {{ usuario.email }}
+                      </span>
+                    </td>
                     <td class="px-4 py-3">{{ usuario.rol }}</td>
                     <td class="px-4 py-3">{{ usuario.estado }}</td>
+                    @if (!usarMocks) {
+                      <td class="whitespace-nowrap px-4 py-3">
+                        <div class="flex items-center gap-2">
+                          <button
+                            type="button"
+                            (click)="ver(usuario)"
+                            class="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink/80 transition hover:bg-brand/10 hover:text-brand"
+                          >
+                            Ver
+                          </button>
+                          @if (usuario.estado === 'ACTIVO') {
+                            <button
+                              type="button"
+                              (click)="restablecer(usuario)"
+                              [disabled]="restableciendo() === usuario.id"
+                              class="rounded-lg border border-brand px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-brand/20 disabled:opacity-60"
+                            >
+                              {{ restableciendo() === usuario.id ? 'Generando…' : 'Restablecer' }}
+                            </button>
+                            <button
+                              type="button"
+                              (click)="eliminar(usuario)"
+                              [disabled]="eliminando() === usuario.id"
+                              class="rounded-lg border border-bad/70 px-3 py-1.5 text-xs font-semibold text-bad transition hover:bg-bad/10 disabled:opacity-60"
+                            >
+                              {{ eliminando() === usuario.id ? 'Eliminando…' : 'Eliminar' }}
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    }
                   </tr>
                 } @empty {
                   <tr class="bg-panel text-muted">
-                    <td class="px-4 py-6 text-center" colspan="4">Sin resultados.</td>
+                    <td class="px-4 py-6 text-center" [attr.colspan]="usarMocks ? 4 : 5">Sin resultados.</td>
                   </tr>
                 }
               </tbody>
@@ -92,6 +164,14 @@ import { AdminService } from '../state/admin.service';
         </section>
       }
     </div>
+
+    @if (credencial(); as credencialTemporal) {
+      <siga-credencial-temporal [credencial]="credencialTemporal" (cerrar)="credencial.set(null)" />
+    }
+
+    @if (detalleId(); as idUsuario) {
+      <siga-detalle-usuario [usuarioId]="idUsuario" (cerrar)="detalleId.set(null)" />
+    }
   `,
 })
 export class AdminUsuariosComponent {
@@ -103,6 +183,7 @@ export class AdminUsuariosComponent {
     toObservable(this.recarga).pipe(switchMap(() => this.adminService.getUsuarios())),
   );
 
+  protected readonly usarMocks = this.config.useMocks;
   protected readonly hayError = computed(() => this.usuariosRemotos().estado === 'error');
   protected readonly usuarios = computed(() =>
     this.config.useMocks ? USUARIOS_MOCK : this.usuariosRemotos().dato ?? [],
@@ -112,6 +193,13 @@ export class AdminUsuariosComponent {
   protected readonly estado = signal('');
   protected readonly page = signal(1);
   protected readonly pageSize = 10;
+
+  protected readonly mostrarFormulario = signal(false);
+  protected readonly credencial = signal<CredencialTemporal | null>(null);
+  protected readonly restableciendo = signal<string | null>(null);
+  protected readonly eliminando = signal<string | null>(null);
+  protected readonly detalleId = signal<string | null>(null);
+  protected readonly mensaje = signal<string | null>(null);
 
   protected readonly opcionesRol: SelectOption[] = [
     { value: '', label: 'Todos los roles' },
@@ -164,8 +252,72 @@ export class AdminUsuariosComponent {
     this.page.set(pagina);
   }
 
-  protected reintentar(): void {
+  protected alternarFormulario(): void {
+    this.mensaje.set(null);
+    this.mostrarFormulario.update((valor) => !valor);
+  }
+
+  protected refrescar(): void {
     this.adminService.invalidar();
     this.recarga.update((valor) => valor + 1);
+  }
+
+  protected reintentar(): void {
+    this.refrescar();
+  }
+
+  protected ver(usuario: UsuarioAdmin): void {
+    this.detalleId.set(usuario.id);
+  }
+
+  protected restablecer(usuario: UsuarioAdmin): void {
+    if (this.restableciendo()) {
+      return;
+    }
+    this.restableciendo.set(usuario.id);
+    this.mensaje.set(null);
+    this.adminService.resetPassword(usuario.id).subscribe({
+      next: (credencial) => {
+        this.restableciendo.set(null);
+        this.credencial.set(credencial);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.restableciendo.set(null);
+        this.mensaje.set(this.textoError(error));
+      },
+    });
+  }
+
+  protected eliminar(usuario: UsuarioAdmin): void {
+    if (this.eliminando()) {
+      return;
+    }
+    const confirmado = window.confirm(
+      `¿Eliminar a ${usuario.email}? Se desactivará su acceso y su cuenta en Entra ID (los datos se conservan).`,
+    );
+    if (!confirmado) {
+      return;
+    }
+    this.eliminando.set(usuario.id);
+    this.mensaje.set(null);
+    this.adminService.eliminarUsuario(usuario.id).subscribe({
+      next: () => {
+        this.eliminando.set(null);
+        this.mensaje.set(`Usuario ${usuario.email} eliminado.`);
+        this.refrescar();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.eliminando.set(null);
+        this.mensaje.set(this.textoError(error));
+      },
+    });
+  }
+
+  private textoError(error: HttpErrorResponse): string {
+    const cuerpo = error.error as { message?: string; errors?: Record<string, string> } | null;
+    const detalleCampos = cuerpo?.errors ? Object.values(cuerpo.errors)[0] : undefined;
+    return detalleCampos
+      ?? cuerpo?.message
+      ?? 'No se pudo completar la operación. Revisa la conexión con el BFF.';
   }
 }

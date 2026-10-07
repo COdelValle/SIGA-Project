@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import cl.siga.coreshare.dto.usuario.ActualizarUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.InvitacionLoteResponseDTO;
 import cl.siga.coreshare.dto.usuario.InvitacionUsuarioRequestDTO;
 import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
@@ -95,7 +97,7 @@ class UsuarioServiceTest {
         Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.DOCENTE).state(StateUsuario.ACTIVO).build();
         when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
         when(mapper.toResponseDto(usuario))
-                .thenReturn(new UsuarioResponseDTO(OID, EMAIL, Rol.DOCENTE, StateUsuario.ACTIVO));
+                .thenReturn(new UsuarioResponseDTO(OID, "Docente Test", EMAIL, Rol.DOCENTE, StateUsuario.ACTIVO));
 
         UsuarioResponseDTO result = service.getCurrentUsuario();
 
@@ -110,7 +112,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(OID)).thenReturn(Optional.empty());
         when(vinculacionService.vincular(OID, EMAIL)).thenReturn(Optional.of(vinculado));
         when(mapper.toResponseDto(vinculado))
-                .thenReturn(new UsuarioResponseDTO(OID, EMAIL, Rol.ESTUDIANTE, StateUsuario.ACTIVO));
+                .thenReturn(new UsuarioResponseDTO(OID, "Estudiante Test", EMAIL, Rol.ESTUDIANTE, StateUsuario.ACTIVO));
 
         UsuarioResponseDTO result = service.getCurrentUsuario();
 
@@ -250,5 +252,42 @@ class UsuarioServiceTest {
 
         assertEquals(0, result.creadas());
         assertEquals(1, result.invalidas().size());
+    }
+
+    @Test
+    void deleteUsuario_aplicaSoftDeleteEnEntra() {
+        Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.DOCENTE)
+                .state(StateUsuario.ACTIVO).build();
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+        when(graphDirectory.isEnabled()).thenReturn(true);
+
+        service.deleteUsuario(OID);
+
+        assertEquals(StateUsuario.INACTIVO, usuario.getState());
+        verify(graphDirectory).revokeSignInSessions(OID);
+        verify(graphDirectory).revokeRoles(OID);
+        verify(graphDirectory).setAccountEnabled(OID, false);
+    }
+
+    @Test
+    void updateUsuario_reactivadoHabilitaYAsignaRolEnEntra() {
+        ActualizarUsuarioRequestDTO request =
+                new ActualizarUsuarioRequestDTO(EMAIL, StateUsuario.ACTIVO, Rol.DOCENTE);
+        Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.DOCENTE)
+                .state(StateUsuario.INACTIVO).build();
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+        when(graphDirectory.isEnabled()).thenReturn(true);
+        doAnswer(invocation -> {
+            Usuario objetivo = invocation.getArgument(1);
+            objetivo.setState(StateUsuario.ACTIVO);
+            return null;
+        }).when(mapper).updateEntityFromDto(request, usuario);
+
+        service.updateUsuario(OID, request);
+
+        verify(graphDirectory).setAccountEnabled(OID, true);
+        verify(graphDirectory).syncRole(OID, Rol.DOCENTE);
     }
 }
