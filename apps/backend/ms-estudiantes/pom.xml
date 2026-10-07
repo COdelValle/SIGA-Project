@@ -26,6 +26,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Mensajeria: consumidor del registro asincrono de estudiantes -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- Persistencia (JPA + Specification + MariaDB) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

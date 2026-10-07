@@ -198,10 +198,18 @@ services:
       # Microsoft Graph (pre-registro por email y sincronización de roles)
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
       AZURE_API_APP_ID: ${AZURE_API_APP_ID}
+      # Registro asincrono de usuarios (usuario + perfil de rol)
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      REGISTRO_ASYNC_ENABLED: ${REGISTRO_ASYNC_ENABLED:-false}
+      REGISTRO_CRED_KEY: ${REGISTRO_CRED_KEY:-}
+      REGISTRO_NOTIFY_CREDENTIALS_ENABLED: ${REGISTRO_NOTIFY_CREDENTIALS_ENABLED:-false}
+      REGISTRO_EMAIL_DOMAIN: ${REGISTRO_EMAIL_DOMAIN:-platformsiga.onmicrosoft.com}
     depends_on:
       mariadb-usuarios:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      ms-estudiantes:
         condition: service_healthy
     networks:
       - siga-network

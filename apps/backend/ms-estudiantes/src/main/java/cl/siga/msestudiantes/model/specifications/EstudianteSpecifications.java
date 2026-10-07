@@ -1,11 +1,16 @@
 package cl.siga.msestudiantes.model.specifications;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
 
 import cl.siga.coreshare.dto.estudiante.enums.State;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.msestudiantes.model.entity.Estudiante;
+
+import jakarta.persistence.criteria.Predicate;
 
 public class EstudianteSpecifications {
     public static Specification<Estudiante> isActive() {
@@ -17,7 +22,7 @@ public class EstudianteSpecifications {
             if (rut == null || rut.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("rut"), rut.trim().toUpperCase());
+            return criteriaBuilder.equal(root.get("rut"), RutNormalizer.normalizar(rut));
         };
     }
 
@@ -90,6 +95,42 @@ public class EstudianteSpecifications {
                 return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.equal(root.get("idClase"), idClase);
+        };
+    }
+
+    /**
+     * Busqueda libre para el selector de alumnos: cada palabra debe coincidir con
+     * el RUT (con o sin puntos) o con nombres/apellidos. Permite "22.126.386-3",
+     * "22126386" y "catalina ormeno".
+     */
+    public static Specification<Estudiante> hasTextoLibre(String texto) {
+        return (root, query, criteriaBuilder) -> {
+            if (texto == null || texto.trim().length() < 2) {
+                return criteriaBuilder.conjunction();
+            }
+            String[] tokens = texto.trim().toLowerCase().split("\\s+");
+            List<Predicate> porToken = new ArrayList<>();
+            for (String token : tokens) {
+                String limpio = token.replace(".", "").trim();
+                if (limpio.isEmpty()) {
+                    continue;
+                }
+                String like = "%" + limpio + "%";
+                porToken.add(criteriaBuilder.or(
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(criteriaBuilder.function(
+                                        "replace", String.class, root.get("rut"),
+                                        criteriaBuilder.literal("."), criteriaBuilder.literal(""))),
+                                like),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), like),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("middleName")), like),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("firstSurname")), like),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("secondSurname")), like)));
+            }
+            if (porToken.isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.and(porToken.toArray(new Predicate[0]));
         };
     }
 }

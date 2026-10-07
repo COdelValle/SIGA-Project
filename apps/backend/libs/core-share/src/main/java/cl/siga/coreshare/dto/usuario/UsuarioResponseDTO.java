@@ -5,6 +5,7 @@ import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 
 public record UsuarioResponseDTO(
     String id,
+    String fullName,
     String email,
     Rol rol,
     StateUsuario state

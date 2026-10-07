@@ -9,6 +9,19 @@ export interface UsuarioAdmin {
   estado: EstadoAdmin;
 }
 
+/** Detalle de usuario del panel admin (cuenta + resumen del perfil del rol). */
+export interface UsuarioDetalle {
+  id: string;
+  fullName: string;
+  email: string;
+  rol: string | null;
+  estado: string | null;
+  rut: string | null;
+  fechaNacimiento: string | null;
+  detalle: string;
+  etiquetas: string[];
+}
+
 export type CaracterAsignatura = 'OBLIGATORIA' | 'OPTATIVA' | 'ELECTIVA';
 export type PlanFormacion = 'COMUN' | 'DIFERENCIADA_HC' | 'DIFERENCIADA_TP';
 
@@ -174,3 +187,252 @@ export const ROLES_MOCK = [
   { nombre: 'APODERADO', descripcion: 'Seguimiento academico de sus pupilos.' },
   { nombre: 'ESTUDIANTE', descripcion: 'Notas, horarios y asistencias propias.' },
 ];
+
+// --- Registro asincrono de usuarios (usuario + perfil de rol) ---
+
+export type EstadoProcesoRegistro = 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'FALLIDO';
+export type EstadoPasoRegistro = 'PENDIENTE' | 'COMPLETADO' | 'FALLIDO';
+export type RolRegistrable = 'ESTUDIANTE' | 'DOCENTE' | 'APODERADO';
+
+export interface CertificadoRegistro {
+  nombre: string;
+  institucionRealizacion: string;
+  fechaTitulacion: string;
+}
+
+export interface DatosEstudianteRegistro {
+  firstName: string;
+  middleName?: string | null;
+  firstSurname: string;
+  secondSurname?: string | null;
+  rut: string;
+  birthDate: string;
+  allergies?: string[] | null;
+  idClase?: number | null;
+}
+
+export interface DatosDocenteRegistro {
+  firstName: string;
+  middleName?: string | null;
+  firstSurname: string;
+  secondSurname?: string | null;
+  rut: string;
+  fechaContratacion: string;
+  area: string;
+  certificados: CertificadoRegistro[];
+}
+
+export interface VinculoEstudianteRegistro {
+  idEstudiante: number;
+  parentesco: string;
+}
+
+export interface DatosApoderadoRegistro {
+  firstName: string;
+  middleName?: string | null;
+  firstSurname: string;
+  secondSurname?: string | null;
+  rut: string;
+  telefonos: string[];
+  estudiantes: VinculoEstudianteRegistro[];
+}
+
+export interface DatosRegistroRol {
+  estudiante?: DatosEstudianteRegistro | null;
+  docente?: DatosDocenteRegistro | null;
+  apoderado?: DatosApoderadoRegistro | null;
+}
+
+export interface RegistroUsuarioPayload {
+  /** Opcional: si se omite, el backend lo genera como nombre.apellido@dominio. */
+  email?: string | null;
+  /** Opcional: si se omite, el backend lo deriva de los nombres del rol. */
+  fullName?: string | null;
+  requestedRole: RolRegistrable;
+  azureUserId?: string | null;
+  contactEmail?: string | null;
+  roleData: DatosRegistroRol;
+}
+
+export interface RegistroUsuarioEstado {
+  processId: string;
+  state: EstadoProcesoRegistro;
+  azureState: EstadoPasoRegistro;
+  domainState: EstadoPasoRegistro;
+  requestedRole: RolAdmin;
+  email: string;
+  userId: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CredencialTemporal {
+  processId: string | null;
+  email: string;
+  userId: string | null;
+  temporaryPassword: string;
+  expiresAt: string | null;
+}
+
+/** Valores visibles de AreaAcademica (core-share serializa el nombre). */
+export const AREAS_ACADEMICAS = [
+  'Matemáticas',
+  'Ciencias Naturales y Exactas',
+  'Ciencias para la Ciudadanía',
+  'Lenguaje y Comunicación',
+  'Historia y Ciencias Sociales',
+  'Formación Ciudadana',
+  'Filosofía',
+  'Lenguas e Idiomas',
+  'Artes y Música',
+  'Educación Física',
+  'Tecnología e Informática',
+  'Orientación',
+  'Religión',
+  'Economía y Finanzas',
+  'Otra Área',
+];
+
+/** Valores visibles de Parentesco (core-share acepta nombre o texto). */
+export const PARENTESCOS = [
+  'Madre/Padre',
+  'Tía/Tío',
+  'Abuela/Abuelo',
+  'Hermana/Hermano',
+  'Primo/Prima',
+  'Tutor/a Legal',
+  'Otro',
+];
+
+export const esEstadoFinal = (estado: EstadoProcesoRegistro): boolean =>
+  estado === 'COMPLETADO' || estado === 'FALLIDO';
+
+// --- Selectores del registro (clases y alumnos) ---
+
+export interface ClaseOpcion {
+  id: number;
+  nivel: string;
+  letra: string;
+  anioAcademico: number;
+}
+
+export interface EstudianteOpcion {
+  id: number;
+  rut: string;
+  firstName: string;
+  firstSurname: string;
+}
+
+/** 22126386-3 -> 22.126.386-3 */
+export const formatearRut = (rut: string | null | undefined): string => {
+  const limpio = (rut ?? '').trim().toUpperCase();
+  const [cuerpo, dv] = limpio.split('-');
+  if (!cuerpo || !dv) {
+    return limpio;
+  }
+  return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}-${dv}`;
+};
+
+/** 1ro Básico A · 2026 */
+export const etiquetaClase = (clase: ClaseOpcion): string =>
+  `${clase.nivel} ${clase.letra} · ${clase.anioAcademico}`;
+
+// --- Normalizacion de nombres propios (espejo del backend NombrePropio) ---
+
+const PARTICULAS_NOMBRE = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e']);
+
+const normalizarPalabraNombre = (palabra: string): string => {
+  if (!palabra) {
+    return palabra;
+  }
+  if (PARTICULAS_NOMBRE.has(palabra)) {
+    return palabra;
+  }
+  let resultado = palabra.replace(
+    /(^|[-'’])(\p{L})/gu,
+    (_coincidencia, separador: string, letra: string) => separador + letra.toUpperCase(),
+  );
+  const lower = resultado.toLowerCase();
+  if (lower.startsWith('mc') && resultado.length > 2) {
+    resultado = resultado.slice(0, 2) + resultado.charAt(2).toUpperCase() + resultado.slice(3);
+  } else if (lower.startsWith('mac') && resultado.length > 3 && !'aeiou'.includes(lower.charAt(3))) {
+    resultado = resultado.slice(0, 3) + resultado.charAt(3).toUpperCase() + resultado.slice(4);
+  }
+  return resultado;
+};
+
+/** Catalina, Juan de la Rosa, McDonald, O'Hara, Pérez-Gómez. */
+export const normalizarNombrePropio = (texto: string | null | undefined): string => {
+  const limpio = (texto ?? '').trim().replace(/\s+/g, ' ');
+  if (!limpio) {
+    return '';
+  }
+  return limpio
+    .toLowerCase()
+    .split(' ')
+    .map((palabra) => normalizarPalabraNombre(palabra))
+    .join(' ');
+};
+
+/** 22.126.386-3 | Catalina Ormeño */
+export const etiquetaEstudiante = (estudiante: EstudianteOpcion): string =>
+  `${formatearRut(estudiante.rut)} | ${normalizarNombrePropio(estudiante.firstName)} ${normalizarNombrePropio(estudiante.firstSurname)}`;
+
+// --- Mascara de RUT para el formulario ---
+
+const conPuntosMiles = (cuerpo: string): string =>
+  cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+/**
+ * Mascara de RUT: muestra puntos mientras se escribe y agrega el guion cuando
+ * se teclea el digito verificador (o el usuario escribe "-"). Sin DV: 13.789.943.
+ */
+export const formatearRutEntrada = (valor: string | null | undefined): string => {
+  const bruto = (valor ?? '').toUpperCase();
+  if (bruto.includes('-')) {
+    const [cuerpoBruto, ...resto] = bruto.split('-');
+    const cuerpo = cuerpoBruto.replace(/[^0-9]/g, '').slice(0, 8);
+    const dv = resto.join('').replace(/[^0-9K]/g, '').slice(0, 1);
+    return `${conPuntosMiles(cuerpo)}-${dv}`;
+  }
+  const limpio = bruto.replace(/[^0-9K]/g, '').slice(0, 9);
+  if (limpio.length <= 8) {
+    return conPuntosMiles(limpio);
+  }
+  return `${conPuntosMiles(limpio.slice(0, 8))}-${limpio.charAt(8)}`;
+};
+
+// --- Generación del correo institucional (espejo del backend, solo preview) ---
+
+export const DOMINIO_CORREO = 'platformsiga.onmicrosoft.com';
+
+export const normalizarParaCorreo = (texto: string | null | undefined): string =>
+  (texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+const primeraPalabraCorreo = (texto: string | null | undefined): string =>
+  normalizarParaCorreo((texto ?? '').trim().split(/\s+/)[0] ?? '');
+
+/** catalina.ormeno@platformsiga.onmicrosoft.com (vacío si faltan nombre o apellido). */
+export const correoInstitucionalSugerido = (
+  primerNombre: string | null | undefined,
+  primerApellido: string | null | undefined,
+): string => {
+  const nombre = primeraPalabraCorreo(primerNombre);
+  const apellido = primeraPalabraCorreo(primerApellido);
+  if (!nombre || !apellido) {
+    return '';
+  }
+  return `${nombre}.${apellido}@${DOMINIO_CORREO}`;
+};
+
+/** Une los nombres presentes con espacio. */
+export const nombreCompletoSugerido = (...partes: (string | null | undefined)[]): string =>
+  partes
+    .map((parte) => (parte ?? '').trim())
+    .filter(Boolean)
+    .join(' ');

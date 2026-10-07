@@ -146,6 +146,12 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AZURE_API_APP_ID` | app que define los app roles |
 | `RABBITMQ_USER` | usuario de RabbitMQ |
 | `RABBITMQ_PASSWORD` | password de RabbitMQ |
+| `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
+| `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
+| `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |
+
+`REGISTRO_EMAIL_DOMAIN` usa el default `platformsiga.onmicrosoft.com` del Compose
+si no se define.
 
 `EC2_HOST` y `API_GW_INVOKE_URL` **no** se configuran como secrets: el CD los
 resuelve dinámicamente por tag/nombre (`SIGA-app` y `SIGA-http-api`) usando las

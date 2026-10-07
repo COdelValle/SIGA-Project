@@ -278,7 +278,8 @@ public class UsuarioService {
         existingUsuario.setState(StateUsuario.INACTIVO);
         usuarioRepository.save(existingUsuario);
 
-        revokeRolesAfterCommit(existingUsuario.getId());
+        // Soft delete en Entra ID: revoca sesiones y roles, y deshabilita el login.
+        syncRolesIfEnabledAfterCommit(existingUsuario);
     }
 
     /**
@@ -390,18 +391,21 @@ public class UsuarioService {
     }
 
     /**
-     * Refleja en Entra ID el rol/estado local. La BD es la fuente autoritativa;
-     * si Graph no está configurado (sin AZURE_CLIENT_SECRET) se omite sin romper
-     * el CRUD.
+     * Refleja en Entra ID el rol y el estado local (soft delete / reactivación).
+     * La BD es la fuente autoritativa; si Graph no está configurado (sin
+     * AZURE_CLIENT_SECRET) se omite sin romper el CRUD.
      */
     private void syncRolesIfEnabled(Usuario usuario) {
         if (!graphDirectory.isEnabled()) {
-            log.debug("Graph no configurado: se omite la sincronización de roles para {}", usuario.getId());
+            log.debug("Graph no configurado: se omite la sincronización con Entra ID para {}", usuario.getId());
             return;
         }
         if (usuario.getState() == StateUsuario.INACTIVO) {
+            graphDirectory.revokeSignInSessions(usuario.getId());
             graphDirectory.revokeRoles(usuario.getId());
+            graphDirectory.setAccountEnabled(usuario.getId(), false);
         } else {
+            graphDirectory.setAccountEnabled(usuario.getId(), true);
             graphDirectory.syncRole(usuario.getId(), usuario.getRol());
         }
     }
@@ -418,13 +422,6 @@ public class UsuarioService {
         }
         runAfterCommit(() -> syncRolesIfEnabled(usuario),
                 "sincronizar roles", usuario.getId());
-    }
-
-    private void revokeRolesAfterCommit(String id) {
-        if (!graphDirectory.isEnabled()) {
-            return;
-        }
-        runAfterCommit(() -> graphDirectory.revokeRoles(id), "revocar roles", id);
     }
 
     private void runAfterCommit(Runnable action, String operacion, String id) {
