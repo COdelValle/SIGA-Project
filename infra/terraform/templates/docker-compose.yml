@@ -4,6 +4,9 @@ name: siga
 # AZURE_* alimenta los placeholders de core-share/common-properties.yaml.
 x-ms-common-env: &ms-common-env
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  # Zona horaria institucional: los LocalDateTime.now() de los servicios
+  # (notificaciones, outbox, auditoria) quedan en hora de Chile.
+  TZ: America/Santiago
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
@@ -12,6 +15,9 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_PORT: "5672"
   SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
   SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+  SPRING_RABBITMQ_PUBLISHER_CONFIRM_TYPE: correlated
+  SPRING_RABBITMQ_PUBLISHER_RETURNS: "true"
+  SPRING_RABBITMQ_TEMPLATE_MANDATORY: "true"
   # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
   # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
   SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
@@ -152,6 +158,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
     depends_on:
       mariadb:
         condition: service_healthy
@@ -160,6 +167,8 @@ services:
       ms-estudiantes:
         condition: service_healthy
       ms-evaluaciones:
+        condition: service_healthy
+      ms-asignaturas:
         condition: service_healthy
 
   ms-docentes:
@@ -282,10 +291,15 @@ services:
     environment:
       <<: *ms-common-env
       SERVER_PORT: "8091"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_notificaciones_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_APODERADOS_URL: http://ms-apoderados:8084
     depends_on:
+      mariadb:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       ms-asignaturas:
@@ -314,6 +328,7 @@ services:
       MS_CLASES_URL: http://ms-clases:8087
       MS_DOCENTES_URL: http://ms-docentes:8085
       MS_ASISTENCIAS_URL: http://ms-asistencias:8090
+      MS_NOTIFICACIONES_URL: http://ms-notificaciones:8091
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -332,6 +347,8 @@ services:
       ms-docentes:
         condition: service_healthy
       ms-asistencias:
+        condition: service_healthy
+      ms-notificaciones:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
