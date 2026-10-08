@@ -24,7 +24,7 @@ La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
 | `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (unique por fecha y soft delete). |
-| `ms-notificaciones` | 8091 | Consumidor de colas RabbitMQ (cola de evaluaciones; por ahora registra en log). |
+| `ms-notificaciones` | 8091 | Consume eventos académicos y mantiene la bandeja in-app de estudiantes y apoderados. |
 
 El módulo `ms-auditoria` sigue declarado como futuro (comentado en el POM padre);
 su puerto queda **reservado**: `8082`.
@@ -45,12 +45,34 @@ Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
   (`nota.creada`, `nota.actualizada`). Se publica al **crear** y **modificar**;
   el DELETE lógico no notifica. El POST que reactiva una nota borrada
   lógicamente se avisa como `ACTUALIZADA` (la fila ya existía).
-- Productor: `ms-evaluaciones` publica un `EventoEvaluacion` (DTO en `core-share`)
-  después de crear, actualizar o eliminar una evaluación; si RabbitMQ está caído solo loguea.
-- Consumidor: `ms-notificaciones` (`EscuchadorEvaluacion`) registra el evento en log
-  (por ahora sin base de datos ni envío real). Los clientes Feign para resolver
-  estudiantes/apoderados/inscritos ya existen, pero requieren resolver la
-  autenticación servicio-a-servicio (el listener no tiene token JWT).
+- Productores: `ms-evaluaciones`, `ms-asistencias` y `ms-notas` guardan el evento en
+  un outbox dentro de la misma transacción que el CRUD. El dispatcher publica con
+  confirmación RabbitMQ, reintentos acotados e idempotencia por `idEvento`.
+- Consumidor: `ms-notificaciones` persiste cada evento una sola vez. Al consultar
+  la bandeja, deriva el OID del JWT y resuelve estudiante/apoderado y dictaciones
+  autorizadas usando el mismo token propagado por Feign. Las lecturas se guardan
+  por OID para que estudiante y apoderado mantengan estados independientes.
+- Mensajes específicos: los productores agregan el nombre de la asignatura y de la
+  evaluación al evento (si el Feign falla, se publica igual y el consumidor usa un
+  texto de respaldo). El resumen nunca incluye la nota.
+- Canal de esta etapa: campana y bandeja in-app compartida en los portales de
+  estudiante y apoderado; **no envía correo ni accede a Gmail/Exchange**. Mensajes
+  que agoten tres entregas van a una DLQ por tipo; eventos que agoten ocho intentos
+  de publicación quedan con estado `FALLIDO` en el outbox para diagnóstico y
+  reproceso manual.
+- API de la bandeja (vía BFF): `GET .../me`, `GET .../me/no-leidas/count`,
+  `PATCH .../me/{id}/leida`, `PATCH .../me/leidas` (marcar todas) y
+  `DELETE .../me/leidas` (limpiar mis leídas; oculta solo para el OID actual sin
+  borrar la fila compartida).
+- Retención: las notificaciones se conservan; una purga programada elimina las
+  mayores a `siga.notificaciones.retencion-dias` (90 por defecto). Los
+  microservicios fijan `TZ=America/Santiago` para que las horas de la bandeja
+  queden en hora de Chile.
+- La resolución de destinatarios se cachea por OID 3 minutos para que el contador
+  (la campana consulta cada 10 s y al volver a la pestaña) no repita llamadas
+  Feign; cambios de vínculos/inscripciones pueden tardar hasta ese TTL.
+- El PATCH del BFF hacia `ms-notificaciones` usa el cliente Apache HC5
+  (`feign-hc5`): el cliente por defecto de Feign no soporta PATCH.
 - Nombres en español en `core-share`: `NombresMensajeria`, `ConfiguracionMensajeriaCompartida`
   (conversor JSON) y `EventoEvaluacion`/`AccionEvaluacion`.
 
@@ -271,10 +293,10 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 
 ## Datos y configuración
 
-- Patrón **database-per-service** (9 bases): `siga_usuarios_db`,
+- Patrón **database-per-service** (10 bases): `siga_usuarios_db`,
   `siga_estudiantes_db`, `siga_asignaturas_db`, `siga_notas_db`,
   `siga_docentes_db`, `siga_apoderados_db`, `siga_clases_db`,
-  `siga_evaluaciones_db` y `siga_asistencias_db`.
+  `siga_evaluaciones_db`, `siga_asistencias_db` y `siga_notificaciones_db`.
 - **Flyway** crea y evoluciona el esquema (`ddl-auto: validate`); una base vacía
   se auto-inicializa al arrancar.
 - **Paginación**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`;

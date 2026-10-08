@@ -160,6 +160,163 @@ Reglas de mantenimiento:
 - **Pendientes / notas**: no lo causaban los cambios de normalización; era un bug
   preexistente y `AsistenciaClient` es el único cliente Feign que enviaba fechas.
 
+### PR-20261007-04 — Bandeja académica in-app y mensajería RabbitMQ
+
+- **Fecha**: 2026-10-07
+- **Rama / commit**: `dev` @ `a34411b` + cambios locales sin commit.
+- **Alcance**: outbox transaccional de notas/evaluaciones/asistencias; colas y DLQ;
+  persistencia idempotente en `ms-notificaciones`; aislamiento de lectura por OID;
+  API BFF y campana compartida. Sin correo externo.
+- **Entorno**: Docker Compose local, RabbitMQ 4, MariaDB 11.4; destinos sintéticos
+  con ID fuera del dominio y cuentas reales no consultadas.
+- **Prerrequisitos**: `.env` local; `docker compose config --quiet`; token Entra
+  de ESTUDIANTE y APODERADO vinculado para completar el E2E de UI (pendiente).
+- **Pasos**:
+  1. Ejecutar las pruebas backend de los módulos afectados con las mismas
+     exclusiones de contextos Azure del runbook 5.2; ejecutar `tsc` y Vitest.
+  2. Reconstruir de forma gradual `ms-asistencias`, `ms-evaluaciones`, `ms-notas`,
+     `ms-notificaciones`, `bff-web` y `frontend`, conservando los volúmenes.
+  3. Verificar exchange, colas, bindings, consumidores y DLQ con `rabbitmqctl`;
+     comprobar `healthy` en todos los contenedores.
+  4. Insertar eventos sintéticos en cada outbox de dominio: los tres cambiaron a
+     `ENVIADO` (0 intentos fallidos), llegaron a RabbitMQ y generaron una fila de
+     bandeja por tipo en `siga_notificaciones_db`.
+  5. Reenviar el mismo evento de nota tres veces con el mismo `idEvento` y
+     comprobar que existe una sola fila; enviar payloads malformados y confirmar
+     su llegada a `cola-notificaciones-notas.dlq` después de los reintentos.
+  6. Simular una clave de routing sin binding con el octavo intento del outbox:
+     el registro terminó `FALLIDO` con el motivo de RabbitMQ, sin crear una
+     notificación huérfana.
+  7. Consultar sin token los endpoints BFF y de `ms-notificaciones` (ambos
+     devolvieron `401`). Limpiar los eventos sintéticos y purgar únicamente la
+     DLQ usada por la prueba.
+- **Resultado**: `PARCIAL` — Docker/MariaDB/RabbitMQ, outbox, enrutamiento,
+  persistencia, deduplicación, DLQ y builds comprobados. Queda pendiente iniciar
+  sesión como estudiante/apoderado y verificar visualmente la campana y el
+  aislamiento real entre dos cuentas Entra.
+- **Evidencia**:
+  - Backend: `mvn package` del reactor completo `BUILD SUCCESS`; 188 pruebas
+    contabilizadas, 0 fallas/errores y 8 omitidas por Testcontainers. Las suites
+    `AsyncUserRegistrationServiceTest` (11 pruebas) y las nuevas pruebas de
+    mensajería también pasaron.
+  - Las suites Testcontainers no pudieron usar el daemon Docker desde Java en
+    Windows; las migraciones V1 de la bandeja y V3 de los productores sí se
+    aplicaron en los contenedores Compose reales.
+  - Frontend: `npx tsc -p tsconfig.app.json --noEmit` correcto, Vitest 15/15 y
+    `npm run build -- --configuration production` exitoso en la reconstrucción de
+    la imagen.
+  - `docker compose ps`: servicios, `mariadb-notificaciones` y RabbitMQ `healthy`.
+  - Exchange topic durable, tres colas durables con un consumidor cada una,
+    bindings esperados y tres DLQ durables; profundidad final de colas y DLQ = 0.
+  - Los eventos sintéticos fueron borrados: filas outbox de prueba = 0 y filas
+    de bandeja del destino sintético = 0.
+- **Pendientes / notas**: E2E autenticado de campana, roles y privacidad por OID;
+  regresión funcional del flujo de registro de usuarios/auth con cuentas de
+  prueba. No se probó ni habilitó Gmail/Exchange/SES. Una reconstrucción inicial
+  en paralelo agotó Docker Desktop y devolvió HTTP 500; se recuperó el engine y
+  se terminó la reconstrucción gradualmente, sin borrar volúmenes.
+
+### PR-20261008-05 — Correcciones de la campana: PATCH, contraste, hora y mensajes
+
+- **Fecha**: 2026-10-08
+- **Rama / commit**: `dev` @ `a34411b` + cambios locales sin commit.
+- **Alcance**: hallazgos del primer E2E visual: (1) el clic no marcaba leída,
+  (2) texto ilegible por colores fuera del tema, (3) fecha/hora en UTC y formato
+  en-US, (4) mensajes demasiado genéricos. Se agrega además "Marcar todas como
+  leídas", "Limpiar mis leídas", purga a 90 días y `TZ=America/Santiago`.
+- **Entorno**: Docker Compose local; sesión real del portal estudiante.
+- **Prerrequisitos**: stack reconstruido con las imágenes nuevas; `.env` local.
+- **Pasos**:
+  1. Reproducir el fallo del clic: logs de `bff-web` con
+     `Invalid HTTP method: PATCH executing PATCH http://ms-notificaciones:8091/...`
+     (Feign usa `HttpURLConnection`, que no soporta PATCH). Confirmar en la
+     captura la fila "no leída" con texto claro sobre fondo claro y la fecha
+     `10/8/26, 2:47 AM` (UTC + locale en-US).
+  2. Agregar `io.github.openfeign:feign-hc5` a `bff-web` y
+     `spring.cloud.openfeign.httpclient.hc5.enabled: true`; comprobar que
+     `feign-hc5` queda dentro del fat jar.
+  3. Reescribir los estilos de la campana con tokens del tema
+     (`bg-panel`, `text-ink`, `text-muted`, `border-line`, `bg-surface`,
+     `border-brand`) y formato `dd/MM/yyyy HH:mm`.
+  4. Fijar `TZ: America/Santiago` en el entorno común de microservicios (Compose
+     local y plantilla de Terraform) y recrear; `date` dentro de los contenedores
+     pasa a `-03`.
+  5. Enriquecer los eventos con `nombreEvaluacion`/`nombreAsignatura` en los
+     productores (Feign con fallback: si el nombre no se puede resolver, el aviso
+     se emite igual) y redactar textos específicos en `ms-notificaciones`, sin
+     exponer la nota.
+  6. Migración `V2` (`ocultada_en`), endpoints `PATCH/DELETE .../me/leidas` y
+     purga programada (`siga.notificaciones.retencion-dias=90`).
+  7. Ejecutar pruebas backend/frontend, reconstruir imágenes y recrear el stack.
+- **Resultado**: `PARCIAL` — corregido y verificado por API/logs/BD; falta el
+  clic real autenticado del usuario para confirmar la UI (contraste, contador y
+  botones).
+- **Evidencia**:
+  - Reactor completo `mvn package` `BUILD SUCCESS`: 195 pruebas contabilizadas,
+    0 fallas/errores y 8 suites Testcontainers omitidas en Windows. Módulos
+    afectados: core-share 38, bff-web 36, ms-notas 13, ms-evaluaciones 10,
+    ms-asistencias 17 y ms-notificaciones 12. Frontend Vitest 17/17 y `tsc`
+    correcto.
+  - `feign-hc5` presente en `app.jar` del BFF (grep del jar reconstruido).
+  - Migración `V2 - agregar ocultamiento lecturas` aplicada en
+    `siga_notificaciones_db`; todos los contenedores `healthy`.
+  - `docker exec ms-notificaciones date` → `-03` (America/Santiago).
+  - Evento sintético de nota con nombres (verificado tras el rename): la bandeja
+    guardó `Calificación agregada en Ciencias Naturales` y
+    `Se agregó una calificación en «EXAMEN» de Ciencias Naturales.` con hora de
+    Chile; los datos sintéticos se limpiaron. El texto de título
+    `Nueva calificación` se renombró a `Calificación agregada` a pedido del
+    usuario; aplica solo a eventos nuevos.
+  - `PATCH /api/v1/notificaciones/me/1/leida` y `PATCH/DELETE .../me/leidas`
+    responden `401` sin token (ruta reconocida, ya no `405`).
+- **Pendientes / notas**: validar en navegador el clic, "Marcar todas" y
+  "Limpiar leídas" con una cuenta real; la purga a 90 días solo se probó con
+  pruebas unitarias y no se espera a su horario programado. Decisión de producto:
+  las leídas se conservan hasta la limpieza o purga.
+
+### PR-20261008-06 — Bandeja: rutas faltantes, refresco en vivo y errores de acciones
+
+- **Fecha**: 2026-10-08
+- **Rama / commit**: `dev` @ `a34411b` + cambios locales sin commit.
+- **Alcance**: tras la prueba manual del usuario: (1) "Marcar todas" parecía
+  limpiar y "Limpiar leídas" mostraba "No se pudieron cargar las notificaciones.",
+  (2) el contador solo se refrescaba cada 60 s y no al volver a la pestaña,
+  (3) los ítems desaparecían ante un fallo de acción.
+- **Causa raíz**: el BFF llamaba `PATCH/DELETE /api/v1/notificaciones/me/leidas`
+  pero `ms-notificaciones` no declaraba esas rutas → `404` → el fallback del BFF
+  devolvía `503` y el frontend reemplazaba la lista por el mensaje de error.
+  Lección: un `401` sin token **no** prueba que la ruta exista; la verificación
+  correcta es `/v3/api-docs` (público).
+- **Pasos**:
+  1. Confirmar en logs `bff-web`: `404 ... PATCH/DELETE .../me/leidas` y revisar
+     el OpenAPI de `ms-notificaciones` (faltaba la ruta).
+  2. Agregar `@PatchMapping("/me/leidas")` y `@DeleteMapping("/me/leidas")` al
+     controlador de `ms-notificaciones` + `NotificacionControllerMappingsTest`
+     (regresión por reflexión).
+  3. Contador cada 10 s, refresco en `focus`/`visibilitychange`, sincronización
+     al abrir la campana y recarga automática de la lista si el panel está
+     abierto. Pulso visual ~4 s en campana/badge al subir el contador.
+  4. Caché TTL 3 min por OID en `ResolverDestinatariosNotificacion` para que el
+     polling no repita llamadas Feign (los cambios de vínculos tardan hasta el
+     TTL en reflejarse).
+  5. Separar `errorCarga` de `errorAccion`: un fallo de acción mantiene la lista
+     y muestra un mensaje inline; "Limpiar leídas" sin pendientes deja
+     "No tienes notificaciones." y nunca el mensaje de error.
+  6. Reconstruir `ms-notificaciones` y `frontend`, recrear y verificar por OpenAPI.
+- **Resultado**: `PARCIAL` — corregido y verificado por tests/OpenAPI/logs; falta
+  la confirmación visual del usuario (pulso, refresco ≤10 s, botones).
+- **Evidencia**:
+  - OpenAPI de `ms-notificaciones` y del BFF listan
+    `/api/v1/notificaciones/me/leidas` y `/api/bff/v1/notificaciones/me/leidas`
+    con métodos `patch` y `delete`.
+  - Backend: `ms-notificaciones` 14 pruebas (1 omitida por Testcontainers),
+    incluida la de mapeos y la de caché del resolver. Frontend: Vitest 20/20
+    (fallo de acción con lista intacta, limpiar sin error, marcar todas conserva
+    ítems, refresco al abrir). Todos los contenedores `healthy`.
+- **Pendientes / notas**: validar el pulso y el refresco en navegador con cuenta
+  real; el nombre "Limpiar leídas" se mantiene a pedido del usuario. La caché de
+  3 min aplica a la visibilidad de vínculos/inscripciones en la bandeja.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -201,6 +358,10 @@ npm run build -- --configuration production
 - Tras cambios acotados, reconstruir **de a uno** para no saturar Docker Desktop:
   `ms-usuarios-auth` → `ms-estudiantes` → `ms-docentes` → `ms-apoderados` →
   `bff-web` → `frontend` (`docker compose up -d --build <servicio>`).
+- Para la bandeja académica, incluir además `mariadb-notificaciones`,
+  `ms-asignaturas`, `ms-evaluaciones`, `ms-asistencias`, `ms-notas` y
+  `ms-notificaciones`. Reconstruir los servicios que empaquetan `core-share` antes
+  del E2E; mantener RabbitMQ y los volúmenes existentes.
 - Verificar salud: `docker compose ps` (todos `healthy`).
 
 ### 5.4 Registro asíncrono (si se va a probar el flujo real)
@@ -245,6 +406,115 @@ Colas esperadas: `user.azure.sync.queue`, `ms.estudiantes.queue`,
 `user.credentials.notify.queue` y una DLQ por cola. UI:
 `http://localhost:15672`.
 
+### 5.6.2 Bandeja académica in-app
+
+Este flujo prueba RabbitMQ -> outbox -> `ms-notificaciones` -> BFF -> campana.
+No envía correos ni requiere Gmail/Exchange. El destinatario se resuelve con el
+OID del JWT y el vínculo vigente del estudiante/apoderado.
+
+Prerrequisitos:
+
+- Reconstruir en forma secuencial los servicios afectados, sin borrar volúmenes:
+  `mariadb-notificaciones`, `ms-asistencias`, `ms-evaluaciones`, `ms-notas`,
+  `ms-notificaciones`, `bff-web` y `frontend`.
+- `.env` local completo para MariaDB, Azure y RabbitMQ. No copiar secretos ni
+  tokens a este registro.
+- Cuenta de prueba DOCENTE/ADMIN con scopes de escritura para crear los eventos;
+  cuenta ESTUDIANTE y cuenta APODERADO de prueba vinculadas al mismo pupilo.
+- Un alumno con dictación activa y datos de prueba identificables. Usar una fecha
+  de asistencia no ocupada. No hacer estas operaciones contra datos de producción.
+
+Preflight de topología:
+
+```bash
+docker compose ps
+docker exec rabbitmq rabbitmqctl list_exchanges name type durable
+docker exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
+docker exec rabbitmq rabbitmqctl list_bindings source_name destination_name routing_key
+docker exec rabbitmq rabbitmqctl list_consumers
+```
+
+Esperado: `intercambio-notificaciones` tipo `topic`, tres colas principales
+durables con un consumidor activo cada una, bindings `evaluacion.*`,
+`asistencia.*` y `nota.*`, y las DLQ correspondientes. Las DLQ deben estar
+durables y sin consumidor automático. La profundidad cero de una cola principal
+no es evidencia suficiente: `ms-notificaciones` consume y confirma rápidamente.
+
+Pasos E2E (guardar los IDs devueltos por cada POST):
+
+1. Con el token de DOCENTE/ADMIN, crear una evaluación de prueba mediante
+   `POST /api/bff/v1/evaluaciones` con `nombre`, `tipo`, `ponderacion` e
+   `idCursoAsignatura` válidos. Actualizarla con PUT y luego eliminarla
+   lógicamente. Esperado: una bandeja por cada evento, visible para alumnos de la
+   dictación y sus apoderados vinculados.
+2. Crear una nota para el alumno y la evaluación de prueba con
+   `POST /api/bff/v1/notas`; modificarla con PUT; eliminarla lógicamente y
+   volver a crearla para probar la reactivación. Esperado: `CREADA` al crear y
+   `ACTUALIZADA` al modificar/reactivar; no se crea aviso por DELETE. El resumen
+   no debe exponer el puntaje.
+3. Registrar asistencia PRESENTE, AUSENTE y ATRASADO mediante
+   `POST /api/bff/v1/asistencias`, con fecha vigente y única. Esperado: PRESENTE
+   no genera aviso; AUSENTE y ATRASADO sí. Verificar en el outbox el porcentaje
+   mensual y el flag del umbral (>= 60%). La regla inicial no publica cambios de
+   asistencia hechos por PUT.
+4. Iniciar sesión como el ESTUDIANTE y abrir la campana del header. Consultar
+   `GET /api/bff/v1/notificaciones/me?page=0&size=10` y
+   `GET /api/bff/v1/notificaciones/me/no-leidas/count`; confirmar eventos,
+   títulos/resúmenes específicos (asignatura y evaluación), hora de Chile y
+   destinos esperados. Con la campana cerrada, generar un evento nuevo y
+   comprobar que el contador sube en ≤10 s (o al volver a la pestaña) y que la
+   campana pulsa; abrir el panel debe mostrar el aviso sin recargar la página.
+   Abrir una notificación y comprobar el PATCH
+   `/api/bff/v1/notificaciones/me/{id}/leida`, que el contador baja al instante y
+   que la notificación permanece en la lista como leída (sin punto amarillo).
+   Probar `PATCH /api/bff/v1/notificaciones/me/leidas` (marcar todas: conserva
+   los ítems y baja el contador a 0) y
+   `DELETE /api/bff/v1/notificaciones/me/leidas` (limpiar mis leídas: oculta solo
+   las leídas; si no queda ninguna, muestra "No tienes notificaciones."). Un
+   fallo de acción debe mostrar un mensaje inline sin borrar la lista.
+5. Repetir como APODERADO del alumno. Debe ver los eventos del pupilo, pero su
+   marca de lectura/limpieza debe ser independiente de la del alumno. Iniciar
+   sesión con un segundo alumno/apoderado no vinculado y comprobar que no ve
+   estos avisos; solicitar el PATCH de una notificación ajena debe responder 404.
+6. Correlacionar la respuesta UI con los logs de publicador/consumidor, el
+   `idEvento` y las filas persistidas. Revisar colas/DLQ y comprobar que no haya
+   duplicados por una redelivery.
+
+SQL de evidencia (reemplazar el ID de prueba, sin copiar datos personales al log):
+
+```sql
+-- En la BD del productor correspondiente: estado/reintentos del outbox.
+SELECT id_evento, estado, intentos, clave, ultimo_error
+  FROM notification_event_outbox ORDER BY creado_en DESC LIMIT 10;
+
+-- En siga_notificaciones_db: entrada de bandeja sin puntaje ni correo.
+SELECT id, id_evento, tipo, accion, tipo_destino, id_destino, titulo, resumen,
+       DATE_FORMAT(fecha_hora, '%Y-%m-%d %H:%i:%s') AS fecha_chile
+  FROM notificaciones ORDER BY fecha_hora DESC LIMIT 10;
+-- ocultada_en distinto de NULL = "Limpiar mis leídas" para ese OID.
+SELECT id_notificacion, id_usuario, leida_en, ocultada_en
+  FROM notificacion_lecturas ORDER BY leida_en DESC LIMIT 10;
+```
+
+Casos de recuperación en entorno local aislado:
+
+- Detener RabbitMQ, generar un evento válido y verificar que el CRUD deja una
+  fila `PENDIENTE` en `notification_event_outbox`; reiniciar RabbitMQ y esperar
+  `ENVIADO` más una sola notificación en la bandeja.
+- Detener `ms-notificaciones`, generar evento, comprobar acumulación en la cola;
+  levantar el consumidor y verificar persistencia/ACK.
+- Enviar un mensaje deliberadamente malformado solo en un entorno de prueba y
+  verificar que, tras tres entregas, termina en la DLQ del tipo correspondiente.
+- Probar `Limpiar mis leídas`: tras ocultar, la lista y el contador no vuelven a
+  mostrar esos avisos para ese OID, pero la fila compartida sigue existiendo en
+  `notificaciones` (otro destinatario la conserva).
+- Los outbox con ocho fallos quedan `FALLIDO`; registrar el caso y reprocesarlo
+  manualmente después de corregir la causa. No purgar colas ni ejecutar
+  `docker compose down -v` en el stack compartido.
+- La hora de la bandeja usa `TZ=America/Santiago` en los contenedores; si los
+  timestamps vuelven a verse corridos, comparar `docker exec ms-notificaciones date`
+  antes de tocar código.
+
 ### 5.7 Normalización de datos previos
 
 - Los seeds se normalizan solos con las migraciones (`V7`/`V7`/`V5`/`V9`).
@@ -261,6 +531,8 @@ powershell -File tools/normalizar-datos.ps1
   queda reservado ~30 días; para reutilizar el mismo correo conviene deshabilitar).
 - BD: borrar filas de `usuarios`, perfiles, procesos, intentos, outbox y eventos
   procesados asociados a los correos de prueba.
+- Bandeja académica: borrar filas de notificaciones/lecturas de los IDs de prueba
+  y outbox de dominio; no purgar colas compartidas ni borrar volúmenes.
 
 ## 6. Limitaciones conocidas del entorno
 
@@ -270,6 +542,15 @@ powershell -File tools/normalizar-datos.ps1
 - **Docker Desktop** puede devolver `500` y caerse si se reconstruyen 5 imágenes
   Java + frontend en paralelo con otra stack corriendo; reconstruir de a uno y
   detener stacks ajenas.
+- **E2E autenticado de la campana** requiere cuentas de prueba ESTUDIANTE y
+  APODERADO del tenant, vínculo vigente de pupilo y token Entra con los scopes de
+  lectura de perfiles/asignaturas/inscripciones. No se requiere buzón ni Gmail.
+- **Verificar rutas con `/v3/api-docs`**, no con `401` sin token: Spring
+  autentica antes de resolver el handler y un 401 aparece aunque la ruta no
+  exista (fue el origen del 404 de `/me/leidas`).
+- **Caché de destinatarios (TTL 3 min)**: los cambios de vínculos o
+  inscripciones pueden tardar hasta 3 minutos en reflejarse en la bandeja; el
+  contador se refresca cada 10 s y al volver a la pestaña.
 - **UTF-8 en consola**: al escribir datos con acentos por `docker exec`, usar
   Base64/UTF-8 explícito para evitar corrupción.
 
@@ -277,11 +558,12 @@ powershell -File tools/normalizar-datos.ps1
 
 | Módulo | Suites relevantes |
 | --- | --- |
-| `core-share` | `ValidatorsTest`, `EnumsJsonTest`, `RutNormalizerTest`, `NombrePropioTest`, `SharedFeignFormatConfigTest`, `GlobalExceptionHandlerTest` |
+| `core-share` | `ValidatorsTest`, `EnumsJsonTest`, `RutNormalizerTest`, `NombrePropioTest`, `SharedFeignFormatConfigTest`, `ConfiguracionMensajeriaCompartidaTest`, pruebas de outbox y `GlobalExceptionHandlerTest` |
 | `ms-usuarios-auth` | `UsuarioServiceTest`, `InvitacionVinculacionServiceTest`, `AsyncUserRegistrationServiceTest`, `CredentialCipherTest`, `EmailInstitucionalGeneratorTest`, `MigracionesTest`, `MigracionesRegistroAsyncTest` |
-| `bff-web` | `AdminBffServiceTest`, `PerfilEstudianteServiceTest`, `ApoderadoPupiloServiceTest`, `DocenteBffServiceTest`, `NotaBffServiceTest`, `EvaluacionBffServiceTest`, `AsistenciaBffServiceTest` |
-| Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest`, `EvaluacionServiceTest`, `AsistenciaServiceTest` y `PreAuthorizeExpressionsTest` |
-| Frontend | specs Vitest de `app`, `docente-notas.service` y `asistencia.service` |
+| `bff-web` | `AdminBffServiceTest`, `PerfilEstudianteServiceTest`, `ApoderadoPupiloServiceTest`, `DocenteBffServiceTest`, `NotaBffServiceTest`, `EvaluacionBffServiceTest`, `AsistenciaBffServiceTest`, `NotificacionBffServiceTest` |
+| Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest` + `PublicadorNotaTest`, `EvaluacionServiceTest` + `PublicadorEvaluacionTest`, `AsistenciaServiceTest` + `PublicadorAsistenciaTest` |
+| `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `ConfiguracionMensajeriaNotificacionesTest`, `MigracionesNotificacionesTest` |
+| Frontend | specs Vitest de `app`, `docente-notas.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
 
 Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
 datos y Azure AD.
@@ -292,6 +574,7 @@ datos y Azure AD.
 - [ ] Flujo funcional probado (UI o API) y evidencia registrada.
 - [ ] Migraciones aplicadas en las BD reales y `ddl-auto=validate` OK.
 - [ ] Colas/consumidores verificados (si aplica).
+- [ ] Bandeja verificada con estudiante y apoderado; lecturas aisladas por OID y eventos deduplicados.
 - [ ] Datos de prueba limpiados (Entra + BD).
 - [ ] Flags devueltos a su estado acordado (`REGISTRO_ASYNC_ENABLED`).
 - [ ] Documentación actualizada y entrada nueva en este registro.

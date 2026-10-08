@@ -20,7 +20,7 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MariaDB (una base por microservicio)
 - RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-notificaciones` (queda comentado `ms-auditoria`, con puerto reservado `8082`). `ms-notificaciones` es el consumidor de las colas RabbitMQ (actualmente la cola de evaluaciones; solo registra en log).
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-notificaciones` (queda comentado `ms-auditoria`, con puerto reservado `8082`). `ms-notificaciones` consume eventos académicos, persiste una bandeja por perfil autorizado y la expone al portal a través del BFF; el canal actual es in-app, no correo.
 
 ## 3. Componentes del backend
 
@@ -265,6 +265,7 @@ Comportamiento e integracion:
 - **`ms-clases`** · puerto `8087`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
 - **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, `idCursoAsignatura`, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas` (valida dictacion activa y calificable). Scopes `evaluaciones:*`.
 - **`ms-asistencias`** · puerto `8090`: entidad `Asistencia` (idEstudiante, `idCursoAsignatura`, fecha, estado, justificacion, observacion, activa) con unique `(estudiante, dictacion, fecha)`; CRUD + busqueda por estudiante/dictacion/rango/estado; Feign a `ms-estudiantes` y `ms-asignaturas`. Scopes `asistencias:*`. Seed con Camila y Lilith (03-08 a 02-10-2026, solo dias habiles y segun horario).
+- **`ms-notificaciones`** · puerto `8091`: consume las colas académicas de evaluaciones, notas y asistencias; guarda una bandeja in-app idempotente y el estado de lectura por OID. Resuelve destinatarios autorizados con el JWT propagado por Feign y sirve `GET /api/v1/notificaciones/me`, contador de no leídas y marcado de lectura. El correo no forma parte de esta etapa.
 
 ### 3.7 Biblioteca compartida
 
@@ -281,8 +282,34 @@ Centraliza elementos reutilizables, sin logica de un dominio especifico:
 - **OpenAPI**: `SharedOpenApiConfig` (esquema `bearerAuth`).
 - **Fechas**: `CommonDateFormatConfig` (ISO 8601 `yyyy-MM-dd` para JSON y parametros) y `SharedFeignFormatConfig` (registra el mismo formato en el conversion service de OpenFeign, que no usa los formatters de MVC; sin el, Feign serializaba `from`/`to` con el formato corto localizado `6/10/26`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - **Mensajeria**: `RegistrationMessagingConfig` (exchange, colas por etapa/rol y DLQ), `RegistrationMessagingConstants` (nombres y routing keys), `RegistrationCorrelation` (correlation id en headers AMQP/MDC) y `RegistrationStatusPublisher` (resultado de cada paso).
+- **Outbox académico**: `NotificationEventOutbox` guarda eventos en la transacción de dominio; el dispatcher publica con confirmación, backoff y estado `FALLIDO`. Un conversor JSON compartido serializa los records de notificación y registro.
 
 Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
+
+### 3.8 Bandeja de notificaciones in-app
+
+`ms-notificaciones` mantiene su propia base (`siga_notificaciones_db`) con una fila
+por evento académico y marcas de lectura por OID. Los eventos de nota y asistencia
+se dirigen al perfil estudiante; los eventos de evaluación se dirigen a la dictación.
+Al consultar, el servicio resuelve por JWT los estudiantes propios o los pupilos
+vinculados y las dictaciones activas del curso. Una marca de lectura de un apoderado
+no cambia la del estudiante.
+
+El BFF publica la bandeja bajo `/api/bff/v1/notificaciones/me`, el contador de no
+leídas, el marcado por notificación, `PATCH .../me/leidas` (marcar todas) y
+`DELETE .../me/leidas` (limpiar mis leídas, con marca `ocultada_en` por OID para no
+borrar filas compartidas). El componente `NotificationBellComponent` vive en el
+header compartido y aparece en los portales de estudiante/apoderado; consulta el
+contador periódicamente, marca leída de inmediato al hacer clic y carga la página
+al abrir la campana; el contador se refresca cada 10 s, al recuperar foco la
+pestaña y pulsa al detectar un aumento (la lista se recarga sola si el panel está
+abierto). Los títulos/resúmenes usan los nombres de asignatura y evaluación que
+agregan los productores (sin exponer la nota), y las horas quedan en
+`America/Santiago` porque los contenedores fijan `TZ`. Una purga programada elimina
+las notificaciones mayores a 90 días y la resolución de destinatarios se cachea por
+OID 3 minutos para no repetir Feign en cada consulta del contador. Esta versión es
+solo in-app; no lee buzones ni envía correo. El BFF necesita `feign-hc5` para poder
+emitir PATCH hacia el servicio.
 
 ## 4. Seguridad y contratos
 
@@ -297,7 +324,7 @@ Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.
 ## 5. Datos y configuracion
 
 - Patron **database-per-service**: cada microservicio tiene su propia MariaDB.
-- `docker-compose.yml` levanta 8 MariaDB, los 8 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
+- `docker-compose.yml` levanta 10 MariaDB, los 10 microservicios, el BFF, el frontend y **RabbitMQ** (mensajeria; credenciales por `RABBITMQ_USER`/`RABBITMQ_PASS`).
 - **Formato de fecha (API): ISO 8601 `yyyy-MM-dd`** para `LocalDate` (JSON y parametros de URL), definido en `CommonDateFormatConfig`. *Cambio de contrato:* antes se usaba `dd/MM/yyyy`; los consumidores deben enviar/esperar `yyyy-MM-dd` (p. ej. `birthDate`, `from`/`to`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
 - **Busquedas paginadas**: los `GET /search` devuelven `Page<T>` (`page`, `size`, `sort`; default 20, maximo 100). Contrato, ejemplos y guia en [`paginacion.md`](paginacion.md).
 - **Borrado logico**: todos los `DELETE` son idempotentes. La mayoria usa un booleano `active`/`activo` (asignaturas, horarios, notas, docentes, apoderados, clases, evaluaciones); estudiantes y usuarios usan el enum `State`/`StateUsuario`. Convencion a unificar en el futuro.
@@ -323,7 +350,7 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 1. ~~Completar la orquestacion del BFF~~ (hecho para `/me`, perfil de estudiante, pupilos, cursos, notas/asistencias del docente y el modulo admin: registro asincrono, selectores de clases/alumnos, detalle y eliminacion).
 2. ~~Conectar las pantallas del frontend a traves del BFF~~ (hecho para los portales y el admin; quedan recursos sin endpoint).
 3. ~~Registro asincrono de usuarios~~ (hecho: outbox, aprovisionamiento Graph, credencial de un solo uso, consumidores por rol, BFF y UI con polling). Pendiente acotado: propagar la desactivacion del usuario a los perfiles de dominio por evento (`user.account.disabled/enabled`) y la carga masiva por CSV en la UI.
-4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los 8 microservicios + indices; el registro asincrono agrega `V5`-`V9` en `ms-usuarios-auth` y migraciones de normalizacion en los dominios).
+4. ~~Definir migraciones de esquema para produccion~~ (hecho: Flyway en los servicios con persistencia + indices; el registro asincrono agrega `V5`-`V9` en `ms-usuarios-auth` y migraciones de normalizacion en los dominios).
 5. Ampliar pruebas unitarias, de integracion y de contrato (nuevas suites de orquestacion asincrona, credencial, correo, normalizacion, busqueda `q`, admin BFF y migraciones `V5`-`V9`; ver [`registro-pruebas.md`](registro-pruebas.md)).
 6. Completar la observabilidad (logs estructurados, metricas, tracing); el correlation ID ya esta implementado (HTTP, Feign y AMQP).
 7. Incorporar el servicio futuro `ms-auditoria`; docentes, apoderados, clases, evaluaciones y asistencias ya estan implementados.
