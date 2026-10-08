@@ -29,9 +29,9 @@ variable "key_name" {
 }
 
 variable "instance_type" {
-  description = "Tipo de instancia. Tipos soportados en el lab: nano, micro, small, medium, large"
+  description = "Tipo de instancia. Tipos soportados en el lab: nano, micro, small, medium, large. El stack completo (13 servicios + clúster RabbitMQ de 2 nodos + MariaDB) supera los 5.8 GB en contenedores: usar t3.large."
   type        = string
-  default     = "t3.medium"
+  default     = "t3.large"
 }
 
 variable "data_volume_size" {
@@ -46,8 +46,32 @@ variable "ssh_cidr" {
   default     = "0.0.0.0/0"
 }
 
+variable "cors_allowed_origins" {
+  description = "Origenes exactos (scheme://host[:port]) permitidos por CORS en el API Gateway. En produccion la SPA y /api comparten el mismo origen (URL del Gateway), por lo que CORS no aplica al flujo normal; se declara igualmente como requisito y permite pruebas desde otros origenes."
+  type        = list(string)
+  default     = ["http://localhost:4200"]
+}
+
 # --- Azure AD / Entra ID (solo lo que necesita el JWT Authorizer) ---
 # Estos valores NO son secretos: se validan firma/iss/aud, no se guarda credencial.
+variable "azure_tenant_id" {
+  description = "Tenant de Entra ID que emite los tokens (parte del issuer y del authority del SPA)"
+  type        = string
+  default     = "f260a804-82ac-4b57-bb01-9ed6626d71ff"
+}
+
+variable "azure_client_id" {
+  description = "Client ID de la app SPA/API que usa el frontend (config.json)"
+  type        = string
+  default     = "448f165b-4fab-45c4-9088-766044e1a004"
+}
+
+variable "azure_app_id_uri" {
+  description = "App ID URI de la API (api://<client-id>); prefijo de los scopes que pide el SPA"
+  type        = string
+  default     = "api://448f165b-4fab-45c4-9088-766044e1a004"
+}
+
 variable "azure_audience" {
   description = "claims aud aceptados por el JWT Authorizer (GUID para tokens v2 y api://<client-id> para v1)"
   type        = list(string)

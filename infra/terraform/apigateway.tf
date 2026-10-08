@@ -9,6 +9,18 @@ resource "aws_apigatewayv2_api" "http" {
   name          = "${var.management_name}-http-api"
   protocol_type = "HTTP"
 
+  # CORS gestionado por API Gateway (no duplicar en Spring). En produccion la
+  # SPA y /api comparten el mismo origen, asi que CORS no aplica al flujo
+  # normal; se declara como requisito de evaluacion y para preflight desde
+  # otros origenes. PATCH es necesario por las notificaciones del BFF.
+  cors_configuration {
+    allow_origins     = var.cors_allowed_origins
+    allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    allow_headers     = ["authorization", "content-type"]
+    allow_credentials = false
+    max_age           = 300
+  }
+
   tags = {
     Name = "${var.management_name}-http-api"
   }

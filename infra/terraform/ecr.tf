@@ -99,3 +99,23 @@ resource "aws_ecr_repository" "evaluaciones" {
     scan_on_push = true
   }
 }
+
+resource "aws_ecr_repository" "asistencias" {
+  name                 = "siga-asistencias"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "notificaciones" {
+  name                 = "siga-notificaciones"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}

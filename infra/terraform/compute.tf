@@ -5,6 +5,11 @@ locals {
     docker_compose_b64 = base64encode(file("${path.module}/templates/docker-compose.yml"))
     init_db_b64        = base64encode(file("${path.module}/templates/init-db.sh"))
   })
+
+  # El script renderizado supera el limite de 16 KB de user_data de EC2: se
+  # envia gzip+base64 con user_data_base64 y cloud-init lo descomprime al
+  # arrancar. Antes de esto `terraform validate/plan` fallaba.
+  user_data_gzip = base64gzip(local.user_data)
 }
 
 resource "aws_instance" "app" {
@@ -18,7 +23,7 @@ resource "aws_instance" "app" {
   # El rol LabRole ya concede permisos para descargar de ECR y demas servicios.
   # user_data_replace_on_change = false evita que un cambio en el script reemplace
   # la instancia y, con ello, destruya el estado local.
-  user_data                   = local.user_data
+  user_data_base64            = local.user_data_gzip
   user_data_replace_on_change = false
 
   root_block_device {

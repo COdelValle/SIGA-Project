@@ -82,11 +82,15 @@ La configuracion se carga antes del bootstrap desde `public/config.json` (servid
 ```jsonc
 {
   "bffBaseUrl": "/api",
+  "useMocks": false,
   "msal": {
-    "clientId": "<AZURE_FRONTEND_CLIENT_ID>",
+    "clientId": "<AZURE_CLIENT_ID>",
     "authority": "https://login.microsoftonline.com/<AZURE_TENANT_ID>",
     "redirectUri": "/auth",
-    "scopes": ["api://<AZURE_BFF_APP_ID>/access_as_user"]
+    "postLogoutRedirectUri": "/sin-acceso",
+    // Acceso.Base + los 42 scopes granulares (lista completa en public/config.json
+    // y en el ejemplo del checklist de testing-login.md)
+    "scopes": ["api://<AZURE_CLIENT_ID>/Acceso.Base", "api://<AZURE_CLIENT_ID>/usuarios:read", "..."]
   }
 }
 ```

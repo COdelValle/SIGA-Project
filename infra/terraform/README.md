@@ -1,6 +1,6 @@
 # SIGA - Infraestructura AWS (Terraform)
 
-Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.medium`, un
+Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.large`, un
 volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
 sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure AD antes de
 llegar al BFF.
@@ -13,11 +13,11 @@ Contexto del proyecto en el [README raiz](../../README.md) e
 Navegador (Angular + MSAL)
   |  HTTPS
   v
-API Gateway HTTP API (HTTPS)
+API Gateway HTTP API (HTTPS + CORS)
   |- $default          -> http://<eip>:80                    (SPA + assets, sin auth)
   `- ANY /api/{proxy+} -> http://<eip>:8080/api/{proxy}      (JWT Authorizer)
   v
-EC2 t3.medium (EIP)
+EC2 t3.large (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
   |- ms-*:8081/8083-8091          (8082 reservado: ms-auditoria)
@@ -29,7 +29,11 @@ EC2 t3.medium (EIP)
 Nota: se intentó CloudFront para el HTTPS, pero el LabRole deniega
 `cloudfront:CreateDistribution`. API Gateway sirve el SPA por HTTPS con su
 certificado de `*.execute-api`, lo que da contexto seguro a MSAL y ademas deja
-SPA y API en el mismo origen (sin CORS).
+SPA y API en el mismo origen, por lo que CORS no es necesario para el flujo
+normal. La API declara igualmente una política CORS con allowlist
+(`cors_allowed_origins`, incluye `PATCH`) para el requisito de evaluación y para
+pruebas desde otros orígenes. Las integraciones hacia EC2 siguen por HTTP: TLS
+termina en API Gateway.
 
 ## Requisitos
 
@@ -65,10 +69,14 @@ Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
 | --- | --- | --- |
 | `aws_region` | `us-east-1` | Region permitida en el Learner Lab. |
 | `management_name` | `SIGA` | Prefijo de nombres/etiquetas. |
-| `instance_type` | `t3.medium` | Tipo de instancia EC2. |
+| `instance_type` | `t3.large` | Tipo de instancia EC2 (el stack supera 5.8 GB en contenedores). |
 | `data_volume_size` | `10` | Tamano (GB) del EBS gp3 de MariaDB. |
 | `key_name` | `vockey` | Key pair del Learner Lab. |
 | `ssh_cidr` | `0.0.0.0/0` | CIDR autorizado para SSH. |
+| `cors_allowed_origins` | `["http://localhost:4200"]` | Orígenes permitidos por CORS en el Gateway. |
+| `azure_tenant_id` | GUID del tenant | Tenant del issuer/authority. |
+| `azure_client_id` | GUID de la app | Client ID de la SPA/API. |
+| `azure_app_id_uri` | `api://<client-id>` | Prefijo de los scopes del SPA. |
 | `azure_audience` | lista de audiences | `aud` aceptados por el JWT Authorizer. |
 | `azure_issuer` | issuer v2.0 | `iss` exacto del token. |
 
@@ -97,6 +105,10 @@ Outputs utiles:
 - Sin backups por ahora: un **Reset** del laboratorio borra el volumen y los
   datos no se recuperan.
 - El CD nunca usa `docker compose down -v`.
+- El `user_data` de la EC2 se envía **gzip + base64** (`user_data_base64`): el
+  script renderizado (compose + init-db embebidos) supera el límite de 16 KB de
+  EC2 y cloud-init lo descomprime al arrancar. Con `user_data` plano,
+  `terraform validate/plan` falla.
 
 ## Inicialización de la base
 
@@ -113,7 +125,7 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 
 `siga-usuarios-auth`, `siga-estudiantes`, `siga-asignaturas`, `siga-notas`,
 `siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
-`siga-bff-web` y `siga-frontend`.
+`siga-asistencias`, `siga-notificaciones`, `siga-bff-web` y `siga-frontend`.
 
 ## Notas del laboratorio
 
