@@ -3,6 +3,7 @@ package cl.siga.coreshare.mensajeria;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 /**
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 public class ConfiguracionMensajeriaCompartida {
 
     @Bean
+    @ConditionalOnMissingBean(MessageConverter.class)
     public MessageConverter conversorMensajesJson() {
         return new Jackson2JsonMessageConverter();
     }

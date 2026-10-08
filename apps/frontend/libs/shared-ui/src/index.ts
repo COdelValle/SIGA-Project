@@ -1,6 +1,7 @@
 export * from './lib/layout/menu-item.model';
 export * from './lib/layout/menu-icon.component';
 export * from './lib/layout/portal-header.component';
+export * from './lib/layout/notification-bell.component';
 export * from './lib/layout/dashboard-shell.component';
 export * from './lib/layout/portal-shell.component';
 export * from './lib/ui/seccion-card.component';

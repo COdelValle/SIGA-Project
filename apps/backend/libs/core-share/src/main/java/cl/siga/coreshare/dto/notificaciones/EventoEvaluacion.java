@@ -15,6 +15,8 @@ public record EventoEvaluacion(
     Double ponderacion,
     Long idCursoAsignatura,
     AccionEvaluacion accion,
-    LocalDateTime fechaHora
+    LocalDateTime fechaHora,
+    String idEvento,
+    String nombreAsignatura
 ) {
 }

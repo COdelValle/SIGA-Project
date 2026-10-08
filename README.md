@@ -130,9 +130,9 @@ Accesos del entorno local:
 | `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (soft delete y unique por fecha). |
-| `ms-notificaciones` | 8091 | Consumidor de colas RabbitMQ (cola de evaluaciones; por ahora registra en log). |
+| `ms-notificaciones` | 8091 | Bandeja de notificaciones in-app para estudiantes y apoderados; consume eventos académicos. |
 | `rabbitmq` | 5672 / 15672 | Mensajería (15672 es la UI de management). |
-| `mariadb-*` | interno | Una instancia MariaDB por microservicio (9 bases). |
+| `mariadb-*` | interno | Una instancia MariaDB por microservicio (10 bases). |
 
 > Puerto reservado para el servicio futuro `ms-auditoria`: `8082`.
 

@@ -16,6 +16,7 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
 import cl.siga.coreshare.dto.asignatura.enums.Semestre;
 import cl.siga.coreshare.dto.evaluaciones.ActualizarEvaluacionRequestDTO;
+import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.RegistrarEvaluacionRequestDTO;
 import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 import cl.siga.coreshare.enums.AreaAcademica;
@@ -96,5 +97,66 @@ class EvaluacionServiceTest {
         assertThrows(BusinessException.class, () -> service.updateEvaluacion(2L,
                 new ActualizarEvaluacionRequestDTO("PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0)));
         verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void crearEvaluacionPublicaEventoSoloDespuesDeGuardar() {
+        RegistrarEvaluacionRequestDTO request =
+                new RegistrarEvaluacionRequestDTO("PRUEBA NUEVA", TipoEvaluacion.SUMATIVA, 20.0, 5L);
+        Evaluacion entity = new Evaluacion();
+        entity.setId(30L);
+        entity.setIdCursoAsignatura(5L);
+        entity.setPonderacion(20.0);
+        EvaluacionResponseDTO response = new EvaluacionResponseDTO(
+                30L, "PRUEBA NUEVA", TipoEvaluacion.SUMATIVA, 20.0, 5L, true);
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(true));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue("PRUEBA NUEVA", 5L)).thenReturn(false);
+        when(repository.findActiveByIdCursoAsignaturaForUpdate(5L)).thenReturn(List.of());
+        when(mapper.toEntity(request)).thenReturn(entity);
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponseDto(entity)).thenReturn(response);
+
+        EvaluacionResponseDTO actual = service.saveEvaluacion(request);
+
+        org.assertj.core.api.Assertions.assertThat(actual).isEqualTo(response);
+        verify(publicador).publicarCreada(response);
+    }
+
+    @Test
+    void actualizarEvaluacionPublicaEventoActualizada() {
+        Evaluacion existente = new Evaluacion();
+        existente.setId(31L);
+        existente.setIdCursoAsignatura(5L);
+        existente.setPonderacion(25.0);
+        when(repository.findByIdAndActiveTrue(31L)).thenReturn(Optional.of(existente));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrueAndIdNot(
+                "PRUEBA EDITADA", 5L, 31L)).thenReturn(false);
+        when(repository.findActiveByIdCursoAsignaturaForUpdate(5L)).thenReturn(List.of(existente));
+        when(repository.save(existente)).thenReturn(existente);
+        EvaluacionResponseDTO response = new EvaluacionResponseDTO(
+                31L, "PRUEBA EDITADA", TipoEvaluacion.FORMATIVA, 25.0, 5L, true);
+        when(mapper.toResponseDto(existente)).thenReturn(response);
+
+        service.updateEvaluacion(31L,
+                new ActualizarEvaluacionRequestDTO("PRUEBA EDITADA", TipoEvaluacion.FORMATIVA, 25.0));
+
+        verify(publicador).publicarActualizada(response);
+    }
+
+    @Test
+    void eliminarEvaluacionPublicaEventoEliminada() {
+        Evaluacion existente = new Evaluacion();
+        existente.setId(32L);
+        existente.setIdCursoAsignatura(5L);
+        existente.setPonderacion(25.0);
+        when(repository.findById(32L)).thenReturn(Optional.of(existente));
+        when(repository.save(existente)).thenReturn(existente);
+        EvaluacionResponseDTO response = new EvaluacionResponseDTO(
+                32L, "PRUEBA", TipoEvaluacion.SUMATIVA, 25.0, 5L, false);
+        when(mapper.toResponseDto(existente)).thenReturn(response);
+
+        service.deleteEvaluacion(32L);
+
+        verify(publicador).publicarEliminada(response);
     }
 }

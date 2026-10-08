@@ -18,6 +18,12 @@ public class RespaldoEstudianteFactory implements FallbackFactory<ClienteEstudia
                 throw FeignFallbacks.noDisponible(causa,
                     "No se pudo obtener el estudiante " + id);
             }
+
+            @Override
+            public EstudianteResponseDTO obtenerPorIdUsuario(String idUsuario) {
+                throw FeignFallbacks.noDisponible(causa,
+                    "No se pudo obtener el perfil del estudiante autenticado");
+            }
         };
     }
 }

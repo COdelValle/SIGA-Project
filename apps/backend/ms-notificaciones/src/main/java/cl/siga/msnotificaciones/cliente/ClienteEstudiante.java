@@ -7,15 +7,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 /**
- * Resuelve el nombre del estudiante desde su idAlumno.
+ * Resuelve el perfil académico propio o el de un pupilo autorizado.
  */
 @FeignClient(
     name = "ms-estudiantes",
-    url = "${servicios.ms-estudiantes.url}",
+    url = "${services.ms-estudiantes.url}",
     fallbackFactory = RespaldoEstudianteFactory.class
 )
 public interface ClienteEstudiante {
 
     @GetMapping("/api/v1/estudiantes/{id}")
     EstudianteResponseDTO obtenerPorId(@PathVariable("id") Long id);
+
+    @GetMapping("/api/v1/estudiantes/idUsuario/{idUsuario}")
+    EstudianteResponseDTO obtenerPorIdUsuario(@PathVariable("idUsuario") String idUsuario);
 }

@@ -1,9 +1,11 @@
 import { Component, Input, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService, MeService, ThemeService } from '@siga/core';
+import { NotificationBellComponent } from './notification-bell.component';
 
 @Component({
   selector: 'siga-portal-header',
+  imports: [NotificationBellComponent],
   template: `
     <header
       class="flex items-center justify-between gap-4 border-b-2 border-gold bg-bar px-6 py-3 text-onbar shadow-md"
@@ -16,6 +18,8 @@ import { AuthService, MeService, ThemeService } from '@siga/core';
       </div>
 
       <div class="flex items-center gap-3">
+        <siga-notification-bell />
+
         <button
           type="button"
           (click)="theme.toggle()"

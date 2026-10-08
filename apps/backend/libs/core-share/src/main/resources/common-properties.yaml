@@ -1,4 +1,10 @@
 spring:
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+      delivery-mode: persistent
   data:
     web:
       pageable:

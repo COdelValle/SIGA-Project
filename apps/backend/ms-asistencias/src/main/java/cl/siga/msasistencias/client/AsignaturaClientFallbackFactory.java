@@ -3,6 +3,7 @@ package cl.siga.msasistencias.client;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.exception.FeignFallbacks;
 
 @Component
@@ -15,6 +16,12 @@ public class AsignaturaClientFallbackFactory implements FallbackFactory<Asignatu
             public boolean existsById(Long id) {
                 throw FeignFallbacks.noDisponible(cause,
                     "No se pudo verificar la existencia de la dictación " + id);
+            }
+
+            @Override
+            public CursoAsignaturaResponseDTO getCursoAsignaturaById(Long id) {
+                throw FeignFallbacks.noDisponible(cause,
+                    "No se pudo obtener la dictación " + id);
             }
         };
     }

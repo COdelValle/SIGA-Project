@@ -22,6 +22,8 @@ public record EventoAsistencia(
     AccionAsistencia accion,
     double porcentajeInasistencia,
     boolean superaUmbralInasistencia,
-    LocalDateTime fechaHora
+    LocalDateTime fechaHora,
+    String idEvento,
+    String nombreAsignatura
 ) {
 }

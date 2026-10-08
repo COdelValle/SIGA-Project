@@ -20,9 +20,9 @@ API Gateway HTTP API (HTTPS)
 EC2 t3.medium (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8083-8090          (8082 reservado: ms-auditoria)
+  |- ms-*:8081/8083-8091          (8082 reservado: ms-auditoria)
   |- rabbitmq:5672
-  |- mariadb:3306    9 bases
+  |- mariadb:3306    10 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
 ```
 
@@ -100,7 +100,7 @@ Outputs utiles:
 
 ## Inicialización de la base
 
-1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 9 bases y el
+1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 10 bases y el
    usuario.
 2. **Flyway** en cada microservicio crea/evoluciona el esquema al arrancar
    (`ddl-auto: validate`). Una base vacía se auto-inicializa.

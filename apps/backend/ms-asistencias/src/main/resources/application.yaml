@@ -1,6 +1,11 @@
 server:
   port: 8090
 
+siga:
+  notificaciones:
+    outbox:
+      enabled: true
+
 spring:
   application:
     name: ms-asistencias

@@ -106,6 +106,14 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
   con `spring-boot-starter-amqp`; los eventos son JSON versionados (`v1`) con
   `X-Correlation-Id` como header AMQP. Detalle funcional en
   [`backend.md`](backend.md) (seccion 3.2).
+- La mensajería académica es un flujo distinto: `ms-evaluaciones`, `ms-notas` y
+  `ms-asistencias` guardan eventos en un outbox transaccional; `ms-notificaciones`
+  los consume, los persiste de forma idempotente y sirve la bandeja in-app por el
+  BFF. El dueño de lectura se deriva del OID de Entra; estudiante y apoderado
+  reciben estados leído/no leído (y limpieza) independientes. La campana está en el
+  header compartido de ambos portales, con marcado al hacer clic, "marcar todas",
+  "limpiar leídas" y purga a 90 días. Los contenedores fijan `TZ=America/Santiago`
+  para las horas de la bandeja. Correo/Gmail queda fuera de esta etapa.
 - La gestion CRUD del admin (clases, busqueda de alumnos, eliminacion de
   usuarios y reactivacion) es **sincrona por HTTP**; no agrega colas nuevas. La
   propagacion de la desactivacion a los perfiles de dominio via evento queda
@@ -116,8 +124,8 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 
 Hay dos entornos:
 
-- **Local**: `docker-compose.yml` levanta 9 MariaDB (una por servicio), los 9 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 9 bases, los 9 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
@@ -130,7 +138,7 @@ Flujo de entrada:
 Esquema y datos:
 
 - **Flyway** en cada microservicio (`ddl-auto: validate`) crea y evoluciona el esquema; una base vacia se auto-inicializa.
-- `init-db.sh` crea las 9 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
+- `init-db.sh` crea las 10 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
 
 CI/CD:
 
@@ -148,20 +156,21 @@ CI/CD:
 
 | Componente | Estado actual | Objetivo |
 | --- | --- | --- |
-| Frontend Angular | Dashboards por rol (tema oscuro/claro) con datos mock | Pantallas academicas conectadas al BFF |
-| BFF Web | `/me` y perfil de estudiante (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
+| Frontend Angular | Portales por rol, datos académicos y campana in-app para estudiante/apoderado | Actualizaciones en tiempo real (futuro) |
+| BFF Web | `/me`, perfil de estudiante y API de bandeja (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
 | Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
 | Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
 | Asignaturas | Catalogo, malla curricular, dictaciones por curso, horarios (soft delete), inscripciones, Feign | Relacion con docentes y cursos |
 | Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
 | Docentes | CRUD, certificados, busqueda, `exists` | Carga horaria y asignacion de clases |
-| Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Notificaciones y seguimiento |
+| Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Seguimiento académico |
 | Clases | CRUD, docente jefe, `exists`, Feign | Matricula y cupos por curso |
 | Evaluaciones | CRUD, tipos y ponderaciones, `exists`, Feign | Calculo de promedios ponderados |
+| Notificaciones | Eventos académicos, outbox, bandeja persistente por OID, lectura no leída/leída y BFF | Canales futuros, incluyendo correo si se habilita |
 | core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
-| Docker Compose | Completo (8 servicios + RabbitMQ local) | Entorno local reproducible |
+| Docker Compose | Completo (10 microservicios + 10 bases + RabbitMQ local) | Entorno local reproducible |
 | Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
-| Flyway | Esquema + seed en los 8 microservicios | Migraciones versionadas |
+| Flyway | Esquema + seed en los servicios con persistencia | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
 | Paginacion | `Page<T>` en los 9 `GET /search` + `siga-paginador` en el frontend | Busquedas paginadas end-to-end |
 | Pruebas | Unitarios + contrato de errores + IT con Testcontainers | Cobertura unitaria, integracion y contratos |
