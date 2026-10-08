@@ -123,6 +123,9 @@ Servicios esperados:
 | `ms-estudiantes` | 8083 | Dominio estudiantes. |
 | `ms-asignaturas` | 8086 | Dominio asignaturas. |
 | `ms-notas` | 8089 | Dominio notas. |
+| `ms-notificaciones` | 8091 | Bandeja in-app; consume eventos académicos. |
+| `ms-rabbitmq-admin` | 8092 | Administración REST de RabbitMQ (colas, exchanges y bindings). |
+| `rabbitmq1`/`rabbitmq2` | 5672 / 15672 | Clúster RabbitMQ de dos nodos (UI en `rabbitmq1`). |
 | `mariadb-*` | interno | Una base por microservicio. |
 
 Logs utiles:

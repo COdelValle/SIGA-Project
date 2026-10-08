@@ -25,13 +25,17 @@ La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (unique por fecha y soft delete). |
 | `ms-notificaciones` | 8091 | Consume eventos académicos y mantiene la bandeja in-app de estudiantes y apoderados. |
+| `ms-rabbitmq-admin` | 8092 | API REST para administrar la topología RabbitMQ (colas, exchanges y bindings). |
 
 El módulo `ms-auditoria` sigue declarado como futuro (comentado en el POM padre);
 su puerto queda **reservado**: `8082`.
 
 ### Mensajería (RabbitMQ)
 
-Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
+Productor-consumidor sobre el **clúster de dos nodos** (`rabbitmq1`/`rabbitmq2`,
+misma EC2) con **intercambio tipo Topic**. Los servicios se conectan con
+`SPRING_RABBITMQ_ADDRESSES` y la topología se declara una sola vez desde
+`core-share`:
 
 - Intercambio: `intercambio-notificaciones` (compartido para las 3 colas de notificaciones).
 - Cola 1: `cola-notificaciones-evaluaciones`, enlazada con el patrón `evaluacion.*`
@@ -56,9 +60,13 @@ Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
   evaluación al evento (si el Feign falla, se publica igual y el consumidor usa un
   texto de respaldo). El resumen nunca incluye la nota.
 - Canal de esta etapa: campana y bandeja in-app compartida en los portales de
-  estudiante y apoderado; **no envía correo ni accede a Gmail/Exchange**. Mensajes
-  que agoten tres entregas van a una DLQ por tipo; eventos que agoten ocho intentos
-  de publicación quedan con estado `FALLIDO` en el outbox para diagnóstico y
+  estudiante y apoderado; **no envía correo ni accede a Gmail/Exchange**. Los
+  consumidores usan **ACK/NACK manuales** (`ConfirmadorMensajes`): ACK al
+  persistir (o si el evento ya existía, por idempotencia), reintentos acotados en
+  memoria con backoff y, al agotarse o ante un evento inválido, NACK sin requeue
+  hacia la DLQ del tipo. Cada cola deriva al direct `siga.dlx.direct` y cada DLQ
+  está enlazada con su nombre como routing key. Eventos que agoten ocho intentos
+  de publicación quedan en estado `FALLIDO` en el outbox para diagnóstico y
   reproceso manual.
 - API de la bandeja (vía BFF): `GET .../me`, `GET .../me/no-leidas/count`,
   `PATCH .../me/{id}/leida`, `PATCH .../me/leidas` (marcar todas) y
@@ -73,8 +81,13 @@ Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
   Feign; cambios de vínculos/inscripciones pueden tardar hasta ese TTL.
 - El PATCH del BFF hacia `ms-notificaciones` usa el cliente Apache HC5
   (`feign-hc5`): el cliente por defecto de Feign no soporta PATCH.
-- Nombres en español en `core-share`: `NombresMensajeria`, `ConfiguracionMensajeriaCompartida`
-  (conversor JSON) y `EventoEvaluacion`/`AccionEvaluacion`.
+- Nombres en español en `core-share`: `NombresMensajeria` (exchange topic, colas y
+  DLQ), `ConfiguracionTopologiaNotificaciones` (exchange directo `siga.dlx.direct`
+  y bindings), `ConfiguracionMensajeriaCompartida` (conversor JSON, `RetryTemplate`
+  y `ConfirmadorMensajes`) y `EventoEvaluacion`/`AccionEvaluacion`.
+- Administración del broker: `ms-rabbitmq-admin` (`/api/v1/rabbitmq/**`) declara y
+  elimina colas, exchanges y bindings con `AmqpAdmin` y DTO validados; el BFF
+  reexpone la API bajo `/api/bff/v1/admin/rabbitmq/**`.
 
 ## Tecnologías
 
@@ -82,7 +95,9 @@ Productor-consumidor sobre el broker `rabbitmq` con **intercambio tipo Topic**:
 - Spring Security / OAuth2 Resource Server con JWT (Azure AD).
 - Spring Data JPA + Hibernate · MapStruct · Lombok.
 - MariaDB 11.4 (una base por microservicio) + Flyway.
-- RabbitMQ 4 (mensajería; variables `SPRING_RABBITMQ_*` inyectadas por Docker Compose).
+- RabbitMQ 4 en **clúster de dos nodos** (`rabbitmq1`/`rabbitmq2` sobre la misma EC2);
+  topología centralizada en `core-share`, ACK/NACK manuales con reintentos y DLQ
+  por cola, y `ms-rabbitmq-admin` para operar el broker por REST.
 - springdoc 2.8.14 (Swagger UI + Scalar).
 
 ## Requisitos
@@ -263,6 +278,21 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `PUT` | `/{id}` | `ADMIN` o `DOCENTE` + `SCOPE_asistencias:update` (justificación/observación) |
 | `DELETE` | `/{id}` | `ADMIN` + `SCOPE_asistencias:delete` (borrado lógico) |
 
+### Administración RabbitMQ (`:8092`, `/api/v1/rabbitmq`)
+
+| Método | Ruta | Autorización |
+| --- | --- | --- |
+| `POST` | `/queues` | `ADMIN` + `SCOPE_usuarios:write` |
+| `GET` | `/queues/{nombre}` | `ADMIN` + `SCOPE_usuarios:read` (mensajes y consumidores) |
+| `DELETE` | `/queues/{nombre}` | `ADMIN` + `SCOPE_usuarios:delete` |
+| `POST` | `/exchanges` | `ADMIN` + `SCOPE_usuarios:write` (`DIRECT`, `TOPIC`, `FANOUT`, `HEADERS`) |
+| `DELETE` | `/exchanges/{nombre}` | `ADMIN` + `SCOPE_usuarios:delete` |
+| `POST` | `/bindings` | `ADMIN` + `SCOPE_usuarios:write` |
+| `DELETE` | `/bindings?cola=&exchange=&routingKey=` | `ADMIN` + `SCOPE_usuarios:delete` |
+
+El BFF reexpone la misma API bajo `/api/bff/v1/admin/rabbitmq/**` (el navegador
+nunca se conecta al broker). Los DTO se validan con Bean Validation.
+
 ## Comunicación entre servicios
 
 - **Feign** es el cliente declarativo: `bff-web` orquesta usuarios, estudiantes,
@@ -275,6 +305,16 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 - **Propagación del token**: `SharedFeignAuthConfig` (en `core-share`) reenvía el
   `Authorization` entrante en todas las llamadas Feign; el BFF usa su propio
   `FeignClientConfig`.
+- **Mensajería RabbitMQ**: topología centralizada en `core-share`
+  (`ConfiguracionTopologiaNotificaciones`): topic `intercambio-notificaciones`
+  reparte `nota.*`/`asistencia.*`/`evaluacion.*` a una cola por tipo, cada una con
+  su DLQ enlazada al direct `siga.dlx.direct`. Los consumidores confirman con
+  ACK/NACK manuales (`ConfirmadorMensajes`): reintentos acotados en memoria y, al
+  agotarse o ante un evento inválido, NACK sin requeue hacia la DLQ. El registro
+  asíncrono de usuarios usa `user.topic.exchange` con las mismas reglas
+  (`siga.mensajeria.registro.topology-enabled=true` en los cuatro servicios del
+  flujo). Los servicios se conectan con `SPRING_RABBITMQ_ADDRESSES` a los dos
+  nodos del clúster.
 
 ## Seguridad
 
@@ -288,7 +328,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 - El frontend nunca accede a los microservicios directamente: lo hace a través del BFF.
 - **Autorización unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras
   con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido).
-  Los 38 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID
+  Los 42 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID
   (ver [`docs/testing-login.md`](../../docs/testing-login.md)).
 
 ## Datos y configuración

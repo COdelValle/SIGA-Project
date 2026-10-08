@@ -45,9 +45,14 @@ services:
   estudiantes:
     url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
 
-# Registro asincrono de usuarios (usuario + perfil de rol, con aprovisionamiento
-# en Entra ID). Deshabilitado por defecto: activar solo con Graph configurado.
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+# Solo los servicios que participan del flujo la declaran.
 siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+  # Registro asincrono de usuarios (usuario + perfil de rol, con aprovisionamiento
+  # en Entra ID). Deshabilitado por defecto: activar solo con Graph configurado.
   registro-async:
     enabled: ${REGISTRO_ASYNC_ENABLED:false}
     # Reservado para el futuro servicio de notificaciones (opcion 3): emite un

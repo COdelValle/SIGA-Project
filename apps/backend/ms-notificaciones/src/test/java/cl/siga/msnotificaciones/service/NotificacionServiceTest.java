@@ -14,12 +14,16 @@ import static org.mockito.Mockito.when;
 import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.coreshare.dto.notificaciones.AccionAsistencia;
+import cl.siga.coreshare.dto.notificaciones.AccionEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.AccionNota;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
 import cl.siga.coreshare.dto.notificaciones.TipoDestinoNotificacion;
 import cl.siga.coreshare.dto.notificaciones.TipoNotificacion;
+import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.mensajeria.EventoInvalidoException;
 import cl.siga.msnotificaciones.model.entity.Notificacion;
 import cl.siga.msnotificaciones.model.entity.NotificacionLectura;
 import cl.siga.msnotificaciones.repository.NotificacionLecturaRepository;
@@ -192,5 +196,23 @@ class NotificacionServiceTest {
 
         assertThat(service.purgarAntiguas(90)).isEqualTo(5);
         assertThat(service.purgarAntiguas(0)).isZero();
+    }
+
+    @Test
+    void eventoNotaSinEstudianteSeRechazaComoInvalido() {
+        EventoNota evento = new EventoNota(17L, null, 8L, 6.7, AccionNota.CREADA,
+            LocalDateTime.of(2026, 10, 7, 10, 30), "evt-invalido", "PRUEBA 1", "Matemática");
+
+        assertThatThrownBy(() -> service.registrarEvento(evento))
+            .isInstanceOf(EventoInvalidoException.class);
+    }
+
+    @Test
+    void eventoEvaluacionSinDictacionSeRechazaComoInvalido() {
+        EventoEvaluacion evento = new EventoEvaluacion(3L, "PRUEBA", TipoEvaluacion.SUMATIVA, 30.0,
+            null, AccionEvaluacion.CREADA, LocalDateTime.of(2026, 10, 7, 10, 30), "evt-invalido", null);
+
+        assertThatThrownBy(() -> service.registrarEvento(evento))
+            .isInstanceOf(EventoInvalidoException.class);
     }
 }
