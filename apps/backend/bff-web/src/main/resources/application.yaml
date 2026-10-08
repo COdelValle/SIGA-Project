@@ -8,6 +8,10 @@ spring:
   # (un fallo de un microservicio responde 503 en vez de 500).
   cloud:
     openfeign:
+      # HC5 soporta PATCH, que el cliente por defecto (HttpURLConnection) rechaza.
+      httpclient:
+        hc5:
+          enabled: true
       circuitbreaker:
         enabled: true
     # Ejecuta la llamada en el hilo del request (semáforo) para que el token y
@@ -39,6 +43,8 @@ services:
     url: ${MS_DOCENTES_URL:http://localhost:8085}
   asistencias:
     url: ${MS_ASISTENCIAS_URL:http://localhost:8090}
+  notificaciones:
+    url: ${MS_NOTIFICACIONES_URL:http://localhost:8091}
 
 # Documentacion OpenAPI / Swagger
 springdoc:
