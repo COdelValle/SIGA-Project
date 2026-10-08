@@ -45,7 +45,7 @@ por separado.
 **Como funciona:**
 
 1. El SPA pide token con los scopes de `apps/frontend/public/config.json`
-   (`Acceso.Base` + los 38 granulares).
+   (`Acceso.Base` + los 42 granulares).
 2. Entra ID devuelve `scp` (delegado, por aplicacion) y `roles` (app roles, por usuario).
 3. `common-properties.yaml` mapea `scp -> SCOPE_` y `roles -> ROLE_`.
 4. Los controllers exigen `hasRole(...) and hasAuthority('SCOPE_x:y')`.
@@ -59,12 +59,12 @@ unificada:
   **incluido ADMIN** (ya no hay atajos `or` que dejen a ADMIN sin scope).
 - **Ownership por `oid`** para autoservicio (APODERADO/DOCENTE/ESTUDIANTE).
 
-**Pendiente en TI (Azure):** exponer los 38 scopes en la app de API, agregarlos al
+**Pendiente en TI (Azure):** exponer los 42 scopes en la app de API, agregarlos al
 consentimiento de admin y mantenerlos en `config.json`. Hasta entonces, los
 endpoints con scope responden **403** con los tokens actuales. Checklist completo
 en `docs/testing-login.md`.
 
-**Inventario de los 38 scopes (se mantienen):**
+**Inventario de los 42 scopes (se mantienen):**
 
 | Servicio | Scopes |
 | --- | --- |
@@ -78,6 +78,7 @@ en `docs/testing-login.md`.
 | evaluaciones | read, write, update, delete |
 | horarios | write, update, delete |
 | inscripciones | read, write, update |
+| asistencias | read, write, update, delete |
 
 Impacto en codigo: 68 expresiones `@PreAuthorize` unificadas (9 cambiadas para que
 ADMIN tambien requiera scope) + ownership en `updateDocente`.
@@ -184,7 +185,7 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 | E | Frontend `Page<T>` + `siga-paginador` | C1 |
 | C2 | Logging/handlers 400/405, naming, indices, seeds, `FeignAuthConfig` | B, A1, C1 |
 | D | Tests, encoding, docs, healthchecks | - |
-| A2 | Autorizacion (se mantienen los 38 scopes; politica unificada) | **Resuelto en codigo; config Azure pendiente en TI** |
+| A2 | Autorizacion (se mantienen los 42 scopes; politica unificada) | **Resuelto en codigo; config Azure pendiente en TI** |
 
 ## 7. Anexo - verificacion
 
@@ -201,7 +202,7 @@ ADMIN tambien requiera scope) + ownership en `updateDocente`.
 | P2 - paginacion completa (`Page<T>`, size 20/max 100) | Corregido | #57 (backend) y #58 (frontend) |
 | P2 - manejo de errores 400/405 con logging, `FeignAuthConfig` compartido, naming BFF, indices | Corregido | #59 |
 | P3 - tests unitarios (25), healthchecks, DTO de apoderado, docs de fechas | Corregido | #60 |
-| P0 - autorizacion: se mantienen los 38 scopes granulares y se unifica la politica (ADMIN tambien requiere scope) | Resuelto en codigo; **exponer/consentir scopes en Azure (TI)** | #62 |
+| P0 - autorizacion: se mantienen los 42 scopes granulares y se unifica la politica (ADMIN tambien requiere scope) | Resuelto en codigo; **exponer/consentir scopes en Azure (TI)** | #62 |
 | P2 - puertos con saltos | Renumerados a `8081/8083-8089`; reservados `8082`/`8090` | #63 |
 | P0/P2/P3 - OData, BFF sin config escaneada, unique `id_usuario`, `PropertyReferenceException` 400, `conCupoDisponible`, DTOs, correlation ID, `ErrorResponseDTO` con `path`/`correlationId`, Graph `afterCommit` | Corregido | #64 |
 | P1 - horarios con hard delete | Soft delete real (minimo 1 activo) | #65 |

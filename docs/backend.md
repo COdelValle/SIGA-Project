@@ -319,7 +319,7 @@ emitir PATCH hacia el servicio.
 - Rutas publicas limitadas a salud y documentacion tecnicas.
 - El frontend no accede a los microservicios: lo hara a traves del BFF.
 - Los contratos se definen en cada servicio y se reflejan en los DTOs de `core-share` y en los modelos TypeScript del frontend.
-- **Autorizacion unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido). Los 38 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID (ver [`testing-login.md`](testing-login.md)).
+- **Autorizacion unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido). Los 42 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID (ver [`testing-login.md`](testing-login.md)).
 
 ## 5. Datos y configuracion
 
@@ -354,5 +354,5 @@ Nota de version: se usa **springdoc 2.8.14** por compatibilidad con Spring Boot 
 5. Ampliar pruebas unitarias, de integracion y de contrato (nuevas suites de orquestacion asincrona, credencial, correo, normalizacion, busqueda `q`, admin BFF y migraciones `V5`-`V9`; ver [`registro-pruebas.md`](registro-pruebas.md)).
 6. Completar la observabilidad (logs estructurados, metricas, tracing); el correlation ID ya esta implementado (HTTP, Feign y AMQP).
 7. Incorporar el servicio futuro `ms-auditoria`; docentes, apoderados, clases, evaluaciones y asistencias ya estan implementados.
-8. ~~Resolver la decision de autorizacion~~ (hecho: se mantienen los 38 scopes con politica unificada; falta exponerlos/consentirlos en Azure).
+8. ~~Resolver la decision de autorizacion~~ (hecho: se mantienen los 42 scopes con politica unificada; falta exponerlos/consentirlos en Azure).
 9. Reconciliacion de OIDs de los datos mock.

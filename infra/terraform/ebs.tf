@@ -17,12 +17,11 @@ resource "aws_ebs_volume" "data" {
     Name = "${var.management_name}-data"
   }
 
-  # TEMPORAL (fase de pruebas): prevent_destroy deshabilitado para poder usar
-  # `terraform destroy` y no resetear el laboratorio. RESTAURAR antes de la
-  # entrega final.
-  # lifecycle {
-  #   prevent_destroy = true
-  # }
+  # Protege el volumen frente a `terraform destroy`. Para eliminar el volumen a
+  # proposito hay que quitar este lifecycle primero.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_volume_attachment" "data" {

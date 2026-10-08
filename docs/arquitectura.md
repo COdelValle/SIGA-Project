@@ -88,7 +88,7 @@ La estrategia es OAuth2/JWT con **Azure AD** como proveedor de identidad.
 - **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`SharedFeignAuthConfig`), de modo que la autorizacion se evalue en destino.
 - El frontend solo se comunica con el BFF.
 
-Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID** (TI; el codigo ya los exige y el SPA ya los solicita) y validacion de audiencia/emisor en todos los flujos. Ver [`testing-login.md`](testing-login.md) y [`auditoria-backend.md`](auditoria-backend.md).
+Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID** (TI; el codigo ya los exige y el SPA ya los solicita) y validacion de audiencia/emisor en todos los flujos con un token real. Ver [`testing-login.md`](testing-login.md) y [`auditoria-backend.md`](auditoria-backend.md).
 
 ## 5. Comunicacion y contratos
 
@@ -125,11 +125,11 @@ Aspectos a completar: **exponer y consentir los 38 scopes granulares en Entra ID
 Hay dos entornos:
 
 - **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.medium` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
-- El SPA se sirve por **HTTPS vía API Gateway** (`*.execute-api`), requisito de MSAL (Web Crypto solo existe en contextos seguros). SPA y API comparten origen (sin CORS).
+- El SPA se sirve por **HTTPS vía API Gateway** (`*.execute-api`), requisito de MSAL (Web Crypto solo existe en contextos seguros). SPA y API comparten origen, por lo que CORS no aplica al flujo normal; el API Gateway declara igualmente una política CORS con allowlist (`cors_allowed_origins`, incluye `PATCH`) como requisito y para pruebas desde otros orígenes.
 - El navegador (Angular + MSAL) llama a `/api` en el mismo API Gateway con `Authorization: Bearer`.
 - El **JWT Authorizer** valida el token de Entra ID (firma, `iss`, `aud`) y reenvia al BFF (`http://<eip>:8080/api/...`).
 - Nginx sirve el SPA y el `config.json`. En **local (Docker)** proxya `/api` al BFF; en **AWS** esa ruta no se usa porque el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF.
