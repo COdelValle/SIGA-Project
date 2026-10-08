@@ -317,13 +317,63 @@ Reglas de mantenimiento:
   real; el nombre "Limpiar leídas" se mantiene a pedido del usuario. La caché de
   3 min aplica a la visibilidad de vínculos/inscripciones en la bandeja.
 
+### PR-20261008-07 — Clúster RabbitMQ de dos nodos, ACK manual y API de administración
+
+- **Fecha**: 2026-10-08
+- **Rama / commit**: `dev` + cambios locales sin commit (sobre `2cff2f0`)
+- **Alcance**: (1) clúster de **dos nodos RabbitMQ** (`rabbitmq1`/`rabbitmq2`) en
+  Docker Compose local y plantilla AWS sobre la misma EC2; (2) topología
+  centralizada en `core-share` con **direct exchange** `siga.dlx.direct` para las
+  DLQ; (3) **ACK/NACK manuales** (`ConfirmadorMensajes`) en todos los
+  consumidores, con reintentos acotados en memoria y rechazo a DLQ; (4) nuevo
+  microservicio **`ms-rabbitmq-admin`** con API REST validada y fachada en el BFF.
+- **Entorno**: Windows + Docker Desktop; Maven 3.9.9, JDK 21. Sin despliegue a AWS.
+- **Prerrequisitos**: `.env` local con `RABBITMQ_USER`/`RABBITMQ_PASS`;
+  `RABBITMQ_ERLANG_COOKIE` opcional (por defecto `siga-dev-cookie` en local/demo).
+- **Pasos**:
+  1. Compilar el reactor completo y ejecutar los tests unitarios con las mismas
+     banderas del CI (sección 5.2).
+  2. Levantar solo el clúster: `docker compose up -d rabbitmq1 rabbitmq2`.
+  3. Verificar la unión de nodos con `docker exec rabbitmq1 rabbitmqctl cluster_status`.
+  4. Arrancar `ms-rabbitmq-admin` (jar) apuntando a `localhost:5672` y consultar
+     `/actuator/health` para forzar la conexión que dispara la declaración de
+     topología.
+  5. Listar exchanges, colas y bindings declarados; comprobar el 401 sin token en
+     la API de administración.
+  6. Detener los contenedores de prueba (`docker compose stop rabbitmq1 rabbitmq2`).
+- **Resultado**: `OK` — el clúster queda formado y la topología declarada coincide
+  con la especificación; la API de administración exige autenticación. La
+  medición de memoria en la EC2 y el E2E con JWT de Entra quedan pendientes.
+- **Evidencia**:
+  - Backend `BUILD SUCCESS` (14 módulos, incluye `ms-rabbitmq-admin`); tests
+    unitarios en verde: `ConfirmadorMensajesTest` 4/4,
+    `ConfiguracionTopologiaNotificacionesTest` 3/3,
+    `SolicitudRabbitValidationTest` 7/7, `RabbitAdminServiceTest` 10/10,
+    `NotificacionServiceTest` 10/10 (2 nuevos de evento inválido).
+  - `cluster_status`: `Disk Nodes`/`Running Nodes` con `rabbit@rabbitmq1` y
+    `rabbit@rabbitmq2`; sin particiones de red.
+  - `list_exchanges`: `intercambio-notificaciones` (topic) y `siga.dlx.direct`
+    (direct). `list_queues`: 3 colas académicas + 3 DLQ.
+  - `list_bindings`: `nota.*`, `asistencia.*`, `evaluacion.*` hacia las colas y
+    cada DLQ enlazada a `siga.dlx.direct` con su propio nombre como routing key.
+  - `GET http://localhost:8092/api/v1/rabbitmq/queues/...` sin token → `401`.
+  - Cookie Erlang: valor propio en `.env` y secret `RABBITMQ_ERLANG_COOKIE`
+    creado en GitHub (repo `COdelValle/SIGA-Project`); ambos contenedores
+    reiniciados con esa cookie y `erlang:get_cookie()` idéntico en los dos nodos.
+- **Pendientes / notas**: la migración de topología cambia los argumentos de las
+  colas existentes (`x-dead-letter-exchange`), por eso el clúster usa volúmenes
+  nuevos (`rabbitmq1_data`/`rabbitmq2_data`) y el volumen `rabbitmq_data` previo
+  queda como respaldo. Falta el despliegue a AWS (directorios
+  `siga-data/rabbitmq1|2` y medición de memoria en la EC2).
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
 
 - Docker Desktop con el stack de SIGA; idealmente **detener otras stacks**
   (p. ej. `pasteleria-project`) para evitar caídas del engine por carga.
-- `.env` completo (MARIADB, DB, AZURE, RABBITMQ y `REGISTRO_*`).
+- `.env` completo (MARIADB, DB, AZURE, RABBITMQ, `RABBITMQ_ERLANG_COOKIE` para el
+  clúster y `REGISTRO_*`).
 - Para flujos reales: permisos de Graph de la sección 2 de
   [`testing-login.md`](testing-login.md) y token ADMIN del navegador.
 
@@ -397,14 +447,16 @@ SELECT COUNT(*) FROM usuarios WHERE full_name IS NULL;   -- esperado: 0
 ### 5.6 Verificación de mensajería
 
 ```bash
-docker exec rabbitmq rabbitmqctl list_queues name messages
-docker exec rabbitmq rabbitmqctl list_consumers
+docker exec rabbitmq1 rabbitmqctl list_queues name messages
+docker exec rabbitmq1 rabbitmqctl list_consumers
 ```
 
 Colas esperadas: `user.azure.sync.queue`, `ms.estudiantes.queue`,
 `ms.docentes.queue`, `ms.apoderados.queue`, `user.registration.status.queue`,
-`user.credentials.notify.queue` y una DLQ por cola. UI:
-`http://localhost:15672`.
+`user.credentials.notify.queue` y una DLQ por cola. Las DLQ se enlazan al
+exchange directo `siga.dlx.direct`. Verificar la unión del clúster con
+`docker exec rabbitmq1 rabbitmqctl cluster_status` (dos nodos `running`). UI:
+`http://localhost:15672` (solo el nodo `rabbitmq1` publica el puerto).
 
 ### 5.6.2 Bandeja académica in-app
 
@@ -428,10 +480,10 @@ Preflight de topología:
 
 ```bash
 docker compose ps
-docker exec rabbitmq rabbitmqctl list_exchanges name type durable
-docker exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
-docker exec rabbitmq rabbitmqctl list_bindings source_name destination_name routing_key
-docker exec rabbitmq rabbitmqctl list_consumers
+docker exec rabbitmq1 rabbitmqctl list_exchanges name type durable
+docker exec rabbitmq1 rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
+docker exec rabbitmq1 rabbitmqctl list_bindings source_name destination_name routing_key
+docker exec rabbitmq1 rabbitmqctl list_consumers
 ```
 
 Esperado: `intercambio-notificaciones` tipo `topic`, tres colas principales
@@ -558,11 +610,12 @@ powershell -File tools/normalizar-datos.ps1
 
 | Módulo | Suites relevantes |
 | --- | --- |
-| `core-share` | `ValidatorsTest`, `EnumsJsonTest`, `RutNormalizerTest`, `NombrePropioTest`, `SharedFeignFormatConfigTest`, `ConfiguracionMensajeriaCompartidaTest`, pruebas de outbox y `GlobalExceptionHandlerTest` |
+| `core-share` | `ValidatorsTest`, `EnumsJsonTest`, `RutNormalizerTest`, `NombrePropioTest`, `SharedFeignFormatConfigTest`, `ConfiguracionMensajeriaCompartidaTest`, `ConfiguracionTopologiaNotificacionesTest`, `ConfirmadorMensajesTest`, `SolicitudRabbitValidationTest`, pruebas de outbox y `GlobalExceptionHandlerTest` |
 | `ms-usuarios-auth` | `UsuarioServiceTest`, `InvitacionVinculacionServiceTest`, `AsyncUserRegistrationServiceTest`, `CredentialCipherTest`, `EmailInstitucionalGeneratorTest`, `MigracionesTest`, `MigracionesRegistroAsyncTest` |
 | `bff-web` | `AdminBffServiceTest`, `PerfilEstudianteServiceTest`, `ApoderadoPupiloServiceTest`, `DocenteBffServiceTest`, `NotaBffServiceTest`, `EvaluacionBffServiceTest`, `AsistenciaBffServiceTest`, `NotificacionBffServiceTest` |
 | Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest` + `PublicadorNotaTest`, `EvaluacionServiceTest` + `PublicadorEvaluacionTest`, `AsistenciaServiceTest` + `PublicadorAsistenciaTest` |
-| `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `ConfiguracionMensajeriaNotificacionesTest`, `MigracionesNotificacionesTest` |
+| `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `NotificacionControllerMappingsTest`, `MigracionesNotificacionesTest` |
+| `ms-rabbitmq-admin` | `RabbitAdminServiceTest`, `RabbitAdminControllerMappingsTest` |
 | Frontend | specs Vitest de `app`, `docente-notas.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
 
 Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de

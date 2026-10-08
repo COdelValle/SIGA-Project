@@ -18,9 +18,10 @@ El nucleo academico es funcional (CRUD, validaciones, busqueda y borrado logico)
 - MapStruct y Lombok
 - springdoc 2.8.14 (Swagger UI) + Scalar (starter nativo de springdoc)
 - MariaDB (una base por microservicio)
-- RabbitMQ 4 (mensajeria asincrona; las variables `SPRING_RABBITMQ_*` las inyecta Docker Compose)
+- RabbitMQ 4 en **clúster de dos nodos** (`rabbitmq1`/`rabbitmq2` sobre la misma
+  EC2; `SPRING_RABBITMQ_ADDRESSES` inyectado por Docker Compose)
 
-El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias` y `ms-notificaciones` (queda comentado `ms-auditoria`, con puerto reservado `8082`). `ms-notificaciones` consume eventos académicos, persiste una bandeja por perfil autorizado y la expone al portal a través del BFF; el canal actual es in-app, no correo.
+El `pom.xml` padre centraliza versiones, dependencias y modulos. Modulos declarados: `libs/core-share`, `bff-web`, `ms-usuarios-auth`, `ms-estudiantes`, `ms-asignaturas`, `ms-notas`, `ms-docentes`, `ms-apoderados`, `ms-clases`, `ms-evaluaciones`, `ms-asistencias`, `ms-notificaciones` y `ms-rabbitmq-admin` (queda comentado `ms-auditoria`, con puerto reservado `8082`). `ms-notificaciones` consume eventos académicos, persiste una bandeja por perfil autorizado y la expone al portal a través del BFF; el canal actual es in-app, no correo. `ms-rabbitmq-admin` expone la administración REST del broker (colas, exchanges y bindings) y el BFF la publica bajo `/api/bff/v1/admin/rabbitmq/**`.
 
 ## 3. Componentes del backend
 
@@ -265,7 +266,8 @@ Comportamiento e integracion:
 - **`ms-clases`** · puerto `8087`: entidad `Clase` (nivel, letra, anio academico, docente jefe, activo) con unicidad nivel+letra+anio; CRUD + busqueda + `exists` + `PUT /{id}/docente-jefe`; Feign a `ms-docentes`. Scopes `clases:*`.
 - **`ms-evaluaciones`** · puerto `8088`: entidad `Evaluacion` (nombre, tipo, ponderacion, `idCursoAsignatura`, activa); CRUD + busqueda + `exists`; Feign a `ms-asignaturas` (valida dictacion activa y calificable). Scopes `evaluaciones:*`.
 - **`ms-asistencias`** · puerto `8090`: entidad `Asistencia` (idEstudiante, `idCursoAsignatura`, fecha, estado, justificacion, observacion, activa) con unique `(estudiante, dictacion, fecha)`; CRUD + busqueda por estudiante/dictacion/rango/estado; Feign a `ms-estudiantes` y `ms-asignaturas`. Scopes `asistencias:*`. Seed con Camila y Lilith (03-08 a 02-10-2026, solo dias habiles y segun horario).
-- **`ms-notificaciones`** · puerto `8091`: consume las colas académicas de evaluaciones, notas y asistencias; guarda una bandeja in-app idempotente y el estado de lectura por OID. Resuelve destinatarios autorizados con el JWT propagado por Feign y sirve `GET /api/v1/notificaciones/me`, contador de no leídas y marcado de lectura. El correo no forma parte de esta etapa.
+- **`ms-notificaciones`** · puerto `8091`: consume las colas académicas de evaluaciones, notas y asistencias; guarda una bandeja in-app idempotente y el estado de lectura por OID. Resuelve destinatarios autorizados con el JWT propagado por Feign y sirve `GET /api/v1/notificaciones/me`, contador de no leídas y marcado de lectura. El correo no forma parte de esta etapa. Sus tres listeners confirman con ACK/NACK manuales vía `ConfirmadorMensajes` (reintentos acotados y DLQ).
+- **`ms-rabbitmq-admin`** · puerto `8092`: API REST para administrar la topología del broker con `AmqpAdmin` (`RabbitAdminService`). Expone `POST/DELETE /api/v1/rabbitmq/queues`, `GET /queues/{nombre}` (mensajes y consumidores), `POST/DELETE /exchanges` (DIRECT/TOPIC/FANOUT/HEADERS) y `POST/DELETE /bindings`, con DTO validados (`@NotBlank`, `@Pattern`, enum de tipo) y autorización `ADMIN` + scope vigente de usuarios. No usa base de datos. El BFF reexpone la API bajo `/api/bff/v1/admin/rabbitmq/**` mediante Feign, de modo que el navegador nunca se conecta al broker.
 
 ### 3.7 Biblioteca compartida
 
@@ -281,7 +283,8 @@ Centraliza elementos reutilizables, sin logica de un dominio especifico:
 - **Excepciones**: `BusinessException`, `ResourceNotFoundException`, `BadRequestException`, `ServiceUnavailableException`, `GlobalExceptionHandler` y `ErrorResponseDTO`.
 - **OpenAPI**: `SharedOpenApiConfig` (esquema `bearerAuth`).
 - **Fechas**: `CommonDateFormatConfig` (ISO 8601 `yyyy-MM-dd` para JSON y parametros) y `SharedFeignFormatConfig` (registra el mismo formato en el conversion service de OpenFeign, que no usa los formatters de MVC; sin el, Feign serializaba `from`/`to` con el formato corto localizado `6/10/26`). El frontend normaliza a `dd/MM/yyyy` solo para mostrar.
-- **Mensajeria**: `RegistrationMessagingConfig` (exchange, colas por etapa/rol y DLQ), `RegistrationMessagingConstants` (nombres y routing keys), `RegistrationCorrelation` (correlation id en headers AMQP/MDC) y `RegistrationStatusPublisher` (resultado de cada paso).
+- **Mensajeria**: `RegistrationMessagingConfig` (exchange, colas por etapa/rol y DLQ; se activa con `siga.mensajeria.registro.topology-enabled=true`), `RegistrationMessagingConstants` (nombres y routing keys), `RegistrationCorrelation` (correlation id en headers AMQP/MDC) y `RegistrationStatusPublisher` (resultado de cada paso).
+- **Topología académica**: `ConfiguracionTopologiaNotificaciones` declara el topic `intercambio-notificaciones`, las 3 colas con sus DLQ y el direct `siga.dlx.direct` (cada DLQ enlazada con su nombre). `ConfiguracionMensajeriaCompartida` aporta el conversor JSON, el `RetryTemplate` y `ConfirmadorMensajes` (ACK/NACK manuales con reintentos y rechazo a DLQ).
 - **Outbox académico**: `NotificationEventOutbox` guarda eventos en la transacción de dominio; el dispatcher publica con confirmación, backoff y estado `FALLIDO`. Un conversor JSON compartido serializa los records de notificación y registro.
 
 Se registra mediante `META-INF/spring/...AutoConfiguration.imports`.

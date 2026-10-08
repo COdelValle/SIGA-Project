@@ -15,7 +15,8 @@ volumes:
   mariadb_evaluaciones_data:
   mariadb_asistencias_data:
   mariadb_notificaciones_data:
-  rabbitmq_data:
+  rabbitmq1_data:
+  rabbitmq2_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
 x-mariadb-common: &mariadb-common
@@ -38,9 +39,9 @@ x-ms-common-env: &ms-common-env
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
-  # RabbitMQ (mensajeria entre microservicios)
-  SPRING_RABBITMQ_HOST: rabbitmq
-  SPRING_RABBITMQ_PORT: "5672"
+  # RabbitMQ (mensajeria entre microservicios): clúster de dos nodos en la
+  # misma EC2. Spring intenta cada dirección en orden.
+  SPRING_RABBITMQ_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672
   SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
   SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
   SPRING_RABBITMQ_PUBLISHER_CONFIRM_TYPE: correlated
@@ -173,20 +174,47 @@ services:
       - mariadb_notificaciones_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
-  # Mensajeria
+  # Mensajeria: clúster RabbitMQ de dos nodos sobre la misma EC2.
+  # Comparten el Erlang cookie y se descubren por el archivo de configuración;
+  # el Management UI queda en rabbitmq1 (http://localhost:15672).
   # ---------------------------------------------------------------
-  rabbitmq:
+  rabbitmq1:
     image: rabbitmq:4-management-alpine
-    container_name: rabbitmq
+    container_name: rabbitmq1
+    hostname: rabbitmq1
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq1
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-siga-dev-cookie}
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq1_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - siga-network
+
+  rabbitmq2:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq2
+    hostname: rabbitmq2
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq2
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-siga-dev-cookie}
+    volumes:
+      - rabbitmq2_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -225,7 +253,7 @@ services:
     depends_on:
       mariadb-usuarios:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-estudiantes:
         condition: service_healthy
@@ -251,7 +279,7 @@ services:
     depends_on:
       mariadb-estudiantes:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
     networks:
       - siga-network
@@ -277,7 +305,7 @@ services:
     depends_on:
       mariadb-asignaturas:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-docentes:
         condition: service_healthy
@@ -309,7 +337,7 @@ services:
     depends_on:
       mariadb-notas:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-estudiantes:
         condition: service_healthy
@@ -338,7 +366,7 @@ services:
     depends_on:
       mariadb-docentes:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
     networks:
       - siga-network
@@ -362,7 +390,7 @@ services:
     depends_on:
       mariadb-apoderados:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-estudiantes:
         condition: service_healthy
@@ -388,7 +416,7 @@ services:
     depends_on:
       mariadb-clases:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-docentes:
         condition: service_healthy
@@ -414,7 +442,7 @@ services:
     depends_on:
       mariadb-evaluaciones:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-asignaturas:
         condition: service_healthy
@@ -441,7 +469,7 @@ services:
     depends_on:
       mariadb-asistencias:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-estudiantes:
         condition: service_healthy
@@ -474,13 +502,34 @@ services:
     depends_on:
       mariadb-notificaciones:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq1:
         condition: service_healthy
       ms-asignaturas:
         condition: service_healthy
       ms-estudiantes:
         condition: service_healthy
       ms-apoderados:
+        condition: service_healthy
+    networks:
+      - siga-network
+
+  # ---------------------------------------------------------------
+  # Administrador RabbitMQ (colas, exchanges y bindings vía REST)
+  # ---------------------------------------------------------------
+  ms-rabbitmq-admin:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-rabbitmq-admin/Dockerfile
+    container_name: ms-rabbitmq-admin
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8092:8092"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8092"
+    depends_on:
+      rabbitmq1:
         condition: service_healthy
     networks:
       - siga-network
@@ -510,6 +559,7 @@ services:
       MS_DOCENTES_URL: http://ms-docentes:8085
       MS_ASISTENCIAS_URL: http://ms-asistencias:8090
       MS_NOTIFICACIONES_URL: http://ms-notificaciones:8091
+      MS_RABBITMQ_ADMIN_URL: http://ms-rabbitmq-admin:8092
     depends_on:
       ms-usuarios-auth:
         condition: service_healthy
@@ -531,7 +581,9 @@ services:
         condition: service_healthy
       ms-notificaciones:
         condition: service_healthy
-      rabbitmq:
+      ms-rabbitmq-admin:
+        condition: service_healthy
+      rabbitmq1:
         condition: service_healthy
     networks:
       - siga-network

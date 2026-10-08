@@ -62,6 +62,12 @@ resilience4j:
       ms-apoderados:
         timeoutDuration: 5s
 
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+
 # URL del servicio que valida el vinculo apoderado-estudiante.
 services:
   ms-apoderados:

@@ -1,6 +1,9 @@
 package cl.siga.msapoderados.messaging;
 
+import com.rabbitmq.client.Channel;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +12,7 @@ import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.payload.DatosRegistroApoderadoDTO;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
 import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
@@ -22,6 +26,9 @@ import lombok.extern.slf4j.Slf4j;
  * La existencia de los pupilos se validó de forma síncrona al aceptar la
  * solicitud (con el token del administrador), por lo que este listener no
  * requiere JWT para el chequeo Feign.
+ *
+ * <p>La confirmación es manual: ACK cuando la etapa termina y NACK hacia la DLQ
+ * cuando el evento es inválido o se agotan los reintentos.</p>
  */
 @Slf4j
 @Component
@@ -31,27 +38,28 @@ public class ApoderadoRegistrationListener {
     private final ApoderadoService apoderadoService;
     private final ApoderadoRepository apoderadoRepository;
     private final RegistrationStatusPublisher statusPublisher;
+    private final ConfirmadorMensajes confirmador;
 
     @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_QUEUE)
     public void handle(
             UserRegistrationEventDTO event,
             @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
-            String correlationId) {
+            String correlationId,
+            Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
         String correlacion = (correlationId != null && !correlationId.isBlank())
                 ? correlationId
                 : event.correlationId();
-        RegistrationCorrelation.ejecutar(correlacion, () -> procesar(event));
+        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_QUEUE,
+            () -> RegistrationCorrelation.ejecutar(correlacion, () -> procesar(event)));
     }
 
     @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_DLQ)
-    public void handleDlq(UserRegistrationEventDTO event) {
-        try {
-            statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,
-                    "Se agotaron los reintentos creando el perfil de apoderado.");
-        } catch (RuntimeException ex) {
-            log.error("No se pudo reportar el fallo de la cola de apoderados del proceso {}: {}",
-                    event.processId(), ex.getMessage());
-        }
+    public void handleDlq(UserRegistrationEventDTO event, Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_DLQ,
+            () -> statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,
+                "Se agotaron los reintentos creando el perfil de apoderado."));
     }
 
     private void procesar(UserRegistrationEventDTO event) {
@@ -70,21 +78,21 @@ public class ApoderadoRegistrationListener {
         }
         if (apoderadoRepository.existsByIdUsuario(event.userId())) {
             statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,
-                    "El perfil del apoderado ya existía (idempotente).");
+                "El perfil del apoderado ya existía (idempotente).");
             return;
         }
         try {
             apoderadoService.saveApoderadoDesdeEvento(new RegistrarApoderadoRequestDTO(
-                    event.userId(),
-                    datos.firstName(),
-                    datos.middleName(),
-                    datos.firstSurname(),
-                    datos.secondSurname(),
-                    datos.rut(),
-                    datos.telefonos(),
-                    datos.estudiantes()));
+                event.userId(),
+                datos.firstName(),
+                datos.middleName(),
+                datos.firstSurname(),
+                datos.secondSurname(),
+                datos.rut(),
+                datos.telefonos(),
+                datos.estudiantes()));
             statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,
-                    "Perfil de apoderado creado.");
+                "Perfil de apoderado creado.");
         } catch (BusinessException ex) {
             statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, ex.getMessage());
         }

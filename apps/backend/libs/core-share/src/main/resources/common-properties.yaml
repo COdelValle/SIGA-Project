@@ -2,6 +2,11 @@ spring:
   rabbitmq:
     publisher-confirm-type: correlated
     publisher-returns: true
+    # Confirmación manual: cada consumidor decide ACK/NACK con ConfirmadorMensajes
+    # (evento inválido o reintentos agotados => NACK sin requeue hacia la DLQ).
+    listener:
+      simple:
+        acknowledge-mode: manual
     template:
       mandatory: true
       delivery-mode: persistent

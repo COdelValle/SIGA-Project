@@ -35,6 +35,12 @@ spring:
   config:
     import: "optional:classpath:common-properties.yaml"
 
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:
   api-docs:

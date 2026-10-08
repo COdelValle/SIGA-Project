@@ -97,23 +97,35 @@ Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID
 - El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> dictacion) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
 - Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
 - Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
-- **Mensajeria (RabbitMQ)**: el registro asincrono de usuarios usa el exchange
+- **Mensajeria (RabbitMQ) en clúster**: dos nodos (`rabbitmq1`/`rabbitmq2`) sobre
+  la misma EC2, unidos por peer discovery `classic_config` con Erlang cookie
+  compartida y volúmenes propios; los servicios se conectan con
+  `SPRING_RABBITMQ_ADDRESSES`. Verificación: `rabbitmqctl cluster_status`.
+- El registro asincrono de usuarios usa el exchange
   `user.topic.exchange` con outbox transaccional en `ms-usuarios-auth`, colas por
   etapa/rol (`user.azure.sync.queue`, `ms.estudiantes.queue`,
   `ms.docentes.queue`, `ms.apoderados.queue`), canal de resultados
   (`user.registration.status.queue`) y DLQ por cola. La topologia vive en
-  `core-share` (`RegistrationMessagingConfig`) y solo se activa en los servicios
-  con `spring-boot-starter-amqp`; los eventos son JSON versionados (`v1`) con
-  `X-Correlation-Id` como header AMQP. Detalle funcional en
+  `core-share` (`RegistrationMessagingConfig`) y se activa con
+  `siga.mensajeria.registro.topology-enabled=true`; los eventos son JSON
+  versionados (`v1`) con `X-Correlation-Id` como header AMQP. Detalle funcional en
   [`backend.md`](backend.md) (seccion 3.2).
 - La mensajería académica es un flujo distinto: `ms-evaluaciones`, `ms-notas` y
   `ms-asistencias` guardan eventos en un outbox transaccional; `ms-notificaciones`
   los consume, los persiste de forma idempotente y sirve la bandeja in-app por el
-  BFF. El dueño de lectura se deriva del OID de Entra; estudiante y apoderado
-  reciben estados leído/no leído (y limpieza) independientes. La campana está en el
-  header compartido de ambos portales, con marcado al hacer clic, "marcar todas",
-  "limpiar leídas" y purga a 90 días. Los contenedores fijan `TZ=America/Santiago`
-  para las horas de la bandeja. Correo/Gmail queda fuera de esta etapa.
+  BFF. La topología (topic `intercambio-notificaciones` + direct `siga.dlx.direct`)
+  se declara una sola vez en `core-share`. Los consumidores confirman con
+  **ACK/NACK manuales** (`ConfirmadorMensajes`): reintentos acotados en memoria y
+  rechazo a la DLQ ante evento inválido o reintentos agotados. El dueño de lectura
+  se deriva del OID de Entra; estudiante y apoderado reciben estados leído/no leído
+  (y limpieza) independientes. La campana está en el header compartido de ambos
+  portales, con marcado al hacer clic, "marcar todas", "limpiar leídas" y purga a
+  90 días. Los contenedores fijan `TZ=America/Santiago` para las horas de la
+  bandeja. Correo/Gmail queda fuera de esta etapa.
+- **Administración del broker**: `ms-rabbitmq-admin` expone una API REST validada
+  para declarar/eliminar colas, exchanges y bindings con `AmqpAdmin`, y el BFF la
+  publica bajo `/api/bff/v1/admin/rabbitmq/**` con rol ADMIN. El navegador nunca se
+  conecta al broker.
 - La gestion CRUD del admin (clases, busqueda de alumnos, eliminacion de
   usuarios y reactivacion) es **sincrona por HTTP**; no agrega colas nuevas. La
   propagacion de la desactivacion a los perfiles de dominio via evento queda
@@ -124,8 +136,8 @@ Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID
 
 Hay dos entornos:
 
-- **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y **RabbitMQ** (mensajeria, con UI de management en `15672`) sobre la red `siga-network`, con configuracion por `.env`.
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y **RabbitMQ**. Los datos (MariaDB y RabbitMQ) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y el **clúster RabbitMQ de dos nodos** (`rabbitmq1`/`rabbitmq2`, con UI de management en `15672` solo en `rabbitmq1`) sobre la red `siga-network`, con configuracion por `.env` (incluye `RABBITMQ_ERLANG_COOKIE`).
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y el **clúster RabbitMQ de dos nodos** (misma EC2; el management se publica solo en `127.0.0.1` para acceso por túnel SSH). Los datos (MariaDB, `rabbitmq1` y `rabbitmq2`) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 
@@ -167,8 +179,9 @@ CI/CD:
 | Clases | CRUD, docente jefe, `exists`, Feign | Matricula y cupos por curso |
 | Evaluaciones | CRUD, tipos y ponderaciones, `exists`, Feign | Calculo de promedios ponderados |
 | Notificaciones | Eventos académicos, outbox, bandeja persistente por OID, lectura no leída/leída y BFF | Canales futuros, incluyendo correo si se habilita |
-| core-share | DTOs, validadores, seguridad, errores, OpenAPI | Contratos versionados estables |
-| Docker Compose | Completo (10 microservicios + 10 bases + RabbitMQ local) | Entorno local reproducible |
+| Mensajería RabbitMQ | Clúster de 2 nodos, topología centralizada, ACK/NACK manuales con DLQ, administración REST (`ms-rabbitmq-admin` + BFF) | Alta disponibilidad real (3 nodos) si el alcance lo exige |
+| core-share | DTOs, validadores, seguridad, errores, OpenAPI y topología de mensajería | Contratos versionados estables |
+| Docker Compose | Completo (11 microservicios + 10 bases + clúster RabbitMQ local) | Entorno local reproducible |
 | Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
 | Flyway | Esquema + seed en los servicios con persistencia | Migraciones versionadas |
 | CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |

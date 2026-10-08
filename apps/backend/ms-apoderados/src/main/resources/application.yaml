@@ -64,6 +64,12 @@ resilience4j:
       ms-estudiantes:
         timeoutDuration: 5s
 
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+
 # URLs de microservicios con los que se relaciona
 services:
   ms-estudiantes:

@@ -10,6 +10,7 @@ import cl.siga.coreshare.dto.notificaciones.NotificacionResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.TipoDestinoNotificacion;
 import cl.siga.coreshare.dto.notificaciones.TipoNotificacion;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.mensajeria.EventoInvalidoException;
 import cl.siga.msnotificaciones.model.entity.Notificacion;
 import cl.siga.msnotificaciones.model.entity.NotificacionLectura;
 import cl.siga.msnotificaciones.model.entity.NotificacionLecturaId;
@@ -46,8 +47,8 @@ public class NotificacionService {
     @Transactional
     public void registrarEvento(EventoEvaluacion evento) {
         if (evento.idCursoAsignatura() == null) {
-            log.warn("Se descarta evento de evaluación sin idCursoAsignatura, idEvento={}", evento.idEvento());
-            return;
+            throw new EventoInvalidoException(
+                "Evento de evaluación sin idCursoAsignatura (idEvento=" + evento.idEvento() + ").");
         }
         AccionEvaluacion accion = evento.accion();
         String nombre = textoSeguro(evento.nombre(), "evaluación");
@@ -72,8 +73,8 @@ public class NotificacionService {
     @Transactional
     public void registrarEvento(EventoNota evento) {
         if (evento.idEstudiante() == null) {
-            log.warn("Se descarta evento de nota sin idEstudiante, idEvento={}", evento.idEvento());
-            return;
+            throw new EventoInvalidoException(
+                "Evento de nota sin idEstudiante (idEvento=" + evento.idEvento() + ").");
         }
         AccionNota accion = evento.accion();
         String evaluacion = textoOpcional(evento.nombreEvaluacion());
@@ -91,8 +92,8 @@ public class NotificacionService {
     @Transactional
     public void registrarEvento(EventoAsistencia evento) {
         if (evento.idEstudiante() == null) {
-            log.warn("Se descarta evento de asistencia sin idEstudiante, idEvento={}", evento.idEvento());
-            return;
+            throw new EventoInvalidoException(
+                "Evento de asistencia sin idEstudiante (idEvento=" + evento.idEvento() + ").");
         }
         String estado = evento.estado() == null ? "asistencia" : evento.estado().name().toLowerCase();
         String asignatura = textoOpcional(evento.nombreAsignatura());

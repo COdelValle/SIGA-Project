@@ -13,6 +13,12 @@ public final class NombresMensajeria {
     /** Intercambio Topic: recibe todo lo de notificaciones y lo reparte. */
     public static final String INTERCAMBIO_NOTIFICACIONES = "intercambio-notificaciones";
 
+    /**
+     * Intercambio Direct de dead-lettering: cada DLQ se enlaza con su propio
+     * nombre como routing key, de modo que las colas derivan los rechazos aquí.
+     */
+    public static final String INTERCAMBIO_DLQ = "siga.dlx.direct";
+
     /** Cola de eventos de evaluaciones. */
     public static final String COLA_EVALUACIONES = "cola-notificaciones-evaluaciones";
     public static final String DLQ_EVALUACIONES = "cola-notificaciones-evaluaciones.dlq";

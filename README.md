@@ -70,7 +70,9 @@ SIGA-Project/
 │   │   ├── ms-apoderados/        # apoderados y estudiantes a cargo
 │   │   ├── ms-clases/            # cursos y docente jefe
 │   │   ├── ms-evaluaciones/      # evaluaciones por asignatura
-│   │   └── ms-asistencias/       # asistencias por estudiante y asignatura
+│   │   ├── ms-asistencias/       # asistencias por estudiante y asignatura
+│   │   ├── ms-notificaciones/    # bandeja in-app que consume eventos académicos
+│   │   └── ms-rabbitmq-admin/    # API REST de administración de RabbitMQ
 │   └── frontend/                 # Angular + Nx (ver apps/frontend/README.md)
 ├── docs/                         # documentación (ver docs/README.md)
 ├── infra/terraform/              # infraestructura AWS (ver infra/terraform/README.md)
@@ -91,7 +93,8 @@ SIGA-Project/
 ```bash
 # 1. Variables de entorno
 cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
-#    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS, RABBITMQ_USER/PASS y las variables AZURE_*
+#    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS, RABBITMQ_USER/PASS,
+#    RABBITMQ_ERLANG_COOKIE (clúster) y las variables AZURE_*
 
 # 2. Levantar todo el stack (bases, microservicios, BFF, RabbitMQ y frontend)
 docker compose up -d --build
@@ -111,6 +114,7 @@ Accesos del entorno local:
 | Swagger BFF | http://localhost:8080/docs/swagger |
 | Scalar BFF | http://localhost:8080/docs/scalar |
 | Swagger usuarios | http://localhost:8081/docs/swagger |
+| Swagger admin RabbitMQ | http://localhost:8092/docs/swagger |
 | Health BFF | http://localhost:8080/actuator/health |
 
 > Guía paso a paso de login y pruebas: [`docs/testing-login.md`](docs/testing-login.md).
@@ -131,7 +135,8 @@ Accesos del entorno local:
 | `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (soft delete y unique por fecha). |
 | `ms-notificaciones` | 8091 | Bandeja de notificaciones in-app para estudiantes y apoderados; consume eventos académicos. |
-| `rabbitmq` | 5672 / 15672 | Mensajería (15672 es la UI de management). |
+| `ms-rabbitmq-admin` | 8092 | API REST para administrar colas, exchanges y bindings de RabbitMQ. |
+| `rabbitmq1` / `rabbitmq2` | 5672 / 15672 | Clúster RabbitMQ de dos nodos en la misma EC2 (15672 es la UI, solo en `rabbitmq1`). |
 | `mariadb-*` | interno | Una instancia MariaDB por microservicio (10 bases). |
 
 > Puerto reservado para el servicio futuro `ms-auditoria`: `8082`.
