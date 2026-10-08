@@ -7,4 +7,5 @@ cl.siga.coreshare.config.SharedFeignFormatConfig
 cl.siga.coreshare.config.CorrelationIdConfig
 cl.siga.coreshare.messaging.RegistrationMessagingConfig
 cl.siga.coreshare.mensajeria.ConfiguracionMensajeriaCompartida
+cl.siga.coreshare.mensajeria.ConfiguracionTopologiaNotificaciones
 cl.siga.coreshare.mensajeria.outbox.NotificationOutboxAutoConfiguration

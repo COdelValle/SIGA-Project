@@ -55,6 +55,7 @@ jobs:
           echo "MS_EVALUACIONES_ECR=${REGISTRY}/siga-evaluaciones" >> $GITHUB_ENV
           echo "MS_ASIS_ECR=${REGISTRY}/siga-asistencias" >> $GITHUB_ENV
           echo "MS_NOTIF_ECR=${REGISTRY}/siga-notificaciones" >> $GITHUB_ENV
+          echo "MS_RABBIT_ADMIN_ECR=${REGISTRY}/siga-rabbitmq-admin" >> $GITHUB_ENV
 
       # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
       # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
@@ -141,6 +142,12 @@ jobs:
             -t $MS_NOTIF_ECR:${TAG_VERSION} -t $MS_NOTIF_ECR:latest \
             -f ./apps/backend/ms-notificaciones/Dockerfile ./apps/backend --push
 
+      - name: Build & Push - ms-rabbitmq-admin
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_RABBIT_ADMIN_ECR:${TAG_VERSION} -t $MS_RABBIT_ADMIN_ECR:latest \
+            -f ./apps/backend/ms-rabbitmq-admin/Dockerfile ./apps/backend --push
+
       - name: Build & Push - bff-web
         run: |
           docker buildx build --platform linux/amd64 \
@@ -166,6 +173,18 @@ jobs:
           strip_components: 3
           overwrite: true
 
+      # Configuración del clúster RabbitMQ (peer discovery classic_config).
+      - name: Copiar configuracion del cluster RabbitMQ a la EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "infra/rabbitmq/rabbitmq-cluster.conf"
+          target: "/home/ubuntu/siga/"
+          strip_components: 2
+          overwrite: true
+
       - name: Deploy en la EC2 (stack completo)
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -182,6 +201,7 @@ jobs:
           AZURE_API_APP_ID: ${{ secrets.AZURE_API_APP_ID }}
           RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_ERLANG_COOKIE: ${{ secrets.RABBITMQ_ERLANG_COOKIE }}
           REGISTRO_ASYNC_ENABLED: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
           REGISTRO_CRED_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
           REGISTRO_NOTIFY_CREDENTIALS_ENABLED: ${{ secrets.REGISTRO_NOTIFY_CREDENTIALS_ENABLED }}
@@ -190,7 +210,7 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,API_GW_INVOKE_URL
+          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,API_GW_INVOKE_URL
           script: |
             set -e
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
@@ -209,6 +229,7 @@ jobs:
             AZURE_API_APP_ID=$AZURE_API_APP_ID
             RABBITMQ_USER=$RABBITMQ_USER
             RABBITMQ_PASS=$RABBITMQ_PASSWORD
+            RABBITMQ_ERLANG_COOKIE=$RABBITMQ_ERLANG_COOKIE
             REGISTRO_ASYNC_ENABLED=$REGISTRO_ASYNC_ENABLED
             REGISTRO_CRED_KEY=$REGISTRO_CRED_KEY
             REGISTRO_NOTIFY_CREDENTIALS_ENABLED=$REGISTRO_NOTIFY_CREDENTIALS_ENABLED
@@ -273,13 +294,14 @@ jobs:
             EOF
 
             # user-data solo corre al crear la instancia; en instancias existentes
-            # hay que preparar el directorio de RabbitMQ (uid 999) en el EBS.
-            mkdir -p /home/ubuntu/siga-data/rabbitmq
-            sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq
+            # hay que preparar los directorios de los dos nodos RabbitMQ (uid 999)
+            # en el EBS.
+            mkdir -p /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
+            sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
 
             # init-db.sh solo corre con el directorio de datos vacio: en volumenes
             # existentes se crean las bases nuevas de forma idempotente.
-            docker compose --env-file .env up -d mariadb rabbitmq
+            docker compose --env-file .env up -d mariadb rabbitmq1 rabbitmq2
             docker compose --env-file .env exec -T mariadb mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" <<SQL
             CREATE DATABASE IF NOT EXISTS siga_docentes_db     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS siga_apoderados_db   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

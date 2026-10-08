@@ -74,15 +74,16 @@ fi
 mkdir -p "$DATA_MOUNT/mariadb"
 chown -R 999:999 "$DATA_MOUNT/mariadb"
 
-# El contenedor RabbitMQ tambien corre como uid 999
-mkdir -p "$DATA_MOUNT/rabbitmq"
-chown -R 999:999 "$DATA_MOUNT/rabbitmq"
+# Los dos nodos RabbitMQ del clúster corren como uid 999
+mkdir -p "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
+chown -R 999:999 "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
 
 # --- Archivos de la aplicacion ---
 APP_DIR=/home/ubuntu/siga
 mkdir -p "$APP_DIR"
 echo "${docker_compose_b64}" | base64 -d > "$APP_DIR/docker-compose.yml"
 echo "${init_db_b64}" | base64 -d > "$APP_DIR/init-db.sh"
+echo "${rabbitmq_conf_b64}" | base64 -d > "$APP_DIR/rabbitmq-cluster.conf"
 chmod +x "$APP_DIR/init-db.sh"
 
 # Placeholders que el CD sobreescribe con los valores reales

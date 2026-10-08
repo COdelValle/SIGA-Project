@@ -20,8 +20,8 @@ API Gateway HTTP API (HTTPS + CORS)
 EC2 t3.large (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8083-8091          (8082 reservado: ms-auditoria)
-  |- rabbitmq:5672
+  |- ms-*:8081/8083-8092          (8082 reservado: ms-auditoria)
+  |- rabbitmq1 + rabbitmq2:5672   (clúster; management solo 127.0.0.1:15672)
   |- mariadb:3306    10 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
 ```
@@ -96,8 +96,11 @@ Outputs utiles:
 
 - Los datos de MariaDB viven en el volumen EBS etiquetado `siga-data`
   (`/home/ubuntu/siga-data`), separado del disco raíz.
-- Los datos de **RabbitMQ** viven en el mismo volumen
-  (`/home/ubuntu/siga-data/rabbitmq`).
+- Los datos de los **dos nodos RabbitMQ** viven en el mismo volumen
+  (`/home/ubuntu/siga-data/rabbitmq1` y `.../rabbitmq2`). El CD copia
+  `infra/rabbitmq/rabbitmq-cluster.conf` a la EC2 en cada despliegue para que
+  ambos nodos se descubran; el volumen `rabbitmq_data` anterior queda como
+  respaldo y no se migra.
 - Detener/arrancar la instancia ("End Lab" / "Start Lab") conserva los datos.
 - Reemplazar la instancia (cambio de AMI o de `user_data`) conserva los datos.
 - `prevent_destroy` evita que `terraform destroy` borre el volumen; para
@@ -125,7 +128,8 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 
 `siga-usuarios-auth`, `siga-estudiantes`, `siga-asignaturas`, `siga-notas`,
 `siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
-`siga-asistencias`, `siga-notificaciones`, `siga-bff-web` y `siga-frontend`.
+`siga-asistencias`, `siga-notificaciones`, `siga-rabbitmq-admin`,
+`siga-bff-web` y `siga-frontend`.
 
 ## Notas del laboratorio
 
@@ -158,6 +162,7 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AZURE_API_APP_ID` | app que define los app roles |
 | `RABBITMQ_USER` | usuario de RabbitMQ |
 | `RABBITMQ_PASSWORD` | password de RabbitMQ |
+| `RABBITMQ_ERLANG_COOKIE` | cookie Erlang compartida por los dos nodos del clúster (generar con `openssl rand -hex 32`) |
 | `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
 | `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
 | `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |

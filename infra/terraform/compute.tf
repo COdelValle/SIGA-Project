@@ -4,6 +4,7 @@ locals {
   user_data = templatefile("${path.module}/templates/user-data.sh", {
     docker_compose_b64 = base64encode(file("${path.module}/templates/docker-compose.yml"))
     init_db_b64        = base64encode(file("${path.module}/templates/init-db.sh"))
+    rabbitmq_conf_b64  = base64encode(file("${path.module}/../rabbitmq/rabbitmq-cluster.conf"))
   })
 
   # El script renderizado supera el limite de 16 KB de user_data de EC2: se
