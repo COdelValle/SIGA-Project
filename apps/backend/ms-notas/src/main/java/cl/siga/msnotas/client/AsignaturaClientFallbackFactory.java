@@ -1,4 +1,4 @@
-package cl.siga.msasistencias.client;
+package cl.siga.msnotas.client;
 
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
@@ -12,12 +12,6 @@ public class AsignaturaClientFallbackFactory implements FallbackFactory<Asignatu
     @Override
     public AsignaturaClient create(Throwable cause) {
         return new AsignaturaClient() {
-            @Override
-            public boolean existsById(Long id) {
-                throw FeignFallbacks.noDisponible(cause,
-                    "No se pudo verificar la existencia de la dictación " + id);
-            }
-
             @Override
             public CursoAsignaturaResponseDTO getCursoAsignaturaById(Long id) {
                 throw FeignFallbacks.noDisponible(cause,

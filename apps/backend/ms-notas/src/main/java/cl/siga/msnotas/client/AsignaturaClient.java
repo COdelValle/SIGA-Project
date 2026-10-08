@@ -1,4 +1,4 @@
-package cl.siga.msasistencias.client;
+package cl.siga.msnotas.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +12,6 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
     fallbackFactory = AsignaturaClientFallbackFactory.class
 )
 public interface AsignaturaClient {
-
-    @GetMapping("/api/v1/curso-asignaturas/exists/{id}")
-    boolean existsById(@PathVariable("id") Long id);
 
     /** Nombre de la asignatura de la dictacion, para enriquecer la notificacion. */
     @GetMapping("/api/v1/curso-asignaturas/{id}")

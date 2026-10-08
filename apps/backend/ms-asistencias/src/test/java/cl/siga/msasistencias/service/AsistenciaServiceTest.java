@@ -202,4 +202,32 @@ class AsistenciaServiceTest {
         org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
             org.mockito.Mockito.eq(70.0), org.mockito.Mockito.eq(true));
     }
+
+    @Test
+    void atrasoPublicaEventoSinContarloComoFaltaAusente() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(2L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(5L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.ATRASADO, null));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
+            org.mockito.Mockito.eq(40.0), org.mockito.Mockito.eq(false));
+    }
+
+    @Test
+    void inasistenciaExactamenteEnSesentaPorCientoAlcanzaElUmbral() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(3L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(5L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.AUSENTE, null));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
+            org.mockito.Mockito.eq(60.0), org.mockito.Mockito.eq(true));
+    }
 }

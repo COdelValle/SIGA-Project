@@ -2,7 +2,7 @@ package cl.siga.coreshare.mensajeria;
 
 /**
  * Nombres de la mensajería de notificaciones.
- * Un solo intercambio Topic reparte a las 3 colas futuras
+ * Un solo intercambio Topic reparte a las 3 colas académicas
  * según la clave de enrutamiento (routing key).
  */
 public final class NombresMensajeria {
@@ -13,8 +13,9 @@ public final class NombresMensajeria {
     /** Intercambio Topic: recibe todo lo de notificaciones y lo reparte. */
     public static final String INTERCAMBIO_NOTIFICACIONES = "intercambio-notificaciones";
 
-    /** Cola 1 (la que hacemos ahora): eventos de evaluaciones. */
+    /** Cola de eventos de evaluaciones. */
     public static final String COLA_EVALUACIONES = "cola-notificaciones-evaluaciones";
+    public static final String DLQ_EVALUACIONES = "cola-notificaciones-evaluaciones.dlq";
 
     /** Claves de enrutamiento de evaluaciones. */
     public static final String CLAVE_EVALUACION_CREADA = "evaluacion.creada";
@@ -26,6 +27,7 @@ public final class NombresMensajeria {
 
     /** Cola 2: eventos de asistencias (solo al crear: AUSENTE o ATRASADO). */
     public static final String COLA_ASISTENCIAS = "cola-notificaciones-asistencias";
+    public static final String DLQ_ASISTENCIAS = "cola-notificaciones-asistencias.dlq";
 
     /** Clave de enrutamiento de asistencias. */
     public static final String CLAVE_ASISTENCIA_REGISTRADA = "asistencia.registrada";
@@ -35,6 +37,7 @@ public final class NombresMensajeria {
 
     /** Cola 3: eventos de notas (al crear y modificar). */
     public static final String COLA_NOTAS = "cola-notificaciones-notas";
+    public static final String DLQ_NOTAS = "cola-notificaciones-notas.dlq";
 
     /** Claves de enrutamiento de notas. */
     public static final String CLAVE_NOTA_CREADA = "nota.creada";

@@ -13,6 +13,9 @@ public record EventoNota(
     Long idEvaluacion,
     Double puntaje,
     AccionNota accion,
-    LocalDateTime fechaHora
+    LocalDateTime fechaHora,
+    String idEvento,
+    String nombreEvaluacion,
+    String nombreAsignatura
 ) {
 }
