@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { MeService, Notificacion, NotificationService } from '@siga/core';
+import { MeService, Notificacion, NotificationService, RefrescoDatosService } from '@siga/core';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotificationBellComponent } from './notification-bell.component';
@@ -109,6 +109,39 @@ describe('NotificationBellComponent', () => {
 
     expect(notificationService.markAsRead).toHaveBeenCalledWith(9);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/estudiante/notas');
+    fixture.destroy();
+  });
+
+  it('solicita refresco de datos al hacer clic en una notificación', async () => {
+    const { fixture } = configurar('ESTUDIANTE');
+    const refresco = TestBed.inject(RefrescoDatosService);
+    const espia = vi.spyOn(refresco, 'solicitarRefresco');
+    await abrirCampana(fixture);
+    espia.mockClear();
+
+    const item = fixture.nativeElement.querySelector('li button') as HTMLButtonElement;
+    item.click();
+    await fixture.whenStable();
+
+    expect(espia).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('solicita refresco cuando el contador de no leídas sube', async () => {
+    const { fixture, notificationService } = configurar('ESTUDIANTE');
+    const refresco = TestBed.inject(RefrescoDatosService);
+    const espia = vi.spyOn(refresco, 'solicitarRefresco');
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    fixture.detectChanges();
+    espia.mockClear();
+
+    notificationService.getUnreadCount.mockReturnValue(of({ noLeidas: 2 }));
+    window.dispatchEvent(new Event('focus'));
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(espia).toHaveBeenCalled();
     fixture.destroy();
   });
 

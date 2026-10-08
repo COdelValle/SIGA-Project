@@ -366,6 +366,63 @@ Reglas de mantenimiento:
   queda como respaldo. Falta el despliegue a AWS (directorios
   `siga-data/rabbitmq1|2` y medición de memoria en la EC2).
 
+### PR-20261008-08 — Refresco de notas/asistencias al llegar la notificación
+
+- **Fecha**: 2026-10-08
+- **Rama / commit**: `dev` + cambios locales sin commit (sobre `5f04189`)
+- **Alcance**: el apoderado recibía la notificación de la nota nueva, pero la
+  tabla de Notas seguía mostrando solo Nota 1–3 (la evaluación nueva no
+  aparecía) hasta recargar la página. En el portal estudiante sí se veía.
+- **Causa raíz**: caché en el frontend, no en el backend. El BFF arma el perfil
+  del pupilo con el mismo flujo que el del estudiante
+  (`PerfilEstudianteService.java:59-68`) y `periodoDePerfil()` ya genera columnas
+  dinámicas; el problema era que `PerfilEstudianteService`/`AsistenciaService`
+  guardan el resultado con `shareReplay` y `ApoderadoStateService` los pide al
+  cargar el layout (barra de pupilo) y los mantiene suscritos para siempre. Al
+  hacer clic en la campana solo se navegaba (`notification-bell.component.ts`),
+  sin invalidar ni recargar. El estudiante lo veía porque su sesión se cargó
+  después del guardado.
+- **Pasos**:
+  1. Nuevo `RefrescoDatosService` en `@siga/core` (aviso global `refresco$`).
+  2. `PerfilEstudianteService` y `AsistenciaService`: cada clave del caché se
+     reconsulta con `refresco$.pipe(startWith(...), switchMap(http), shareReplay
+     ({bufferSize: 1, refCount: true}))`, de modo que las suscripciones activas
+     (signals de las vistas) reciben los datos frescos sin tocar cada página.
+  3. `NotificationBellComponent`: `solicitarRefresco()` al hacer clic en una
+     notificación y cuando el contador de no leídas sube (llega algo nuevo);
+     así la vista abierta se actualiza en ≤10 s (polling) sin recargar.
+  4. Tests: `perfil-estudiante.service.spec.ts` (comparte petición, refresco e
+     invalidación), caso de refresco en `asistencia.service.spec.ts` y
+     refresco por clic/contador en `notification-bell.component.spec.ts`.
+  5. Registrar el fix en este documento.
+- **Resultado**: `PARCIAL` — verificado por tests unitarios y build; falta la
+  confirmación visual del usuario con cuentas reales (apoderado en Notas mientras
+  el docente guarda una evaluación nueva).
+- **Evidencia**:
+  - Frontend: Vitest en verde (incluye los 3 casos nuevos de refresco) y build de
+    producción correcto.
+  - Sin cambios de backend: el perfil ya devolvía las evaluaciones nuevas; la
+    corrección es solo de frescura en el cliente.
+  - **Despliegue**: el contenedor `frontend` seguía sirviendo el bundle previo
+    (`Oct 8 05:06`, sin `solicitarRefresco`), por eso la prueba manual no veía el
+    refresco. Se actualizó la imagen `siga-project-frontend:latest` con el build
+    de producción verificado y se recreó el contenedor; `grep -l solicitarRefresco`
+    sobre `/usr/share/nginx/html/*.js` ahora lo encuentra
+    (`main-J3ETFQP5.js`, `chunk-B07Zy6_a.js`) y `http://localhost:4200` responde
+    `200` con ese `main`.
+  - `docker compose up -d --build frontend` (Dockerfile con `npm ci` + `ng build`)
+    tumbó el engine de Docker Desktop a los ~25 min (500 en la API), como advierte
+    la sección 6; la imagen se generó desde el `dist/frontend/browser` ya
+    compilado y verificado, con el mismo `nginx.conf` y healthcheck.
+- **Pendientes / notas**: validar en navegador con sesión de apoderado abierta en
+  `/apoderado/notas`: al guardar la nota, la columna "Nota 4" debe aparecer en
+  ≤10 s o al hacer clic en la campana, sin F5. Hacer Ctrl+F5 una vez tras
+  desplegar (nginx sirve los JS con `immutable` y el `index.html` puede estar
+  cacheado). Reconstruir la imagen con el Dockerfile normal
+  (`docker compose up -d --build frontend`) cuando el engine esté estable y sin
+  otras stacks corriendo. Efecto secundario aceptado: al remontar una página se
+  reconsulta el perfil/asistencias (más peticiones, datos siempre frescos).
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -616,7 +673,7 @@ powershell -File tools/normalizar-datos.ps1
 | Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest` + `PublicadorNotaTest`, `EvaluacionServiceTest` + `PublicadorEvaluacionTest`, `AsistenciaServiceTest` + `PublicadorAsistenciaTest` |
 | `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `NotificacionControllerMappingsTest`, `MigracionesNotificacionesTest` |
 | `ms-rabbitmq-admin` | `RabbitAdminServiceTest`, `RabbitAdminControllerMappingsTest` |
-| Frontend | specs Vitest de `app`, `docente-notas.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
+| Frontend | specs Vitest de `app`, `docente-notas.service`, `perfil-estudiante.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
 
 Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
 datos y Azure AD.

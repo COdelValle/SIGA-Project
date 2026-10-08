@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { MeService, Notificacion, NotificationService, TipoNotificacion } from '@siga/core';
+import { MeService, Notificacion, NotificationService, RefrescoDatosService, TipoNotificacion } from '@siga/core';
 import { catchError, filter, fromEvent, merge, of, switchMap, take, timer } from 'rxjs';
 
 @Component({
@@ -141,6 +141,7 @@ export class NotificationBellComponent {
 
   private readonly meService = inject(MeService);
   private readonly notificationService = inject(NotificationService);
+  private readonly refresco = inject(RefrescoDatosService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -219,6 +220,8 @@ export class NotificationBellComponent {
 
   /** Clic: marca leída de inmediato (optimista), navega y confirma contra el BFF. */
   protected abrir(notificacion: Notificacion): void {
+    // La vista destino debe reflejar el cambio notificado sin recargar.
+    this.refresco.solicitarRefresco();
     if (notificacion.leida) {
       this.cerrar();
       void this.router.navigateByUrl(this.rutaDe(notificacion.tipo));
@@ -288,6 +291,8 @@ export class NotificationBellComponent {
     this.noLeidas.set(nuevo);
     if (nuevo > anterior) {
       this.pulsar();
+      // Llegó algo nuevo: las vistas activas (notas, asistencias) se recargan.
+      this.refresco.solicitarRefresco();
       if (this.abierta() && !this.cargando()) {
         this.cargar();
       }
