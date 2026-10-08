@@ -19,6 +19,12 @@ public class RespaldoInscripcionFactory implements FallbackFactory<ClienteInscri
                 throw FeignFallbacks.noDisponible(causa,
                     "No se pudieron obtener las inscripciones de la dictación " + idCursoAsignatura);
             }
+
+            @Override
+            public PageResponseDTO<InscripcionResponseDTO> buscarPorEstudiante(Long idEstudiante, int tamano) {
+                throw FeignFallbacks.noDisponible(causa,
+                    "No se pudieron obtener las inscripciones del estudiante " + idEstudiante);
+            }
         };
     }
 }

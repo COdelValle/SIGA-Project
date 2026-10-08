@@ -4,9 +4,12 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
 
 /**
  * El Consumidor declara lo mismo que el productor (intercambio + cola + enlace).
@@ -23,7 +26,16 @@ public class ConfiguracionMensajeriaNotificaciones {
 
     @Bean
     public Queue colaNotificacionesEvaluaciones() {
-        return new Queue(NombresMensajeria.COLA_EVALUACIONES, true);
+        return QueueBuilder.durable(NombresMensajeria.COLA_EVALUACIONES)
+                .withArguments(Map.of(
+                        "x-dead-letter-exchange", "",
+                        "x-dead-letter-routing-key", NombresMensajeria.DLQ_EVALUACIONES))
+                .build();
+    }
+
+    @Bean
+    public Queue colaNotificacionesEvaluacionesDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_EVALUACIONES).build();
     }
 
     @Bean
@@ -37,7 +49,16 @@ public class ConfiguracionMensajeriaNotificaciones {
 
     @Bean
     public Queue colaNotificacionesAsistencias() {
-        return new Queue(NombresMensajeria.COLA_ASISTENCIAS, true);
+        return QueueBuilder.durable(NombresMensajeria.COLA_ASISTENCIAS)
+                .withArguments(Map.of(
+                        "x-dead-letter-exchange", "",
+                        "x-dead-letter-routing-key", NombresMensajeria.DLQ_ASISTENCIAS))
+                .build();
+    }
+
+    @Bean
+    public Queue colaNotificacionesAsistenciasDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_ASISTENCIAS).build();
     }
 
     @Bean
@@ -51,7 +72,16 @@ public class ConfiguracionMensajeriaNotificaciones {
 
     @Bean
     public Queue colaNotificacionesNotas() {
-        return new Queue(NombresMensajeria.COLA_NOTAS, true);
+        return QueueBuilder.durable(NombresMensajeria.COLA_NOTAS)
+                .withArguments(Map.of(
+                        "x-dead-letter-exchange", "",
+                        "x-dead-letter-routing-key", NombresMensajeria.DLQ_NOTAS))
+                .build();
+    }
+
+    @Bean
+    public Queue colaNotificacionesNotasDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_NOTAS).build();
     }
 
     @Bean

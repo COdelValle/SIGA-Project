@@ -1,7 +1,15 @@
 {
   "name": "ms-notificaciones",
   "projectType": "application",
-  "implicitDependencies": ["core-share", "ms-asignaturas", "ms-estudiantes", "ms-apoderados"],
+  "implicitDependencies": [
+    "core-share",
+    "ms-asignaturas",
+    "ms-estudiantes",
+    "ms-apoderados",
+    "ms-notas",
+    "ms-evaluaciones",
+    "ms-asistencias"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",

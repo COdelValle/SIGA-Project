@@ -15,6 +15,12 @@ public class RespaldoApoderadoFactory implements FallbackFactory<ClienteApoderad
     public ClienteApoderado create(Throwable causa) {
         return new ClienteApoderado() {
             @Override
+            public ApoderadoResponseDTO obtenerPorIdUsuario(String idUsuario) {
+                throw FeignFallbacks.noDisponible(causa,
+                    "No se pudo obtener el apoderado de la cuenta autenticada");
+            }
+
+            @Override
             public PageResponseDTO<ApoderadoResponseDTO> buscarPorEstudiante(Long idEstudiante, int tamano) {
                 throw FeignFallbacks.noDisponible(causa,
                     "No se pudieron obtener los apoderados del estudiante " + idEstudiante);

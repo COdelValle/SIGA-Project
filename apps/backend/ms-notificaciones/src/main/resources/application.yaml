@@ -1,10 +1,46 @@
 server:
   port: 8091
 
+# Bandeja in-app: retención global y horario de purga.
+siga:
+  notificaciones:
+    retencion-dias: 90
+    purga:
+      cron: "0 30 3 * * *"
+
 spring:
   application:
     name: ms-notificaciones
-    description: Consume las colas de notificaciones (evaluaciones, notas y asistencias) y registra los avisos
+    description: Consume eventos académicos y mantiene la bandeja in-app de notificaciones
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://${DB_HOST:localhost}:3306/siga_notificaciones_db}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:root}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASS:dev_password}}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1s
+          max-attempts: 3
+          max-interval: 5s
+          multiplier: 2
+        default-requeue-rejected: false
 
   config:
     import: "optional:classpath:common-properties.yaml"
