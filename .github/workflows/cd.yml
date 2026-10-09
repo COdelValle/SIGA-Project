@@ -299,8 +299,9 @@ jobs:
             # los nodos: si falta, RabbitMQ genera una aleatoria y el CLI queda
             # desalineado (Invalid challenge reply / colas atoradas).
             mkdir -p /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
-            printf '%s' "$RABBITMQ_ERLANG_COOKIE" > /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie
-            printf '%s' "$RABBITMQ_ERLANG_COOKIE" > /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie
+            # sudo: el archivo del volumen pertenece al uid 999 (rabbitmq).
+            printf '%s' "$RABBITMQ_ERLANG_COOKIE" | sudo tee /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie > /dev/null
+            printf '%s' "$RABBITMQ_ERLANG_COOKIE" | sudo tee /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie > /dev/null
             sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
             sudo chmod 600 /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie
 
