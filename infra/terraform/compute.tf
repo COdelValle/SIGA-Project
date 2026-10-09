@@ -27,6 +27,15 @@ resource "aws_instance" "app" {
   user_data_base64            = local.user_data_gzip
   user_data_replace_on_change = false
 
+  # El data source usa el AMI mas reciente de Ubuntu: cuando Canonical publica
+  # uno nuevo, `terraform plan` pedia reemplazar la instancia (y con ella la
+  # asociacion EIP y el attach del EBS). Se ignora el drift del AMI para no
+  # recrear la instancia en cada apply; para actualizarla a proposito hay que
+  # quitar este lifecycle y planificar el reemplazo.
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
