@@ -12,5 +12,6 @@ export * from './lib/theme/theme.service';
 export * from './lib/http/auth.interceptor';
 export * from './lib/http/error.interceptor';
 export * from './lib/http/recurso-remoto';
+export * from './lib/http/refresco-datos.service';
 export * from './lib/notifications/notification.model';
 export * from './lib/notifications/notification.service';

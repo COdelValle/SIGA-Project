@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { APP_CONFIG } from '@siga/core';
+import { APP_CONFIG, RefrescoDatosService } from '@siga/core';
 import { AsistenciaDTO } from '../models/perfil.model';
 import { AsistenciaService } from './asistencia.service';
 
@@ -87,6 +87,19 @@ describe('AsistenciaService (modo real)', () => {
     http.expectOne('/api/bff/v1/asistencias/estudiante/1').flush([asistencia]);
 
     expect(recargado).toEqual([asistencia]);
+  });
+
+  it('reconsulta las asistencias activas al pedir refresco (notificacion nueva)', () => {
+    const refresco = TestBed.inject(RefrescoDatosService);
+    let ultimo: AsistenciaDTO[] | null = null;
+    service.getAsistenciasEstudiante(1).subscribe((valor) => (ultimo = valor));
+    http.expectOne('/api/bff/v1/asistencias/estudiante/1').flush([asistencia]);
+
+    refresco.solicitarRefresco();
+    const actualizada: AsistenciaDTO = { ...asistencia, id: 10, estado: 'PRESENTE' };
+    http.expectOne('/api/bff/v1/asistencias/estudiante/1').flush([actualizada]);
+
+    expect(ultimo).toEqual([actualizada]);
   });
 
   it('propaga el error del BFF sin caer a mocks', () => {
