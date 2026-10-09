@@ -475,6 +475,9 @@ Reglas de mantenimiento:
     (dato sintético eliminado).
   - Recursos: `t3.large` con 5.5/7.8 GB usados y swap sin uso; cada nodo RabbitMQ
     ~90 MB. 16 contenedores en la EC2.
+  - Run final del CD completo (`workflow_dispatch`) **en verde**: run
+    `37878148812`; el redeploy recreó los servicios con las imágenes nuevas y los
+    consumidores quedaron registrados (1 por cola de registro y académica).
 - **Incidencias corregidas**:
   1. Maven Central `429` transitorio en el primer build (re-run del workflow).
   2. `PREPARE` con dos statements en el CD → separados en `DROP`/`CREATE` (`dc4943f`).
