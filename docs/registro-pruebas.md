@@ -344,6 +344,13 @@ Reglas de mantenimiento:
 - **Resultado**: `OK` — el clúster queda formado y la topología declarada coincide
   con la especificación; la API de administración exige autenticación. La
   medición de memoria en la EC2 y el E2E con JWT de Entra quedan pendientes.
+- **Fix durante la verificación**: con ACK manual, el retry del contenedor dejaba
+  el mensaje **retenido** al agotar reintentos (`RejectAndDontRequeueRecoverer`
+  envuelve la excepción y el contenedor no rechaza en modo manual). Se desactivó
+  `spring.rabbitmq.listener.simple.retry.enabled=false` en los cinco servicios
+  consumidores (y `SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED=false` en el
+  entorno común de Compose): los reintentos viven en `ConfirmadorMensajes` y un
+  error de conversión ahora es fatal y deriva de inmediato a la DLQ.
 - **Evidencia**:
   - Backend `BUILD SUCCESS` (14 módulos, incluye `ms-rabbitmq-admin`); tests
     unitarios en verde: `ConfirmadorMensajesTest` 4/4,
@@ -360,6 +367,19 @@ Reglas de mantenimiento:
   - Cookie Erlang: valor propio en `.env` y secret `RABBITMQ_ERLANG_COOKIE`
     creado en GitHub (repo `COdelValle/SIGA-Project`); ambos contenedores
     reiniciados con esa cookie y `erlang:get_cookie()` idéntico en los dos nodos.
+  - Prueba E2E de DLQ: mensaje malformado publicado a `intercambio-notificaciones`
+    (routing `nota.creada`) → `MessageConversionException` fatal →
+    `AmqpRejectAndDontRequeueException: Error Handler converted exception to fatal`
+    → 1 mensaje en `cola-notificaciones-notas.dlq`; luego purgado.
+  - Prueba E2E de ACK: `EventoNota` válido publicado al mismo exchange →
+    consumido (cola en 0) y persistido en `siga_notificaciones_db` como
+    `NOTA/CREADA`; el dato sintético (`id_destino=999999`) se eliminó.
+  - Prueba E2E de NACK de negocio: evento sin `idEstudiante` →
+    `EventoInvalidoException` → NACK sin requeue (`basicNack(false)`) → 1 mensaje
+    en `cola-notificaciones-notas.dlq`; luego purgado.
+  - Stack completo `healthy` (11 microservicios, 10 bases, BFF, frontend y los dos
+    nodos RabbitMQ); `mvn package` con tests en verde; frontend `tsc` y Vitest
+    28/28.
 - **Pendientes / notas**: la migración de topología cambia los argumentos de las
   colas existentes (`x-dead-letter-exchange`), por eso el clúster usa volúmenes
   nuevos (`rabbitmq1_data`/`rabbitmq2_data`) y el volumen `rabbitmq_data` previo

@@ -47,6 +47,10 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_PUBLISHER_CONFIRM_TYPE: correlated
   SPRING_RABBITMQ_PUBLISHER_RETURNS: "true"
   SPRING_RABBITMQ_TEMPLATE_MANDATORY: "true"
+  # ACK/NACK manuales: los reintentos viven en ConfirmadorMensajes (en memoria).
+  # El retry del contenedor se desactiva para que un error de conversión sea
+  # fatal y derive de inmediato a la DLQ, en vez de quedar retenido sin confirmar.
+  SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED: "false"
   # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
   # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
   SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"

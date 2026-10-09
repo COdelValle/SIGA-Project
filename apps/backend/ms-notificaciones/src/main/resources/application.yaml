@@ -34,13 +34,13 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
-        retry:
-          enabled: true
-          initial-interval: 1s
-          max-attempts: 3
-          max-interval: 5s
-          multiplier: 2
         default-requeue-rejected: false
+        # Los reintentos de procesamiento viven en ConfirmadorMensajes (en
+        # memoria, con ACK/NACK explícitos). El retry del contenedor se
+        # desactiva para no interferir con el ACK manual: un error de conversión
+        # debe ser fatal y derivar de inmediato a la DLQ.
+        retry:
+          enabled: false
 
   config:
     import: "optional:classpath:common-properties.yaml"

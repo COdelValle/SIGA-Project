@@ -116,7 +116,9 @@ Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID
   BFF. La topología (topic `intercambio-notificaciones` + direct `siga.dlx.direct`)
   se declara una sola vez en `core-share`. Los consumidores confirman con
   **ACK/NACK manuales** (`ConfirmadorMensajes`): reintentos acotados en memoria y
-  rechazo a la DLQ ante evento inválido o reintentos agotados. El dueño de lectura
+  rechazo a la DLQ ante evento inválido o reintentos agotados. El retry del
+  contenedor se desactiva para no retener mensajes sin confirmar en modo manual;
+  los errores de conversión son fatales y caen directo a la DLQ. El dueño de lectura
   se deriva del OID de Entra; estudiante y apoderado reciben estados leído/no leído
   (y limpieza) independientes. La campana está en el header compartido de ambos
   portales, con marcado al hacer clic, "marcar todas", "limpiar leídas" y purga a
