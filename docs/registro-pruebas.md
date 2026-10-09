@@ -443,6 +443,56 @@ Reglas de mantenimiento:
   otras stacks corriendo. Efecto secundario aceptado: al remontar una página se
   reconsulta el perfil/asistencias (más peticiones, datos siempre frescos).
 
+### PR-20261009-08 — Despliegue AWS real con clúster RabbitMQ y administrador
+
+- **Fecha**: 2026-10-09
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `de16c31` (+ cambios locales de esta sesión)
+- **Alcance**: despliegue completo en AWS Academy (EC2 + EBS + API Gateway + ECR) del
+  stack con **clúster RabbitMQ de dos nodos** y `ms-rabbitmq-admin`; corrección de los
+  hallazgos que aparecieron durante el despliegue.
+- **Entorno**: AWS `us-east-1`; EC2 `t3.large` (EIP `52.54.139.252`); API Gateway
+  `https://87hjovxzud.execute-api.us-east-1.amazonaws.com`; Docker Compose en la EC2.
+- **Prerrequisitos**: credenciales del Learner Lab vigentes (locales y en GitHub) y
+  `labsuser.pem` para SSH.
+- **Pasos**:
+  1. `terraform apply`: crea los 7 repos ECR faltantes y actualiza API Gateway (CORS)
+     y la instancia en caliente; sin destrucciones.
+  2. `gh workflow run cd.yml --ref feat/rabbitmq-cluster-admin`: build/push de 13
+     imágenes ECR y deploy por SSH.
+  3. Corregir incidencias del despliegue (ver abajo) hasta que los 16 contenedores
+     queden `healthy`.
+  4. Validar clúster, colas/consumidores, endpoints públicos y E2E de ACK/DLQ.
+- **Resultado**: `OK` — stack completo `healthy`; clúster con **18 colas en `running`** y
+  consumidores en las colas de registro y académicas; DLQ y ACK verificados en la nube.
+- **Evidencia**:
+  - `cluster_status`: `rabbit@rabbitmq1` y `rabbit@rabbitmq2` running, sin particiones.
+  - `list_queues name state`: 18 colas `running`; `list_queues name consumers` con 1
+    consumidor por cola de registro y académica (tras reiniciar los consumidores).
+  - API Gateway: SPA `200` con `<app-root>`, `config.json` servido y `/api/me` sin
+    token → `401`.
+  - DLQ en nube: mensaje malformado → 1 en `cola-notificaciones-notas.dlq` (purgado);
+    `EventoNota` válido → cola en 0 y fila `NOTA/CREADA` en `siga_notificaciones_db`
+    (dato sintético eliminado).
+  - Recursos: `t3.large` con 5.5/7.8 GB usados y swap sin uso; cada nodo RabbitMQ
+    ~90 MB. 16 contenedores en la EC2.
+- **Incidencias corregidas**:
+  1. Maven Central `429` transitorio en el primer build (re-run del workflow).
+  2. `PREPARE` con dos statements en el CD → separados en `DROP`/`CREATE` (`dc4943f`).
+  3. Grants faltantes de `siga_estudiantes_db`/`siga_notas_db` → el CD crea y otorga
+     las 10 bases de forma idempotente (`de16c31`).
+  4. Checksums Flyway desalineados: `siga_asignaturas_db` recreada una vez
+     (V1–V4 aplicadas limpias) y `siga_usuarios_db` reparada por SQL (V2).
+  5. El AMI más reciente forzaba el reemplazo de la EC2 → `lifecycle ignore_changes`
+     de `ami` (`33b5d28`).
+  6. Cookie Erlang del volumen desalineada con la variable → se alineó el archivo y el
+     CD ahora la pre-escribe antes del arranque de los nodos.
+  7. Listeners detenidos por `missingQueuesFatal` durante el arranque en frío →
+     `missing-queues-fatal=false` + reinicio de los consumidores.
+- **Pendientes / notas**: los secrets `AZURE_*` de GitHub apuntan a otro tenant
+  (`afad9bb4`/`c3cfc64e`) distinto del local (`448f165b`/`f260a804`); el login de la
+  nube usa el de los secrets. El CD sigue siendo manual (`workflow_dispatch`) porque
+  las credenciales del lab expiran (~4 h).
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos

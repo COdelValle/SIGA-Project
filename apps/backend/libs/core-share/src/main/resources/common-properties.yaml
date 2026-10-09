@@ -4,9 +4,12 @@ spring:
     publisher-returns: true
     # Confirmación manual: cada consumidor decide ACK/NACK con ConfirmadorMensajes
     # (evento inválido o reintentos agotados => NACK sin requeue hacia la DLQ).
+    # missing-queues-fatal=false: si la cola aún no existe (arranque en frío del
+    # broker), el listener reintenta la declaración en vez de detenerse para siempre.
     listener:
       simple:
         acknowledge-mode: manual
+        missing-queues-fatal: false
     template:
       mandatory: true
       delivery-mode: persistent

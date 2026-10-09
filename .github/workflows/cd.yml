@@ -295,9 +295,14 @@ jobs:
 
             # user-data solo corre al crear la instancia; en instancias existentes
             # hay que preparar los directorios de los dos nodos RabbitMQ (uid 999)
-            # en el EBS.
+            # en el EBS. La cookie Erlang se escribe ANTES del primer arranque de
+            # los nodos: si falta, RabbitMQ genera una aleatoria y el CLI queda
+            # desalineado (Invalid challenge reply / colas atoradas).
             mkdir -p /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
+            printf '%s' "$RABBITMQ_ERLANG_COOKIE" > /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie
+            printf '%s' "$RABBITMQ_ERLANG_COOKIE" > /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie
             sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
+            sudo chmod 600 /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie
 
             # init-db.sh solo corre con el directorio de datos vacio: en volumenes
             # existentes hay que crear las bases y otorgar los permisos de forma
