@@ -1,5 +1,10 @@
 name: siga
 
+# Volumenes nombrados del proyecto (certificados y estado de Caddy).
+volumes:
+  caddy_data:
+  caddy_config:
+
 # Variables comunes a todos los microservicios.
 # AZURE_* alimenta los placeholders de core-share/common-properties.yaml.
 x-ms-common-env: &ms-common-env
@@ -97,6 +102,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # Panel de RabbitMQ por HTTPS publico: Caddy termina TLS (Let's Encrypt via
+  # sslip.io) y hace reverse-proxy al Management UI. El Caddyfile lo genera el
+  # CD con basic auth (secret PANEL_BASIC_*); se usa solo el puerto 443 porque el
+  # 80 lo ocupa el frontend.
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - /home/ubuntu/siga/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
 
   ms-usuarios-auth:
     image: ${REGISTRY}/siga-usuarios-auth:${IMAGE_TAG}

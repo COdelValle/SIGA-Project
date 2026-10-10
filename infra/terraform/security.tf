@@ -2,6 +2,7 @@
 #  - 80   : SPA servida por nginx
 #  - 8080 : BFF, consumido por API Gateway (no tiene IPs de salida fijas, por eso
 #           no se puede restringir solo al API Gateway; el BFF valida el token igual)
+#  - 443  : panel de RabbitMQ (Caddy, HTTPS publico con basic auth)
 #  - 22   : administracion (restringir con ssh_cidr en production/entrega)
 resource "aws_security_group" "app" {
   name        = "${var.management_name}-sg-app"
@@ -20,6 +21,15 @@ resource "aws_security_group" "app" {
     description = "BFF - consumido por API Gateway"
     from_port   = 8080
     to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Panel de RabbitMQ (Caddy): HTTPS publico con certificado Let's Encrypt.
+  ingress {
+    description = "Panel RabbitMQ (HTTPS via Caddy)"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
