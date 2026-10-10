@@ -255,8 +255,11 @@ jobs:
             BACKUP
             chmod +x /home/ubuntu/siga/backup-bd.sh
             mkdir -p /home/ubuntu/siga-data/backups
-            CRON_LINE='15 6 * * * /home/ubuntu/siga/backup-bd.sh >> /home/ubuntu/siga-data/backups/cron.log 2>&1'
-            ( crontab -l 2>/dev/null | grep -vF '/home/ubuntu/siga/backup-bd.sh' ; echo "$CRON_LINE" ) | crontab -
+            crontab -l 2>/dev/null | grep -vF 'backup-bd.sh' > /tmp/siga-crontab.txt || true
+            echo '15 6 * * * /home/ubuntu/siga/backup-bd.sh >> /home/ubuntu/siga-data/backups/cron.log 2>&1' >> /tmp/siga-crontab.txt
+            crontab /tmp/siga-crontab.txt
+            rm -f /tmp/siga-crontab.txt
+            crontab -l | grep 'backup-bd.sh'
 
             cat > .env <<EOF
             REGISTRY=$REGISTRY
