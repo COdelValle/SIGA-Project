@@ -55,13 +55,15 @@ x-ms-common-env: &ms-common-env
   # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
   SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
 
-# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio)
+# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio).
+# Los JVM tardan ~100 s en arrancar y mas aun en una recreacion masiva: un
+# start_period amplio evita que docker los marque "unhealthy" a mitad de boot.
 x-ms-healthcheck: &ms-healthcheck
   test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${SERVER_PORT}/actuator/health || exit 1"]
-  interval: 15s
+  interval: 10s
   timeout: 5s
-  retries: 5
-  start_period: 45s
+  retries: 12
+  start_period: 240s
 
 services:
   # ---------------------------------------------------------------
