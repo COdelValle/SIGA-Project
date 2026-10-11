@@ -56,6 +56,8 @@ export type ModoCalculo = 'SIMPLE' | 'PONDERADO';
 
 export interface NotaDetalle {
   numero: number;
+  /** Nombre de la evaluacion asociada (se muestra en el detalle de la celda). */
+  nombre: string;
   valor: number;
   /** Peso de la nota en el promedio (modo PONDERADO). */
   ponderacion: number;

@@ -591,6 +591,71 @@ Reglas de mantenimiento:
   ahora reinicia Caddy en cada deploy (`fa0a819`); sin eso, un Caddyfile nuevo no
   se aplica porque el bind mount no recrea el contenedor.
 
+### PR-20261011-11 — Round-trip del tipo de evaluación, detalle de notas y colas colgadas
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` (esta sesión)
+- **Alcance**: (1) fix del bug de ponderación en `Registrar notas`: tras crear o
+  editar una evaluación el tipo volvía como texto visible (`"Evaluación Sumativa"`)
+  y la UI dejaba de sumar/editar ponderaciones; (2) detalle emergente (nombre de la
+  evaluación, nota y ponderación) sobre **cada celda de nota** de la tabla de notas
+  del portal estudiante y apoderados (hover en desktop, tap en móvil); (3)
+  reparación de las colas `cola-notificaciones-notas` y
+  `cola-notificaciones-evaluaciones`, colgadas tras el stop abrupto del lab; (4)
+  batería de pruebas de mensajería (verdes, idempotencia y errores → DLQ) con
+  limpieza de artefactos.
+- **Entorno**: local (Maven 3.9/JDK 21, Vitest) + AWS `us-east-1` (EC2 `t3.large`,
+  EIP `52.54.139.252`, RabbitMQ 4.3.6 en clúster de 2 nodos).
+- **Causa raíz (bug de ponderación)**: `TipoEvaluacion` serializaba con
+  `@JsonValue` el texto visible; el GET agregado del BFF lo normalizaba a
+  `"SUMATIVA"` (`NotaBffService`), pero las respuestas de POST/PUT devolvían
+  `"Evaluación Sumativa"`. El frontend compara estricto (`=== 'SUMATIVA'`), así que
+  el estado local quedaba con tipo no canónico: `Ponderación total: 0%`, input `%`
+  deshabilitado y "No pondera". La base estaba correcta (V4 aplicada; curso 1:
+  30+50+20 = 100).
+- **Cambios**:
+  1. `TipoEvaluacion`: se quita `@JsonValue`; el JSON usa la constante
+     (`SUMATIVA`/`FORMATIVA`/`DIAGNOSTICO`). `@JsonCreator` sigue aceptando el
+     texto visible legacy (payloads antiguos del outbox).
+  2. Frontend: `normalizarTipo()` (guard defensivo) en `DocenteNotasService` para
+     `getCursoNotas`, `crearEvaluacion` y `editarEvaluacion`.
+  3. `NotaDetalle.nombre` + mapper (`perfil.mapper.ts`) + mocks; popover compacto
+     en `NotasTablaComponent` (ancho ajustado al contenido, `position: fixed`
+     anti-recorte, hover/focus/tap, "No pondera" si ponderación 0).
+  4. Compose: `stop_grace_period: 60s` en `rabbitmq1`/`rabbitmq2`.
+- **Reparación de colas**: `cola-notificaciones-notas` y
+  `cola-notificaciones-evaluaciones` no aparecían en `rabbitmqctl list_queues` y el
+  consumidor fallaba el passive declare (`404 NOT_FOUND ... due to timeout`); DLQ y
+  bindings intactos. Causa: cierre no limpio de RabbitMQ (stop del lab sin gracia).
+  Se reinició `rabbitmq1` (`docker restart`): las 18 colas volvieron `running` con
+  `consumers=1` en las tres académicas y 0 mensajes (sin pérdidas). Los outbox
+  afectados quedaron históricos (`FALLIDO`: evaluaciones 24, notas 2) y **no** se
+  re-encolaron por decisión de la sesión.
+- **Resultado**: `OK` local y en la nube para colas/pruebas; pendiente el redeploy
+  por CD y la verificación visual del usuario (ponderar una SUMATIVA y ver el
+  detalle de notas).
+- **Evidencia**:
+  - Backend: reactor `mvn package` `BUILD SUCCESS` (14 módulos; `EnumsJsonTest`
+    actualizado + test de serialización de `EvaluacionResponseDTO` con
+    `"tipo":"SUMATIVA"`).
+  - Frontend: Vitest **42/42** (`notas-tabla` 5 nuevos; `docente-notas.service`
+    2 nuevos de normalización; resto existente en verde).
+  - Colas (rabbitmqctl): 18 `running`; tres académicas con `consumers=1`; DLQ en 0
+    tras la limpieza.
+  - Mensajería (management API + MariaDB):
+    - verdes: `nota.creada` → fila `NOTA` «Calificación agregada en CIENCIAS
+      NATURALES» (id 71); `evaluacion.creada` → fila `EVALUACION` (id 73);
+      `asistencia.registrada` → fila `ASISTENCIA` (id 74); colas drenadas
+      (`ready=0`, ACK, sin DLQ).
+    - idempotencia: reenvío del mismo `idEvento` → 1 sola fila.
+    - errores: JSON malformado → `cola-notificaciones-notas.dlq` (+1); evaluación
+      sin `idCursoAsignatura` → `.dlq` evaluaciones (+1); nota sin `idEstudiante`
+      → `.dlq` notas (+1). DLQ purgadas y filas de prueba eliminadas.
+- **Pendientes / notas**: el `id_evento` persistido en `notificaciones` es el UUID
+  v3 derivado del `idEvento` (`UUID.nameUUIDFromBytes`), no el string original: las
+  consultas de evidencia deben usar el UUID. En modo mock, los nombres de
+  evaluación se generan (`PRUEBA 1`, `TRABAJO 1`, `EXAMEN`, …).
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -682,6 +747,13 @@ Colas esperadas: `user.azure.sync.queue`, `ms.estudiantes.queue`,
 exchange directo `siga.dlx.direct`. Verificar la unión del clúster con
 `docker exec rabbitmq1 rabbitmqctl cluster_status` (dos nodos `running`). UI:
 `http://localhost:15672` (solo el nodo `rabbitmq1` publica el puerto).
+
+Si una cola académica no aparece en `list_queues` y el consumidor registra
+`404 NOT_FOUND ... due to timeout` en el passive declare, la cola quedó colgada
+por un cierre no limpio (p. ej. stop abrupto del lab). Recuperación sin pérdida de
+datos: `docker restart rabbitmq1` (las colas viven en el EBS y recuperan su
+profundidad); después verificar `list_queues` con `consumers=1`. El compose define
+`stop_grace_period: 60s` en los nodos para permitir el cierre limpio.
 
 ### 5.6.2 Bandeja académica in-app
 

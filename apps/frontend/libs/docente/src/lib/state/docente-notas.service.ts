@@ -7,7 +7,7 @@ import {
   DOCENTE_ACTUAL_ID,
   cursosDelDocente,
 } from '@siga/mocks';
-import { Observable, of } from 'rxjs';
+import { Observable, map, of } from 'rxjs';
 
 export type TipoEvaluacion = 'FORMATIVA' | 'DIAGNOSTICO' | 'SUMATIVA';
 
@@ -51,6 +51,26 @@ const PONDERACIONES = [0, 80, 0];
 const NOMBRES = ['CONTROL 1', 'PRUEBA', 'DIAGNOSTICO'];
 
 /**
+ * El BFF puede devolver el tipo como constante ("SUMATIVA") o como texto
+ * visible legacy ("Evaluación Sumativa"): se normaliza siempre a la constante
+ * para que la UI (filtros de ponderacion, inputs) compare un unico valor.
+ */
+function normalizarTipo(valor: string): TipoEvaluacion {
+  const texto = (valor ?? '').toLowerCase();
+  const canonico = TIPOS.find((tipo) => tipo.toLowerCase() === texto);
+  if (canonico) {
+    return canonico;
+  }
+  if (texto.includes('sumativa')) {
+    return 'SUMATIVA';
+  }
+  if (texto.includes('diagn')) {
+    return 'DIAGNOSTICO';
+  }
+  return 'FORMATIVA';
+}
+
+/**
  * Notas y evaluaciones del curso contra el BFF. En modo demo (`useMocks`) usa
  * un set en memoria derivado de los mocks del docente.
  */
@@ -65,9 +85,11 @@ export class DocenteNotasService {
     if (this.config.useMocks) {
       return of(this.demoCurso(asignaturaId));
     }
-    return this.http.get<CursoNotas>(
-      `${this.config.bffBaseUrl}/bff/v1/docentes/cursos/${asignaturaId}/notas`,
-    );
+    return this.http
+      .get<CursoNotas>(
+        `${this.config.bffBaseUrl}/bff/v1/docentes/cursos/${asignaturaId}/notas`,
+      )
+      .pipe(map((curso) => this.normalizarCurso(curso)));
   }
 
   crearNota(idEstudiante: number, idEvaluacion: number, score: number): Observable<NotaCurso> {
@@ -112,10 +134,12 @@ export class DocenteNotasService {
       this.demoCurso(asignaturaId).evaluaciones.push(evaluacion);
       return of(evaluacion);
     }
-    return this.http.post<EvaluacionNotas>(`${this.config.bffBaseUrl}/bff/v1/evaluaciones`, {
-      ...request,
-      idCursoAsignatura: asignaturaId,
-    });
+    return this.http
+      .post<EvaluacionNotas>(`${this.config.bffBaseUrl}/bff/v1/evaluaciones`, {
+        ...request,
+        idCursoAsignatura: asignaturaId,
+      })
+      .pipe(map((evaluacion) => this.normalizarEvaluacion(evaluacion)));
   }
 
   editarEvaluacion(id: number, request: EvaluacionRequest): Observable<EvaluacionNotas> {
@@ -126,10 +150,9 @@ export class DocenteNotasService {
       }
       return of(evaluacion ?? { id, ...request });
     }
-    return this.http.put<EvaluacionNotas>(
-      `${this.config.bffBaseUrl}/bff/v1/evaluaciones/${id}`,
-      request,
-    );
+    return this.http
+      .put<EvaluacionNotas>(`${this.config.bffBaseUrl}/bff/v1/evaluaciones/${id}`, request)
+      .pipe(map((evaluacion) => this.normalizarEvaluacion(evaluacion)));
   }
 
   eliminarEvaluacion(id: number): Observable<void> {
@@ -143,6 +166,19 @@ export class DocenteNotasService {
       return of(void 0);
     }
     return this.http.delete<void>(`${this.config.bffBaseUrl}/bff/v1/evaluaciones/${id}`);
+  }
+
+  // --- Normalizacion de tipos del BFF ---
+
+  private normalizarCurso(curso: CursoNotas): CursoNotas {
+    return {
+      ...curso,
+      evaluaciones: curso.evaluaciones.map((evaluacion) => this.normalizarEvaluacion(evaluacion)),
+    };
+  }
+
+  private normalizarEvaluacion(evaluacion: EvaluacionNotas): EvaluacionNotas {
+    return { ...evaluacion, tipo: normalizarTipo(evaluacion.tipo) };
   }
 
   // --- Modo demo ---

@@ -421,6 +421,7 @@ const NOTAS_LILITH_2025: PlanNotas[] = [
 
 const PATRONES = [-0.4, 0.3, -0.2, 0.5, -0.6, 0.2, 0.4, -0.3];
 const PESOS = [20, 30, 50];
+const NOMBRES_EVALUACION = ['PRUEBA 1', 'TRABAJO 1', 'EXAMEN', 'PRUEBA 2', 'DIAGNOSTICO'];
 
 function clamp(valor: number, minimo: number, maximo: number): number {
   return Math.min(maximo, Math.max(minimo, valor));
@@ -435,7 +436,12 @@ function generarNotas(promedio: number, cantidad: number, semilla: number): Nota
     const ponderacion = PESOS[i % PESOS.length];
     const offset = PATRONES[(i + semilla) % PATRONES.length];
     const valor = redondear1(clamp(promedio + offset, 1, 7));
-    notas.push({ numero: i + 1, valor, ponderacion });
+    notas.push({
+      numero: i + 1,
+      nombre: NOMBRES_EVALUACION[i % NOMBRES_EVALUACION.length],
+      valor,
+      ponderacion,
+    });
     sumaPesos += ponderacion;
     sumaPonderada += valor * ponderacion;
   }

@@ -71,6 +71,9 @@ services:
     container_name: rabbitmq1
     hostname: rabbitmq1
     restart: unless-stopped
+    # El stop del laboratorio mata la VM: sin gracia suficiente RabbitMQ no
+    # alcanza a cerrar las colas y quedan procesos colgados al reiniciar.
+    stop_grace_period: 60s
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -92,6 +95,7 @@ services:
     container_name: rabbitmq2
     hostname: rabbitmq2
     restart: unless-stopped
+    stop_grace_period: 60s
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { NotaDetalle, promedioNotas } from './academico.model';
 
 function nota(valor: number, ponderacion: number): NotaDetalle {
-  return { numero: 1, valor, ponderacion };
+  return { numero: 1, nombre: 'PRUEBA', valor, ponderacion };
 }
 
 describe('promedioNotas', () => {

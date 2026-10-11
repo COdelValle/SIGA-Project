@@ -2,7 +2,6 @@ package cl.siga.coreshare.dto.evaluaciones.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum TipoEvaluacion {
   @JsonProperty("FORMATIVA")
@@ -20,15 +19,17 @@ public enum TipoEvaluacion {
     this.nombre = nombre;
   }
 
-  @JsonValue
+  // El JSON usa el nombre de la constante (FORMATIVA/DIAGNOSTICO/SUMATIVA):
+  // el frontend tipa y compara contra esos valores. El texto visible se
+  // conserva en getNombre() para mensajes de negocio.
   public String getNombre() {
     return nombre;
   }
 
   /**
    * Acepta tanto el nombre de la constante (FORMATIVA) como el texto visible
-   * (Evaluación Formativa), sin distinguir mayusculas, para que el frontend
-   * pueda hacer round-trip del valor que recibe.
+   * legacy (Evaluación Formativa), sin distinguir mayusculas, para tolerar
+   * payloads antiguos del outbox y clientes previos al cambio de contrato.
    */
   @JsonCreator
   public static TipoEvaluacion desde(String valor) {

@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { APP_CONFIG } from '@siga/core';
-import { DocenteNotasService } from './docente-notas.service';
+import { CursoNotas, DocenteNotasService, EvaluacionNotas } from './docente-notas.service';
 
 function configurar(useMocks: boolean): void {
   TestBed.configureTestingModule({
@@ -101,6 +101,49 @@ describe('DocenteNotasService (modo real)', () => {
     const del = http.expectOne('/api/bff/v1/evaluaciones/9');
     expect(del.request.method).toBe('DELETE');
     del.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('normaliza el tipo cuando el BFF devuelve el texto visible legacy', () => {
+    let curso: CursoNotas | undefined;
+    service.getCursoNotas(3).subscribe((valor) => (curso = valor));
+
+    http.expectOne('/api/bff/v1/docentes/cursos/3/notas').flush({
+      asignaturaId: 3,
+      curso: '8vo A',
+      asignatura: 'CIENCIAS',
+      evaluaciones: [
+        { id: 1, nombre: 'PRUEBA 1', tipo: 'Evaluación Sumativa', ponderacion: 30 },
+        { id: 2, nombre: 'TRABAJO 1', tipo: 'Evaluación Formativa', ponderacion: 0 },
+        { id: 3, nombre: 'INICIAL', tipo: 'Evaluación Diagnóstica', ponderacion: 0 },
+      ],
+      alumnos: [],
+    });
+
+    expect(curso?.evaluaciones.map((evaluacion) => evaluacion.tipo)).toEqual([
+      'SUMATIVA',
+      'FORMATIVA',
+      'DIAGNOSTICO',
+    ]);
+  });
+
+  it('normaliza el tipo en las respuestas de crear y editar evaluación', () => {
+    let creada: EvaluacionNotas | undefined;
+    service.crearEvaluacion(3, { nombre: 'PRUEBA', tipo: 'SUMATIVA', ponderacion: 40 }).subscribe(
+      (valor) => (creada = valor),
+    );
+    http
+      .expectOne('/api/bff/v1/evaluaciones')
+      .flush({ id: 9, nombre: 'PRUEBA', tipo: 'Evaluación Sumativa', ponderacion: 40 });
+    expect(creada?.tipo).toBe('SUMATIVA');
+
+    let editada: EvaluacionNotas | undefined;
+    service.editarEvaluacion(9, { nombre: 'PRUEBA', tipo: 'SUMATIVA', ponderacion: 35 }).subscribe(
+      (valor) => (editada = valor),
+    );
+    http
+      .expectOne('/api/bff/v1/evaluaciones/9')
+      .flush({ id: 9, nombre: 'PRUEBA', tipo: 'Evaluación Sumativa', ponderacion: 35 });
+    expect(editada?.tipo).toBe('SUMATIVA');
   });
 
   it('propaga el error sin caer a mocks', () => {
