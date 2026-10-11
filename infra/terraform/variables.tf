@@ -82,7 +82,10 @@ variable "azure_audience" {
 }
 
 variable "azure_issuer" {
-  description = "issuer exacto del token. Verificar v1/v2 con jwt.ms antes de aplicar"
+  description = "issuer EXACTO del access token (v1: https://sts.windows.net/<tenant>/; v2: https://login.microsoftonline.com/<tenant>/v2.0). Verificar con jwt.ms: si la app tiene accessTokenAcceptedVersion nulo/1 emite v1 y este valor debe ser el de sts.windows.net"
   type        = string
-  default     = "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff/v2.0"
+  # La app actual (448f165b) emite tokens v1.0 (iss = sts.windows.net), por eso el
+  # Authorizer se configura con ese issuer. Si la app pasa a emitir v2 (manifest
+  # accessTokenAcceptedVersion = 2), actualizar a la URL de login.microsoftonline.com.
+  default = "https://sts.windows.net/f260a804-82ac-4b57-bb01-9ed6626d71ff/"
 }
