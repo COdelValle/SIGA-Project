@@ -388,6 +388,10 @@ jobs:
               PREPARE sc FROM @crear; EXECUTE sc; DEALLOCATE PREPARE sc;
               GRANT ALL PRIVILEGES ON siga_asignaturas_db.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;"
 
+            # Liberar espacio ANTES de bajar las imagenes nuevas: en el deploy
+            # anterior el pull lleno el disco raiz (20 GB) y fallo con
+            # "no space left on device". prune -a conserva las imagenes en uso.
+            docker image prune -a -f > /dev/null || true
             docker compose --env-file .env pull
             docker compose --env-file .env up -d --remove-orphans
             # El Caddyfile se monta como archivo: si su contenido cambia, compose
