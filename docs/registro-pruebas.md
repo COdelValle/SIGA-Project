@@ -538,6 +538,59 @@ Reglas de mantenimiento:
   a ejecutarla pisa lo creado en la nube. Las credenciales del lab expiran (~4 h) y
   un **Reset** del laboratorio borra el EBS.
 
+### PR-20261011-10 — Admin protegido, solo SUMATIVA pondera y panel sin basic auth
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `fa0a819` (`8a3a610`,
+  `5e7a6bd`, `45115f0` + este)
+- **Alcance**: tres fixes pedidos en la prueba anterior:
+  (1) el ADMIN no puede eliminar su propia cuenta ni al último administrador
+  activo; (2) solo las evaluaciones **SUMATIVA** ponderan en la nota final
+  (FORMATIVA/DIAGNOSTICO pueden tener nota, pero no influyen); (3) el panel de
+  RabbitMQ ya no usa `basic_auth` de Caddy: dos capas HTTP Basic en el mismo
+  origen comparten el header `Authorization` y causaban el bucle de credenciales.
+- **Entorno**: local (Maven/Vitest/build) + AWS (EC2 `t3.large`,
+  `https://52-54-139-252.sslip.io`), CD run `38110529344` en verde.
+- **Pasos**:
+  1. `UsuarioService.deleteUsuario`: rechazo de auto-eliminación (oid del token) y
+     del último ADMIN activo (`countByRolAndState`); `admin/usuarios` oculta
+     "Eliminar" en la fila propia vía `MeService`.
+  2. `EvaluacionService`: las no sumativas se guardan con ponderación 0 y las
+     SUMATIVA exigen > 0; el acumulado ≤100% solo suma SUMATIVAS. Migración `V4`
+     pone en 0 las FORMATIVA/DIAGNOSTICO existentes (SUMATIVAS de seeds se
+     mantienen en 80%). Frontend docente deshabilita el % en no sumativas y
+     `promedioNotas` (PONDERADO) ignora ponderación 0.
+  3. CD: Caddyfile sin `basic_auth`; se agrega `docker compose restart caddy`
+     tras el deploy porque el bind mount no recrea el contenedor.
+  4. Pruebas y despliegue: reactor `mvn package`, `tsc`, Vitest y build de
+     producción; push + `gh workflow run cd.yml`; verificaciones en la EC2.
+- **Resultado**: `PARCIAL` — backend, migración y panel verificados en AWS; la
+  confirmación visual (fila propia sin "Eliminar", DELETE propio rechazado y
+  evaluación FORMATIVA que no mueve el promedio) queda para la sesión del usuario.
+- **Evidencia**:
+  - Backend: `mvn package` del reactor completo `BUILD SUCCESS`;
+    `UsuarioServiceTest` 18/18 (3 nuevos: propia cuenta, último admin, con dos
+    admins permite baja) y `EvaluacionServiceTest` 10/10 (3 nuevos: SUMATIVA en 0
+    rechazada, no sumativa forzada a 0, acumulado ignora no sumativas).
+  - Frontend: `tsc` correcto, Vitest **35/35** (specs nuevos de `promedioNotas`,
+    `registrar-notas` y `admin/usuarios`) y build de producción OK.
+  - AWS: `flyway_schema_history` de `siga_evaluaciones_db` con
+    `4 ponderacion solo sumativa` en `success=1`; activas FORMATIVA 0 (129),
+    SUMATIVA 20/30/50 (2/131/129); `admin@platformsiga` ADMIN/ACTIVO.
+  - Panel: `https://52-54-139-252.sslip.io/` sin credenciales → `200` (ya no
+    `401` con `Www-Authenticate: Basic realm="restricted"`); `whoami` y
+    `/api/overview` con credenciales de RabbitMQ → `200`; 18 colas `running` con
+    consumidores en las colas de registro y académicas.
+  - Contenedores de la EC2 `healthy` con las imágenes nuevas
+    (`ms-usuarios-auth`, `ms-evaluaciones`, `bff-web`, `frontend`, `caddy`).
+- **Pendientes / notas**: repetir en el navegador: (a) tu fila en
+  `/admin/usuarios` sin "Eliminar" y `DELETE` propio rechazado; (b) crear una
+  FORMATIVA con nota (no debe mover el promedio) y una SUMATIVA con % (sí debe
+  moverlo); (c) entrar a la URL del panel y usar directo el login de RabbitMQ.
+  Los secrets `PANEL_BASIC_*` de GitHub quedan sin uso y se pueden borrar. El CD
+  ahora reinicia Caddy en cada deploy (`fa0a819`); sin eso, un Caddyfile nuevo no
+  se aplica porque el bind mount no recrea el contenedor.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -788,7 +841,7 @@ powershell -File tools/normalizar-datos.ps1
 | Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest` + `PublicadorNotaTest`, `EvaluacionServiceTest` + `PublicadorEvaluacionTest`, `AsistenciaServiceTest` + `PublicadorAsistenciaTest` |
 | `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `NotificacionControllerMappingsTest`, `MigracionesNotificacionesTest` |
 | `ms-rabbitmq-admin` | `RabbitAdminServiceTest`, `RabbitAdminControllerMappingsTest` |
-| Frontend | specs Vitest de `app`, `docente-notas.service`, `perfil-estudiante.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
+| Frontend | specs Vitest de `app`, `academico.model` (`promedioNotas`), `docente-notas.service`, `registrar-notas.component`, `usuarios.component`, `perfil-estudiante.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
 
 Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
 datos y Azure AD.
