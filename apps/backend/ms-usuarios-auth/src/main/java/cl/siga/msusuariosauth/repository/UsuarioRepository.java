@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import cl.siga.msusuariosauth.model.entity.Usuario;
 
 @Repository 
@@ -13,4 +15,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String>, JpaSp
     boolean existsByEmail(String email);
 
     Optional<Usuario> findByEmail(String email);
+
+    long countByRolAndState(Rol rol, StateUsuario state);
 }

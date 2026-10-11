@@ -271,6 +271,47 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void deleteUsuario_propiaCuentaLanzaBusinessException() {
+        autenticar(OID, EMAIL);
+        Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.ADMIN)
+                .state(StateUsuario.ACTIVO).build();
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
+
+        assertThrows(BusinessException.class, () -> service.deleteUsuario(OID));
+
+        assertEquals(StateUsuario.ACTIVO, usuario.getState());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteUsuario_ultimoAdminActivoLanzaBusinessException() {
+        autenticar("otro-oid", "otro@test.com");
+        Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.ADMIN)
+                .state(StateUsuario.ACTIVO).build();
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.countByRolAndState(Rol.ADMIN, StateUsuario.ACTIVO)).thenReturn(1L);
+
+        assertThrows(BusinessException.class, () -> service.deleteUsuario(OID));
+
+        assertEquals(StateUsuario.ACTIVO, usuario.getState());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteUsuario_conDosAdminsActivosPermiteBaja() {
+        autenticar("otro-oid", "otro@test.com");
+        Usuario usuario = Usuario.builder().id(OID).email(EMAIL).rol(Rol.ADMIN)
+                .state(StateUsuario.ACTIVO).build();
+        when(usuarioRepository.findById(OID)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.countByRolAndState(Rol.ADMIN, StateUsuario.ACTIVO)).thenReturn(2L);
+        when(usuarioRepository.save(usuario)).thenReturn(usuario);
+
+        service.deleteUsuario(OID);
+
+        assertEquals(StateUsuario.INACTIVO, usuario.getState());
+    }
+
+    @Test
     void updateUsuario_reactivadoHabilitaYAsignaRolEnEntra() {
         ActualizarUsuarioRequestDTO request =
                 new ActualizarUsuarioRequestDTO(EMAIL, StateUsuario.ACTIVO, Rol.DOCENTE);

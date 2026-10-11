@@ -275,6 +275,16 @@ public class UsuarioService {
     public void deleteUsuario(String id) {
         Usuario existingUsuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario con ID " + id + " no encontrado."));
+
+        if (SecurityUtils.getCurrentUserOid().map(id::equals).orElse(false)) {
+            throw new BusinessException("No puedes eliminar tu propia cuenta.");
+        }
+        if (existingUsuario.getRol() == Rol.ADMIN
+                && existingUsuario.getState() == StateUsuario.ACTIVO
+                && usuarioRepository.countByRolAndState(Rol.ADMIN, StateUsuario.ACTIVO) <= 1L) {
+            throw new BusinessException("No puedes eliminar al único administrador activo.");
+        }
+
         existingUsuario.setState(StateUsuario.INACTIVO);
         usuarioRepository.save(existingUsuario);
 
