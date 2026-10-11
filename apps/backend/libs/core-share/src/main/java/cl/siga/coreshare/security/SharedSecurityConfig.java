@@ -5,6 +5,7 @@ import com.azure.spring.cloud.autoconfigure.implementation.aad.security.AadResou
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +25,11 @@ public class SharedSecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Preflight CORS: OPTIONS es idempotente y no expone datos. Se
+                // permite para que el navegador reciba 2xx en el preflight
+                // (API Gateway reenvia el OPTIONS al BFF por la ruta explicita
+                // sin autorizacion); los metodos reales siguen autenticados.
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                     "/actuator/health",
                     "/actuator/info",

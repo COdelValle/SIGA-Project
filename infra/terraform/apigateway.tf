@@ -74,6 +74,17 @@ resource "aws_apigatewayv2_route" "api" {
   authorizer_id      = aws_apigatewayv2_authorizer.azure.id
 }
 
+# Preflight CORS: la ruta ANY captura tambien OPTIONS y lo hacia pasar por el
+# JWT Authorizer (401 en el preflight, que el navegador no acepta). Esta ruta
+# explicita sin autorizacion tiene prioridad sobre ANY y deja que API Gateway
+# responda el preflight con los headers CORS configurados arriba.
+resource "aws_apigatewayv2_route" "api_options" {
+  api_id             = aws_apigatewayv2_api.http.id
+  route_key          = "OPTIONS /api/{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.bff.id}"
+  authorization_type = "NONE"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http.id
   name        = "$default"
