@@ -395,4 +395,7 @@ jobs:
 
             docker compose --env-file .env pull
             docker compose --env-file .env up -d --remove-orphans
-            docker image prune -f
+            # Las imagenes con tag fijo se acumulan en cada deploy: se eliminan
+            # las no usadas de mas de 24 h para no llenar el disco raiz (20 GB).
+            docker image prune -a -f --filter "until=24h" > /dev/null
+            docker image prune -f > /dev/null
