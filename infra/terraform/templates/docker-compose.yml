@@ -107,9 +107,10 @@ services:
       retries: 10
 
   # Panel de RabbitMQ por HTTPS publico: Caddy termina TLS (Let's Encrypt via
-  # sslip.io) y hace reverse-proxy al Management UI. El Caddyfile lo genera el
-  # CD con basic auth (secret PANEL_BASIC_*); se usa solo el puerto 443 porque el
-  # 80 lo ocupa el frontend.
+  # sslip.io) y hace reverse-proxy al Management UI, que pide el login propio
+  # del broker. El Caddyfile lo genera el CD sin basic auth (dos capas Basic en
+  # el mismo origen provocan un bucle de credenciales); se usa solo el puerto
+  # 443 porque el 80 lo ocupa el frontend.
   caddy:
     image: caddy:2-alpine
     container_name: caddy

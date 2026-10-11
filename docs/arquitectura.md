@@ -139,7 +139,7 @@ Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID
 Hay dos entornos:
 
 - **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y el **clúster RabbitMQ de dos nodos** (`rabbitmq1`/`rabbitmq2`, con UI de management en `15672` solo en `rabbitmq1`) sobre la red `siga-network`, con configuracion por `.env` (incluye `RABBITMQ_ERLANG_COOKIE`).
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y el **clúster RabbitMQ de dos nodos** (misma EC2). El Management UI se publica por **HTTPS con Caddy** (`https://<ip-con-guiones>.sslip.io`, basic auth + login de RabbitMQ) y un **cron diario** respalda las 10 bases y las definiciones del broker en el EBS. Los datos (MariaDB, `rabbitmq1` y `rabbitmq2`) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
+- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y el **clúster RabbitMQ de dos nodos** (misma EC2). El Management UI se publica por **HTTPS con Caddy** (`https://<ip-con-guiones>.sslip.io`, login propio de RabbitMQ) y un **cron diario** respalda las 10 bases y las definiciones del broker en el EBS. Los datos (MariaDB, `rabbitmq1` y `rabbitmq2`) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
 
 Flujo de entrada:
 

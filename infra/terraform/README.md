@@ -136,9 +136,11 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 
 - El Management UI se publica por **HTTPS público** con Caddy:
   `https://<eip-con-guiones>.sslip.io` (p. ej. `https://52-54-139-252.sslip.io`).
-  Pide **dos logins**: basic auth del panel (`PANEL_BASIC_USER`/`PANEL_BASIC_PASSWORD`)
-  y luego el de RabbitMQ (`RABBITMQ_USER`/`RABBITMQ_PASS`). El `Caddyfile` lo
-  genera el CD en la EC2 desde los secrets y el SG abre 443.
+  Pide **un solo login**: el propio de RabbitMQ
+  (`RABBITMQ_USER`/`RABBITMQ_PASS`). No se usa basic auth de Caddy: dos capas
+  HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
+  un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
+  la EC2 y el SG abre 443.
 - **Respaldo diario** (cron del usuario `ubuntu`, 06:15 UTC): `backup-bd.sh`
   deja un dump por base + `export_definitions` de RabbitMQ en
   `/home/ubuntu/siga-data/backups/diario/<fecha>/` con rotación de 7 días.
@@ -178,8 +180,6 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `RABBITMQ_USER` | usuario de RabbitMQ |
 | `RABBITMQ_PASSWORD` | password de RabbitMQ |
 | `RABBITMQ_ERLANG_COOKIE` | cookie Erlang compartida por los dos nodos del clúster (generar con `openssl rand -hex 32`) |
-| `PANEL_BASIC_USER` | usuario del panel RabbitMQ (basic auth de Caddy), p. ej. `panel` |
-| `PANEL_BASIC_PASSWORD` | password del panel; el CD calcula el hash bcrypt en la EC2 (el texto plano no queda en el repo) |
 | `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
 | `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
 | `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |
