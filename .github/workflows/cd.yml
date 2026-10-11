@@ -408,6 +408,19 @@ jobs:
             # idempotente. Se cubren las 10 bases (no solo las nuevas) porque un
             # volumen antiguo puede no tener grants de estudiantes/notas/usuarios.
             docker compose --env-file .env up -d mariadb rabbitmq1 rabbitmq2
+            # MariaDB recien recreado tarda en aceptar conexiones: esperar el
+            # healthcheck antes de crear bases (evita "ERROR 2002 ... socket" y
+            # que el deploy muera a mitad de camino).
+            ESTADO_MARIA="starting"
+            for INTENTO in $(seq 1 30); do
+              ESTADO_MARIA=$(docker inspect -f '{{.State.Health.Status}}' siga-mariadb 2>/dev/null || echo starting)
+              [ "$ESTADO_MARIA" = "healthy" ] && break
+              sleep 5
+            done
+            if [ "$ESTADO_MARIA" != "healthy" ]; then
+              echo "MariaDB no quedo healthy tras el arranque (estado: $ESTADO_MARIA)." >&2
+              exit 1
+            fi
             docker compose --env-file .env exec -T mariadb mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" <<SQL
             CREATE DATABASE IF NOT EXISTS siga_usuarios_db     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS siga_estudiantes_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
