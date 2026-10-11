@@ -734,7 +734,8 @@ Reglas de mantenimiento:
   1. `cd.yml`: chown con `docker run` sobre la imagen resuelta del compose
      (`docker compose config --images`) → válido para cualquier variante de imagen.
   2. `cd.yml`: paso **Validar secrets requeridos** (falla listando los ausentes;
-     `REGISTRO_ASYNC_ENABLED` debe ser `true|false`).
+     `REGISTRO_ASYNC_ENABLED` debe ser `true|false`) y **espera del healthcheck de
+     MariaDB** tras recrearlo (sin eso el SQL moría con `ERROR 2002 ... socket`).
   3. `cd.yml`: **verificación post-deploy** — espera hasta ~8 min a las 9 colas de
      negocio con consumidores y aborta si falta topología o hay crashes de RabbitMQ.
   4. `user-data.sh`: RabbitMQ `100:101` y fin del `chown -R` sobre `siga-data`.
