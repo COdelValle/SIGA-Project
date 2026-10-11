@@ -12,6 +12,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @AutoConfiguration 
 @EnableWebSecurity
@@ -23,6 +28,7 @@ public class SharedSecurityConfig {
     public SecurityFilterChain sharedSecurityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
+            .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Preflight CORS: OPTIONS es idempotente y no expone datos. Se
@@ -54,5 +60,28 @@ public class SharedSecurityConfig {
             .with(AadResourceServerHttpSecurityConfigurer.aadResourceServer(), Customizer.withDefaults());
 
         return http.build();
+    }
+
+    /**
+     * CORS de paso para el preflight: API Gateway reenvia el OPTIONS al
+     * servicio (ruta explicita sin autorizacion) y Spring debe responder 2xx
+     * con su procesador CORS; sin esta configuracion el handler mapping
+     * rechaza el preflight con 403 "Invalid CORS request". La allowlist
+     * efectiva la impone API Gateway (ignora los headers CORS del backend);
+     * aqui no hay credenciales y los metodos reales siguen autenticados.
+     */
+    @Bean
+    @ConditionalOnMissingBean(CorsConfigurationSource.class)
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuracion = new CorsConfiguration();
+        configuracion.setAllowedOriginPatterns(List.of("*"));
+        configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuracion.setAllowCredentials(false);
+        configuracion.setMaxAge(300L);
+
+        UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+        fuente.registerCorsConfiguration("/**", configuracion);
+        return fuente;
     }
 }
