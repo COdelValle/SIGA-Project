@@ -62,9 +62,12 @@ public class EvaluacionService {
       );
     }
 
-    validarPonderacionAcumulada(request.idCursoAsignatura(), request.ponderacion(), null);
+    double ponderacion = normalizarPonderacion(request.tipo(), request.ponderacion());
+    validarPonderacionAcumulada(request.idCursoAsignatura(), request.tipo(), ponderacion, null);
 
-    EvaluacionResponseDTO creada = mapper.toResponseDto(repository.save(mapper.toEntity(request)));
+    Evaluacion entidad = mapper.toEntity(request);
+    entidad.setPonderacion(ponderacion);
+    EvaluacionResponseDTO creada = mapper.toResponseDto(repository.save(entidad));
     // Productor: avisa a estudiantes y apoderados sin bloquear la respuesta.
     publicador.publicarCreada(creada);
     return creada;
@@ -84,9 +87,11 @@ public class EvaluacionService {
       );
     }
 
-    validarPonderacionAcumulada(existingEvaluacion.getIdCursoAsignatura(), request.ponderacion(), idEvaluacion);
+    double ponderacion = normalizarPonderacion(request.tipo(), request.ponderacion());
+    validarPonderacionAcumulada(existingEvaluacion.getIdCursoAsignatura(), request.tipo(), ponderacion, idEvaluacion);
 
     mapper.updateEntityFromDto(request, existingEvaluacion);
+    existingEvaluacion.setPonderacion(ponderacion);
     EvaluacionResponseDTO actualizada = mapper.toResponseDto(repository.save(existingEvaluacion));
     // Productor: avisa el cambio de nombre, tipo o ponderación.
     publicador.publicarActualizada(actualizada);
@@ -123,12 +128,34 @@ public class EvaluacionService {
   }
 
   /**
-   * Valida que la inserción o actualización de una ponderación no supere el 100% en la dictación.
+   * Solo las evaluaciones SUMATIVA ponderan: exigen una ponderación mayor que
+   * 0% y el resto de tipos se guarda siempre con ponderación 0 (pueden tener
+   * notas, pero no influyen en el promedio).
    */
-  private void validarPonderacionAcumulada(Long idCursoAsignatura, Double nuevaPonderacion, Long idEvaluacionActual) {
+  private double normalizarPonderacion(TipoEvaluacion tipo, Double ponderacion) {
+    if (tipo != TipoEvaluacion.SUMATIVA) {
+      return 0.0;
+    }
+    if (ponderacion == null || ponderacion <= 0.0) {
+      throw new BusinessException("Las evaluaciones SUMATIVA deben tener una ponderación mayor que 0%.");
+    }
+    return ponderacion;
+  }
+
+  /**
+   * Valida que la inserción o actualización de una ponderación no supere el
+   * 100% en la dictación. Solo se consideran las evaluaciones SUMATIVA.
+   */
+  private void validarPonderacionAcumulada(
+      Long idCursoAsignatura, TipoEvaluacion tipo, double nuevaPonderacion, Long idEvaluacionActual) {
+    if (tipo != TipoEvaluacion.SUMATIVA) {
+      return;
+    }
+
     List<Evaluacion> evaluacionesDictacion = repository.findActiveByIdCursoAsignaturaForUpdate(idCursoAsignatura);
 
     double sumaActual = evaluacionesDictacion.stream()
+      .filter(ev -> ev.getTipo() == TipoEvaluacion.SUMATIVA)
       .filter(ev -> idEvaluacionActual == null || !ev.getId().equals(idEvaluacionActual))
       .mapToDouble(Evaluacion::getPonderacion)
       .sum();

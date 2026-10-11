@@ -1,5 +1,6 @@
 package cl.siga.msevaluaciones.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -76,12 +77,65 @@ class EvaluacionServiceTest {
 
         Evaluacion existente = new Evaluacion();
         existente.setId(1L);
+        existente.setTipo(TipoEvaluacion.SUMATIVA);
         existente.setPonderacion(80.0);
         when(repository.findActiveByIdCursoAsignaturaForUpdate(5L)).thenReturn(List.of(existente));
 
         assertThrows(BusinessException.class, () -> service.saveEvaluacion(
                 new RegistrarEvaluacionRequestDTO("PRUEBA 2", TipoEvaluacion.SUMATIVA, 30.0, 5L)));
         verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rechazaSumativaConPonderacionCero() {
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(true));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue("EXAMEN 2", 5L)).thenReturn(false);
+
+        assertThrows(BusinessException.class, () -> service.saveEvaluacion(
+                new RegistrarEvaluacionRequestDTO("EXAMEN 2", TipoEvaluacion.SUMATIVA, 0.0, 5L)));
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void guardarNoSumativaFuerzaPonderacionCero() {
+        RegistrarEvaluacionRequestDTO request =
+                new RegistrarEvaluacionRequestDTO("TAREA 1", TipoEvaluacion.FORMATIVA, 40.0, 5L);
+        Evaluacion entity = new Evaluacion();
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(true));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue("TAREA 1", 5L)).thenReturn(false);
+        when(mapper.toEntity(request)).thenReturn(entity);
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponseDto(entity)).thenReturn(
+                new EvaluacionResponseDTO(40L, "TAREA 1", TipoEvaluacion.FORMATIVA, 0.0, 5L, true));
+
+        service.saveEvaluacion(request);
+
+        assertEquals(0.0, entity.getPonderacion());
+        verify(repository, never()).findActiveByIdCursoAsignaturaForUpdate(5L);
+    }
+
+    @Test
+    void ponderacionAcumuladaIgnoraEvaluacionesNoSumativas() {
+        RegistrarEvaluacionRequestDTO request =
+                new RegistrarEvaluacionRequestDTO("PRUEBA 2", TipoEvaluacion.SUMATIVA, 30.0, 5L);
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(dictacion(true));
+        when(repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue("PRUEBA 2", 5L)).thenReturn(false);
+
+        Evaluacion formativa = new Evaluacion();
+        formativa.setId(1L);
+        formativa.setTipo(TipoEvaluacion.FORMATIVA);
+        formativa.setPonderacion(80.0);
+        when(repository.findActiveByIdCursoAsignaturaForUpdate(5L)).thenReturn(List.of(formativa));
+
+        Evaluacion entity = new Evaluacion();
+        when(mapper.toEntity(request)).thenReturn(entity);
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponseDto(entity)).thenReturn(
+                new EvaluacionResponseDTO(41L, "PRUEBA 2", TipoEvaluacion.SUMATIVA, 30.0, 5L, true));
+
+        service.saveEvaluacion(request);
+
+        assertEquals(30.0, entity.getPonderacion());
     }
 
     @Test

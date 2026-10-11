@@ -47,7 +47,7 @@ export interface EvaluacionRequest {
 }
 
 const TIPOS: TipoEvaluacion[] = ['FORMATIVA', 'SUMATIVA', 'DIAGNOSTICO'];
-const PONDERACIONES = [30, 50, 20];
+const PONDERACIONES = [0, 80, 0];
 const NOMBRES = ['CONTROL 1', 'PRUEBA', 'DIAGNOSTICO'];
 
 /**
