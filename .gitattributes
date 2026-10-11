@@ -1,0 +1,3 @@
+# Fin de linea por tipo de archivo.
+# Los scripts de shell viajan a Linux (EC2/cloud-init): SIEMPRE LF.
+*.sh text eol=lf
