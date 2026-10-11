@@ -706,7 +706,8 @@ Reglas de mantenimiento:
 ### PR-20261011-13 — Fix permanente de colas RabbitMQ (uid del volumen) y secrets de despliegue
 
 - **Fecha**: 2026-10-11
-- **Rama / commit**: `fix/mq-uid-secrets` → `dev`/`main`/`deploy` (CD run por confirmar)
+- **Rama / commit**: `fix/mq-uid-secrets` → `dev`/`main`/`deploy` @ `22702f5`; CD
+  run `38177233359` en verde
 - **Alcance**: eliminar de raíz las dos recurrencias (colas ×3, usuarios ×2):
   (1) chown del volumen de RabbitMQ **simbólico** (dentro del contenedor) en el CD
   y en `user-data.sh`; (2) imágenes de RabbitMQ y Caddy pineadas; (3) preflight de
@@ -748,13 +749,38 @@ Reglas de mantenimiento:
   restart` → 18 colas `running` con consumers, 0 crashes; E2E verde
   (`nota.creada` → notificación id 80), JSON malformado → DLQ, limpieza. Los
   `FALLIDO` no se re-encolaron (decisión de la sesión).
-- **Resultado**: reparación `OK`; despliegue por `deploy` y verificación final por
-  confirmar.
-- **Evidencia**: salida del chown (`999:999` → `100:101`), `list_queues` con las
-  18 colas y `consumers=1`, `docker logs | grep "Generic server"` = 0, E2E id 80.
-  (Se agrega el run del CD al completar.)
-- **Pendientes / notas**: si un secret se borra, el CD lo reporta por nombre (nunca
-  el valor) y `tools/set-github-secrets.ps1` lo restaura desde `.env`/`~/.aws`.
+- **Resultado**: `OK` — colas reparadas y **deploy en verde por la vía normal**
+  (push a `deploy`), con la verificación post-deploy del propio CD pasando.
+- **Incidencias de la sesión (con fix aplicado)**:
+  1. `tools/set-github-secrets.ps1` subió las credenciales del perfil `[siga]`
+     (el parser tomaba la última coincidencia de cada clave y
+     `~/.aws/credentials` tiene dos perfiles): el CD murió con *The security
+     token included in the request is invalid*. Fix: parser por sección INI
+     (`-AwsProfile`, default `default`).
+  2. Los secretos de DB/RabbitMQ/Azure **no coinciden con el `.env` local** (es
+     de desarrollo): al restaurarlos desde ahí, el CD falló con
+     `Access denied for user 'root'`. Fix: valores vigentes rescatados de la env
+     de los contenedores (`-RecoveryJson` con advertencias en el script) y reset
+     del root de MariaDB (`--skip-grant-tables`) al valor del secret.
+  3. Al recrearse MariaDB, el SQL del deploy corría antes de que aceptara
+     conexiones (`ERROR 2002 ... socket`): fix con espera del healthcheck.
+- **Evidencia**:
+  - Reparación: chown `999:999` → `100:101`, 18 colas `running` con `consumers=1`
+    en las 9 con listener, `Generic server` = 0, E2E verde (`nota.creada` →
+    notificación id 80) y error a DLQ con limpieza.
+  - CD `38177233359` en verde desde `deploy` (imágenes `22702f5`): preflight de
+    secrets, chown simbólico, espera de MariaDB y **verificación post-deploy de
+    topología** pasaron; 17/17 contenedores `healthy`; 18 colas; 0 crashes.
+  - Registro: `POST /api/bff/v1/admin/registraciones` sin token → `401` (ya no
+    `503`); `REGISTRO_ASYNC_ENABLED=true` y `REGISTRO_CRED_KEY` presentes en el
+    contenedor de `ms-usuarios-auth`.
+  - E2E final post-deploy: `nota.creada` → notificación id 81 (eliminada después);
+    cola en 0 con consumer.
+- **Pendientes / notas**: falta la verificación visual del usuario en la SPA
+  (registro de usuario sin 503, ponderación SUMATIVA y detalle de notas);
+  `dev`, `main` y `deploy` quedan sincronizadas y el CD se dispara por **push a
+  `deploy`**. Si un secret se borra, el CD lo reporta por nombre (nunca el valor)
+  y el script lo restaura; usar `-RecoveryJson` para los valores del despliegue.
 
 ## 5. Runbook reproducible
 
