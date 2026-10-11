@@ -662,6 +662,45 @@ Reglas de mantenimiento:
   consultas de evidencia deben usar el UUID. En modo mock, los nombres de
   evaluación se generan (`PRUEBA 1`, `TRABAJO 1`, `EXAMEN`, …).
 
+### PR-20261011-12 — Preflight CORS end-to-end y CD sin disco lleno
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `dev` @ `662f90c`; CD run `38169231699` en verde
+- **Alcance**: (1) fix del preflight CORS cross-origin (ruta `OPTIONS` sin auth +
+  CORS global de Spring MVC); (2) fix del CD que fallaba con *no space left on
+  device* en la EC2.
+- **Causa raíz CORS**: la ruta `ANY /api/{proxy+}` capturaba `OPTIONS` y el JWT
+  Authorizer respondia `401`; al agregar la ruta `OPTIONS` sin autorizacion, el
+  handler mapping de Spring rechazaba con `403 Invalid CORS request` (no habia
+  `CorsConfigurationSource`). Un primer intento (`CorsFilter` de Security +
+  bean) **no surtio efecto** (verificado local y en AWS con la imagen
+  desplegada); la solucion efectiva fue `WebMvcConfigurer.addCorsMappings` en
+  `core-share`, sin `.cors()` en la cadena.
+- **Causa raíz disco**: las imagenes con tag fijo de cada deploy se acumulaban
+  (10.8 GB recuperables) y el `pull` llenaba el disco raiz (20 GB); el prune
+  existente corria despues del `up`.
+- **Pasos**:
+  1. PR #89: ruta `OPTIONS /api/{proxy+}` (NONE) + `OPTIONS` permitido en Spring.
+  2. PR #91: primer intento de CORS en el backend (descartado tras verificar
+     `403` en local y en AWS).
+  3. PR #92: CORS global de Spring MVC; verificado local (200 + headers) y en
+     AWS.
+  4. Deploy manual de recuperacion (prune + pull + up) y PR #93 (prune antes
+     del pull).
+  5. CD `38169231699` en verde; verificacion final de preflight
+     (permitido/denegado), `401` y SPA.
+- **Resultado**: `OK`.
+- **Evidencia**:
+  - Preflight permitido -> `200` con `access-control-allow-origin:
+    http://localhost:4200`, metodos `DELETE,GET,OPTIONS,PATCH,POST,PUT`,
+    headers `authorization,content-type` y `max-age 300`; origen denegado ->
+    `200` **sin** `access-control-allow-origin`.
+  - `GET /api/me` sin token -> `401`; SPA `/` -> `200`.
+  - CD `38169231699` verde; contenedores `healthy` con la imagen `662f90c`.
+  - Disco de la EC2 tras la limpieza: 45–56% usado (antes 99%).
+- **Pendientes / notas**: la allowlist efectiva vive en API Gateway
+  (`cors_allowed_origins`); el backend solo responde el preflight.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
