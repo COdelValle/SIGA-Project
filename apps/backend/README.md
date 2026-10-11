@@ -68,6 +68,11 @@ misma EC2) con **intercambio tipo Topic**. Los servicios se conectan con
   está enlazada con su nombre como routing key. Eventos que agoten ocho intentos
   de publicación quedan en estado `FALLIDO` en el outbox para diagnóstico y
   reproceso manual.
+- El **retry del contenedor queda desactivado** (`spring.rabbitmq.listener.simple.retry.enabled=false`,
+  también `SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED=false` en Compose): con
+  ACK manual, el recoverer por defecto no rechaza el mensaje y este quedaría
+  retenido sin confirmar. Los reintentos viven en `ConfirmadorMensajes`; un error
+  de conversión es fatal y deriva de inmediato a la DLQ.
 - API de la bandeja (vía BFF): `GET .../me`, `GET .../me/no-leidas/count`,
   `PATCH .../me/{id}/leida`, `PATCH .../me/leidas` (marcar todas) y
   `DELETE .../me/leidas` (limpiar mis leídas; oculta solo para el OID actual sin

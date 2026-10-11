@@ -1,5 +1,10 @@
 name: siga
 
+# Volumenes nombrados del proyecto (certificados y estado de Caddy).
+volumes:
+  caddy_data:
+  caddy_config:
+
 # Variables comunes a todos los microservicios.
 # AZURE_* alimenta los placeholders de core-share/common-properties.yaml.
 x-ms-common-env: &ms-common-env
@@ -18,17 +23,24 @@ x-ms-common-env: &ms-common-env
   SPRING_RABBITMQ_PUBLISHER_CONFIRM_TYPE: correlated
   SPRING_RABBITMQ_PUBLISHER_RETURNS: "true"
   SPRING_RABBITMQ_TEMPLATE_MANDATORY: "true"
+  # ACK/NACK manuales: los reintentos viven en ConfirmadorMensajes (en memoria).
+  # El retry del contenedor se desactiva para que un error de conversión sea
+  # fatal y derive de inmediato a la DLQ, en vez de quedar retenido sin confirmar.
+  SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED: "false"
   # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
   # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
   SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
 
-# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio)
+# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio).
+# Los JVM tardan ~100 s en arrancar en la t3 y mas aun en una recreacion masiva:
+# un start_period amplio evita que docker los marque "unhealthy" a mitad de boot
+# y que compose aborte el deploy por una dependencia transitoriamente no sana.
 x-ms-healthcheck: &ms-healthcheck
   test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${SERVER_PORT}/actuator/health || exit 1"]
-  interval: 15s
+  interval: 10s
   timeout: 5s
-  retries: 5
-  start_period: 45s
+  retries: 12
+  start_period: 240s
 
 services:
   mariadb:
@@ -59,6 +71,9 @@ services:
     container_name: rabbitmq1
     hostname: rabbitmq1
     restart: unless-stopped
+    # El stop del laboratorio mata la VM: sin gracia suficiente RabbitMQ no
+    # alcanza a cerrar las colas y quedan procesos colgados al reiniciar.
+    stop_grace_period: 60s
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -80,6 +95,7 @@ services:
     container_name: rabbitmq2
     hostname: rabbitmq2
     restart: unless-stopped
+    stop_grace_period: 60s
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -93,6 +109,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # Panel de RabbitMQ por HTTPS publico: Caddy termina TLS (Let's Encrypt via
+  # sslip.io) y hace reverse-proxy al Management UI, que pide el login propio
+  # del broker. El Caddyfile lo genera el CD sin basic auth (dos capas Basic en
+  # el mismo origen provocan un bucle de credenciales); se usa solo el puerto
+  # 443 porque el 80 lo ocupa el frontend.
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - /home/ubuntu/siga/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
 
   ms-usuarios-auth:
     image: ${REGISTRY}/siga-usuarios-auth:${IMAGE_TAG}

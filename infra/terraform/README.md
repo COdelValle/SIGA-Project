@@ -21,9 +21,10 @@ EC2 t3.large (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
   |- ms-*:8081/8083-8092          (8082 reservado: ms-auditoria)
-  |- rabbitmq1 + rabbitmq2:5672   (clúster; management solo 127.0.0.1:15672)
+  |- caddy:443       panel RabbitMQ (https://<ip-con-guiones>.sslip.io)
+  |- rabbitmq1 + rabbitmq2:5672   (clúster; management interno 15672)
   |- mariadb:3306    10 bases
-  `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
+  `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy; backups diarios)
 ```
 
 Nota: se intentó CloudFront para el HTTPS, pero el LabRole deniega
@@ -130,6 +131,22 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 `siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
 `siga-asistencias`, `siga-notificaciones`, `siga-rabbitmq-admin`,
 `siga-bff-web` y `siga-frontend`.
+
+## Panel de RabbitMQ y respaldos
+
+- El Management UI se publica por **HTTPS público** con Caddy:
+  `https://<eip-con-guiones>.sslip.io` (p. ej. `https://52-54-139-252.sslip.io`).
+  Pide **un solo login**: el propio de RabbitMQ
+  (`RABBITMQ_USER`/`RABBITMQ_PASS`). No se usa basic auth de Caddy: dos capas
+  HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
+  un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
+  la EC2 y el SG abre 443.
+- **Respaldo diario** (cron del usuario `ubuntu`, 06:15 UTC): `backup-bd.sh`
+  deja un dump por base + `export_definitions` de RabbitMQ en
+  `/home/ubuntu/siga-data/backups/diario/<fecha>/` con rotación de 7 días.
+  El CD reinstala script y cron en cada deploy (idempotente).
+- Los datos (MariaDB y RabbitMQ) viven en el EBS: sobreviven reinicios,
+  redeploys y reemplazos de instancia. Un **Reset** del laboratorio los borra.
 
 ## Notas del laboratorio
 

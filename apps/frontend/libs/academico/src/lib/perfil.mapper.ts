@@ -88,6 +88,7 @@ export function periodoDePerfil(
         .filter((evaluacion) => evaluacion.nota !== null)
         .map((evaluacion, indice) => ({
           numero: indice + 1,
+          nombre: evaluacion.nombre,
           valor: evaluacion.nota as number,
           ponderacion: evaluacion.ponderacion,
         }));
@@ -132,6 +133,7 @@ export function notasResumenDePerfil(
         .filter((evaluacion) => evaluacion.nota !== null)
         .map((evaluacion) => ({
           numero: 0,
+          nombre: evaluacion.nombre,
           valor: evaluacion.nota as number,
           ponderacion: evaluacion.ponderacion,
         }));

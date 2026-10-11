@@ -344,6 +344,13 @@ Reglas de mantenimiento:
 - **Resultado**: `OK` — el clúster queda formado y la topología declarada coincide
   con la especificación; la API de administración exige autenticación. La
   medición de memoria en la EC2 y el E2E con JWT de Entra quedan pendientes.
+- **Fix durante la verificación**: con ACK manual, el retry del contenedor dejaba
+  el mensaje **retenido** al agotar reintentos (`RejectAndDontRequeueRecoverer`
+  envuelve la excepción y el contenedor no rechaza en modo manual). Se desactivó
+  `spring.rabbitmq.listener.simple.retry.enabled=false` en los cinco servicios
+  consumidores (y `SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED=false` en el
+  entorno común de Compose): los reintentos viven en `ConfirmadorMensajes` y un
+  error de conversión ahora es fatal y deriva de inmediato a la DLQ.
 - **Evidencia**:
   - Backend `BUILD SUCCESS` (14 módulos, incluye `ms-rabbitmq-admin`); tests
     unitarios en verde: `ConfirmadorMensajesTest` 4/4,
@@ -360,6 +367,19 @@ Reglas de mantenimiento:
   - Cookie Erlang: valor propio en `.env` y secret `RABBITMQ_ERLANG_COOKIE`
     creado en GitHub (repo `COdelValle/SIGA-Project`); ambos contenedores
     reiniciados con esa cookie y `erlang:get_cookie()` idéntico en los dos nodos.
+  - Prueba E2E de DLQ: mensaje malformado publicado a `intercambio-notificaciones`
+    (routing `nota.creada`) → `MessageConversionException` fatal →
+    `AmqpRejectAndDontRequeueException: Error Handler converted exception to fatal`
+    → 1 mensaje en `cola-notificaciones-notas.dlq`; luego purgado.
+  - Prueba E2E de ACK: `EventoNota` válido publicado al mismo exchange →
+    consumido (cola en 0) y persistido en `siga_notificaciones_db` como
+    `NOTA/CREADA`; el dato sintético (`id_destino=999999`) se eliminó.
+  - Prueba E2E de NACK de negocio: evento sin `idEstudiante` →
+    `EventoInvalidoException` → NACK sin requeue (`basicNack(false)`) → 1 mensaje
+    en `cola-notificaciones-notas.dlq`; luego purgado.
+  - Stack completo `healthy` (11 microservicios, 10 bases, BFF, frontend y los dos
+    nodos RabbitMQ); `mvn package` con tests en verde; frontend `tsc` y Vitest
+    28/28.
 - **Pendientes / notas**: la migración de topología cambia los argumentos de las
   colas existentes (`x-dead-letter-exchange`), por eso el clúster usa volúmenes
   nuevos (`rabbitmq1_data`/`rabbitmq2_data`) y el volumen `rabbitmq_data` previo
@@ -422,6 +442,225 @@ Reglas de mantenimiento:
   (`docker compose up -d --build frontend`) cuando el engine esté estable y sin
   otras stacks corriendo. Efecto secundario aceptado: al remontar una página se
   reconsulta el perfil/asistencias (más peticiones, datos siempre frescos).
+
+### PR-20261009-08 — Despliegue AWS real con clúster RabbitMQ y administrador
+
+- **Fecha**: 2026-10-09
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `de16c31` (+ cambios locales de esta sesión)
+- **Alcance**: despliegue completo en AWS Academy (EC2 + EBS + API Gateway + ECR) del
+  stack con **clúster RabbitMQ de dos nodos** y `ms-rabbitmq-admin`; corrección de los
+  hallazgos que aparecieron durante el despliegue.
+- **Entorno**: AWS `us-east-1`; EC2 `t3.large` (EIP `52.54.139.252`); API Gateway
+  `https://87hjovxzud.execute-api.us-east-1.amazonaws.com`; Docker Compose en la EC2.
+- **Prerrequisitos**: credenciales del Learner Lab vigentes (locales y en GitHub) y
+  `labsuser.pem` para SSH.
+- **Pasos**:
+  1. `terraform apply`: crea los 7 repos ECR faltantes y actualiza API Gateway (CORS)
+     y la instancia en caliente; sin destrucciones.
+  2. `gh workflow run cd.yml --ref feat/rabbitmq-cluster-admin`: build/push de 13
+     imágenes ECR y deploy por SSH.
+  3. Corregir incidencias del despliegue (ver abajo) hasta que los 16 contenedores
+     queden `healthy`.
+  4. Validar clúster, colas/consumidores, endpoints públicos y E2E de ACK/DLQ.
+- **Resultado**: `OK` — stack completo `healthy`; clúster con **18 colas en `running`** y
+  consumidores en las colas de registro y académicas; DLQ y ACK verificados en la nube.
+- **Evidencia**:
+  - `cluster_status`: `rabbit@rabbitmq1` y `rabbit@rabbitmq2` running, sin particiones.
+  - `list_queues name state`: 18 colas `running`; `list_queues name consumers` con 1
+    consumidor por cola de registro y académica (tras reiniciar los consumidores).
+  - API Gateway: SPA `200` con `<app-root>`, `config.json` servido y `/api/me` sin
+    token → `401`.
+  - DLQ en nube: mensaje malformado → 1 en `cola-notificaciones-notas.dlq` (purgado);
+    `EventoNota` válido → cola en 0 y fila `NOTA/CREADA` en `siga_notificaciones_db`
+    (dato sintético eliminado).
+  - Recursos: `t3.large` con 5.5/7.8 GB usados y swap sin uso; cada nodo RabbitMQ
+    ~90 MB. 16 contenedores en la EC2.
+  - Run final del CD completo (`workflow_dispatch`) **en verde**: run
+    `37878148812`; el redeploy recreó los servicios con las imágenes nuevas y los
+    consumidores quedaron registrados (1 por cola de registro y académica).
+- **Incidencias corregidas**:
+  1. Maven Central `429` transitorio en el primer build (re-run del workflow).
+  2. `PREPARE` con dos statements en el CD → separados en `DROP`/`CREATE` (`dc4943f`).
+  3. Grants faltantes de `siga_estudiantes_db`/`siga_notas_db` → el CD crea y otorga
+     las 10 bases de forma idempotente (`de16c31`).
+  4. Checksums Flyway desalineados: `siga_asignaturas_db` recreada una vez
+     (V1–V4 aplicadas limpias) y `siga_usuarios_db` reparada por SQL (V2).
+  5. El AMI más reciente forzaba el reemplazo de la EC2 → `lifecycle ignore_changes`
+     de `ami` (`33b5d28`).
+  6. Cookie Erlang del volumen desalineada con la variable → se alineó el archivo y el
+     CD ahora la pre-escribe antes del arranque de los nodos.
+  7. Listeners detenidos por `missingQueuesFatal` durante el arranque en frío →
+     `missing-queues-fatal=false` + reinicio de los consumidores.
+- **Pendientes / notas**: los secrets `AZURE_*` de GitHub apuntan a otro tenant
+  (`afad9bb4`/`c3cfc64e`) distinto del local (`448f165b`/`f260a804`); el login de la
+  nube usa el de los secrets. El CD sigue siendo manual (`workflow_dispatch`) porque
+  las credenciales del lab expiran (~4 h).
+
+### PR-20261010-09 — Datos locales en AWS, panel RabbitMQ público y respaldo diario
+
+- **Fecha**: 2026-10-10
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `4c366d9` (+ fixes de esta sesión)
+- **Alcance**: (1) reemplazo de las 10 bases de AWS por las locales (persistentes);
+  (2) panel de RabbitMQ público por HTTPS con Caddy + basic auth; (3) respaldo
+  diario de bases y definiciones en el EBS; (4) fixes del CD detectados durante el
+  despliegue.
+- **Entorno**: AWS `us-east-1` (EC2 t3.large, EIP `52.54.139.252`), API Gateway y
+  Docker Compose; dumps generados desde el stack local.
+- **Pasos**:
+  1. `mariadb-dump` de las 10 bases locales (incluye `flyway_schema_history`) y
+     `scp` a la EC2.
+  2. Respaldo de las 10 bases de AWS en `siga-data/backups/pre-sync-*`.
+  3. App detenida, `DROP/CREATE` + `GRANT` + import por base; reinicio vía CD.
+  4. `terraform apply` (SG 443) + CD: Caddy, cron de respaldo y limpieza de imágenes.
+  5. Verificación de conteos, login por el Gateway, panel (401/200) y respaldo manual.
+- **Resultado**: `OK` — las 10 bases de AWS quedaron idénticas a local, sin cuentas
+  `@genesisfloress`; panel público operativo; cron instalado por el CD.
+- **Evidencia**:
+  - Conteos AWS == local: usuarios 66 · estudiantes 41 · asignaturas 22 · notas 1183 ·
+    docentes 26 · apoderados 2 · clases 13 · evaluaciones 396 · asistencias 370 ·
+    notificaciones 45; `admin@platformsiga` ADMIN/ACTIVO; genesis = 0.
+  - Panel `https://52-54-139-252.sslip.io`: `401` sin credenciales y `200` con
+    `panel` + basic auth (Caddy `health=healthy`).
+  - `crontab -l` con la línea del respaldo; ejecución manual de `backup-bd.sh`:
+    10 dumps + `rabbitmq-definiciones.json` en `siga-data/backups/diario/2026-10-10`.
+  - Clúster con 2 nodos y consumidores activos; disco raíz 55% tras limpiar 11.1 GB
+    de imágenes antiguas.
+- **Incidencias corregidas**: secret `AWS_REGION` inválido (re-creado); healthcheck
+  con `start_period` 240 s (los JVM tardan ~100 s y compose abortaba); limpieza de
+  imágenes no usadas (>24 h) en el CD; instalación de cron más robusta con evidencia
+  en el log; **issuer del JWT Authorizer** (v2 por defecto vs. tokens v1 de la app:
+  el Gateway devolvía `401 issuer does not match` antes de llegar al BFF; se alineó
+  `azure_issuer` a `https://sts.windows.net/<tenant>/` en `3d46ec1` y se verificó
+  `GET /api/me` con el token real → `200` con `roles:["ADMIN"]`). Si la app pasa a
+  emitir tokens v2 (`accessTokenAcceptedVersion = 2`), volver a la URL
+  `login.microsoftonline.com/<tenant>/v2.0`.
+- **Pendientes / notas**: la sincronización es **unidireccional local → AWS**: volver
+  a ejecutarla pisa lo creado en la nube. Las credenciales del lab expiran (~4 h) y
+  un **Reset** del laboratorio borra el EBS.
+
+### PR-20261011-10 — Admin protegido, solo SUMATIVA pondera y panel sin basic auth
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `fa0a819` (`8a3a610`,
+  `5e7a6bd`, `45115f0` + este)
+- **Alcance**: tres fixes pedidos en la prueba anterior:
+  (1) el ADMIN no puede eliminar su propia cuenta ni al último administrador
+  activo; (2) solo las evaluaciones **SUMATIVA** ponderan en la nota final
+  (FORMATIVA/DIAGNOSTICO pueden tener nota, pero no influyen); (3) el panel de
+  RabbitMQ ya no usa `basic_auth` de Caddy: dos capas HTTP Basic en el mismo
+  origen comparten el header `Authorization` y causaban el bucle de credenciales.
+- **Entorno**: local (Maven/Vitest/build) + AWS (EC2 `t3.large`,
+  `https://52-54-139-252.sslip.io`), CD run `38110529344` en verde.
+- **Pasos**:
+  1. `UsuarioService.deleteUsuario`: rechazo de auto-eliminación (oid del token) y
+     del último ADMIN activo (`countByRolAndState`); `admin/usuarios` oculta
+     "Eliminar" en la fila propia vía `MeService`.
+  2. `EvaluacionService`: las no sumativas se guardan con ponderación 0 y las
+     SUMATIVA exigen > 0; el acumulado ≤100% solo suma SUMATIVAS. Migración `V4`
+     pone en 0 las FORMATIVA/DIAGNOSTICO existentes (SUMATIVAS de seeds se
+     mantienen en 80%). Frontend docente deshabilita el % en no sumativas y
+     `promedioNotas` (PONDERADO) ignora ponderación 0.
+  3. CD: Caddyfile sin `basic_auth`; se agrega `docker compose restart caddy`
+     tras el deploy porque el bind mount no recrea el contenedor.
+  4. Pruebas y despliegue: reactor `mvn package`, `tsc`, Vitest y build de
+     producción; push + `gh workflow run cd.yml`; verificaciones en la EC2.
+- **Resultado**: `PARCIAL` — backend, migración y panel verificados en AWS; la
+  confirmación visual (fila propia sin "Eliminar", DELETE propio rechazado y
+  evaluación FORMATIVA que no mueve el promedio) queda para la sesión del usuario.
+- **Evidencia**:
+  - Backend: `mvn package` del reactor completo `BUILD SUCCESS`;
+    `UsuarioServiceTest` 18/18 (3 nuevos: propia cuenta, último admin, con dos
+    admins permite baja) y `EvaluacionServiceTest` 10/10 (3 nuevos: SUMATIVA en 0
+    rechazada, no sumativa forzada a 0, acumulado ignora no sumativas).
+  - Frontend: `tsc` correcto, Vitest **35/35** (specs nuevos de `promedioNotas`,
+    `registrar-notas` y `admin/usuarios`) y build de producción OK.
+  - AWS: `flyway_schema_history` de `siga_evaluaciones_db` con
+    `4 ponderacion solo sumativa` en `success=1`; activas FORMATIVA 0 (129),
+    SUMATIVA 20/30/50 (2/131/129); `admin@platformsiga` ADMIN/ACTIVO.
+  - Panel: `https://52-54-139-252.sslip.io/` sin credenciales → `200` (ya no
+    `401` con `Www-Authenticate: Basic realm="restricted"`); `whoami` y
+    `/api/overview` con credenciales de RabbitMQ → `200`; 18 colas `running` con
+    consumidores en las colas de registro y académicas.
+  - Contenedores de la EC2 `healthy` con las imágenes nuevas
+    (`ms-usuarios-auth`, `ms-evaluaciones`, `bff-web`, `frontend`, `caddy`).
+- **Pendientes / notas**: repetir en el navegador: (a) tu fila en
+  `/admin/usuarios` sin "Eliminar" y `DELETE` propio rechazado; (b) crear una
+  FORMATIVA con nota (no debe mover el promedio) y una SUMATIVA con % (sí debe
+  moverlo); (c) entrar a la URL del panel y usar directo el login de RabbitMQ.
+  Los secrets `PANEL_BASIC_*` de GitHub quedan sin uso y se pueden borrar. El CD
+  ahora reinicia Caddy en cada deploy (`fa0a819`); sin eso, un Caddyfile nuevo no
+  se aplica porque el bind mount no recrea el contenedor.
+
+### PR-20261011-11 — Round-trip del tipo de evaluación, detalle de notas y colas colgadas
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `d0f47b2`; CD run
+  `38115033773` en verde
+- **Alcance**: (1) fix del bug de ponderación en `Registrar notas`: tras crear o
+  editar una evaluación el tipo volvía como texto visible (`"Evaluación Sumativa"`)
+  y la UI dejaba de sumar/editar ponderaciones; (2) detalle emergente (nombre de la
+  evaluación, nota y ponderación) sobre **cada celda de nota** de la tabla de notas
+  del portal estudiante y apoderados (hover en desktop, tap en móvil); (3)
+  reparación de las colas `cola-notificaciones-notas` y
+  `cola-notificaciones-evaluaciones`, colgadas tras el stop abrupto del lab; (4)
+  batería de pruebas de mensajería (verdes, idempotencia y errores → DLQ) con
+  limpieza de artefactos.
+- **Entorno**: local (Maven 3.9/JDK 21, Vitest) + AWS `us-east-1` (EC2 `t3.large`,
+  EIP `52.54.139.252`, RabbitMQ 4.3.6 en clúster de 2 nodos).
+- **Causa raíz (bug de ponderación)**: `TipoEvaluacion` serializaba con
+  `@JsonValue` el texto visible; el GET agregado del BFF lo normalizaba a
+  `"SUMATIVA"` (`NotaBffService`), pero las respuestas de POST/PUT devolvían
+  `"Evaluación Sumativa"`. El frontend compara estricto (`=== 'SUMATIVA'`), así que
+  el estado local quedaba con tipo no canónico: `Ponderación total: 0%`, input `%`
+  deshabilitado y "No pondera". La base estaba correcta (V4 aplicada; curso 1:
+  30+50+20 = 100).
+- **Cambios**:
+  1. `TipoEvaluacion`: se quita `@JsonValue`; el JSON usa la constante
+     (`SUMATIVA`/`FORMATIVA`/`DIAGNOSTICO`). `@JsonCreator` sigue aceptando el
+     texto visible legacy (payloads antiguos del outbox).
+  2. Frontend: `normalizarTipo()` (guard defensivo) en `DocenteNotasService` para
+     `getCursoNotas`, `crearEvaluacion` y `editarEvaluacion`.
+  3. `NotaDetalle.nombre` + mapper (`perfil.mapper.ts`) + mocks; popover compacto
+     en `NotasTablaComponent` (ancho ajustado al contenido, `position: fixed`
+     anti-recorte, hover/focus/tap, "No pondera" si ponderación 0).
+  4. Compose: `stop_grace_period: 60s` en `rabbitmq1`/`rabbitmq2`.
+- **Reparación de colas**: `cola-notificaciones-notas` y
+  `cola-notificaciones-evaluaciones` no aparecían en `rabbitmqctl list_queues` y el
+  consumidor fallaba el passive declare (`404 NOT_FOUND ... due to timeout`); DLQ y
+  bindings intactos. Causa: cierre no limpio de RabbitMQ (stop del lab sin gracia).
+  Se reinició `rabbitmq1` (`docker restart`): las 18 colas volvieron `running` con
+  `consumers=1` en las tres académicas y 0 mensajes (sin pérdidas). Los outbox
+  afectados quedaron históricos (`FALLIDO`: evaluaciones 24, notas 2) y **no** se
+  re-encolaron por decisión de la sesión.
+- **Resultado**: `OK` local y en la nube; desplegado por CD (imágenes `d0f47b27`
+  en `bff-web`, `ms-evaluaciones`, `ms-notificaciones` y `frontend`). Queda la
+  verificación visual del usuario (ponderar una SUMATIVA y ver el detalle de
+  notas).
+- **Evidencia**:
+  - Backend: reactor `mvn package` `BUILD SUCCESS` (14 módulos; `EnumsJsonTest`
+    actualizado + test de serialización de `EvaluacionResponseDTO` con
+    `"tipo":"SUMATIVA"`).
+  - Frontend: Vitest **42/42** (`notas-tabla` 5 nuevos; `docente-notas.service`
+    2 nuevos de normalización; resto existente en verde).
+  - Colas (rabbitmqctl): 18 `running`; tres académicas con `consumers=1`; DLQ en 0
+    tras la limpieza.
+  - Mensajería (management API + MariaDB):
+    - verdes: `nota.creada` → fila `NOTA` «Calificación agregada en CIENCIAS
+      NATURALES» (id 71); `evaluacion.creada` → fila `EVALUACION` (id 73);
+      `asistencia.registrada` → fila `ASISTENCIA` (id 74); colas drenadas
+      (`ready=0`, ACK, sin DLQ).
+    - idempotencia: reenvío del mismo `idEvento` → 1 sola fila.
+    - errores: JSON malformado → `cola-notificaciones-notas.dlq` (+1); evaluación
+      sin `idCursoAsignatura` → `.dlq` evaluaciones (+1); nota sin `idEstudiante`
+      → `.dlq` notas (+1). DLQ purgadas y filas de prueba eliminadas.
+  - Deploy: CD run `38115033773` verde y compose de la EC2 con
+    `stop_grace_period`; los bundles desplegados contienen el guard
+    (`sumativa`) y el detalle (`max-w-64`, "No pondera"); E2E verde
+    post-deploy (`nota.creada` → notificación id 75, eliminada después).
+- **Pendientes / notas**: el `id_evento` persistido en `notificaciones` es el UUID
+  v3 derivado del `idEvento` (`UUID.nameUUIDFromBytes`), no el string original: las
+  consultas de evidencia deben usar el UUID. En modo mock, los nombres de
+  evaluación se generan (`PRUEBA 1`, `TRABAJO 1`, `EXAMEN`, …).
 
 ## 5. Runbook reproducible
 
@@ -514,6 +753,13 @@ Colas esperadas: `user.azure.sync.queue`, `ms.estudiantes.queue`,
 exchange directo `siga.dlx.direct`. Verificar la unión del clúster con
 `docker exec rabbitmq1 rabbitmqctl cluster_status` (dos nodos `running`). UI:
 `http://localhost:15672` (solo el nodo `rabbitmq1` publica el puerto).
+
+Si una cola académica no aparece en `list_queues` y el consumidor registra
+`404 NOT_FOUND ... due to timeout` en el passive declare, la cola quedó colgada
+por un cierre no limpio (p. ej. stop abrupto del lab). Recuperación sin pérdida de
+datos: `docker restart rabbitmq1` (las colas viven en el EBS y recuperan su
+profundidad); después verificar `list_queues` con `consumers=1`. El compose define
+`stop_grace_period: 60s` en los nodos para permitir el cierre limpio.
 
 ### 5.6.2 Bandeja académica in-app
 
@@ -673,7 +919,7 @@ powershell -File tools/normalizar-datos.ps1
 | Dominios | `EstudianteServiceTest` + `BusquedaTextoTest`, `DocenteServiceTest`, `ApoderadoServiceTest`, `ClaseServiceTest`, `NotaServiceTest` + `PublicadorNotaTest`, `EvaluacionServiceTest` + `PublicadorEvaluacionTest`, `AsistenciaServiceTest` + `PublicadorAsistenciaTest` |
 | `ms-notificaciones` | `NotificacionServiceTest`, `ResolverDestinatariosNotificacionTest`, `NotificacionControllerMappingsTest`, `MigracionesNotificacionesTest` |
 | `ms-rabbitmq-admin` | `RabbitAdminServiceTest`, `RabbitAdminControllerMappingsTest` |
-| Frontend | specs Vitest de `app`, `docente-notas.service`, `perfil-estudiante.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
+| Frontend | specs Vitest de `app`, `academico.model` (`promedioNotas`), `docente-notas.service`, `registrar-notas.component`, `usuarios.component`, `perfil-estudiante.service`, `asistencia.service`, `notification.service` y `NotificationBellComponent` |
 
 Los `*ApplicationTests` (contextLoads) se excluyen en CI porque requieren base de
 datos y Azure AD.

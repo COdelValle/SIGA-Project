@@ -31,14 +31,12 @@ spring:
     publisher-confirm-type: correlated
     listener:
       simple:
-        # Al agotar reintentos el mensaje se rechaza y cae a su DLQ.
         default-requeue-rejected: false
+        # Los reintentos viven en ConfirmadorMensajes (en memoria, con ACK/NACK
+        # explícitos). El retry del contenedor se desactiva para que un error de
+        # conversión sea fatal y caiga de inmediato a la DLQ.
         retry:
-          enabled: true
-          initial-interval: 2s
-          multiplier: 2
-          max-interval: 30s
-          max-attempts: 3
+          enabled: false
 
 # Microservicios consultados de forma sincrona por este servicio.
 services:

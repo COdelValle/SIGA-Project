@@ -10,19 +10,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import cl.siga.coreshare.dto.apoderado.parentesco.enums.Parentesco;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 
 /**
  * Los enums con @JsonValue (texto visible) deben aceptar tambien el nombre de
- * la constante al deserializar, para que el frontend haga round-trip del valor
- * que recibe (p. ej. "SUMATIVA") sin fallar con 400.
+ * la constante al deserializar. TipoEvaluacion es la excepcion: serializa el
+ * nombre de la constante (el frontend compara "SUMATIVA") y ademas acepta el
+ * texto visible legacy al leer.
  */
 class EnumsJsonTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    void tipoEvaluacionAceptaNombreYTextoVisible() throws Exception {
+    void tipoEvaluacionSerializaConstanteYAceptaTextoVisible() throws Exception {
         assertThat(mapper.readValue("\"SUMATIVA\"", TipoEvaluacion.class))
             .isEqualTo(TipoEvaluacion.SUMATIVA);
         assertThat(mapper.readValue("\"sumativa\"", TipoEvaluacion.class))
@@ -30,7 +32,15 @@ class EnumsJsonTest {
         assertThat(mapper.readValue("\"Evaluación Sumativa\"", TipoEvaluacion.class))
             .isEqualTo(TipoEvaluacion.SUMATIVA);
         assertThat(mapper.writeValueAsString(TipoEvaluacion.SUMATIVA))
-            .isEqualTo("\"Evaluación Sumativa\"");
+            .isEqualTo("\"SUMATIVA\"");
+    }
+
+    @Test
+    void evaluacionResponseSerializaElTipoComoConstante() throws Exception {
+        EvaluacionResponseDTO dto = new EvaluacionResponseDTO(
+            9L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 3L, true);
+
+        assertThat(mapper.writeValueAsString(dto)).contains("\"tipo\":\"SUMATIVA\"");
     }
 
     @Test

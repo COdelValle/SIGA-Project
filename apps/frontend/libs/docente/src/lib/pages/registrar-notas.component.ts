@@ -147,10 +147,14 @@ function mensajeDeError(error: unknown, porDefecto: string): string {
                     type="number"
                     min="0"
                     max="100"
-                    [value]="nueva().ponderacion"
+                    [disabled]="nueva().tipo !== 'SUMATIVA'"
+                    [value]="nueva().tipo === 'SUMATIVA' ? nueva().ponderacion : 0"
                     (input)="setPonderacionNueva($event)"
-                    class="w-24 rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-ink focus:outline-none"
+                    class="w-24 rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-ink focus:outline-none disabled:opacity-60"
                   />
+                  @if (nueva().tipo !== 'SUMATIVA') {
+                    <span class="text-[11px] text-muted">Solo SUMATIVA pondera en la nota final.</span>
+                  }
                 </label>
                 <div class="flex gap-2">
                   <button
@@ -218,12 +222,16 @@ function mensajeDeError(error: unknown, porDefecto: string): string {
                                 type="number"
                                 min="0"
                                 max="100"
-                                [value]="evaluacion.ponderacion"
+                                [disabled]="evaluacion.tipo !== 'SUMATIVA'"
+                                [value]="evaluacion.tipo === 'SUMATIVA' ? evaluacion.ponderacion : 0"
                                 (change)="editarPonderacion(evaluacion, $event)"
-                                class="w-16 rounded-lg border border-line bg-panel px-1 py-1 text-xs text-ink focus:outline-none"
+                                class="w-16 rounded-lg border border-line bg-panel px-1 py-1 text-xs text-ink focus:outline-none disabled:opacity-60"
                               />
                               <span class="text-xs text-muted">%</span>
                             </div>
+                            @if (evaluacion.tipo !== 'SUMATIVA') {
+                              <span class="text-[11px] text-muted">No pondera en la nota final.</span>
+                            }
                             @if (errorDeEvaluacion(evaluacion.id); as mensaje) {
                               <p class="text-xs text-bad">{{ mensaje }}</p>
                             }
@@ -582,6 +590,7 @@ export class DocenteRegistrarNotasComponent {
 
   protected sumaPonderaciones(exceptoId?: number): number {
     return (this.cursoNotas()?.evaluaciones ?? [])
+      .filter((evaluacion) => evaluacion.tipo === 'SUMATIVA')
       .filter((evaluacion) => evaluacion.id !== exceptoId)
       .reduce((total, evaluacion) => total + (evaluacion.ponderacion ?? 0), 0);
   }
@@ -615,6 +624,16 @@ export class DocenteRegistrarNotasComponent {
     if (tipo === evaluacion.tipo) {
       return;
     }
+    if (tipo === 'SUMATIVA' && (evaluacion.ponderacion ?? 0) <= 0) {
+      // El backend exige ponderación > 0: se habilita el % y el cambio se
+      // persiste cuando el docente asigne la ponderación.
+      this.marcarErrorEvaluacion(
+        evaluacion.id,
+        'Asigna una ponderación mayor que 0% para guardar la evaluación SUMATIVA.',
+      );
+      this.reemplazarEvaluacionLocal({ ...evaluacion, tipo, ponderacion: 0 });
+      return;
+    }
     this.actualizarEvaluacion(evaluacion, { ...this.requestDe(evaluacion), tipo }, () => {
       select.value = evaluacion.tipo;
     });
@@ -622,10 +641,14 @@ export class DocenteRegistrarNotasComponent {
 
   protected editarPonderacion(evaluacion: EvaluacionEditable, event: Event): void {
     const input = event.target as HTMLInputElement;
+    if (evaluacion.tipo !== 'SUMATIVA') {
+      input.value = '0';
+      return;
+    }
     const ponderacion = Number(input.value);
     this.limpiarErrorEvaluacion(evaluacion.id);
-    if (Number.isNaN(ponderacion) || ponderacion < 0 || ponderacion > 100) {
-      this.marcarErrorEvaluacion(evaluacion.id, 'La ponderación debe estar entre 0 y 100.');
+    if (Number.isNaN(ponderacion) || ponderacion <= 0 || ponderacion > 100) {
+      this.marcarErrorEvaluacion(evaluacion.id, 'La ponderación de una SUMATIVA debe ser mayor que 0 y hasta 100.');
       input.value = String(evaluacion.ponderacion);
       return;
     }
@@ -676,16 +699,19 @@ export class DocenteRegistrarNotasComponent {
   }
 
   protected setTipoNueva(event: Event): void {
+    const tipo = (event.target as HTMLSelectElement).value as TipoEvaluacion;
     this.nueva.update((actual) => ({
       ...actual,
-      tipo: (event.target as HTMLSelectElement).value as TipoEvaluacion,
+      tipo,
+      ponderacion: tipo === 'SUMATIVA' ? actual.ponderacion : 0,
     }));
   }
 
   protected setPonderacionNueva(event: Event): void {
+    const valor = Number((event.target as HTMLInputElement).value);
     this.nueva.update((actual) => ({
       ...actual,
-      ponderacion: Number((event.target as HTMLInputElement).value),
+      ponderacion: actual.tipo === 'SUMATIVA' ? valor : 0,
     }));
   }
 
@@ -702,17 +728,18 @@ export class DocenteRegistrarNotasComponent {
       this.errorEvaluacion.set('El nombre debe tener al menos 2 caracteres.');
       return;
     }
-    if (Number.isNaN(nueva.ponderacion) || nueva.ponderacion < 0 || nueva.ponderacion > 100) {
-      this.errorEvaluacion.set('La ponderación debe estar entre 0 y 100.');
+    const ponderacion = nueva.tipo === 'SUMATIVA' ? nueva.ponderacion : 0;
+    if (nueva.tipo === 'SUMATIVA' && (Number.isNaN(ponderacion) || ponderacion <= 0 || ponderacion > 100)) {
+      this.errorEvaluacion.set('La ponderación de una SUMATIVA debe ser mayor que 0 y hasta 100.');
       return;
     }
-    if (this.sumaPonderaciones() + nueva.ponderacion > 100) {
+    if (this.sumaPonderaciones() + ponderacion > 100) {
       this.errorEvaluacion.set('La suma de ponderaciones no puede superar 100%.');
       return;
     }
     this.errorEvaluacion.set('');
     this.notasService
-      .crearEvaluacion(this.cursoId(), { nombre, tipo: nueva.tipo, ponderacion: nueva.ponderacion })
+      .crearEvaluacion(this.cursoId(), { nombre, tipo: nueva.tipo, ponderacion })
       .subscribe({
         next: (evaluacion) => {
           const curso = this.cursoNotas();
@@ -736,6 +763,19 @@ export class DocenteRegistrarNotasComponent {
       tipo: evaluacion.tipo,
       ponderacion: evaluacion.ponderacion,
     };
+  }
+
+  private reemplazarEvaluacionLocal(evaluacion: EvaluacionEditable): void {
+    const curso = this.cursoNotas();
+    if (!curso) {
+      return;
+    }
+    this.cursoNotas.set({
+      ...curso,
+      evaluaciones: curso.evaluaciones.map((item) =>
+        item.id === evaluacion.id ? { ...item, ...evaluacion } : item,
+      ),
+    });
   }
 
   private actualizarEvaluacion(

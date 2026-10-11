@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { APP_CONFIG, recursoRemoto, toPage } from '@siga/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { APP_CONFIG, MeService, recursoRemoto, toPage } from '@siga/core';
 import { PaginadorComponent, SeccionCardComponent, SelectComponent, SelectOption } from '@siga/shared-ui';
 import { CredencialTemporal, EstadoAdmin, RolAdmin, USUARIOS_MOCK, UsuarioAdmin } from '@siga/mocks';
 import { switchMap } from 'rxjs';
@@ -124,7 +124,7 @@ import { NuevoUsuarioComponent } from './nuevo-usuario.component';
                           >
                             Ver
                           </button>
-                          @if (usuario.estado === 'ACTIVO') {
+                          @if (usuario.estado === 'ACTIVO' && usuario.id !== miId()) {
                             <button
                               type="button"
                               (click)="restablecer(usuario)"
@@ -177,6 +177,10 @@ import { NuevoUsuarioComponent } from './nuevo-usuario.component';
 export class AdminUsuariosComponent {
   private readonly config = inject(APP_CONFIG);
   private readonly adminService = inject(AdminService);
+  private readonly meService = inject(MeService);
+
+  private readonly me = toSignal(this.meService.getMe(), { initialValue: null });
+  protected readonly miId = computed(() => this.me()?.id ?? '');
 
   private readonly recarga = signal(0);
   private readonly usuariosRemotos = recursoRemoto(

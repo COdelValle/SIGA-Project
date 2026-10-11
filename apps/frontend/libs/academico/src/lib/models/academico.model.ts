@@ -56,6 +56,8 @@ export type ModoCalculo = 'SIMPLE' | 'PONDERADO';
 
 export interface NotaDetalle {
   numero: number;
+  /** Nombre de la evaluacion asociada (se muestra en el detalle de la celda). */
+  nombre: string;
   valor: number;
   /** Peso de la nota en el promedio (modo PONDERADO). */
   ponderacion: number;
@@ -178,7 +180,9 @@ export function parseNota(texto: string): number | null {
 /**
  * Promedio de una lista de notas segun el modo configurado.
  * - SIMPLE: suma(valores) / cantidad.
- * - PONDERADO: suma(valor * ponderacion) / suma(ponderacion).
+ * - PONDERADO: suma(valor * ponderacion) / suma(ponderacion) considerando solo
+ *   las notas con ponderacion > 0 (solo SUMATIVA pondera). Sin notas ponderadas
+ *   el promedio es 0: las FORMATIVA/DIAGNOSTICO no influyen en la nota final.
  */
 export function promedioNotas(notas: NotaDetalle[], modo: ModoCalculo): number {
   if (notas.length === 0) {
@@ -187,12 +191,13 @@ export function promedioNotas(notas: NotaDetalle[], modo: ModoCalculo): number {
   if (modo === 'SIMPLE') {
     return redondear1(notas.reduce((suma, nota) => suma + nota.valor, 0) / notas.length);
   }
-  const sumaPesos = notas.reduce((suma, nota) => suma + nota.ponderacion, 0);
+  const ponderadas = notas.filter((nota) => nota.ponderacion > 0);
+  const sumaPesos = ponderadas.reduce((suma, nota) => suma + nota.ponderacion, 0);
   if (sumaPesos === 0) {
-    return redondear1(notas.reduce((suma, nota) => suma + nota.valor, 0) / notas.length);
+    return 0;
   }
   return redondear1(
-    notas.reduce((suma, nota) => suma + nota.valor * nota.ponderacion, 0) / sumaPesos,
+    ponderadas.reduce((suma, nota) => suma + nota.valor * nota.ponderacion, 0) / sumaPesos,
   );
 }
 

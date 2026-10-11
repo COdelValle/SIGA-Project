@@ -13,11 +13,12 @@ ssh_cidr         = "0.0.0.0/0"
 // Authorizer valida el issuer EXACTO y la lista de audiences. No mezclar
 // formatos: un token v2 trae aud = GUID e issuer .../v2.0; un token v1 trae
 // aud = api://<client-id> e issuer https://sts.windows.net/<tenant>/.
+// La app actual emite tokens v1.0, por eso el issuer es el de sts.windows.net.
 azure_audience = [
   "448f165b-4fab-45c4-9088-766044e1a004",
   "api://448f165b-4fab-45c4-9088-766044e1a004",
 ]
-azure_issuer = "https://login.microsoftonline.com/f260a804-82ac-4b57-bb01-9ed6626d71ff/v2.0"
+azure_issuer = "https://sts.windows.net/f260a804-82ac-4b57-bb01-9ed6626d71ff/"
 
 // Origenes cross-origin permitidos por CORS (scheme://host:port). En produccion
 // la SPA y /api comparten el mismo origen del Gateway, asi que CORS no aplica al
