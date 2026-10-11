@@ -27,6 +27,51 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Falla temprano (antes de los 13 builds) si falta algun secret requerido:
+      # un secret ausente deja el .env de la EC2 con valores vacios y el sistema
+      # degradado en silencio (registro 503 "deshabilitado", Azure sin
+      # credencial). Restaurarlos con tools/set-github-secrets.ps1.
+      - name: Validar secrets requeridos
+        env:
+          S_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          S_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          S_REGION: ${{ secrets.AWS_REGION }}
+          S_EC2_USER: ${{ secrets.EC2_USER }}
+          S_EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+          S_DB_USER: ${{ secrets.DB_USER }}
+          S_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          S_DB_ROOT: ${{ secrets.MARIADB_ROOT_PASSWORD }}
+          S_AZ_TENANT: ${{ secrets.AZURE_TENANT_ID }}
+          S_AZ_CLIENT: ${{ secrets.AZURE_CLIENT_ID }}
+          S_AZ_URI: ${{ secrets.AZURE_APP_ID_URI }}
+          S_AZ_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          S_AZ_API_APP: ${{ secrets.AZURE_API_APP_ID }}
+          S_RMQ_USER: ${{ secrets.RABBITMQ_USER }}
+          S_RMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          S_RMQ_COOKIE: ${{ secrets.RABBITMQ_ERLANG_COOKIE }}
+          S_REGISTRO_FLAG: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
+          S_REGISTRO_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
+        run: |
+          faltantes=""
+          for nombre in S_ACCESS_KEY S_SECRET_KEY S_SESSION_TOKEN S_REGION S_EC2_USER S_EC2_KEY S_DB_USER S_DB_PASSWORD S_DB_ROOT S_AZ_TENANT S_AZ_CLIENT S_AZ_URI S_AZ_CLIENT_SECRET S_AZ_API_APP S_RMQ_USER S_RMQ_PASSWORD S_RMQ_COOKIE S_REGISTRO_FLAG S_REGISTRO_KEY; do
+            if [ -z "${!nombre}" ]; then
+              faltantes="${faltantes} ${nombre#S_}"
+            fi
+          done
+          if [ -n "${faltantes}" ]; then
+            echo "::error::Faltan secrets en GitHub:${faltantes}. Restauralos con tools/set-github-secrets.ps1 antes de desplegar."
+            exit 1
+          fi
+          case "${S_REGISTRO_FLAG}" in
+            true|false) ;;
+            *)
+              echo "::error::REGISTRO_ASYNC_ENABLED debe ser true o false."
+              exit 1
+              ;;
+          esac
+          echo "Secrets requeridos presentes."
+
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -212,6 +257,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,API_GW_INVOKE_URL,EC2_HOST
+          command_timeout: 15m
           script: |
             set -e
             aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
@@ -334,16 +380,28 @@ jobs:
             EOF
 
             # user-data solo corre al crear la instancia; en instancias existentes
-            # hay que preparar los directorios de los dos nodos RabbitMQ (uid 999)
-            # en el EBS. La cookie Erlang se escribe ANTES del primer arranque de
-            # los nodos: si falta, RabbitMQ genera una aleatoria y el CLI queda
+            # hay que preparar los directorios de los dos nodos RabbitMQ en el
+            # EBS. La cookie Erlang se escribe ANTES del primer arranque de los
+            # nodos: si falta, RabbitMQ genera una aleatoria y el CLI queda
             # desalineado (Invalid challenge reply / colas atoradas).
             mkdir -p /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
-            # sudo: el archivo del volumen pertenece al uid 999 (rabbitmq).
             printf '%s' "$RABBITMQ_ERLANG_COOKIE" | sudo tee /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie > /dev/null
             printf '%s' "$RABBITMQ_ERLANG_COOKIE" | sudo tee /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie > /dev/null
-            sudo chown -R 999:999 /home/ubuntu/siga-data/rabbitmq1 /home/ubuntu/siga-data/rabbitmq2
-            sudo chmod 600 /home/ubuntu/siga-data/rabbitmq1/.erlang.cookie /home/ubuntu/siga-data/rabbitmq2/.erlang.cookie
+            # El uid del usuario rabbitmq depende de la variante de la imagen
+            # (alpine: 100:101, debian: 999:999). El chown se ejecuta DENTRO de
+            # un contenedor de la misma imagen para no depender de un numero
+            # fijo: un dueno equivocado deja las colas classic en crash loop
+            # ({error,eacces} en rabbit_classic_queue_index_v2) y al consumidor
+            # en reintento infinito.
+            RABBIT_IMG=$(docker compose --env-file .env config --images | grep -m1 '^rabbitmq:')
+            if [ -z "$RABBIT_IMG" ]; then
+              echo "No se pudo resolver la imagen de RabbitMQ del compose." >&2
+              exit 1
+            fi
+            for VOL in rabbitmq1 rabbitmq2; do
+              docker run --rm -v "/home/ubuntu/siga-data/$VOL:/data" --entrypoint sh "$RABBIT_IMG" \
+                -c 'chown -R rabbitmq:rabbitmq /data && chmod 600 /data/.erlang.cookie'
+            done
 
             # init-db.sh solo corre con el directorio de datos vacio: en volumenes
             # existentes hay que crear las bases y otorgar los permisos de forma
@@ -401,3 +459,38 @@ jobs:
             # las no usadas de mas de 24 h para no llenar el disco raiz (20 GB).
             docker image prune -a -f --filter "until=24h" > /dev/null
             docker image prune -f > /dev/null
+
+            # Verificacion post-deploy: la topologia completa debe existir y las
+            # colas con listener deben tener consumidor. Falla ruidosamente si el
+            # despliegue deja el sistema degradado (colas en crash loop por un
+            # dueno equivocado del volumen, servicios que no arrancaron, etc.).
+            # Reintenta hasta ~8 minutos por el boot de los JVM.
+            ESPERADAS="user.azure.sync.queue user.registration.status.queue ms.estudiantes.queue ms.docentes.queue ms.apoderados.queue user.credentials.notify.queue cola-notificaciones-notas cola-notificaciones-evaluaciones cola-notificaciones-asistencias"
+            CON_CONSUMIDOR="user.azure.sync.queue user.registration.status.queue ms.estudiantes.queue ms.docentes.queue ms.apoderados.queue cola-notificaciones-notas cola-notificaciones-evaluaciones cola-notificaciones-asistencias"
+            sleep 45
+            faltan="pendiente"
+            for INTENTO in $(seq 1 45); do
+              estado=$(docker exec rabbitmq1 rabbitmqctl list_queues name consumers --silent 2>/dev/null || true)
+              faltan=""
+              for COLA in $ESPERADAS; do
+                echo "$estado" | awk -v c="$COLA" '$1==c {ok=1} END {exit ok?0:1}' || faltan="$faltan $COLA"
+              done
+              for COLA in $CON_CONSUMIDOR; do
+                echo "$estado" | awk -v c="$COLA" '$1==c && $2>=1 {ok=1} END {exit ok?0:1}' || faltan="$faltan $COLA:sin-consumidor"
+              done
+              [ -z "$faltan" ] && break
+              echo "Topologia incompleta (intento $INTENTO):$faltan"
+              sleep 10
+            done
+            if [ -n "$faltan" ]; then
+              echo "::error::Topologia de colas incompleta tras el deploy:$faltan"
+              docker exec rabbitmq1 rabbitmqctl list_queues name messages consumers || true
+              exit 1
+            fi
+            CRASHES=$(docker logs rabbitmq1 --since 20m 2>&1 | grep -c "Generic server" || true)
+            if [ "$CRASHES" -gt 0 ]; then
+              echo "::error::RabbitMQ registro $CRASHES crashes de procesos de cola durante el deploy."
+              exit 1
+            fi
+            docker exec rabbitmq1 rabbitmqctl list_queues name messages consumers | grep cola-notificaciones
+            echo "Topologia verificada: 9 colas de negocio y consumidores activos."

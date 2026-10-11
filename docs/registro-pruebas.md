@@ -628,6 +628,8 @@ Reglas de mantenimiento:
   `cola-notificaciones-evaluaciones` no aparecían en `rabbitmqctl list_queues` y el
   consumidor fallaba el passive declare (`404 NOT_FOUND ... due to timeout`); DLQ y
   bindings intactos. Causa: cierre no limpio de RabbitMQ (stop del lab sin gracia).
+  **Corrección 2026-10-11**: la causa de fondo era el dueño del volumen — el CD
+  chownaba a `999:999` y la imagen alpine corre como `100:101`; ver PR-20261011-13.
   Se reinició `rabbitmq1` (`docker restart`): las 18 colas volvieron `running` con
   `consumers=1` en las tres académicas y 0 mensajes (sin pérdidas). Los outbox
   afectados quedaron históricos (`FALLIDO`: evaluaciones 24, notas 2) y **no** se
@@ -700,6 +702,56 @@ Reglas de mantenimiento:
   - Disco de la EC2 tras la limpieza: 45–56% usado (antes 99%).
 - **Pendientes / notas**: la allowlist efectiva vive en API Gateway
   (`cors_allowed_origins`); el backend solo responde el preflight.
+
+### PR-20261011-13 — Fix permanente de colas RabbitMQ (uid del volumen) y secrets de despliegue
+
+- **Fecha**: 2026-10-11
+- **Rama / commit**: `fix/mq-uid-secrets` → `dev`/`main`/`deploy` (CD run por confirmar)
+- **Alcance**: eliminar de raíz las dos recurrencias (colas ×3, usuarios ×2):
+  (1) chown del volumen de RabbitMQ **simbólico** (dentro del contenedor) en el CD
+  y en `user-data.sh`; (2) imágenes de RabbitMQ y Caddy pineadas; (3) preflight de
+  secrets en el CD (falla temprano, con nombres); (4) verificación post-deploy de
+  la topología de colas (aborta el deploy si queda degradado); (5)
+  `tools/set-github-secrets.ps1` para restaurar todos los secrets en un comando;
+  (6) flujo de ramas restaurado `feature → dev → main → deploy`, con el CD
+  disparado por **push a `deploy`** (no más `workflow_dispatch` desde `dev`).
+- **Causa raíz (colas)**: el CD hacía `sudo chown -R 999:999` sobre los volúmenes,
+  pero `rabbitmq:4-management-alpine` corre como `rabbitmq:x:100:101`. El proceso
+  no podía escribir los índices de las colas classic:
+  `{badmatch,{error,eacces}}` en `rabbit_classic_queue_index_v2` → crash loop de
+  `cola-notificaciones-notas` y `cola-notificaciones-evaluaciones` (12 crashes en
+  3 h), consumidores en reintento infinito y outbox acumulando `FALLIDO`. Las
+  lecturas funcionaban, por eso el síntoma era intermitente. `user-data.sh` tenía
+  el mismo número fijo y además un `chown -R ubuntu:ubuntu` sobre `siga-data` que
+  habría roto el EBS al reemplazar la instancia.
+- **Causa raíz (registro 503)**: faltaban en GitHub los secrets
+  `REGISTRO_ASYNC_ENABLED`, `REGISTRO_CRED_KEY`,
+  `REGISTRO_NOTIFY_CREDENTIALS_ENABLED`, `AZURE_CLIENT_SECRET` y
+  `AZURE_API_APP_ID`; el CD escribía el `.env` con valores vacíos y
+  `ms-usuarios-auth` respondía `503 "El registro asíncrono de usuarios está
+  deshabilitado."` sin ningún error visible durante el despliegue.
+- **Cambios**:
+  1. `cd.yml`: chown con `docker run` sobre la imagen resuelta del compose
+     (`docker compose config --images`) → válido para cualquier variante de imagen.
+  2. `cd.yml`: paso **Validar secrets requeridos** (falla listando los ausentes;
+     `REGISTRO_ASYNC_ENABLED` debe ser `true|false`).
+  3. `cd.yml`: **verificación post-deploy** — espera hasta ~8 min a las 9 colas de
+     negocio con consumidores y aborta si falta topología o hay crashes de RabbitMQ.
+  4. `user-data.sh`: RabbitMQ `100:101` y fin del `chown -R` sobre `siga-data`.
+  5. Compose (template EC2 y local): `rabbitmq:4.3.6-management-alpine` y
+     `caddy:2.11-alpine`.
+  6. `tools/set-github-secrets.ps1` (idempotente, `-WhatIf`, nunca imprime valores).
+- **Reparación en caliente (EC2)**: chown simbólico en ambos nodos + `docker
+  restart` → 18 colas `running` con consumers, 0 crashes; E2E verde
+  (`nota.creada` → notificación id 80), JSON malformado → DLQ, limpieza. Los
+  `FALLIDO` no se re-encolaron (decisión de la sesión).
+- **Resultado**: reparación `OK`; despliegue por `deploy` y verificación final por
+  confirmar.
+- **Evidencia**: salida del chown (`999:999` → `100:101`), `list_queues` con las
+  18 colas y `consumers=1`, `docker logs | grep "Generic server"` = 0, E2E id 80.
+  (Se agrega el run del CD al completar.)
+- **Pendientes / notas**: si un secret se borra, el CD lo reporta por nombre (nunca
+  el valor) y `tools/set-github-secrets.ps1` lo restaura desde `.env`/`~/.aws`.
 
 ## 5. Runbook reproducible
 
@@ -794,11 +846,23 @@ exchange directo `siga.dlx.direct`. Verificar la unión del clúster con
 `http://localhost:15672` (solo el nodo `rabbitmq1` publica el puerto).
 
 Si una cola académica no aparece en `list_queues` y el consumidor registra
-`404 NOT_FOUND ... due to timeout` en el passive declare, la cola quedó colgada
-por un cierre no limpio (p. ej. stop abrupto del lab). Recuperación sin pérdida de
-datos: `docker restart rabbitmq1` (las colas viven en el EBS y recuperan su
-profundidad); después verificar `list_queues` con `consumers=1`. El compose define
-`stop_grace_period: 60s` en los nodos para permitir el cierre limpio.
+`404 NOT_FOUND ... due to timeout` en el passive declare, el proceso de la cola
+está en **crash loop**: revisar `docker logs rabbitmq1 | grep "Generic server"`;
+la causa histórica fue un dueño equivocado del volumen
+(`{badmatch,{error,eacces}}` en `rabbit_classic_queue_index_v2`) por el chown a
+un uid fijo. El CD ya hace el chown **dentro del contenedor** (uid simbólico); para
+repararlo a mano:
+
+```bash
+IMG=$(docker inspect rabbitmq1 --format '{{.Config.Image}}')
+docker run --rm -v /home/ubuntu/siga-data/rabbitmq1:/data --entrypoint sh "$IMG" -c 'chown -R rabbitmq:rabbitmq /data'
+docker run --rm -v /home/ubuntu/siga-data/rabbitmq2:/data --entrypoint sh "$IMG" -c 'chown -R rabbitmq:rabbitmq /data'
+docker restart rabbitmq1 rabbitmq2
+docker exec rabbitmq1 rabbitmqctl list_queues name messages consumers
+```
+
+Las colas viven en el EBS y recuperan su profundidad; el compose mantiene
+`stop_grace_period: 60s` para el cierre.
 
 ### 5.6.2 Bandeja académica in-app
 
