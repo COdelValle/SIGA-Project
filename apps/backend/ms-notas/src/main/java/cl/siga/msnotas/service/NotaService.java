@@ -1,7 +1,11 @@
 package cl.siga.msnotas.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import cl.siga.msnotas.client.EvaluacionClient;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,9 +15,10 @@ import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
-import cl.siga.msnotas.client.AsignaturaClient;
 import cl.siga.msnotas.client.EstudianteClient;
+import cl.siga.msnotas.mensajeria.PublicadorNota;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapper;
 import cl.siga.msnotas.model.specifications.NotaSpecifications;
@@ -21,9 +26,9 @@ import cl.siga.msnotas.repository.NotaRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Service 
-@Validated 
-@RequiredArgsConstructor 
+@Service
+@Validated
+@RequiredArgsConstructor
 public class NotaService {
     private final NotaRepository repository;
 
@@ -31,7 +36,9 @@ public class NotaService {
 
     private final EstudianteClient estudianteClient;
 
-    private final AsignaturaClient asignaturaClient;
+    private final EvaluacionClient evaluacionClient;
+
+    private final PublicadorNota publicador; // Productor RabbitMQ (misma lógica que las otras colas)
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
@@ -40,26 +47,46 @@ public class NotaService {
     }
 
     @Transactional (readOnly = true)
-    public List<NotaResponseDTO> searchNotas(Long idEstudiante, Long idAsignatura, Double lessThanScore, Double greaterThanScore) {
+    public Page<NotaResponseDTO> searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore, Pageable pageable) {
         Specification<Nota> spec = NotaSpecifications.isActive()
                 .and(NotaSpecifications.hasIdEstudiante(idEstudiante))
-                .and(NotaSpecifications.hasIdAsignatura(idAsignatura))
+                .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))
                 .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))
                 .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));
-        return mapper.toResponseDtoList(repository.findAll(spec));
+        return repository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
-    @Transactional 
+    @Transactional
     public NotaResponseDTO saveNota(@Valid RegistrarNotaRequestDTO request) {
         if (!estudianteClient.existsById(request.idEstudiante())) {
             throw new BusinessException("El estudiante con ID " + request.idEstudiante() + " no existe.");
         }
-        if (!asignaturaClient.existsById(request.idAsignatura())) {
-            throw new BusinessException("La asignatura con ID " + request.idAsignatura() + " no existe.");
+        if (!evaluacionClient.existsById(request.idEvaluacion())) {
+            throw new BusinessException("La evaluación con ID " + request.idEvaluacion() + " no existe.");
+        }
+
+        Optional<Nota> existente = repository.findByIdEstudianteAndIdEvaluacion(
+                request.idEstudiante(), request.idEvaluacion());
+        if (existente.isPresent()) {
+            Nota nota = existente.get();
+            if (nota.isActive()) {
+                throw new ConflictException("Ya existe una nota del estudiante " + request.idEstudiante()
+                        + " en la evaluación " + request.idEvaluacion() + ".");
+            }
+            // Recreacion tras un delete logico: se reactiva la misma fila para
+            // mantener la unicidad (id_estudiante, id_evaluacion). La fila ya
+            // existía, así que se avisa como ACTUALIZADA.
+            nota.setScore(request.score());
+            nota.setActive(true);
+            NotaResponseDTO reactivada = mapper.toResponseDto(repository.save(nota));
+            publicador.publicarActualizada(reactivada);
+            return reactivada;
         }
 
         Nota nota = mapper.toEntity(request);
-        return mapper.toResponseDto(repository.save(nota));
+        NotaResponseDTO creada = mapper.toResponseDto(repository.save(nota));
+        publicador.publicarCreada(creada);
+        return creada;
     }
 
     @Transactional
@@ -69,7 +96,9 @@ public class NotaService {
 
         mapper.updateEntityFromDto(request, existingNota);
 
-        return mapper.toResponseDto(repository.save(existingNota));
+        NotaResponseDTO actualizada = mapper.toResponseDto(repository.save(existingNota));
+        publicador.publicarActualizada(actualizada);
+        return actualizada;
     }
 
     @Transactional

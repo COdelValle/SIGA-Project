@@ -1,0 +1,10 @@
+# Configuracion de GitGuardian.
+# Los tests de migraciones usan un password efimero de Testcontainers (contenedor
+# local que se crea y destruye en el test); no es un secreto real.
+version: 2
+secret:
+  ignored-paths:
+    - "apps/backend/**/src/test/**/MigracionesTest.java"
+  ignored-matches:
+    - name: password efimero de Testcontainers
+      match: ^siga$

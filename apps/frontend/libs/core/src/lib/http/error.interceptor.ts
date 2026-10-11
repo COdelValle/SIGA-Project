@@ -1,17 +1,8 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { HttpInterceptorFn } from '@angular/common/http';
 
-export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  const router = inject(Router);
-
-  return next(req).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        router.navigate(['/']);
-      }
-      return throwError(() => error);
-    }),
-  );
-};
+/**
+ * Punto unico de manejo de errores HTTP del frontend. Los errores se propagan
+ * tal cual para que los flujos de sesion (authInterceptor + App) decidan que
+ * mostrar; antes redirigia a `/` ante un 401 y competia con el manejo real.
+ */
+export const errorInterceptor: HttpInterceptorFn = (req, next) => next(req);

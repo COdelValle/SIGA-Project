@@ -18,12 +18,12 @@ public class NotaSpecifications {
         };
     }
 
-    public static Specification<Nota> hasIdAsignatura(Long idAsignatura) {
+    public static Specification<Nota> hasIdEvaluacion(Long idEvaluacion) {
         return (root, query, criteriaBuilder) -> {
-            if (idAsignatura == null) {
+            if (idEvaluacion == null) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("idAsignatura"), idAsignatura);
+            return criteriaBuilder.equal(root.get("idEvaluacion"), idEvaluacion);
         };
     }
 

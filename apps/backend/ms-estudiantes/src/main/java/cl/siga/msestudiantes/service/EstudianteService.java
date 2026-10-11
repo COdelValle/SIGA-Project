@@ -2,19 +2,27 @@ package cl.siga.msestudiantes.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
 import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
 import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
 import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msestudiantes.client.ApoderadoClient;
 import cl.siga.msestudiantes.model.entity.Estudiante;
 import cl.siga.coreshare.dto.estudiante.enums.State;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
 import cl.siga.msestudiantes.model.specifications.EstudianteSpecifications;
 import cl.siga.msestudiantes.repository.EstudianteRepository;
@@ -29,6 +37,8 @@ public class EstudianteService {
 
     private final EstudianteMapper mapper;
 
+    private final ApoderadoClient apoderadoClient;
+
     @Transactional (readOnly = true)
     public EstudianteResponseDTO getEstudianteById(Long id) {
         return mapper.toResponseDto(repository.findByIdAndStateNot(id, State.INACTIVO)
@@ -42,8 +52,14 @@ public class EstudianteService {
     }
 
     @Transactional (readOnly = true)
-    public List<EstudianteResponseDTO> searchEstudiantes(String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state) {
-        Specification<Estudiante> spec = EstudianteSpecifications.isActive()
+    public Page<EstudianteResponseDTO> searchEstudiantes(String q, String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state, Long idClase, Pageable pageable) {
+        // Si se pide un estado explicito se respeta (incluye INACTIVO); si no,
+        // se excluyen los inactivos por defecto.
+        Specification<Estudiante> spec = state != null
+                ? EstudianteSpecifications.hasState(state)
+                : EstudianteSpecifications.isActive();
+        spec = spec
+                .and(EstudianteSpecifications.hasTextoLibre(q))
                 .and(EstudianteSpecifications.hasRut(rut))
                 .and(EstudianteSpecifications.hasFirstName(firstName))
                 .and(EstudianteSpecifications.hasMiddleName(middleName))
@@ -51,18 +67,27 @@ public class EstudianteService {
                 .and(EstudianteSpecifications.hasSecondSurname(secondSurname))
                 .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))
                 .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to))
-                .and(EstudianteSpecifications.hasState(state));
-        return mapper.toResponseDtoList(repository.findAll(spec));
+                .and(EstudianteSpecifications.hasIdClase(idClase));
+        return repository.findAll(spec, pageable).map(mapper::toResponseDto);
     }
 
     @Transactional 
     public EstudianteResponseDTO saveEstudiante(@Valid RegistrarEstudianteRequestDTO request) {
-        if(repository.existsByIdUsuario(request.idUsuario())) {
-            throw new BusinessException("El ID de usuario ya está registrado: " + request.idUsuario());
+        String normalizedRut = RutNormalizer.normalizar(request.rut());
+
+        // Alumno que vuelve: si el perfil existe inactivo, se reactiva con los
+        // datos recibidos en vez de rechazar el registro.
+        Optional<Estudiante> existente = repository.findByIdUsuario(request.idUsuario());
+        if (existente.isPresent()) {
+            Estudiante estudiante = existente.get();
+            if (estudiante.getState() != State.INACTIVO) {
+                throw new BusinessException("El ID de usuario ya está registrado: " + request.idUsuario());
+            }
+            reactivarPerfil(estudiante, request, normalizedRut);
+            return mapper.toResponseDto(repository.save(estudiante));
         }
 
         // Verificar si el RUT ya existe en la base de datos
-        String normalizedRut = request.rut() == null ? null : request.rut().trim().toUpperCase();
         if (repository.existsByRut(normalizedRut)) {
             throw new BusinessException("El RUT ya está registrado: " + request.rut());
         }
@@ -73,17 +98,61 @@ public class EstudianteService {
         return mapper.toResponseDto(repository.save(estudiante));
     }
 
+    private void reactivarPerfil(Estudiante estudiante, RegistrarEstudianteRequestDTO request, String normalizedRut) {
+        if (normalizedRut != null && !normalizedRut.equalsIgnoreCase(estudiante.getRut())
+                && repository.existsByRut(normalizedRut)) {
+            throw new BusinessException("El RUT ya está registrado: " + request.rut());
+        }
+        if (normalizedRut != null) {
+            estudiante.setRut(normalizedRut);
+        }
+        estudiante.setFirstName(request.firstName());
+        estudiante.setMiddleName(request.middleName());
+        estudiante.setFirstSurname(request.firstSurname());
+        estudiante.setSecondSurname(request.secondSurname());
+        estudiante.setBirthDate(request.birthDate());
+        estudiante.setAllergies(request.allergies());
+        estudiante.setIdClase(request.idClase());
+        estudiante.setState(State.REGISTRADO);
+    }
+
     @Transactional 
     public EstudianteResponseDTO updateEstudiante(Long id, @Valid ActualizarEstudianteRequestDTO request) {
         // 1. Buscas la entidad actual en la BD
         Estudiante estudianteExistente = repository.findByIdAndStateNot(id, State.INACTIVO)
             .orElseThrow(() -> new ResourceNotFoundException("Estudiante con ID " + id + " no encontrado."));
 
-        // 2. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
+        // 2. ADMIN, el propio estudiante o un apoderado vinculado
+        validarPermisoActualizacion(estudianteExistente);
+
+        // 3. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
         mapper.updateEntityFromDto(request, estudianteExistente);
 
-        // 3. Guardas los cambios
+        // 4. Guardas los cambios
         return mapper.toResponseDto(repository.save(estudianteExistente));
+    }
+
+    private void validarPermisoActualizacion(Estudiante estudiante) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+        String oid = SecurityUtils.getCurrentUserOid()
+                .orElseThrow(() -> new AccessDeniedException("No se pudo identificar al usuario autenticado."));
+
+        if (oid.equals(estudiante.getIdUsuario())) {
+            return;
+        }
+
+        if (SecurityUtils.hasRole("APODERADO")) {
+            ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid);
+            boolean vinculado = apoderado.estudiantes() != null && apoderado.estudiantes().stream()
+                    .anyMatch(vinculo -> estudiante.getId().equals(vinculo.idEstudiante()));
+            if (vinculado) {
+                return;
+            }
+        }
+
+        throw new AccessDeniedException("No tienes permiso para modificar este estudiante.");
     }
 
     @Transactional (readOnly = true)

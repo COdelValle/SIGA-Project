@@ -13,6 +13,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  servlet:
+    multipart:
+      # Carga masiva de invitaciones por CSV (limite alineado con el servicio).
+      max-file-size: 2MB
+      max-request-size: 2MB
   config:
     import: "optional:classpath:common-properties.yaml"
   # Permite migrar bases que ya tenian tablas creadas por Hibernate (ddl-auto=update)
@@ -21,6 +26,45 @@ spring:
   flyway:
     baseline-on-migrate: true
     baseline-version: 0
+  rabbitmq:
+    # Confirmaciones del broker para el outbox del registro asincrono.
+    publisher-confirm-type: correlated
+    listener:
+      simple:
+        default-requeue-rejected: false
+        # Los reintentos viven en ConfirmadorMensajes (en memoria, con ACK/NACK
+        # explícitos). El retry del contenedor se desactiva para que un error de
+        # conversión sea fatal y caiga de inmediato a la DLQ.
+        retry:
+          enabled: false
+
+# Microservicios consultados de forma sincrona por este servicio.
+services:
+  estudiantes:
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
+
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+# Solo los servicios que participan del flujo la declaran.
+siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+  # Registro asincrono de usuarios (usuario + perfil de rol, con aprovisionamiento
+  # en Entra ID). Deshabilitado por defecto: activar solo con Graph configurado.
+  registro-async:
+    enabled: ${REGISTRO_ASYNC_ENABLED:false}
+    # Reservado para el futuro servicio de notificaciones (opcion 3): emite un
+    # evento user.credentials.notify cuando la cuenta queda creada.
+    notify-credentials-enabled: ${REGISTRO_NOTIFY_CREDENTIALS_ENABLED:false}
+    # Clave AES-256 en Base64 (32 bytes) para cifrar la clave temporal en reposo.
+    # Obligatoria cuando enabled=true.
+    credential-key: ${REGISTRO_CRED_KEY:}
+    credential-ttl-hours: 48
+    # Dominio del correo institucional generado a partir del nombre.
+    email-domain: ${REGISTRO_EMAIL_DOMAIN:platformsiga.onmicrosoft.com}
+    outbox-poll-ms: 2000
+    outbox-max-attempts: 10
+    outbox-confirm-timeout-seconds: 5
 
 # Integración con Microsoft Graph (client credentials).
 # Si AZURE_CLIENT_SECRET está vacío, la integración queda deshabilitada y el CRUD
@@ -32,13 +76,13 @@ azure:
     client-secret: ${AZURE_CLIENT_SECRET:}
     api-app-id: ${AZURE_API_APP_ID:}
 
-# ConfiguraciÃ³n de OpenAPI / Swagger
+# Documentación OpenAPI / Swagger
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /docs/swagger
-# ConfiguraciÃ³n de Scalar UI
+# Scalar UI
 scalar:
   enabled: true
   path: /docs/scalar

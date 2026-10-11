@@ -10,6 +10,8 @@ export interface MsalClientConfig {
 
 export interface AppConfig {
   bffBaseUrl: string;
+  /** Fuerza el uso de datos mock en los servicios que soportan fallback. */
+  useMocks: boolean;
   msal: MsalClientConfig;
 }
 

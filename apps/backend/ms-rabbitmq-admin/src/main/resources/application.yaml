@@ -1,0 +1,29 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: ms-rabbitmq-admin
+    description: API REST para administrar la topología RabbitMQ (colas, exchanges y bindings).
+  rabbitmq:
+    # Clúster de dos nodos: Spring intenta cada dirección en orden.
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+  config:
+    import: "optional:classpath:common-properties.yaml"
+
+# Documentación OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+
+# Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
+  darkMode: true

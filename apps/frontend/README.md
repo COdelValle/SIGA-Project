@@ -19,21 +19,22 @@ y detalle del frontend en [docs/frontend.md](../../docs/frontend.md).
 ```text
 apps/frontend/
 ├── libs/
-│   ├── core/            # auth (MSAL), guards, interceptores, http, config, modelos
-│   ├── shared-ui/       # layout y componentes reutilizables
+│   ├── core/            # auth (MSAL), guards, interceptores, tema (ThemeService), config, modelos
+│   ├── shared-ui/       # layout (DashboardShell, PortalHeader, menu) y UI reutilizable (SeccionCard, DayTabs, Paginador)
 │   ├── public-portal/   # landing publico
-│   ├── academico/       # componentes academicos reutilizables
-│   ├── estudiante/      # portal estudiante
-│   ├── apoderado/       # portal apoderado
-│   ├── docente/         # portal docente
-│   └── admin/           # portal administracion (base)
+│   ├── academico/       # componentes academicos, modelos del perfil y servicios reales (perfil/asistencias)
+│   ├── estudiante/      # portal estudiante (inicio, horarios, notas, asistencias, progreso)
+│   ├── apoderado/       # portal apoderado (multipupilo: pupilos, horarios, notas, asistencias, progreso, solicitudes)
+│   ├── docente/         # portal docente (inicio, cursos, horarios, registrar-notas, registrar-asistencias)
+│   ├── admin/           # portal administracion (inicio, usuarios, roles, asignaturas)
+│   └── mocks/           # datos mock centralizados (fallback de los servicios reales)
 ├── src/
-│   ├── app/             # app.ts, app.config.ts, app.routes.ts (rutas por rol)
+│   ├── app/             # app.ts, app.config.ts, app.routes.ts (rutas por rol) y auth-error
 │   ├── main.ts          # carga config runtime y hace bootstrap
 │   └── types/           # tipos generados desde el BFF
 ├── public/config.json   # configuracion runtime (BFF + MSAL)
 ├── proxy.conf.json      # proxy /api -> BFF en desarrollo
-├── nginx.conf           # servidor SPA + proxy /api en contenedor
+├── nginx.conf           # servidor SPA + proxy /api en contenedor (local)
 ├── Dockerfile
 ├── angular.json
 └── project.json
@@ -66,6 +67,7 @@ npx prettier --write "apps/frontend/**/*.{ts,html,css}"
 
 - **Tailwind CSS 4** integrado via PostCSS (`.postcssrc.json` con el plugin `@tailwindcss/postcss`).
 - Import en `src/styles.css`: `@import 'tailwindcss';` y `@source "../libs"` para incluir las librerias Nx.
+- Los **temas** (oscuro por defecto magenta/dorado y claro institucional) se definen como tokens CSS (`--siga-*`) expuestos a Tailwind con `@theme inline`; el estado lo maneja `ThemeService` (`data-theme` en `<html>` + persistencia en `localStorage`).
 - Las clases se **ordenan automaticamente** con `prettier-plugin-tailwindcss` (configurado en `.prettierrc`).
 - Formatear estilos/clases:
   ```bash
@@ -80,11 +82,15 @@ La configuracion se carga antes del bootstrap desde `public/config.json` (servid
 ```jsonc
 {
   "bffBaseUrl": "/api",
+  "useMocks": false,
   "msal": {
-    "clientId": "<AZURE_FRONTEND_CLIENT_ID>",
+    "clientId": "<AZURE_CLIENT_ID>",
     "authority": "https://login.microsoftonline.com/<AZURE_TENANT_ID>",
     "redirectUri": "/auth",
-    "scopes": ["api://<AZURE_BFF_APP_ID>/access_as_user"]
+    "postLogoutRedirectUri": "/sin-acceso",
+    // Acceso.Base + los 42 scopes granulares (lista completa en public/config.json
+    // y en el ejemplo del checklist de testing-login.md)
+    "scopes": ["api://<AZURE_CLIENT_ID>/Acceso.Base", "api://<AZURE_CLIENT_ID>/usuarios:read", "..."]
   }
 }
 ```
@@ -93,25 +99,53 @@ Gracias a esto, la misma imagen se puede desplegar en distintos entornos sin rec
 
 ## Autenticacion y rutas
 
-Autenticacion con **MSAL Angular v6 + Azure AD**. El retorno del login se procesa en `/auth`.
+Autenticacion con **MSAL Angular v6 + Azure AD**. El retorno del login se procesa en `/auth`
+(`AuthRedirectComponent`). Un **`authInterceptor` propio** adjunta el token de acceso a las
+llamadas al BFF y, ante un fallo de token, registra el error y lo re-lanza **sin** disparar
+`loginRedirect` (evita el loop de login); `AuthErrorService` + la ruta `/error-acceso`
+muestran el motivo.
 
 | Ruta | Acceso |
 | --- | --- |
 | `/` | Portal publico de bienvenida |
 | `/auth` | Retorno de Azure AD (MSAL) |
+| `/sin-acceso` | Cuenta autenticada pero no habilitada (cierra sesion) |
+| `/error-acceso` | Error de sesion/token (incluye el detalle de Azure) |
 | `/estudiante` | Rol `ESTUDIANTE` |
 | `/apoderado` | Rol `APODERADO` |
 | `/docente` | Rol `DOCENTE` |
 | `/admin` | Rol `ADMIN` |
 
-Cada portal se carga con lazy loading; `MsalGuard` valida la sesion y `roleGuard([...])` valida el rol. El rol autoritativo se obtiene del BFF (`GET /api/me`).
+Cada portal se carga con lazy loading y **rutas hijas** (layout `DashboardShell` con sidebar):
+
+| Portal | Rutas hijas |
+| --- | --- |
+| Estudiante | `inicio`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso` |
+| Apoderado | `inicio`, `pupilos`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso`, `solicitudes` |
+| Docente | `inicio`, `cursos`, `horarios`, `registrar-notas`, `registrar-asistencias` |
+| Admin | `inicio`, `usuarios`, `roles`, `asignaturas` |
+
+`MsalGuard` valida la sesion y `roleGuard([...])` valida el rol. El rol autoritativo se obtiene del BFF (`GET /api/me`).
+
+## Paginacion
+
+- Modelo `Page<T>` y utilidades en `@siga/core`
+  (`libs/core/src/lib/models/page.model.ts`): `pageQueryParams()` construye los
+  parametros `page`/`size`/`sort` para HTTP y `toPage()` pagina en cliente
+  (util para los listados que aun paginan en memoria).
+- UI: `siga-paginador` (`@siga/shared-ui`) muestra "Mostrando X–Y de Z" y la
+  navegacion; emite la pagina seleccionada (1-indexada).
+- Vistas con paginador: `admin/usuarios` (resetea a pagina 1 al filtrar) y
+  `admin/asignaturas`; `academico/asistencia-historial` ya lo usaba.
+- Contrato completo del backend en [docs/paginacion.md](../../docs/paginacion.md).
 
 ## Docker
 
 - Build en dos etapas: `node:24-alpine` (build) → `nginx:alpine` (servido).
-- Nginx sirve la SPA con fallback a `index.html` y los assets; **no proxya `/api`**.
-  El navegador llama al backend segun `bffBaseUrl` de `config.json` (en AWS, el
-  API Gateway enruta `/api` al BFF; en desarrollo, `npm start` usa `proxy.conf.json`).
+- Nginx sirve la SPA con fallback a `index.html` y los assets, y **proxya `/api` al BFF**
+  (`http://bff-web:8080`) para el entorno local (Docker), donde `bffBaseUrl` de `config.json` es relativo (`/api`).
+  En AWS esa ruta **no se usa**: el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF;
+  alli `config.json` se monta con la URL absoluta del API Gateway.
 - Publicado en `http://localhost:4200` (mapeo `4200:80`).
 
 ```bash
@@ -121,12 +155,16 @@ docker compose up -d --build frontend
 
 ## Estado
 
-- Disponible: bootstrap, autenticacion MSAL, rutas por rol, guards, layout base y portal publico.
+- Disponible: bootstrap, autenticacion MSAL, rutas por rol con guards, layout con header y sidebar, tema oscuro/claro y portal publico.
 - Disponible: consumo de `GET /api/me` (el BFF ya lo implementa) para resolver el rol autoritativo.
-- Pendiente: pantallas de negocio (CRUD), integracion completa con el resto de recursos del BFF y pruebas funcionales.
+- Disponible: **pantallas de los portales** (Inicio, Horarios, Notas, Asistencias, Progreso Academico, Cursos, Registrar notas/asistencias, Usuarios/Roles/Asignaturas) y componentes reutilizables.
+- Disponible: **paginacion** (`Page<T>` + `pageQueryParams()`/`toPage()` + `siga-paginador`).
+- Disponible: **datos reales del BFF** para perfil academico (`perfil/me`), pupilos, cursos/horario docente, admin (usuarios/asignaturas) y asistencias; cada servicio cae al mock de `libs/mocks` (`@siga/mocks`) si la llamada falla o `useMocks` es `true`.
+- Pendiente: escritura de notas por el docente contra el BFF, formularios/validaciones y pruebas funcionales.
 
 ## Documentacion
 
 - [README raiz](../../README.md) · [Indice de docs](../../docs/README.md)
 - [docs/frontend.md](../../docs/frontend.md) · [docs/arquitectura.md](../../docs/arquitectura.md)
+- [docs/paginacion.md](../../docs/paginacion.md)
 - [docs/testing-login.md](../../docs/testing-login.md) · [apps/backend/README.md](../backend/README.md)

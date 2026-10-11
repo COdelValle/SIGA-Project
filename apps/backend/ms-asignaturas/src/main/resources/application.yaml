@@ -21,6 +21,59 @@ spring:
 
   config:
     import: "optional:classpath:common-properties.yaml"
+  
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+    # Ejecuta la llamada en el hilo del request (semáforo) para que el token y
+    # el correlation id (ThreadLocals) se propaguen por Feign.
+    circuitbreaker:
+      resilience4j:
+        disable-thread-pool: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ms-docentes:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      ms-clases:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      ms-estudiantes:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      ms-docentes:
+        timeoutDuration: 5s
+      ms-clases:
+        timeoutDuration: 5s
+      ms-estudiantes:
+        timeoutDuration: 5s
+
+services:
+  ms-docentes:
+    url: ${MS_DOCENTES_URL:http://localhost:8085}
+  ms-clases:
+    url: ${MS_CLASES_URL:http://localhost:8087}
+  ms-estudiantes:
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:

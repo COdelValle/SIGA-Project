@@ -3,6 +3,8 @@ package cl.siga.msestudiantes.model.entity;
 import java.time.LocalDate;
 import java.util.List;
 import cl.siga.coreshare.dto.estudiante.enums.State;
+import cl.siga.coreshare.format.NombrePropio;
+import cl.siga.coreshare.format.RutNormalizer;
 import cl.siga.coreshare.validation.RUT;
 import jakarta.persistence.Column;
 import jakarta.persistence.CollectionTable;
@@ -28,22 +30,23 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity 
+@Entity
 @Table (name = "estudiantes",
     indexes = {
         @Index (name = "idx_estudiante_rut", columnList = "rut", unique = true)
     })
-@Getter 
-@Setter 
-@Builder 
+@Getter
+@Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Estudiante {
-    @Id 
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long  id;
 
     @NotBlank (message = "Se requiere ingresar idUsuario")
+    @Size(min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
     @Column(name = "id_usuario", length = 36, nullable = false, updatable = false)
     private String idUsuario;
 
@@ -51,6 +54,9 @@ public class Estudiante {
     @RUT(message = "RUT invalido")
     @Column(unique = true, nullable = false)
     private String rut;
+
+    @Column(name = "id_clase", nullable = true)
+    private Long idClase;
 
     @NotBlank(message = "El nombre no puede estar vacio")
     @Size(min = 2, max = 50, message = "El nombre tiene que tener entre 2 a 50 caracteres")
@@ -85,23 +91,13 @@ public class Estudiante {
     @Column (name = "state", nullable = false, length = 50)
     private State state;
 
-    @PrePersist 
+    @PrePersist
     @PreUpdate
     public void prePersist() {
-        if (this.rut != null) {
-            this.rut = this.rut.trim().toUpperCase();
-        }
-        if (this.firstName != null) {
-            this.firstName = this.firstName.trim().toUpperCase();
-        }
-        if (this.middleName != null) {
-            this.middleName = this.middleName.trim().toUpperCase();
-        }
-        if (this.firstSurname != null) {
-            this.firstSurname = this.firstSurname.trim().toUpperCase();
-        }
-        if (this.secondSurname != null) {
-            this.secondSurname = this.secondSurname.trim().toUpperCase();
-        }
+        this.rut = RutNormalizer.normalizar(this.rut);
+        this.firstName = NombrePropio.normalizar(this.firstName);
+        this.middleName = NombrePropio.normalizar(this.middleName);
+        this.firstSurname = NombrePropio.normalizar(this.firstSurname);
+        this.secondSurname = NombrePropio.normalizar(this.secondSurname);
     }
 }

@@ -5,16 +5,26 @@
 aws_region       = "us-east-1"
 management_name  = "SIGA"
 key_name         = "vockey"
-instance_type    = "t3.medium"
+instance_type    = "t3.large"
 data_volume_size = 10
 ssh_cidr         = "0.0.0.0/0"
 
-// Verificar con jwt.ms / jwt.io decodificando un access token real antes de
-// aplicar. Un token v2 trae aud = GUID y issuer .../v2.0; un token v1 trae
-// aud = api://<client-id> y issuer https://sts.windows.net/<tenant>/. Se aceptan
-// ambos audiences para no depender de la version.
+// Decodificar un access token real con jwt.ms / jwt.io antes de aplicar: el JWT
+// Authorizer valida el issuer EXACTO y la lista de audiences. No mezclar
+// formatos: un token v2 trae aud = GUID e issuer .../v2.0; un token v1 trae
+// aud = api://<client-id> e issuer https://sts.windows.net/<tenant>/.
+// La app actual emite tokens v1.0, por eso el issuer es el de sts.windows.net.
 azure_audience = [
-  "afad9bb4-4804-4b86-965d-34b67774f629",
-  "api://afad9bb4-4804-4b86-965d-34b67774f629",
+  "448f165b-4fab-45c4-9088-766044e1a004",
+  "api://448f165b-4fab-45c4-9088-766044e1a004",
 ]
-azure_issuer = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831/v2.0"
+azure_issuer = "https://sts.windows.net/f260a804-82ac-4b57-bb01-9ed6626d71ff/"
+
+// Origenes cross-origin permitidos por CORS (scheme://host:port). En produccion
+// la SPA y /api comparten el mismo origen del Gateway, asi que CORS no aplica al
+// flujo normal; se configura igualmente como requisito y para pruebas. Ejemplo
+// con el dev server de Angular y el origen HTTPS del Gateway:
+// cors_allowed_origins = [
+//   "http://localhost:4200",
+//   "https://<api-id>.execute-api.us-east-1.amazonaws.com",
+// ]

@@ -4,19 +4,49 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Habilita el uso de los fallbacks declarados en los clientes Feign
+  # (un fallo de un microservicio responde 503 en vez de 500).
+  cloud:
+    openfeign:
+      # HC5 soporta PATCH, que el cliente por defecto (HttpURLConnection) rechaza.
+      httpclient:
+        hc5:
+          enabled: true
+      circuitbreaker:
+        enabled: true
+    # Ejecuta la llamada en el hilo del request (semáforo) para que el token y
+    # el correlation id (ThreadLocals) se propaguen por Feign. El circuit
+    # breaker y los fallbacks siguen activos.
+    circuitbreaker:
+      resilience4j:
+        disable-thread-pool: true
   config:
     import: "optional:classpath:common-properties.yaml"
 
 # URLs de los microservicios de dominio
-microservices:
+services:
   usuarios:
     url: ${MS_USUARIOS_URL:http://localhost:8081}
   estudiantes:
-    url: ${MS_ESTUDIANTES_URL:http://localhost:8082}
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
   asignaturas:
     url: ${MS_ASIGNATURAS_URL:http://localhost:8086}
   notas:
-    url: ${MS_NOTAS_URL:http://localhost:8087}
+    url: ${MS_NOTAS_URL:http://localhost:8089}
+  evaluaciones:
+    url: ${MS_EVALUACIONES_URL:http://localhost:8088}
+  apoderados:
+    url: ${MS_APODERADOS_URL:http://localhost:8084}
+  clases:
+    url: ${MS_CLASES_URL:http://localhost:8087}
+  docentes:
+    url: ${MS_DOCENTES_URL:http://localhost:8085}
+  asistencias:
+    url: ${MS_ASISTENCIAS_URL:http://localhost:8090}
+  notificaciones:
+    url: ${MS_NOTIFICACIONES_URL:http://localhost:8091}
+  rabbitmq-admin:
+    url: ${MS_RABBITMQ_ADMIN_URL:http://localhost:8092}
 
 # Documentacion OpenAPI / Swagger
 springdoc:

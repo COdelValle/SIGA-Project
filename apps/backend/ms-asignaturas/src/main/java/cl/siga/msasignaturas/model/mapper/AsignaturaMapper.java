@@ -1,29 +1,34 @@
 package cl.siga.msasignaturas.model.mapper;
 
-import java.util.List;
+import org.springframework.stereotype.Component;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
-
-import cl.siga.coreshare.dto.asignatura.AsignaturaRequestDTO;
+import cl.siga.coreshare.dto.asignatura.ActualizarAsignaturaRequestDTO;
 import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
-import cl.siga.msasignaturas.model.entity.Asignatura;
+import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 
-@Mapper (
-    componentModel = "spring",
-    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
-)
-public interface AsignaturaMapper {
-    // Mapea un DTO de solicitud a una entidad de asignatura.
-    Asignatura toEntity(AsignaturaRequestDTO requestDto);
+@Component
+public class AsignaturaMapper {
 
-    // Mapea un DTO de modificación a una entidad de asignatura.
-    void updateEntityFromDto(AsignaturaRequestDTO dto, @MappingTarget Asignatura asignatura);
+    public AsignaturaResponseDTO toDto(Asignatura asignatura) {
+        if (asignatura == null) {
+            return null;
+        }
+        return new AsignaturaResponseDTO(
+            asignatura.getId(),
+            asignatura.getNombre(),
+            asignatura.getNombreCorto(),
+            asignatura.getDescripcion(),
+            asignatura.getArea(),
+            asignatura.isCalificable(),
+            asignatura.isActive()
+        );
+    }
 
-    // Mapea una entidad de asignatura a un DTO de respuesta.
-    AsignaturaResponseDTO toResponseDto(Asignatura asignatura);
-
-    // Mapea una lista de entidades de asignatura a una lista de DTOs de respuesta.
-    List<AsignaturaResponseDTO> toResponseDtoList(List<Asignatura> asignaturas);
+    public void updateEntity(ActualizarAsignaturaRequestDTO dto, Asignatura entity) {
+        entity.setNombre(dto.nombre());
+        entity.setNombreCorto(dto.nombreCorto());
+        entity.setDescripcion(dto.descripcion());
+        entity.setArea(dto.area());
+        entity.setCalificable(dto.calificable());
+    }
 }

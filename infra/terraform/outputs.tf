@@ -28,16 +28,66 @@ output "ssh_command" {
   value       = "ssh -i tu-clave.pem ubuntu@${aws_eip.app.public_ip}"
 }
 
+locals {
+  # Espejo de los scopes que pide el SPA (apps/frontend/public/config.json y el
+  # config.json que genera el CD). Mantener los tres en sincronia.
+  frontend_scopes = [
+    "${var.azure_app_id_uri}/Acceso.Base",
+    "${var.azure_app_id_uri}/usuarios:read",
+    "${var.azure_app_id_uri}/usuarios:write",
+    "${var.azure_app_id_uri}/usuarios:update",
+    "${var.azure_app_id_uri}/usuarios:delete",
+    "${var.azure_app_id_uri}/estudiantes:read",
+    "${var.azure_app_id_uri}/estudiantes:write",
+    "${var.azure_app_id_uri}/estudiantes:update",
+    "${var.azure_app_id_uri}/estudiantes:delete",
+    "${var.azure_app_id_uri}/asignaturas:read",
+    "${var.azure_app_id_uri}/asignaturas:write",
+    "${var.azure_app_id_uri}/asignaturas:update",
+    "${var.azure_app_id_uri}/asignaturas:delete",
+    "${var.azure_app_id_uri}/notas:read",
+    "${var.azure_app_id_uri}/notas:write",
+    "${var.azure_app_id_uri}/notas:update",
+    "${var.azure_app_id_uri}/notas:delete",
+    "${var.azure_app_id_uri}/docentes:read",
+    "${var.azure_app_id_uri}/docentes:write",
+    "${var.azure_app_id_uri}/docentes:update",
+    "${var.azure_app_id_uri}/docentes:delete",
+    "${var.azure_app_id_uri}/apoderados:read",
+    "${var.azure_app_id_uri}/apoderados:write",
+    "${var.azure_app_id_uri}/apoderados:update",
+    "${var.azure_app_id_uri}/apoderados:delete",
+    "${var.azure_app_id_uri}/clases:read",
+    "${var.azure_app_id_uri}/clases:write",
+    "${var.azure_app_id_uri}/clases:update",
+    "${var.azure_app_id_uri}/clases:delete",
+    "${var.azure_app_id_uri}/evaluaciones:read",
+    "${var.azure_app_id_uri}/evaluaciones:write",
+    "${var.azure_app_id_uri}/evaluaciones:update",
+    "${var.azure_app_id_uri}/evaluaciones:delete",
+    "${var.azure_app_id_uri}/horarios:write",
+    "${var.azure_app_id_uri}/horarios:update",
+    "${var.azure_app_id_uri}/horarios:delete",
+    "${var.azure_app_id_uri}/inscripciones:read",
+    "${var.azure_app_id_uri}/inscripciones:write",
+    "${var.azure_app_id_uri}/inscripciones:update",
+    "${var.azure_app_id_uri}/asistencias:read",
+    "${var.azure_app_id_uri}/asistencias:write",
+    "${var.azure_app_id_uri}/asistencias:update",
+    "${var.azure_app_id_uri}/asistencias:delete",
+  ]
+}
+
 output "frontend_config_json" {
   description = "Contenido esperado de config.json para el despliegue"
   value = jsonencode({
     bffBaseUrl = "${aws_apigatewayv2_api.http.api_endpoint}/api"
     msal = {
-      clientId              = "afad9bb4-4804-4b86-965d-34b67774f629"
-      authority             = "https://login.microsoftonline.com/c3cfc64e-def3-450f-aee6-07ff80bd6831"
+      clientId              = var.azure_client_id
+      authority             = "https://login.microsoftonline.com/${var.azure_tenant_id}"
       redirectUri           = "/auth"
       postLogoutRedirectUri = "/sin-acceso"
-      scopes                = ["api://afad9bb4-4804-4b86-965d-34b67774f629/Acceso.Base"]
+      scopes                = local.frontend_scopes
     }
   })
 }

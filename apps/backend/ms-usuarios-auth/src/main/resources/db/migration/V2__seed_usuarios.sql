@@ -1,9 +1,9 @@
--- Cuentas base de SIGA (mismas que en el entorno local).
+-- Cuentas base de SIGA en el tenant platformsiga (f260a804-82ac-4b57-bb01-9ed6626d71ff).
 -- El "id" es el object id (oid) del usuario en Microsoft Entra ID.
 -- INSERT IGNORE la hace idempotente: si la cuenta ya existe no se duplica ni se
 -- sobreescribe. Sobrevive a recrear la infraestructura (base limpia -> seed).
 INSERT IGNORE INTO usuarios (id, email, rol, state) VALUES
-    ('0406ec8d-8fd5-4b55-a813-806bc0172be2', 'apoderado@genesisfloress.onmicrosoft.com', 'APODERADO', 'ACTIVO'),
-    ('5782eb6b-a771-4e5a-b467-950eb3e46ba9', 'admin@genesisfloress.onmicrosoft.com', 'ADMIN', 'ACTIVO'),
-    ('d7a8a3c4-3108-4233-a88e-3e4c08f62b86', 'docente@genesisfloress.onmicrosoft.com', 'DOCENTE', 'ACTIVO'),
-    ('fa17a8dc-ba05-4ec9-a6ff-015115810141', 'estudiante@genesisfloress.onmicrosoft.com', 'ESTUDIANTE', 'ACTIVO');
+    ('3fb9467c-761f-4bff-bf74-621562e07810', 'admin@platformsiga.onmicrosoft.com', 'ADMIN', 'ACTIVO'),
+    ('ed6ba585-5a6f-4d5c-8564-d7b522b0b47f', 'alejandrosilva.docente@platformsiga.onmicrosoft.com', 'DOCENTE', 'ACTIVO'),
+    ('2f63f650-276d-4e7c-98ac-f9045d1f9779', 'camila.soto@platformsiga.onmicrosoft.com', 'ESTUDIANTE', 'ACTIVO'),
+    ('90dca6f5-0a90-4207-88fa-0e12b38ed24f', 'claudia.hernandez@platformsiga.onmicrosoft.com', 'APODERADO', 'ACTIVO');

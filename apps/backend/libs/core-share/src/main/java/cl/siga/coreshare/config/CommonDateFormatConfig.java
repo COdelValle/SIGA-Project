@@ -15,7 +15,9 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 @AutoConfiguration 
 public class CommonDateFormatConfig implements WebMvcConfigurer {
 
-    public static final String DATE_FORMAT = "dd/MM/yyyy";
+    // ISO 8601 (fecha pura). Estandariza el transporte de LocalDate en JSON y
+    // en parametros de URL de todos los servicios.
+    public static final String DATE_FORMAT = "yyyy-MM-dd";
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     // 1. Aplica el formato a JSON (@RequestBody / @ResponseBody - Jackson)

@@ -11,4 +11,6 @@ import cl.siga.msnotas.model.entity.Nota;
 @Repository 
 public interface NotaRepository extends JpaRepository<Nota, Long>, JpaSpecificationExecutor<Nota> {
     Optional<Nota> findByIdAndActiveTrue(Long id);
+
+    Optional<Nota> findByIdEstudianteAndIdEvaluacion(Long idEstudiante, Long idEvaluacion);
 }

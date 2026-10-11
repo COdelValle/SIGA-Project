@@ -4,14 +4,20 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 /**
- * Registro de un usuario. El {@code id} (object id de Entra ID) es opcional:
- * si no viene, el servicio lo resuelve a partir del correo usando Microsoft Graph.
+ * Registro de un usuario. El camino recomendado es enviar solo el correo y el
+ * rol: si Microsoft Graph está configurado se resuelve el {@code oid}
+ * automáticamente y, si no, se crea una invitación que se vincula en el primer
+ * inicio de sesión. El {@code id} explícito se mantiene por compatibilidad y
+ * está deprecado: ya no es necesario copiar el oid a mano.
  */
 public record RegistrarUsuarioRequestDTO(
-    @Size (min = 36, max = 36, message = "El ID de Azure debe tener exactamente 36 caracteres")
+    @Pattern (
+        regexp = "^\\s*$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        message = "El ID de Azure debe ser un UUID válido"
+    )
     String id,
 
     @Email (message = "El correo electrónico debe ser válido")

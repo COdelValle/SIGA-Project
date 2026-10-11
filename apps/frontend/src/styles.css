@@ -3,6 +3,68 @@
 /* Librerias Nx del frontend (fuera de src/, se incluyen explicitamente) */
 @source '../libs';
 
+/* Tokens semanticos expuestos como utilidades de Tailwind (bg-page, text-ink, ...) */
+@theme inline {
+  --color-page: var(--siga-bg);
+  --color-panel: var(--siga-panel);
+  --color-surface: var(--siga-surface);
+  --color-bar: var(--siga-bar);
+  --color-bar-alt: var(--siga-bar-alt);
+  --color-onbar: var(--siga-onbar);
+  --color-onbar-muted: var(--siga-onbar-muted);
+  --color-gold: var(--siga-gold);
+  --color-brand: var(--siga-brand);
+  --color-heading: var(--siga-heading);
+  --color-ink: var(--siga-text);
+  --color-muted: var(--siga-muted);
+  --color-line: var(--siga-border);
+  --color-ok: var(--siga-ok);
+  --color-warn: var(--siga-warn);
+  --color-bad: var(--siga-bad);
+}
+
+/* Barras y colores semanticos: iguales en ambos temas */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --siga-bar: #5e0b36;
+  --siga-bar-alt: #6b1540;
+  --siga-onbar: #ffffff;
+  --siga-onbar-muted: rgba(255, 255, 255, 0.72);
+  --siga-gold: #f2c94c;
+  --siga-ok: #6fcf5b;
+  --siga-warn: #f2c94c;
+  --siga-bad: #dc2626;
+}
+
+/* Tema oscuro (default): magenta/dorado institucional */
+:root,
+[data-theme='dark'] {
+  --siga-bg: #7a1f4d;
+  --siga-panel: #6b1540;
+  --siga-surface: #8a2a57;
+  --siga-brand: #f2c94c;
+  --siga-heading: #f2c94c;
+  --siga-text: #ffffff;
+  --siga-muted: #f0c6d8;
+  --siga-border: #f2c94c;
+  color-scheme: dark;
+}
+
+/* Tema claro: mismo patron que el oscuro pero invertido en luminosidad
+   (tonos magenta suaves, texto oscuro, acentos magenta profundo). */
+[data-theme='light'] {
+  --siga-bg: #f6e3ec;
+  --siga-panel: #fbeff5;
+  --siga-surface: #edd2e1;
+  --siga-brand: #7a1f4d;
+  --siga-heading: #7a1f4d;
+  --siga-text: #2a1420;
+  --siga-muted: #7a5a69;
+  --siga-border: #d9b8c9;
+  color-scheme: light;
+}
+
 html,
 body {
   height: 100%;

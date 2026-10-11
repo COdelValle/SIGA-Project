@@ -1,4 +1,23 @@
 spring:
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    # Confirmación manual: cada consumidor decide ACK/NACK con ConfirmadorMensajes
+    # (evento inválido o reintentos agotados => NACK sin requeue hacia la DLQ).
+    # missing-queues-fatal=false: si la cola aún no existe (arranque en frío del
+    # broker), el listener reintenta la declaración en vez de detenerse para siempre.
+    listener:
+      simple:
+        acknowledge-mode: manual
+        missing-queues-fatal: false
+    template:
+      mandatory: true
+      delivery-mode: persistent
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
   cloud:
     azure:
       active-directory:
@@ -14,3 +33,8 @@ spring:
           claim-to-authority-prefix-map:
             scp: SCOPE_
             roles: ROLE_
+
+# Incluye el correlation id (MDC) en el nivel de cada log.
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{correlationId:-}]"

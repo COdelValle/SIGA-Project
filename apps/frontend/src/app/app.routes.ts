@@ -17,6 +17,11 @@ export const routes: Routes = [
     loadComponent: () => import('@siga/public-portal').then((m) => m.SinAccesoComponent),
   },
   {
+    path: 'error-acceso',
+    loadComponent: () =>
+      import('./auth-error/auth-error.component').then((m) => m.AuthErrorComponent),
+  },
+  {
     path: 'estudiante',
     canActivate: [MsalGuard, roleGuard(['ESTUDIANTE'])],
     loadChildren: () => import('@siga/estudiante').then((m) => m.ESTUDIANTE_ROUTES),

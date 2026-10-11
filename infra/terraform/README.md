@@ -1,6 +1,6 @@
 # SIGA - Infraestructura AWS (Terraform)
 
-Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.medium`, un
+Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.large`, un
 volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
 sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure AD antes de
 llegar al BFF.
@@ -13,22 +13,28 @@ Contexto del proyecto en el [README raiz](../../README.md) e
 Navegador (Angular + MSAL)
   |  HTTPS
   v
-API Gateway HTTP API (HTTPS)
+API Gateway HTTP API (HTTPS + CORS)
   |- $default          -> http://<eip>:80                    (SPA + assets, sin auth)
   `- ANY /api/{proxy+} -> http://<eip>:8080/api/{proxy}      (JWT Authorizer)
   v
-EC2 t3.medium (EIP)
+EC2 t3.large (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8082/8086/8087
-  |- mariadb:3306    4 bases
-  `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy)
+  |- ms-*:8081/8083-8092          (8082 reservado: ms-auditoria)
+  |- caddy:443       panel RabbitMQ (https://<ip-con-guiones>.sslip.io)
+  |- rabbitmq1 + rabbitmq2:5672   (clúster; management interno 15672)
+  |- mariadb:3306    10 bases
+  `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy; backups diarios)
 ```
 
 Nota: se intentó CloudFront para el HTTPS, pero el LabRole deniega
 `cloudfront:CreateDistribution`. API Gateway sirve el SPA por HTTPS con su
 certificado de `*.execute-api`, lo que da contexto seguro a MSAL y ademas deja
-SPA y API en el mismo origen (sin CORS).
+SPA y API en el mismo origen, por lo que CORS no es necesario para el flujo
+normal. La API declara igualmente una política CORS con allowlist
+(`cors_allowed_origins`, incluye `PATCH`) para el requisito de evaluación y para
+pruebas desde otros orígenes. Las integraciones hacia EC2 siguen por HTTP: TLS
+termina en API Gateway.
 
 ## Requisitos
 
@@ -64,10 +70,14 @@ Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
 | --- | --- | --- |
 | `aws_region` | `us-east-1` | Region permitida en el Learner Lab. |
 | `management_name` | `SIGA` | Prefijo de nombres/etiquetas. |
-| `instance_type` | `t3.medium` | Tipo de instancia EC2. |
+| `instance_type` | `t3.large` | Tipo de instancia EC2 (el stack supera 5.8 GB en contenedores). |
 | `data_volume_size` | `10` | Tamano (GB) del EBS gp3 de MariaDB. |
 | `key_name` | `vockey` | Key pair del Learner Lab. |
 | `ssh_cidr` | `0.0.0.0/0` | CIDR autorizado para SSH. |
+| `cors_allowed_origins` | `["http://localhost:4200"]` | Orígenes permitidos por CORS en el Gateway. |
+| `azure_tenant_id` | GUID del tenant | Tenant del issuer/authority. |
+| `azure_client_id` | GUID de la app | Client ID de la SPA/API. |
+| `azure_app_id_uri` | `api://<client-id>` | Prefijo de los scopes del SPA. |
 | `azure_audience` | lista de audiences | `aud` aceptados por el JWT Authorizer. |
 | `azure_issuer` | issuer v2.0 | `iss` exacto del token. |
 
@@ -87,6 +97,11 @@ Outputs utiles:
 
 - Los datos de MariaDB viven en el volumen EBS etiquetado `siga-data`
   (`/home/ubuntu/siga-data`), separado del disco raíz.
+- Los datos de los **dos nodos RabbitMQ** viven en el mismo volumen
+  (`/home/ubuntu/siga-data/rabbitmq1` y `.../rabbitmq2`). El CD copia
+  `infra/rabbitmq/rabbitmq-cluster.conf` a la EC2 en cada despliegue para que
+  ambos nodos se descubran; el volumen `rabbitmq_data` anterior queda como
+  respaldo y no se migra.
 - Detener/arrancar la instancia ("End Lab" / "Start Lab") conserva los datos.
 - Reemplazar la instancia (cambio de AMI o de `user_data`) conserva los datos.
 - `prevent_destroy` evita que `terraform destroy` borre el volumen; para
@@ -94,13 +109,44 @@ Outputs utiles:
 - Sin backups por ahora: un **Reset** del laboratorio borra el volumen y los
   datos no se recuperan.
 - El CD nunca usa `docker compose down -v`.
+- El `user_data` de la EC2 se envía **gzip + base64** (`user_data_base64`): el
+  script renderizado (compose + init-db embebidos) supera el límite de 16 KB de
+  EC2 y cloud-init lo descomprime al arrancar. Con `user_data` plano,
+  `terraform validate/plan` falla.
 
 ## Inicialización de la base
 
-1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 4 bases y el
+1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 10 bases y el
    usuario.
 2. **Flyway** en cada microservicio crea/evoluciona el esquema al arrancar
    (`ddl-auto: validate`). Una base vacía se auto-inicializa.
+3. En instancias existentes (el `init-db.sh` no se re-ejecuta), el CD crea las
+   bases nuevas de forma idempotente antes del `up`.
+
+## Imágenes ECR
+
+El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
+
+`siga-usuarios-auth`, `siga-estudiantes`, `siga-asignaturas`, `siga-notas`,
+`siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
+`siga-asistencias`, `siga-notificaciones`, `siga-rabbitmq-admin`,
+`siga-bff-web` y `siga-frontend`.
+
+## Panel de RabbitMQ y respaldos
+
+- El Management UI se publica por **HTTPS público** con Caddy:
+  `https://<eip-con-guiones>.sslip.io` (p. ej. `https://52-54-139-252.sslip.io`).
+  Pide **un solo login**: el propio de RabbitMQ
+  (`RABBITMQ_USER`/`RABBITMQ_PASS`). No se usa basic auth de Caddy: dos capas
+  HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
+  un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
+  la EC2 y el SG abre 443.
+- **Respaldo diario** (cron del usuario `ubuntu`, 06:15 UTC): `backup-bd.sh`
+  deja un dump por base + `export_definitions` de RabbitMQ en
+  `/home/ubuntu/siga-data/backups/diario/<fecha>/` con rotación de 7 días.
+  El CD reinstala script y cron en cada deploy (idempotente).
+- Los datos (MariaDB y RabbitMQ) viven en el EBS: sobreviven reinicios,
+  redeploys y reemplazos de instancia. Un **Reset** del laboratorio los borra.
 
 ## Notas del laboratorio
 
@@ -131,6 +177,15 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `AZURE_APP_ID_URI` | `api://<client-id>` |
 | `AZURE_CLIENT_SECRET` | secreto del cliente (Microsoft Graph) |
 | `AZURE_API_APP_ID` | app que define los app roles |
+| `RABBITMQ_USER` | usuario de RabbitMQ |
+| `RABBITMQ_PASSWORD` | password de RabbitMQ |
+| `RABBITMQ_ERLANG_COOKIE` | cookie Erlang compartida por los dos nodos del clúster (generar con `openssl rand -hex 32`) |
+| `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
+| `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
+| `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |
+
+`REGISTRO_EMAIL_DOMAIN` usa el default `platformsiga.onmicrosoft.com` del Compose
+si no se define.
 
 `EC2_HOST` y `API_GW_INVOKE_URL` **no** se configuran como secrets: el CD los
 resuelve dinámicamente por tag/nombre (`SIGA-app` y `SIGA-http-api`) usando las

@@ -1,12 +1,46 @@
 name: siga
 
+# Volumenes nombrados del proyecto (certificados y estado de Caddy).
+volumes:
+  caddy_data:
+  caddy_config:
+
 # Variables comunes a todos los microservicios.
 # AZURE_* alimenta los placeholders de core-share/common-properties.yaml.
 x-ms-common-env: &ms-common-env
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  # Zona horaria institucional: los LocalDateTime.now() de los servicios
+  # (notificaciones, outbox, auditoria) quedan en hora de Chile.
+  TZ: America/Santiago
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
+  # RabbitMQ (mensajeria entre microservicios): clúster de dos nodos en la
+  # misma EC2. Spring intenta cada dirección en orden.
+  SPRING_RABBITMQ_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672
+  SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+  SPRING_RABBITMQ_PUBLISHER_CONFIRM_TYPE: correlated
+  SPRING_RABBITMQ_PUBLISHER_RETURNS: "true"
+  SPRING_RABBITMQ_TEMPLATE_MANDATORY: "true"
+  # ACK/NACK manuales: los reintentos viven en ConfirmadorMensajes (en memoria).
+  # El retry del contenedor se desactiva para que un error de conversión sea
+  # fatal y derive de inmediato a la DLQ, en vez de quedar retenido sin confirmar.
+  SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED: "false"
+  # Resiliencia: ejecuta Feign en el hilo del request (semáforo) para que el
+  # token y el correlation id se propaguen; breaker y fallbacks siguen activos.
+  SPRING_CLOUD_CIRCUITBREAKER_RESILIENCE4J_DISABLE_THREAD_POOL: "true"
+
+# Healthcheck comun de los microservicios (usa SERVER_PORT de cada servicio).
+# Los JVM tardan ~100 s en arrancar en la t3 y mas aun en una recreacion masiva:
+# un start_period amplio evita que docker los marque "unhealthy" a mitad de boot
+# y que compose aborte el deploy por una dependencia transitoriamente no sana.
+x-ms-healthcheck: &ms-healthcheck
+  test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${SERVER_PORT}/actuator/health || exit 1"]
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 240s
 
 services:
   mariadb:
@@ -29,9 +63,82 @@ services:
       timeout: 5s
       retries: 10
 
+  # Clúster RabbitMQ de dos nodos sobre la misma EC2: comparten el Erlang
+  # cookie y se descubren por /home/ubuntu/siga/rabbitmq-cluster.conf. El
+  # Management UI solo se publica en localhost (acceso por túnel SSH).
+  rabbitmq1:
+    image: rabbitmq:4.3.6-management-alpine
+    container_name: rabbitmq1
+    hostname: rabbitmq1
+    restart: unless-stopped
+    # El stop del laboratorio mata la VM: sin gracia suficiente RabbitMQ no
+    # alcanza a cerrar las colas y quedan procesos colgados al reiniciar.
+    stop_grace_period: 60s
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq1
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-siga-dev-cookie}
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - /home/ubuntu/siga-data/rabbitmq1:/var/lib/rabbitmq
+      - /home/ubuntu/siga/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq2:
+    image: rabbitmq:4.3.6-management-alpine
+    container_name: rabbitmq2
+    hostname: rabbitmq2
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq2
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-siga-dev-cookie}
+    volumes:
+      - /home/ubuntu/siga-data/rabbitmq2:/var/lib/rabbitmq
+      - /home/ubuntu/siga/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Panel de RabbitMQ por HTTPS publico: Caddy termina TLS (Let's Encrypt via
+  # sslip.io) y hace reverse-proxy al Management UI, que pide el login propio
+  # del broker. El Caddyfile lo genera el CD sin basic auth (dos capas Basic en
+  # el mismo origen provocan un bucle de credenciales); se usa solo el puerto
+  # 443 porque el 80 lo ocupa el frontend.
+  caddy:
+    image: caddy:2.11-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - /home/ubuntu/siga/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+
   ms-usuarios-auth:
     image: ${REGISTRY}/siga-usuarios-auth:${IMAGE_TAG}
     container_name: ms-usuarios-auth
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -43,29 +150,44 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
       AZURE_API_APP_ID: ${AZURE_API_APP_ID}
+      # Registro asincrono de usuarios (usuario + perfil de rol)
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      REGISTRO_ASYNC_ENABLED: ${REGISTRO_ASYNC_ENABLED:-false}
+      REGISTRO_CRED_KEY: ${REGISTRO_CRED_KEY:-}
+      REGISTRO_NOTIFY_CREDENTIALS_ENABLED: ${REGISTRO_NOTIFY_CREDENTIALS_ENABLED:-false}
+      REGISTRO_EMAIL_DOMAIN: ${REGISTRO_EMAIL_DOMAIN:-platformsiga.onmicrosoft.com}
     depends_on:
       mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-estudiantes:
         condition: service_healthy
 
   ms-estudiantes:
     image: ${REGISTRY}/siga-estudiantes:${IMAGE_TAG}
     container_name: ms-estudiantes
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
-      - "8082:8082"
+      - "8083:8083"
     environment:
       <<: *ms-common-env
-      SERVER_PORT: "8082"
+      SERVER_PORT: "8083"
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_estudiantes_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_APODERADOS_URL: http://ms-apoderados:8084
     depends_on:
       mariadb:
+        condition: service_healthy
+      rabbitmq1:
         condition: service_healthy
 
   ms-asignaturas:
     image: ${REGISTRY}/siga-asignaturas:${IMAGE_TAG}
     container_name: ms-asignaturas
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8086:8086"
@@ -75,29 +197,205 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_asignaturas_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8085
+      MS_CLASES_URL: http://ms-clases:8087
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
     depends_on:
       mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_healthy
+      ms-clases:
+        condition: service_healthy
+      ms-estudiantes:
         condition: service_healthy
 
   ms-notas:
     image: ${REGISTRY}/siga-notas:${IMAGE_TAG}
     container_name: ms-notas
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8089"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_notas_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-evaluaciones:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+
+  ms-docentes:
+    image: ${REGISTRY}/siga-docentes:${IMAGE_TAG}
+    container_name: ms-docentes
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8085"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_docentes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+
+  ms-apoderados:
+    image: ${REGISTRY}/siga-apoderados:${IMAGE_TAG}
+    container_name: ms-apoderados
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8084"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_apoderados_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+
+  ms-clases:
+    image: ${REGISTRY}/siga-clases:${IMAGE_TAG}
+    container_name: ms-clases
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8087:8087"
     environment:
       <<: *ms-common-env
       SERVER_PORT: "8087"
-      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_notas_db
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_clases_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_DOCENTES_URL: http://ms-docentes:8085
     depends_on:
       mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_healthy
+
+  ms-evaluaciones:
+    image: ${REGISTRY}/siga-evaluaciones:${IMAGE_TAG}
+    container_name: ms-evaluaciones
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8088"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_evaluaciones_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+
+  ms-asistencias:
+    image: ${REGISTRY}/siga-asistencias:${IMAGE_TAG}
+    container_name: ms-asistencias
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8090"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_asistencias_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+
+  ms-notificaciones:
+    image: ${REGISTRY}/siga-notificaciones:${IMAGE_TAG}
+    container_name: ms-notificaciones
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8091"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_notificaciones_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
+      MS_APODERADOS_URL: http://ms-apoderados:8084
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-apoderados:
+        condition: service_healthy
+
+  ms-rabbitmq-admin:
+    image: ${REGISTRY}/siga-rabbitmq-admin:${IMAGE_TAG}
+    container_name: ms-rabbitmq-admin
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8092:8092"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8092"
+    depends_on:
+      rabbitmq1:
         condition: service_healthy
 
   bff-web:
     image: ${REGISTRY}/siga-bff-web:${IMAGE_TAG}
     container_name: bff-web
+    healthcheck: *ms-healthcheck
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -105,14 +403,41 @@ services:
       <<: *ms-common-env
       SERVER_PORT: "8080"
       MS_USUARIOS_URL: http://ms-usuarios-auth:8081
-      MS_ESTUDIANTES_URL: http://ms-estudiantes:8082
+      MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
-      MS_NOTAS_URL: http://ms-notas:8087
+      MS_NOTAS_URL: http://ms-notas:8089
+      MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
+      MS_APODERADOS_URL: http://ms-apoderados:8084
+      MS_CLASES_URL: http://ms-clases:8087
+      MS_DOCENTES_URL: http://ms-docentes:8085
+      MS_ASISTENCIAS_URL: http://ms-asistencias:8090
+      MS_NOTIFICACIONES_URL: http://ms-notificaciones:8091
+      MS_RABBITMQ_ADMIN_URL: http://ms-rabbitmq-admin:8092
     depends_on:
-      - ms-usuarios-auth
-      - ms-estudiantes
-      - ms-asignaturas
-      - ms-notas
+      ms-usuarios-auth:
+        condition: service_healthy
+      ms-estudiantes:
+        condition: service_healthy
+      ms-asignaturas:
+        condition: service_healthy
+      ms-notas:
+        condition: service_healthy
+      ms-evaluaciones:
+        condition: service_healthy
+      ms-apoderados:
+        condition: service_healthy
+      ms-clases:
+        condition: service_healthy
+      ms-docentes:
+        condition: service_healthy
+      ms-asistencias:
+        condition: service_healthy
+      ms-notificaciones:
+        condition: service_healthy
+      ms-rabbitmq-admin:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
 
   frontend:
     image: ${REGISTRY}/siga-frontend:${IMAGE_TAG}

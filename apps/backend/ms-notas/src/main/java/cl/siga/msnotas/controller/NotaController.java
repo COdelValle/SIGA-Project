@@ -2,6 +2,10 @@ package cl.siga.msnotas.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,9 +27,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RestController 
+@RestController
 @RequestMapping ("/api/v1/notas")
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 @Tag (name = "Notas", description = "Operaciones de registro y consulta de notas")
 public class NotaController {
     private final NotaService notaService;
@@ -38,29 +42,30 @@ public class NotaController {
 
     @GetMapping ("/search")
     @PreAuthorize ("hasAuthority('SCOPE_notas:read')")
-    public ResponseEntity<List<NotaResponseDTO>> searchNotas(
+    public ResponseEntity<Page<NotaResponseDTO>> searchNotas(
         @RequestParam (required = false) Long idEstudiante,
-        @RequestParam (required = false) Long idAsignatura,
+        @RequestParam (required = false) Long idEvaluacion,
         @RequestParam (required = false) Double lessThanScore,
-        @RequestParam (required = false) Double greaterThanScore
+        @RequestParam (required = false) Double greaterThanScore,
+        @PageableDefault(size = 20, sort = "id") Pageable pageable
     ){
-        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idAsignatura, lessThanScore, greaterThanScore));
+        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore, pageable));
     }
 
     @PostMapping
-    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:write'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write')")
     public ResponseEntity<NotaResponseDTO> registrarNota(@RequestBody @Valid RegistrarNotaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));
     }
 
     @PutMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:update'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:update')")
     public ResponseEntity<NotaResponseDTO> updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
         return ResponseEntity.ok(notaService.updateNota(id, request));
     }
 
     @DeleteMapping ("/{id}")
-    @PreAuthorize ("hasRole('ADMIN') or (hasRole('DOCENTE') and hasAuthority('SCOPE_notas:delete'))")
+    @PreAuthorize ("(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete')")
     public ResponseEntity<Void> deleteNota(@PathVariable Long id) {
         notaService.deleteNota(id);
         return ResponseEntity.noContent().build();

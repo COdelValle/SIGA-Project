@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import cl.siga.bffweb.domain.estudiantes.dto.internal.AsignaturaDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.ClaseDetalleDTO;
 
 public record PerfilEstudianteResponseDTO(
     Long id,
@@ -16,6 +17,8 @@ public record PerfilEstudianteResponseDTO(
     LocalDate birthDate,
     List<String> allergies,
     String state,
+    Long idClase,
+    ClaseDetalleDTO clase,
     List<AsignaturaDetalleDTO> asignaturas
 ) {
 

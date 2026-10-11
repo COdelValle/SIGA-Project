@@ -1,0 +1,62 @@
+package cl.siga.msasistencias.model.entity;
+
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Entity
+@Table(
+  name = "asistencias",
+  uniqueConstraints = {
+    @UniqueConstraint(
+      name = "uk_asistencia_estudiante_curso_fecha",
+      columnNames = {"id_estudiante", "id_curso_asignatura", "fecha"}
+    )
+  }
+)
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class Asistencia {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @NotNull(message = "El ID del estudiante es obligatorio")
+  @Column(name = "id_estudiante", nullable = false)
+  private Long idEstudiante;
+
+  @NotNull (message = "El ID de la dictación es obligatorio")
+  @Column(name = "id_curso_asignatura", nullable = false)
+  private Long idCursoAsignatura;
+
+  @NotNull (message = "La fecha es obligatoria")
+  @PastOrPresent (message = "La fecha no puede ser futura")
+  @Column(name = "fecha", nullable = false)
+  private LocalDate fecha;
+
+  @NotNull (message = "El estado es obligatorio")
+  @Enumerated(EnumType.STRING)
+  @Column(name = "estado", nullable = false, length = 20)
+  private State estado;
+
+  @NotNull (message = "La justificación es obligatoria")
+  @Enumerated(EnumType.STRING)
+  @Column(name = "justificacion", nullable = false, length = 20)
+  private Justificacion justificacion;
+
+  @Size(max = 255, message = "La observación no puede superar los 255 caracteres")
+  @Column(name = "observacion", length = 255)
+  private String observacion;
+
+  @NotNull (message = "El estado activo es obligatorio")
+  @Column(name = "active", nullable = false)
+  @Builder.Default
+  private Boolean active = true;
+}

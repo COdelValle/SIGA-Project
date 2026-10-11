@@ -10,8 +10,10 @@ separados por dominio, con persistencia *database-per-service* en MariaDB.
 - **Documentación detallada**: [`docs/`](docs/README.md).
 
 > Estado: el núcleo académico y la orquestación del BFF (`/me` y perfil de
-> estudiante) son funcionales; las pantallas de negocio del frontend y la
-> observabilidad avanzada están en construcción.
+> estudiante) son funcionales. El frontend ya tiene **dashboards por rol** (Inicio,
+> Horarios, Notas, Asistencias, Progreso Académico, Cursos, Usuarios/Roles/
+> Asignaturas) con **tema oscuro/claro**, pero esas pantallas usan **datos mock**;
+> conectar el resto de recursos al BFF y la observabilidad avanzada están pendientes.
 
 ## Arquitectura
 
@@ -59,11 +61,18 @@ SIGA-Project/
 ├── apps/
 │   ├── backend/                  # Maven multi-módulo (ver apps/backend/README.md)
 │   │   ├── libs/core-share/      # DTOs, validadores, seguridad y OpenAPI compartidos
-│   │   ├── bff-web/              # BFF: /me y orquestación por Feign
+│   │   ├── bff-web/              # BFF: /me y orquestación de portales por Feign
 │   │   ├── ms-usuarios-auth/     # usuarios, roles y Microsoft Graph
-│   │   ├── ms-estudiantes/       # ficha del estudiante
-│   │   ├── ms-asignaturas/       # asignaturas
-│   │   └── ms-notas/             # calificaciones + Feign con fallback
+│   │   ├── ms-estudiantes/       # ficha del estudiante y curso
+│   │   ├── ms-asignaturas/       # asignaturas, horarios e inscripciones
+│   │   ├── ms-notas/             # calificaciones + Feign con fallback
+│   │   ├── ms-docentes/          # docentes y certificados
+│   │   ├── ms-apoderados/        # apoderados y estudiantes a cargo
+│   │   ├── ms-clases/            # cursos y docente jefe
+│   │   ├── ms-evaluaciones/      # evaluaciones por asignatura
+│   │   ├── ms-asistencias/       # asistencias por estudiante y asignatura
+│   │   ├── ms-notificaciones/    # bandeja in-app que consume eventos académicos
+│   │   └── ms-rabbitmq-admin/    # API REST de administración de RabbitMQ
 │   └── frontend/                 # Angular + Nx (ver apps/frontend/README.md)
 ├── docs/                         # documentación (ver docs/README.md)
 ├── infra/terraform/              # infraestructura AWS (ver infra/terraform/README.md)
@@ -84,9 +93,10 @@ SIGA-Project/
 ```bash
 # 1. Variables de entorno
 cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
-#    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS y las variables AZURE_*
+#    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS, RABBITMQ_USER/PASS,
+#    RABBITMQ_ERLANG_COOKIE (clúster) y las variables AZURE_*
 
-# 2. Levantar todo el stack (bases, microservicios, BFF y frontend)
+# 2. Levantar todo el stack (bases, microservicios, BFF, RabbitMQ y frontend)
 docker compose up -d --build
 
 # 3. Ver estado y logs
@@ -100,9 +110,11 @@ Accesos del entorno local:
 | --- | --- |
 | Frontend (SPA) | http://localhost:4200 |
 | BFF Web | http://localhost:8080 |
+| RabbitMQ (management) | http://localhost:15672 |
 | Swagger BFF | http://localhost:8080/docs/swagger |
 | Scalar BFF | http://localhost:8080/docs/scalar |
 | Swagger usuarios | http://localhost:8081/docs/swagger |
+| Swagger admin RabbitMQ | http://localhost:8092/docs/swagger |
 | Health BFF | http://localhost:8080/actuator/health |
 
 > Guía paso a paso de login y pruebas: [`docs/testing-login.md`](docs/testing-login.md).
@@ -111,13 +123,23 @@ Accesos del entorno local:
 
 | Servicio | Puerto host | Descripción |
 | --- | --- | --- |
-| `frontend` | 4200 | SPA Angular servida por Nginx. |
-| `bff-web` | 8080 | Backend For Frontend (`/api/me`, perfil de estudiante). |
+| `frontend` | 4200 | SPA Angular servida por Nginx (datos reales del BFF con fallback a mocks). |
+| `bff-web` | 8080 | Backend For Frontend: `/api/me`, perfil académico, pupilos, cursos y admin. |
 | `ms-usuarios-auth` | 8081 | Usuarios, roles y sincronización con Microsoft Graph. |
-| `ms-estudiantes` | 8082 | Dominio estudiantes. |
-| `ms-asignaturas` | 8086 | Dominio asignaturas. |
-| `ms-notas` | 8087 | Dominio notas (Feign a estudiantes y asignaturas). |
-| `mariadb-*` | interno | Una instancia MariaDB por microservicio. |
+| `ms-estudiantes` | 8083 | Dominio estudiantes (incluye `id_clase`). |
+| `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
+| `ms-notas` | 8089 | Notas (valida estudiante y evaluación por Feign). |
+| `ms-docentes` | 8085 | Docentes y certificados. |
+| `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
+| `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
+| `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
+| `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (soft delete y unique por fecha). |
+| `ms-notificaciones` | 8091 | Bandeja de notificaciones in-app para estudiantes y apoderados; consume eventos académicos. |
+| `ms-rabbitmq-admin` | 8092 | API REST para administrar colas, exchanges y bindings de RabbitMQ. |
+| `rabbitmq1` / `rabbitmq2` | 5672 / 15672 | Clúster RabbitMQ de dos nodos en la misma EC2 (15672 es la UI, solo en `rabbitmq1`). |
+| `mariadb-*` | interno | Una instancia MariaDB por microservicio (10 bases). |
+
+> Puerto reservado para el servicio futuro `ms-auditoria`: `8082`.
 
 ## Comandos habituales
 
@@ -185,6 +207,8 @@ Detalles de la topología AWS y secretos en
 | [`docs/arquitectura.md`](docs/arquitectura.md) | Visión general, capas, seguridad y despliegue. |
 | [`docs/backend.md`](docs/backend.md) | Microservicios, endpoints, contratos y datos. |
 | [`docs/frontend.md`](docs/frontend.md) | Angular, rutas por rol, MSAL y librerías Nx. |
+| [`docs/paginacion.md`](docs/paginacion.md) | Contrato de paginación (`Page<T>`) de las búsquedas. |
+| [`docs/auditoria-backend.md`](docs/auditoria-backend.md) | Auditoría del backend y decisión pendiente de autorización. |
 | [`docs/testing-login.md`](docs/testing-login.md) | Pruebas de login y del sistema con Docker. |
 | [`docs/branch-cleanup.md`](docs/branch-cleanup.md) | Modelo de ramas y limpieza ejecutada. |
 | [`apps/backend/README.md`](apps/backend/README.md) | Guía del backend. |

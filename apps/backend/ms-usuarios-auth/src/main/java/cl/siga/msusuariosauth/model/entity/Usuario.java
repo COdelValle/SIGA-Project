@@ -33,6 +33,11 @@ public class Usuario {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
+    /** Nombre completo (derivado del rol en el registro asíncrono). */
+    @Size(max = 255, message = "El nombre completo no puede superar los 255 caracteres")
+    @Column(name = "full_name", length = 255)
+    private String fullName;
+
     @NotNull(message = "El rol es obligatorio")
     @Enumerated(EnumType.STRING)
     @Column(name = "rol", nullable = false, length = 50)

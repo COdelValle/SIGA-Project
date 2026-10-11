@@ -3,7 +3,6 @@ package cl.siga.coreshare.dto.estudiante;
 import java.time.LocalDate;
 import java.util.List;
 
-import cl.siga.coreshare.dto.estudiante.enums.State;
 import jakarta.validation.constraints.*;
 
 public record ActualizarEstudianteRequestDTO(
@@ -11,7 +10,7 @@ public record ActualizarEstudianteRequestDTO(
     @Size(min = 2, max = 50)
     String firstName,
 
-    @Size(min = 0, max = 50)
+    @Size(max = 50)
     String middleName,
 
     @NotBlank(message = "El apellido es requerido")
@@ -27,7 +26,6 @@ public record ActualizarEstudianteRequestDTO(
 
     List<String> allergies,
 
-    @NotNull(message = "El estado del usuario es obligatorio")
-    State state
+    Long idClase
 ) {
 }

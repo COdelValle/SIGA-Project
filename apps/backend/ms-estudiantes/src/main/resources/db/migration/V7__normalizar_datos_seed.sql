@@ -1,0 +1,44 @@
+-- Normaliza los datos de ejemplo al estandar del proyecto: nombres en Titulo con
+-- particulas y RUT sin puntos. Idempotente y acotada a las filas de seed.
+UPDATE estudiantes SET first_name='Camila', middle_name='Antonieta', first_surname='Soto', second_surname='Hernández' WHERE id=1;
+UPDATE estudiantes SET first_name='Lilith', middle_name='Fernanda', first_surname='Soto', second_surname='Hernández' WHERE id=2;
+UPDATE estudiantes SET first_name='Matías', middle_name='Ignacio', first_surname='Rojas', second_surname='Peña' WHERE id=3;
+UPDATE estudiantes SET first_name='Fernanda', middle_name='Ignacia', first_surname='Muñoz', second_surname='Castro' WHERE id=4;
+UPDATE estudiantes SET first_name='Diego', middle_name='Alonso', first_surname='Vergara', second_surname='Díaz' WHERE id=5;
+UPDATE estudiantes SET first_name='Antonia', middle_name='Belén', first_surname='González', second_surname='Fuentes' WHERE id=6;
+UPDATE estudiantes SET first_name='Vicente', middle_name='Tomás', first_surname='Pérez', second_surname='Lagos' WHERE id=7;
+UPDATE estudiantes SET first_name='Josefa', middle_name='Paz', first_surname='Cárdenas', second_surname='Rojas' WHERE id=8;
+UPDATE estudiantes SET first_name='Benjamín', middle_name='Andrés', first_surname='Silva', second_surname='Morales' WHERE id=9;
+UPDATE estudiantes SET first_name='Martina', middle_name='Soledad', first_surname='Contreras', second_surname='Navarro' WHERE id=10;
+UPDATE estudiantes SET first_name='Lucas', middle_name='Emilio', first_surname='Salazar', second_surname='Muñoz' WHERE id=11;
+UPDATE estudiantes SET first_name='Emilia', middle_name='Constanza', first_surname='Espinoza', second_surname='Cortez' WHERE id=12;
+UPDATE estudiantes SET first_name='Agustín', middle_name='Nicolás', first_surname='Toledo', second_surname='Olivares' WHERE id=13;
+UPDATE estudiantes SET first_name='Isidora', middle_name='Belén', first_surname='Araya', second_surname='Vega' WHERE id=14;
+UPDATE estudiantes SET first_name='Tomás', middle_name='Alejandro', first_surname='Fuentes', second_surname='Rivas' WHERE id=15;
+UPDATE estudiantes SET first_name='Catalina', middle_name='Paz', first_surname='Rojas', second_surname='Miranda' WHERE id=16;
+UPDATE estudiantes SET first_name='Joaquín', middle_name='Esteban', first_surname='Muñoz', second_surname='Paredes' WHERE id=17;
+UPDATE estudiantes SET first_name='Sofía', middle_name='Antonia', first_surname='Cáceres', second_surname='Leiva' WHERE id=18;
+UPDATE estudiantes SET first_name='Maximiliano', middle_name='Andrés', first_surname='Silva', second_surname='Cortez' WHERE id=19;
+UPDATE estudiantes SET first_name='Florencia', middle_name='Ignacia', first_surname='Vega', second_surname='Soto' WHERE id=20;
+UPDATE estudiantes SET first_name='Cristóbal', middle_name='Ignacio', first_surname='Herrera', second_surname='Díaz' WHERE id=21;
+UPDATE estudiantes SET first_name='Amanda', middle_name='Josefina', first_surname='Torres', second_surname='Fuentes' WHERE id=22;
+UPDATE estudiantes SET first_name='Sebastián', middle_name='Alonso', first_surname='Morales', second_surname='Pizarro' WHERE id=23;
+UPDATE estudiantes SET first_name='Renata', middle_name='Paz', first_surname='Cárdenas', second_surname='Vega' WHERE id=24;
+UPDATE estudiantes SET first_name='Facundo', middle_name='Ignacio', first_surname='Reyes', second_surname='Molina' WHERE id=25;
+UPDATE estudiantes SET first_name='Valentina', middle_name='Ignacia', first_surname='Soto', second_surname='Araya' WHERE id=26;
+UPDATE estudiantes SET first_name='Dante', middle_name='Mauricio', first_surname='Sepúlveda', second_surname='Ríos' WHERE id=27;
+UPDATE estudiantes SET first_name='Martín', middle_name='Elías', first_surname='Guzmán', second_surname='Torres' WHERE id=28;
+UPDATE estudiantes SET first_name='Magdalena', middle_name='Belén', first_surname='Bravo', second_surname='Núñez' WHERE id=29;
+UPDATE estudiantes SET first_name='Ignacia', middle_name='Fernanda', first_surname='Paredes', second_surname='Campos' WHERE id=30;
+UPDATE estudiantes SET first_name='Alonso', middle_name='Nicolás', first_surname='Medina', second_surname='Rojas' WHERE id=31;
+UPDATE estudiantes SET first_name='Gabriela', middle_name='Antonia', first_surname='Vargas', second_surname='Silva' WHERE id=32;
+UPDATE estudiantes SET first_name='Rodrigo', middle_name='Esteban', first_surname='Castillo', second_surname='Muñoz' WHERE id=33;
+UPDATE estudiantes SET first_name='Paz', middle_name='Emilia', first_surname='Contreras', second_surname='Lagos' WHERE id=34;
+UPDATE estudiantes SET first_name='Bastián', middle_name='Andrés', first_surname='Fuentes', second_surname='Cárdenas' WHERE id=35;
+UPDATE estudiantes SET first_name='Josefina', middle_name='Alejandra', first_surname='Salas', second_surname='Rivas' WHERE id=36;
+UPDATE estudiantes SET first_name='Matías', middle_name='Vicente', first_surname='Orellana', second_surname='Díaz' WHERE id=37;
+UPDATE estudiantes SET first_name='Constanza', middle_name='Belén', first_surname='Tapia', second_surname='Herrera' WHERE id=38;
+UPDATE estudiantes SET first_name='Esteban', middle_name='Nicolás', first_surname='López', second_surname='Vega' WHERE id=39;
+UPDATE estudiantes SET first_name='Catalina', middle_name='Belen', first_surname='Ormeño', second_surname='Del Valle' WHERE id=41;
+
+UPDATE estudiantes SET rut = REPLACE(rut, '.', '') WHERE rut LIKE '%.%';

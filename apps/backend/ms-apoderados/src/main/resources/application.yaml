@@ -1,0 +1,88 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ms-apoderados
+    description: Gestiona el CRUD de los apoderados y sus perfiles
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_apoderados_db
+    username: ${DB_USER:root}
+    password: ${DB_PASS:dev_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    # Flyway administra el esquema. baseline-on-migrate permite convivir con bases
+    # creadas previamente por Hibernate (ddl-auto=update) sin historial de Flyway.
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  # RabbitMQ: consumidor del registro asincrono (ACK/NACK manuales con DLQ).
+  rabbitmq:
+    publisher-confirm-type: correlated
+    listener:
+      simple:
+        default-requeue-rejected: false
+        # Los reintentos viven en ConfirmadorMensajes (en memoria); el retry del
+        # contenedor se desactiva para que un error de conversión derive a la DLQ.
+        retry:
+          enabled: false
+
+  config:
+    import: "optional:classpath:common-properties.yaml"
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+    # Ejecuta la llamada en el hilo del request (semáforo) para que el token y
+    # el correlation id (ThreadLocals) se propaguen por Feign.
+    circuitbreaker:
+      resilience4j:
+        disable-thread-pool: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ms-estudiantes:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      ms-estudiantes:
+        timeoutDuration: 5s
+
+# Topología RabbitMQ del registro asíncrono (exchange, colas y DLQ compartidas).
+siga:
+  mensajeria:
+    registro:
+      topology-enabled: true
+
+# URLs de microservicios con los que se relaciona
+services:
+  ms-estudiantes:
+    url: ${MS_ESTUDIANTES_URL:http://localhost:8083}
+
+# ConfiguraciÃ³n de OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs/swagger
+# ConfiguraciÃ³n de Scalar UI
+scalar:
+  enabled: true
+  path: /docs/scalar
+  url: /v3/api-docs
+  theme: purple
+  darkMode: true

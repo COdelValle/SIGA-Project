@@ -31,10 +31,14 @@ public class MeService {
                     "No se pudo obtener el usuario autenticado (HTTP " + ex.status() + ").");
         }
 
-        String displayName = SecurityUtils.getCurrentJwt()
-                .map(jwt -> jwt.getClaimAsString("name"))
-                .filter(name -> name != null && !name.isBlank())
-                .orElse(usuario.email());
+        // El nombre estandarizado del registro manda; si no existe (cuenta legacy),
+        // se usa el claim del token y, como ultimo recurso, el correo.
+        String displayName = (usuario.fullName() != null && !usuario.fullName().isBlank())
+                ? usuario.fullName()
+                : SecurityUtils.getCurrentJwt()
+                        .map(jwt -> jwt.getClaimAsString("name"))
+                        .filter(name -> name != null && !name.isBlank())
+                        .orElse(usuario.email());
 
         return new MeResponseDTO(usuario.id(), usuario.email(), displayName, List.of(usuario.rol()));
     }
