@@ -594,7 +594,8 @@ Reglas de mantenimiento:
 ### PR-20261011-11 — Round-trip del tipo de evaluación, detalle de notas y colas colgadas
 
 - **Fecha**: 2026-10-11
-- **Rama / commit**: `feat/rabbitmq-cluster-admin` (esta sesión)
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `d0f47b2`; CD run
+  `38115033773` en verde
 - **Alcance**: (1) fix del bug de ponderación en `Registrar notas`: tras crear o
   editar una evaluación el tipo volvía como texto visible (`"Evaluación Sumativa"`)
   y la UI dejaba de sumar/editar ponderaciones; (2) detalle emergente (nombre de la
@@ -631,9 +632,10 @@ Reglas de mantenimiento:
   `consumers=1` en las tres académicas y 0 mensajes (sin pérdidas). Los outbox
   afectados quedaron históricos (`FALLIDO`: evaluaciones 24, notas 2) y **no** se
   re-encolaron por decisión de la sesión.
-- **Resultado**: `OK` local y en la nube para colas/pruebas; pendiente el redeploy
-  por CD y la verificación visual del usuario (ponderar una SUMATIVA y ver el
-  detalle de notas).
+- **Resultado**: `OK` local y en la nube; desplegado por CD (imágenes `d0f47b27`
+  en `bff-web`, `ms-evaluaciones`, `ms-notificaciones` y `frontend`). Queda la
+  verificación visual del usuario (ponderar una SUMATIVA y ver el detalle de
+  notas).
 - **Evidencia**:
   - Backend: reactor `mvn package` `BUILD SUCCESS` (14 módulos; `EnumsJsonTest`
     actualizado + test de serialización de `EvaluacionResponseDTO` con
@@ -651,6 +653,10 @@ Reglas de mantenimiento:
     - errores: JSON malformado → `cola-notificaciones-notas.dlq` (+1); evaluación
       sin `idCursoAsignatura` → `.dlq` evaluaciones (+1); nota sin `idEstudiante`
       → `.dlq` notas (+1). DLQ purgadas y filas de prueba eliminadas.
+  - Deploy: CD run `38115033773` verde y compose de la EC2 con
+    `stop_grace_period`; los bundles desplegados contienen el guard
+    (`sumativa`) y el detalle (`max-w-64`, "No pondera"); E2E verde
+    post-deploy (`nota.creada` → notificación id 75, eliminada después).
 - **Pendientes / notas**: el `id_evento` persistido en `notificaciones` es el UUID
   v3 derivado del `idEvento` (`UUID.nameUUIDFromBytes`), no el string original: las
   consultas de evidencia deben usar el UUID. En modo mock, los nombres de
