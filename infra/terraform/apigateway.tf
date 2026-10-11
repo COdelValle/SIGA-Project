@@ -9,10 +9,12 @@ resource "aws_apigatewayv2_api" "http" {
   name          = "${var.management_name}-http-api"
   protocol_type = "HTTP"
 
-  # CORS gestionado por API Gateway (no duplicar en Spring). En produccion la
-  # SPA y /api comparten el mismo origen, asi que CORS no aplica al flujo
-  # normal; se declara como requisito de evaluacion y para preflight desde
-  # otros origenes. PATCH es necesario por las notificaciones del BFF.
+  # CORS gestionado por API Gateway (allowlist). En produccion la SPA y /api
+  # comparten el mismo origen, asi que CORS no aplica al flujo normal; se
+  # declara como requisito y para preflight desde otros origenes. PATCH es
+  # necesario por las notificaciones del BFF. El backend solo responde el
+  # preflight (CorsConfigurationSource compartido); la allowlist efectiva la
+  # impone el Gateway, que ignora los headers CORS del backend.
   cors_configuration {
     allow_origins     = var.cors_allowed_origins
     allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -74,10 +76,11 @@ resource "aws_apigatewayv2_route" "api" {
   authorizer_id      = aws_apigatewayv2_authorizer.azure.id
 }
 
-# Preflight CORS: la ruta ANY captura tambien OPTIONS y lo hacia pasar por el
-# JWT Authorizer (401 en el preflight, que el navegador no acepta). Esta ruta
-# explicita sin autorizacion tiene prioridad sobre ANY y deja que API Gateway
-# responda el preflight con los headers CORS configurados arriba.
+# Preflight CORS: la ruta ANY capturaba tambien OPTIONS y lo hacia pasar por
+# el JWT Authorizer (401 en el preflight, que el navegador no acepta). Esta
+# ruta explicita sin autorizacion tiene prioridad sobre ANY y reenvia el
+# OPTIONS al BFF, que lo responde (Spring CORS); API Gateway agrega los headers
+# CORS configurados arriba.
 resource "aws_apigatewayv2_route" "api_options" {
   api_id             = aws_apigatewayv2_api.http.id
   route_key          = "OPTIONS /api/{proxy+}"
