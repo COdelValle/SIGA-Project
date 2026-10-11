@@ -5,11 +5,13 @@
 # Uso (desde la raiz del repo):
 #   powershell -ExecutionPolicy Bypass -File tools/set-github-secrets.ps1
 #   ... -Ec2KeyPath "$env:USERPROFILE\Downloads\Vockey.pem"   # sube EC2_SSH_KEY
+#   ... -AwsProfile siga                                     # otro perfil de ~/.aws
 #   ... -WhatIf                                               # solo lista que se subiria
 [CmdletBinding()]
 param(
     [string]$EnvFile = '',
     [string]$AwsCredentials = '',
+    [string]$AwsProfile = 'default',
     [string]$AwsRegion = 'us-east-1',
     [string]$Ec2User = 'ubuntu',
     [string]$Ec2KeyPath = '',
@@ -37,18 +39,31 @@ if (-not (Test-Path -LiteralPath $AwsCredentials)) {
     throw "No existen las credenciales AWS: $AwsCredentials"
 }
 
-function Leer-Ini([string]$ruta) {
+# Lee un archivo clave=valor. Con -perfil solo toma las claves del bloque INI
+# indicado (p. ej. [default] en ~/.aws/credentials, que puede tener mas de un
+# perfil); sin perfil toma todas las lineas (formato .env).
+function Leer-ClaveValor([string]$ruta, [string]$perfil) {
     $mapa = @{}
+    $activo = [string]::IsNullOrEmpty($perfil)
     foreach ($linea in Get-Content -LiteralPath $ruta) {
-        if ($linea -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+        if ($linea -match '^\s*\[(.+?)\]\s*$') {
+            $activo = (-not [string]::IsNullOrEmpty($perfil)) -and
+                ($Matches[1].Trim().ToLowerInvariant() -eq $perfil.ToLowerInvariant())
+            continue
+        }
+        if ($activo -and $linea -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
             $mapa[$Matches[1]] = $Matches[2].Trim()
         }
     }
     return $mapa
 }
 
-$envVars = Leer-Ini $EnvFile
-$aws = Leer-Ini $AwsCredentials
+$envVars = Leer-ClaveValor $EnvFile ''
+$aws = Leer-ClaveValor $AwsCredentials $AwsProfile
+
+if (-not $aws['aws_access_key_id']) {
+    throw "El perfil [$AwsProfile] no tiene aws_access_key_id en $AwsCredentials"
+}
 
 $secrets = [ordered]@{
     'AWS_ACCESS_KEY_ID'                    = $aws['aws_access_key_id']
@@ -100,5 +115,5 @@ if ($sinValor.Count -gt 0) {
     "AVISO: sin valor en el origen (no se subieron): $($sinValor -join ', ')"
 }
 if (-not $WhatIf) {
-    "Listo: secrets restaurados desde $EnvFile y $AwsCredentials"
+    "Listo: secrets restaurados desde $EnvFile y $AwsCredentials (perfil [$AwsProfile])"
 }
