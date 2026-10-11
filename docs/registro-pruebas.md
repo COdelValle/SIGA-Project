@@ -528,7 +528,12 @@ Reglas de mantenimiento:
 - **Incidencias corregidas**: secret `AWS_REGION` inválido (re-creado); healthcheck
   con `start_period` 240 s (los JVM tardan ~100 s y compose abortaba); limpieza de
   imágenes no usadas (>24 h) en el CD; instalación de cron más robusta con evidencia
-  en el log.
+  en el log; **issuer del JWT Authorizer** (v2 por defecto vs. tokens v1 de la app:
+  el Gateway devolvía `401 issuer does not match` antes de llegar al BFF; se alineó
+  `azure_issuer` a `https://sts.windows.net/<tenant>/` en `3d46ec1` y se verificó
+  `GET /api/me` con el token real → `200` con `roles:["ADMIN"]`). Si la app pasa a
+  emitir tokens v2 (`accessTokenAcceptedVersion = 2`), volver a la URL
+  `login.microsoftonline.com/<tenant>/v2.0`.
 - **Pendientes / notas**: la sincronización es **unidireccional local → AWS**: volver
   a ejecutarla pisa lo creado en la nube. Las credenciales del lab expiran (~4 h) y
   un **Reset** del laboratorio borra el EBS.
