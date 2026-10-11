@@ -74,9 +74,11 @@ fi
 mkdir -p "$DATA_MOUNT/mariadb"
 chown -R 999:999 "$DATA_MOUNT/mariadb"
 
-# Los dos nodos RabbitMQ del clúster corren como uid 999
+# Los dos nodos RabbitMQ corren como el usuario rabbitmq de la imagen
+# (alpine: uid 100 gid 101; debe coincidir con el pin del compose). El CD
+# revalida el dueno de forma simbolica en cada despliegue.
 mkdir -p "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
-chown -R 999:999 "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
+chown -R 100:101 "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
 
 # --- Archivos de la aplicacion ---
 APP_DIR=/home/ubuntu/siga
@@ -90,4 +92,8 @@ chmod +x "$APP_DIR/init-db.sh"
 [ -f "$APP_DIR/.env" ] || touch "$APP_DIR/.env"
 [ -f "$APP_DIR/config.json" ] || echo '{"bffBaseUrl":"/api"}' > "$APP_DIR/config.json"
 
-chown -R ubuntu:ubuntu /home/ubuntu/siga /home/ubuntu/siga-data
+chown -R ubuntu:ubuntu /home/ubuntu/siga
+# Solo el directorio raiz del volumen: los subdirectorios (mariadb, rabbitmq1/2)
+# pertenecen a los usuarios de los contenedores y pisarlos rompe el arranque
+# cuando la instancia se reemplaza conservando el EBS.
+chown ubuntu:ubuntu /home/ubuntu/siga-data

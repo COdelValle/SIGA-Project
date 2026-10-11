@@ -67,7 +67,7 @@ services:
   # cookie y se descubren por /home/ubuntu/siga/rabbitmq-cluster.conf. El
   # Management UI solo se publica en localhost (acceso por túnel SSH).
   rabbitmq1:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.6-management-alpine
     container_name: rabbitmq1
     hostname: rabbitmq1
     restart: unless-stopped
@@ -91,7 +91,7 @@ services:
       retries: 10
 
   rabbitmq2:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.3.6-management-alpine
     container_name: rabbitmq2
     hostname: rabbitmq2
     restart: unless-stopped
@@ -116,7 +116,7 @@ services:
   # el mismo origen provocan un bucle de credenciales); se usa solo el puerto
   # 443 porque el 80 lo ocupa el frontend.
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.11-alpine
     container_name: caddy
     restart: unless-stopped
     ports:
