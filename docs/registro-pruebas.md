@@ -496,6 +496,43 @@ Reglas de mantenimiento:
   nube usa el de los secrets. El CD sigue siendo manual (`workflow_dispatch`) porque
   las credenciales del lab expiran (~4 h).
 
+### PR-20261010-09 — Datos locales en AWS, panel RabbitMQ público y respaldo diario
+
+- **Fecha**: 2026-10-10
+- **Rama / commit**: `feat/rabbitmq-cluster-admin` @ `4c366d9` (+ fixes de esta sesión)
+- **Alcance**: (1) reemplazo de las 10 bases de AWS por las locales (persistentes);
+  (2) panel de RabbitMQ público por HTTPS con Caddy + basic auth; (3) respaldo
+  diario de bases y definiciones en el EBS; (4) fixes del CD detectados durante el
+  despliegue.
+- **Entorno**: AWS `us-east-1` (EC2 t3.large, EIP `52.54.139.252`), API Gateway y
+  Docker Compose; dumps generados desde el stack local.
+- **Pasos**:
+  1. `mariadb-dump` de las 10 bases locales (incluye `flyway_schema_history`) y
+     `scp` a la EC2.
+  2. Respaldo de las 10 bases de AWS en `siga-data/backups/pre-sync-*`.
+  3. App detenida, `DROP/CREATE` + `GRANT` + import por base; reinicio vía CD.
+  4. `terraform apply` (SG 443) + CD: Caddy, cron de respaldo y limpieza de imágenes.
+  5. Verificación de conteos, login por el Gateway, panel (401/200) y respaldo manual.
+- **Resultado**: `OK` — las 10 bases de AWS quedaron idénticas a local, sin cuentas
+  `@genesisfloress`; panel público operativo; cron instalado por el CD.
+- **Evidencia**:
+  - Conteos AWS == local: usuarios 66 · estudiantes 41 · asignaturas 22 · notas 1183 ·
+    docentes 26 · apoderados 2 · clases 13 · evaluaciones 396 · asistencias 370 ·
+    notificaciones 45; `admin@platformsiga` ADMIN/ACTIVO; genesis = 0.
+  - Panel `https://52-54-139-252.sslip.io`: `401` sin credenciales y `200` con
+    `panel` + basic auth (Caddy `health=healthy`).
+  - `crontab -l` con la línea del respaldo; ejecución manual de `backup-bd.sh`:
+    10 dumps + `rabbitmq-definiciones.json` en `siga-data/backups/diario/2026-10-10`.
+  - Clúster con 2 nodos y consumidores activos; disco raíz 55% tras limpiar 11.1 GB
+    de imágenes antiguas.
+- **Incidencias corregidas**: secret `AWS_REGION` inválido (re-creado); healthcheck
+  con `start_period` 240 s (los JVM tardan ~100 s y compose abortaba); limpieza de
+  imágenes no usadas (>24 h) en el CD; instalación de cron más robusta con evidencia
+  en el log.
+- **Pendientes / notas**: la sincronización es **unidireccional local → AWS**: volver
+  a ejecutarla pisa lo creado en la nube. Las credenciales del lab expiran (~4 h) y
+  un **Reset** del laboratorio borra el EBS.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
