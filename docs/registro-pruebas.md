@@ -740,7 +740,9 @@ Reglas de mantenimiento:
   4. `user-data.sh`: RabbitMQ `100:101` y fin del `chown -R` sobre `siga-data`.
   5. Compose (template EC2 y local): `rabbitmq:4.3.6-management-alpine` y
      `caddy:2.11-alpine`.
-  6. `tools/set-github-secrets.ps1` (idempotente, `-WhatIf`, nunca imprime valores).
+  6. `tools/set-github-secrets.ps1` (idempotente, `-WhatIf`, nunca imprime
+     valores; parsea solo el perfil `[default]` de `~/.aws/credentials`, que
+     puede contener varios perfiles).
 - **Reparación en caliente (EC2)**: chown simbólico en ambos nodos + `docker
   restart` → 18 colas `running` con consumers, 0 crashes; E2E verde
   (`nota.creada` → notificación id 80), JSON malformado → DLQ, limpieza. Los
