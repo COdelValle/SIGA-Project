@@ -5,6 +5,12 @@ necesarios para reproducirlas, sesión a sesión. Complementa a
 [`testing-login.md`](testing-login.md) (guía de login/infraestructura) y a
 [`backend.md`](backend.md) (contratos y comportamiento).
 
+> Cada entrada conserva el comportamiento observado en su fecha/commit y no es
+> garantía del estado cloud continuo. Para el disparador CD vigente consulte
+> [`infra/terraform/README.md`](../infra/terraform/README.md): push a `deploy` o
+> `workflow_dispatch`; las menciones históricas a despliegue manual aplican a su
+> sesión correspondiente.
+
 ## 1. Propósito y uso
 
 - Registrar **qué se probó**, **cómo se probó**, **qué resultado dio** y **qué quedó

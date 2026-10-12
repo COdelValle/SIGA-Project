@@ -1,200 +1,116 @@
 # Arquitectura de SIGA
 
-## 1. Vision general
+## Propósito y estado
 
-SIGA es un sistema de gestion academica con frontend Angular, un BFF Web y microservicios Spring Boot separados por responsabilidad. El nucleo academico es funcional, el BFF ya orquesta los dominios (`/me` y perfil de estudiante) y la infraestructura Terraform esta implementada. El frontend ya tiene **dashboards por rol** con **tema oscuro/claro**, pero esas pantallas usan **datos mock**; conectar el resto de recursos al BFF y la observabilidad avanzada siguen pendientes.
+SIGA es un sistema de gestión académica con SPA Angular, BFF Spring Boot y microservicios por dominio. Los servicios REST usan OAuth2/JWT de Microsoft Entra ID; los datos se separan lógicamente por servicio con MariaDB/Flyway. RabbitMQ desacopla registro de perfiles y notificaciones académicas.
+
+El repositorio incluye 11 microservicios, BFF, frontend, biblioteca `core-share` e infraestructura. Las pantallas Angular tienen integración real con el BFF para los recursos con contrato; `useMocks=false` es el default, y los errores HTTP no cambian silenciosamente a mocks. Hay recursos y vistas que aún dependen de demo/constants o no tienen endpoint. Ver el detalle actual en [`frontend.md`](frontend.md) y las fichas de [`microservicios/`](microservicios/README.md).
+
+> Esta página describe arquitectura en código. “Desplegado” o “activo” debe corroborarse en AWS/Entra en la fecha de uso. La bitácora [`registro-pruebas.md`](registro-pruebas.md) registra verificaciones pasadas, no salud continua.
+
+## Vista de componentes
 
 ```mermaid
 flowchart LR
-    U[Usuario] -->|HTTPS| G[API Gateway HTTP API]
-    G -->|$default: SPA| F[Frontend Angular + Nginx]
-    G -->|/api + Bearer JWT| B[BFF Web]
-    B --> A[MS Usuarios y autenticacion]
-    B --> E[MS Estudiantes]
-    B --> S[MS Asignaturas]
-    B --> N[MS Notas]
-    B --> V[MS Evaluaciones]
-    N -. Feign .-> E
-    N -. Feign .-> V
-    V -. Feign .-> S
-    S -. Feign .-> D[MS Docentes]
-    S -. Feign .-> C[MS Clases]
-    C -. Feign .-> D
-    P[MS Apoderados] -. Feign .-> E
-    A --> DA[(BD usuarios)]
-    E --> DE[(BD estudiantes)]
-    S --> DS[(BD asignaturas)]
-    N --> DN[(BD notas)]
-    D --> DD[(BD docentes)]
-    P --> DP[(BD apoderados)]
-    C --> DC[(BD clases)]
-    V --> DV[(BD evaluaciones)]
-    B -. contratos .-> CS[core-share]
+  U[Usuario] -->|HTTPS| G[API Gateway HTTP API]
+  G -->|SPA / assets| F[Angular + Nginx]
+  G -->|/api + Bearer JWT| B[BFF Web]
+  B --> UA[Usuarios/Auth]
+  B --> E[Estudiantes]
+  B --> P[Apoderados]
+  B --> D[Docentes]
+  B --> A[Asignaturas]
+  B --> C[Clases]
+  B --> V[Evaluaciones]
+  B --> N[Notas]
+  B --> H[Asistencias]
+  B --> T[Notificaciones]
+  B --> R[Admin RabbitMQ]
+  UA -. Feign .-> E
+  E -. Feign .-> P
+  P -. Feign .-> E
+  A -. Feign .-> D
+  A -. Feign .-> C
+  A -. Feign .-> E
+  C -. Feign .-> D
+  V -. Feign .-> A
+  N -. Feign .-> E
+  N -. Feign .-> V
+  N -. Feign .-> A
+  H -. Feign .-> E
+  H -. Feign .-> A
+  T -. Feign .-> E
+  T -. Feign .-> P
+  T -. Feign .-> A
+  V -. outbox .-> Q[(RabbitMQ cluster)]
+  N -. outbox .-> Q
+  H -. outbox .-> Q
+  Q -. listeners .-> T
+  UA -. registro asíncrono .-> Q
+  Q -. perfil y estado .-> E
+  Q -. perfil y estado .-> D
+  Q -. perfil y estado .-> P
 ```
 
-Cada microservicio es dueno de su propia base de datos (database-per-service). El BFF ya orquesta los dominios: expone `/api/me` (usuario y rol) y el perfil agregado de estudiante combinando estudiantes, asignaturas y notas por Feign.
+Las flechas Feign son HTTP síncrono; las líneas discontinuas hacia RabbitMQ son mensajería asíncrona. El [catálogo de microservicios](microservicios/README.md) especifica cada dependencia y motivo.
 
-## 2. Capas
+## Fronteras y persistencia
 
-### Presentacion
+- **Frontend:** Angular/Nx implementa portales público, estudiante, apoderado, docente y administrador. Solo se comunica con `/api` del BFF.
+- **BFF:** puerta de entrada, autorización por operación y composición de vistas/consultas. No posee BD de dominio.
+- **Microservicios:** 11 componentes Spring Boot que poseen su modelo y API. Usuarios, estudiantes, apoderados, docentes, asignaturas, clases, evaluaciones, notas, asistencias y notificaciones son dominios separados; Rabbit admin no persiste datos de negocio.
+- **`core-share`:** contratos y capacidades transversales; no contiene entidades de dominio.
+- **Database-per-service:** en Compose local hay una MariaDB por servicio con persistencia propia; en la plantilla AWS se usa un contenedor MariaDB con diez bases separadas. La separación lógica de bases se mantiene, pero el motor físico en AWS es compartido.
+- Flyway crea/evoluciona esquemas; Hibernate valida (`ddl-auto=validate`). Los servicios no deben leer las tablas de otro dominio.
 
-`apps/frontend` contiene la aplicacion Angular (librerias Nx, rutas por rol con dashboard y sidebar, autenticacion MSAL, tema oscuro/claro, servicios HTTP). En contenedor se sirve con Nginx, que entrega el SPA y el `config.json`; en local Nginx **proxya `/api` al BFF** y en AWS el API Gateway enruta `/api` al BFF segun `bffBaseUrl`. El navegador no conoce la topologia interna. Los estilos del frontend se gestionan con Tailwind CSS 4.
+## Flujo HTTP y seguridad
 
-### Entrada y orquestacion
+1. Angular carga configuración runtime y autentica con MSAL contra Entra ID.
+2. El cliente adjunta access token Bearer a solicitudes `/api`.
+3. API Gateway valida JWT para `ANY /api/{proxy+}` y enruta al BFF.
+4. BFF y microservicios vuelven a validar JWT (defensa en profundidad); controles de rol/scope se ejecutan en backend.
+5. BFF llama al dueño del recurso por Feign, propagando `Authorization` y correlation ID cuando corresponda.
+6. El servicio valida entrada/reglas del dominio, persiste con su repositorio y responde DTO.
 
-`bff-web` es el punto de entrada para la interfaz: aplica seguridad, coordina solicitudes y combina informacion de varios servicios. Expone `/api/me` (usuario, email, nombre y rol) y `/api/bff/v1/estudiantes/perfil/{idExterno}` (estudiante + clase + dictaciones + notas, resolviendo evaluacion -> dictacion) usando clientes Feign con fallback.
+El JWT Authorizer usa issuer/audience del token efectivo de Entra. `SharedSecurityConfig` usa Azure Spring Resource Server, stateless, y mapea `scp → SCOPE_` y `roles → ROLE_`. `OPTIONS` se permite para preflight; documentación técnica y health son rutas públicas explícitas. Guards de Angular mejoran navegación, pero no reemplazan autorización de servidor.
 
-### Dominio distribuido
+## Mensajería desacoplada
 
-Cada microservicio es dueno de un contexto funcional:
+### Registro asíncrono
 
-- Usuarios y autenticacion: identidad, roles y estado de cuentas.
-- Estudiantes: datos personales y academicos del estudiante.
-- Asignaturas: catalogo general, malla curricular por nivel, dictaciones por curso (docente, semestre y cupos), horarios e inscripciones.
-- Notas: calificaciones asociadas a evaluaciones.
-- Docentes: ficha del docente y certificados.
-- Apoderados: apoderados, telefonos y estudiantes a cargo.
-- Clases: cursos por nivel/letra/anio y docente jefe.
-- Evaluaciones: evaluaciones por asignatura (tipo y ponderacion).
+`ms-usuarios-auth` guarda proceso/outbox en la misma transacción y publica la etapa de aprovisionamiento a `user.topic.exchange`. Tras resolver cuenta/rol en Entra ID, enruta perfil a `ms-estudiantes`, `ms-docentes` o `ms-apoderados`. Cada perfil procesa idempotentemente y publica resultado a la cola de estado. La topología se declara en `core-share/RegistrationMessagingConfig` bajo property para los servicios participantes.
 
-### Compartidos transversales
+### Notificaciones académicas
 
-`core-share` ofrece DTOs, validaciones, excepciones, seguridad y configuracion OpenAPI reutilizables. No contiene logica de un dominio especifico.
+`ms-evaluaciones`, `ms-notas` y `ms-asistencias` guardan eventos en outbox de dominio. El dispatcher publica con confirms; un exchange topic los enruta a tres colas de `ms-notificaciones`, una por tipo. Consumidores deduplican/persisten y mantienen estados de lectura por OID. Rechazos van al direct exchange `siga.dlx.direct` y DLQ correspondiente.
 
-### Persistencia
+Ambos flujos usan ACK manual, reintentos acotados y logs/correlation ID compartidos, pero sus contratos/consumidores son distintos. El correo externo no forma parte del canal académico actual.
 
-**Database-per-service implementado**: cada servicio tiene su propia instancia MariaDB y su propio volumen en Docker. El acoplamiento entre dominios se reduce al no compartir tablas.
+## Despliegue
 
-## 3. Flujo de una solicitud
+- **Local:** `docker-compose.yml` define 10 MariaDB, 11 microservicios, BFF, frontend y dos nodos RabbitMQ. La UI RabbitMQ se publica localmente en 15672 desde `rabbitmq1`.
+- **AWS Academy:** Terraform crea VPC/subnet pública, EC2 `t3.large`, EIP, EBS, ECR y API Gateway HTTP API. Una sola EC2 corre el stack Compose, incluidos ambos nodos RabbitMQ; los dos nodos comparten el mismo host/failure domain y no equivalen a alta disponibilidad multi-AZ.
+- **TLS:** API Gateway da HTTPS al navegador; integración Gateway→EC2 usa HTTP. Caddy publica el Management UI RabbitMQ por HTTPS con autenticación del propio broker.
+- **Persistencia/respaldo:** datos MariaDB/RabbitMQ montados en EBS; el workflow CD instala respaldo diario de las diez bases y definiciones de RabbitMQ, con retención configurada. El respaldo depende de la instancia/lab; un reset de Academy puede borrar EBS.
+- **CI/CD:** `.github/workflows/ci.yml` ejecuta build/tests backend y typecheck/tests/build frontend en push `dev`, `main`, `deploy` y PR `dev`/`main`. `.github/workflows/cd.yml` despliega por push a `deploy` o `workflow_dispatch` manual. Para una actualización documental de `deploy` sin despliegue, hay que deshabilitar CD antes del push y reactivarlo después; no basta que los archivos cambiados sean `.md`.
 
-1. El usuario inicia una accion en Angular.
-2. El frontend envia la solicitud a `/api` (el API Gateway la enruta al BFF) con el token JWT.
-3. El BFF valida la autenticacion y la autorizacion.
-4. El BFF llama al microservicio responsable (Feign).
-5. El microservicio valida la entrada, ejecuta la regla de negocio y persiste.
-6. La respuesta se transforma a un DTO y vuelve al BFF.
-7. El frontend muestra el resultado o un error normalizado.
+Detalles concretos, variables y operación están en [`../infra/terraform/README.md`](../infra/terraform/README.md), [`testing-login.md`](testing-login.md) y [`backend.md`](backend.md).
 
-Nota: el BFF ya implementa los pasos 3 y 4 para `/me` y el perfil de estudiante; la cobertura del resto de recursos se anadira de forma incremental.
+## Estado por capacidad
 
-## 4. Seguridad
+| Capacidad | Estado del código | Evidencia/condición |
+|---|---|---|
+| Autenticación MSAL + JWT | Angular y resource server/API Gateway configurados | Revisar issuer/audience/scopes efectivos de tenant y tokens reales; ver auditoría EP1 externa. |
+| CRUD y dominio académico | Servicios con JPA/Flyway, búsquedas y validación | Endpoints y reglas están en las fichas; revisar CI del commit usado. |
+| Integración frontend-BFF | Disponible para varios flujos; no todos los recursos están conectados | Falla de API se muestra como error/vacío con reintento; no implica fallback automático a mocks. |
+| Registro asíncrono | Outbox, Graph, colas, listeners por rol y estado del proceso | Hay E2E históricos; Graph depende de permisos/secrets del tenant. |
+| Notificaciones in-app | Eventos, outbox, bandeja, lectura por OID, BFF y campana | E2E histórico de ACK/DLQ; correo no incluido. |
+| RabbitMQ admin/cluster | API REST admin y configuración de dos nodos | Revalidar cluster/dashboard si se requiere afirmar estado cloud actual. |
+| Observabilidad avanzada | Health, correlation ID, OpenAPI | Logs estructurados completos, métricas y tracing quedan pendientes. |
 
-La estrategia es OAuth2/JWT con **Azure AD** como proveedor de identidad.
+## Documentos canónicos
 
-- Autenticacion: confirma quien es el usuario.
-- Autorizacion: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
-- **Ownership por `oid`**: APODERADO/DOCENTE/ESTUDIANTE solo modifican sus propios recursos (`SecurityUtils.requireOwnerOrAdmin`).
-- Rutas publicas limitadas a salud y documentacion tecnicas.
-- **Propagacion del token**: cuando un microservicio llama a otro por Feign, reenvia el `Authorization` entrante (`SharedFeignAuthConfig`), de modo que la autorizacion se evalue en destino.
-- El frontend solo se comunica con el BFF.
-
-Aspectos a completar: **exponer y consentir los 42 scopes granulares en Entra ID** (TI; el codigo ya los exige y el SPA ya los solicita) y validacion de audiencia/emisor en todos los flujos con un token real. Ver [`testing-login.md`](testing-login.md) y [`auditoria-backend.md`](auditoria-backend.md).
-
-## 5. Comunicacion y contratos
-
-- Comunicacion interna HTTP; **Feign** es el cliente declarativo.
-- Implementado en `bff-web` (clientes Feign a estudiantes, clases, asignaturas, evaluaciones, notas, docentes, usuarios y asistencias), `ms-notas` (valida estudiante y evaluacion), `ms-asistencias` (valida estudiante y asignatura), `ms-asignaturas` (valida docente, clase y estudiante), `ms-clases` (valida docente), `ms-apoderados` (valida estudiante) y `ms-evaluaciones` (valida asignatura), con fallback **Resilience4j**.
-- El BFF orquesta `/me`, el perfil de estudiante (resolviendo evaluacion -> dictacion) y la actualizacion de pupilos por el apoderado (`PUT /api/bff/v1/apoderados/pupilos/{idEstudiante}`); el resto de recursos se conectara de forma incremental.
-- Nota: la validacion del vinculo apoderado-estudiante genera una llamada runtime `ms-estudiantes -> ms-apoderados` (y `ms-apoderados -> ms-estudiantes` en el alta); no es un ciclo de arranque, pero se documenta como acoplamiento conocido.
-- Los `GET /search` son **paginados** (`Page<T>` con `page`, `size`, `sort`); contrato completo en [`paginacion.md`](paginacion.md).
-- **Mensajeria (RabbitMQ) en clúster**: dos nodos (`rabbitmq1`/`rabbitmq2`) sobre
-  la misma EC2, unidos por peer discovery `classic_config` con Erlang cookie
-  compartida y volúmenes propios; los servicios se conectan con
-  `SPRING_RABBITMQ_ADDRESSES`. Verificación: `rabbitmqctl cluster_status`.
-- El registro asincrono de usuarios usa el exchange
-  `user.topic.exchange` con outbox transaccional en `ms-usuarios-auth`, colas por
-  etapa/rol (`user.azure.sync.queue`, `ms.estudiantes.queue`,
-  `ms.docentes.queue`, `ms.apoderados.queue`), canal de resultados
-  (`user.registration.status.queue`) y DLQ por cola. La topologia vive en
-  `core-share` (`RegistrationMessagingConfig`) y se activa con
-  `siga.mensajeria.registro.topology-enabled=true`; los eventos son JSON
-  versionados (`v1`) con `X-Correlation-Id` como header AMQP. Detalle funcional en
-  [`backend.md`](backend.md) (seccion 3.2).
-- La mensajería académica es un flujo distinto: `ms-evaluaciones`, `ms-notas` y
-  `ms-asistencias` guardan eventos en un outbox transaccional; `ms-notificaciones`
-  los consume, los persiste de forma idempotente y sirve la bandeja in-app por el
-  BFF. La topología (topic `intercambio-notificaciones` + direct `siga.dlx.direct`)
-  se declara una sola vez en `core-share`. Los consumidores confirman con
-  **ACK/NACK manuales** (`ConfirmadorMensajes`): reintentos acotados en memoria y
-  rechazo a la DLQ ante evento inválido o reintentos agotados. El retry del
-  contenedor se desactiva para no retener mensajes sin confirmar en modo manual;
-  los errores de conversión son fatales y caen directo a la DLQ. El dueño de lectura
-  se deriva del OID de Entra; estudiante y apoderado reciben estados leído/no leído
-  (y limpieza) independientes. La campana está en el header compartido de ambos
-  portales, con marcado al hacer clic, "marcar todas", "limpiar leídas" y purga a
-  90 días. Los contenedores fijan `TZ=America/Santiago` para las horas de la
-  bandeja. Correo/Gmail queda fuera de esta etapa.
-- **Administración del broker**: `ms-rabbitmq-admin` expone una API REST validada
-  para declarar/eliminar colas, exchanges y bindings con `AmqpAdmin`, y el BFF la
-  publica bajo `/api/bff/v1/admin/rabbitmq/**` con rol ADMIN. El navegador nunca se
-  conecta al broker.
-- La gestion CRUD del admin (clases, busqueda de alumnos, eliminacion de
-  usuarios y reactivacion) es **sincrona por HTTP**; no agrega colas nuevas. La
-  propagacion de la desactivacion a los perfiles de dominio via evento queda
-  como iteracion futura.
-- Los DTOs compartidos viven en `core-share` y no deben contener logica de dominio.
-
-## 6. Despliegue
-
-Hay dos entornos:
-
-- **Local**: `docker-compose.yml` levanta 10 MariaDB (una por servicio), los 10 microservicios, `bff-web`, `frontend` y el **clúster RabbitMQ de dos nodos** (`rabbitmq1`/`rabbitmq2`, con UI de management en `15672` solo en `rabbitmq1`) sobre la red `siga-network`, con configuracion por `.env` (incluye `RABBITMQ_ERLANG_COOKIE`).
-- **AWS** (AWS Academy Learner Lab): se define en `infra/terraform` (Terraform local, state fuera del repo). Una EC2 `t3.large` con Docker Compose levanta el stack completo: **una** MariaDB con 10 bases, los 10 microservicios, el BFF, Nginx y el **clúster RabbitMQ de dos nodos** (misma EC2). El Management UI se publica por **HTTPS con Caddy** (`https://<ip-con-guiones>.sslip.io`, login propio de RabbitMQ) y un **cron diario** respalda las 10 bases y las definiciones del broker en el EBS. Los datos (MariaDB, `rabbitmq1` y `rabbitmq2`) viven en un volumen EBS dedicado (`/home/ubuntu/siga-data`) para sobrevivir a reinicios y reemplazos de instancia.
-
-Flujo de entrada:
-
-- El SPA se sirve por **HTTPS vía API Gateway** (`*.execute-api`), requisito de MSAL (Web Crypto solo existe en contextos seguros). SPA y API comparten origen, por lo que CORS no aplica al flujo normal; el API Gateway declara igualmente una política CORS con allowlist (`cors_allowed_origins`, incluye `PATCH`) como requisito y para pruebas desde otros orígenes.
-- El navegador (Angular + MSAL) llama a `/api` en el mismo API Gateway con `Authorization: Bearer`.
-- El **JWT Authorizer** valida el token de Entra ID (firma, `iss`, `aud`) y reenvia al BFF (`http://<eip>:8080/api/...`).
-- Nginx sirve el SPA y el `config.json`. En **local (Docker)** proxya `/api` al BFF; en **AWS** esa ruta no se usa porque el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF.
-- El BFF y los microservicios revalidan el token y aplican scopes/roles (defensa en profundidad).
-
-Esquema y datos:
-
-- **Flyway** en cada microservicio (`ddl-auto: validate`) crea y evoluciona el esquema; una base vacia se auto-inicializa.
-- `init-db.sh` crea las 10 bases y el usuario en el primer arranque de MariaDB; en instancias existentes el CD crea las bases nuevas de forma idempotente.
-
-CI/CD:
-
-- **CI** (`.github/workflows/ci.yml`): build y tests de backend y frontend.
-- **CD** (`.github/workflows/cd.yml`): construye las imagenes, las sube a ECR y despliega por SSH. Es manual (`deploy` o `workflow_dispatch`) porque las credenciales del learner lab expiran (~4 h). El `config.json` del frontend y el `.env` de la EC2 se generan desde los secrets (`AZURE_*`, `RABBITMQ_*`), y el compose se copia desde `infra/terraform/templates/docker-compose.yml` en cada deploy para no depender del que escribio `user-data` al crear la instancia.
-
-## 7. Observabilidad y operacion
-
-- Health checks: `/actuator/health` en cada servicio.
-- Documentacion OpenAPI por servicio (Swagger UI y Scalar).
-- Correlation ID (`X-Correlation-Id`) en logs y respuestas, propagado en las llamadas Feign.
-- Pendiente: logs estructurados, metricas y tracing.
-
-## 8. Estado actual frente a la arquitectura objetivo
-
-| Componente | Estado actual | Objetivo |
-| --- | --- | --- |
-| Frontend Angular | Portales por rol, datos académicos y campana in-app para estudiante/apoderado | Actualizaciones en tiempo real (futuro) |
-| BFF Web | `/me`, perfil de estudiante y API de bandeja (Feign + fallback) | Orquestacion del resto de recursos de la interfaz |
-| Usuarios/Auth | CRUD funcional + soft delete | Identidad y permisos completos |
-| Estudiantes | CRUD, busqueda, `exists`, soft delete | Matricula y relaciones academicas |
-| Asignaturas | Catalogo, malla curricular, dictaciones por curso, horarios (soft delete), inscripciones, Feign | Relacion con docentes y cursos |
-| Notas | CRUD, busqueda, Feign, soft delete | Reglas de periodo y calculo |
-| Docentes | CRUD, certificados, busqueda, `exists` | Carga horaria y asignacion de clases |
-| Apoderados | CRUD, telefonos, estudiantes a cargo, Feign | Seguimiento académico |
-| Clases | CRUD, docente jefe, `exists`, Feign | Matricula y cupos por curso |
-| Evaluaciones | CRUD, tipos y ponderaciones, `exists`, Feign | Calculo de promedios ponderados |
-| Notificaciones | Eventos académicos, outbox, bandeja persistente por OID, lectura no leída/leída y BFF | Canales futuros, incluyendo correo si se habilita |
-| Mensajería RabbitMQ | Clúster de 2 nodos, topología centralizada, ACK/NACK manuales con DLQ, administración REST (`ms-rabbitmq-admin` + BFF) | Alta disponibilidad real (3 nodos) si el alcance lo exige |
-| core-share | DTOs, validadores, seguridad, errores, OpenAPI y topología de mensajería | Contratos versionados estables |
-| Docker Compose | Completo (11 microservicios + 10 bases + clúster RabbitMQ local) | Entorno local reproducible |
-| Terraform | `infra/terraform` (EC2 + EBS + API Gateway + ECR) | Infraestructura declarativa en AWS |
-| Flyway | Esquema + seed en los servicios con persistencia | Migraciones versionadas |
-| CI/CD | GitHub Actions (CI + CD manual) | Build, tests y despliegue automatizados |
-| Paginacion | `Page<T>` en los 9 `GET /search` + `siga-paginador` en el frontend | Busquedas paginadas end-to-end |
-| Pruebas | Unitarios + contrato de errores + IT con Testcontainers | Cobertura unitaria, integracion y contratos |
-
-## 9. Principios de implementacion
-
-- Mantener una responsabilidad clara por microservicio.
-- Evitar que el frontend dependa de servicios internos.
-- Compartir contratos y componentes transversales, no entidades de dominio.
-- Validar entradas en el limite de cada servicio.
-- Proteger todos los flujos que modifiquen informacion.
-- Automatizar compilacion, pruebas y despliegue progresivamente.
+- Backend global: [`backend.md`](backend.md); detalle por módulo: [`microservicios/README.md`](microservicios/README.md).
+- Frontend: [`frontend.md`](frontend.md).
+- Infraestructura: [`../infra/terraform/README.md`](../infra/terraform/README.md).
+- Autenticación/pruebas: [`testing-login.md`](testing-login.md) y [`registro-pruebas.md`](registro-pruebas.md).

@@ -1,170 +1,44 @@
 # Frontend SIGA
 
-Aplicacion Angular del sistema de gestion academica SIGA. Es una aplicacion modular que se comunica **solo con el BFF** (a traves de `/api`) y organiza su codigo en librerias Nx con fronteras entre portales por rol.
+SPA Angular del sistema SIGA. El frontend se comunica con el backend **solo a través del BFF** usando `/api`; la arquitectura detallada de librerías, estados y servicios es [`docs/frontend.md`](../../docs/frontend.md), y la arquitectura de extremo a extremo está en [`docs/arquitectura.md`](../../docs/arquitectura.md).
 
-Detalle general del proyecto en el [README raiz](../../README.md); guia del backend en
-[apps/backend/README.md](../backend/README.md); indice completo en [docs/README.md](../../docs/README.md)
-y detalle del frontend en [docs/frontend.md](../../docs/frontend.md).
+## Tecnologías
 
-## Tecnologias
+Angular 22.1, TypeScript 6, RxJS 7.8, MSAL Angular 6/MSAL Browser 5, Nx, Tailwind CSS 4, Vitest y Prettier. La separación por librerías Nx y sus dependencias está en `libs/*/project.json` y las reglas de `eslint.config.js`.
 
-- Angular 22.1 · TypeScript 6 · RxJS 7.8 · Angular Router
-- MSAL Angular v6 + `@azure/msal-browser` (Azure AD)
-- Nx (librerias y reglas de frontera)
-- Tailwind CSS 4 (framework de estilos) + `prettier-plugin-tailwindcss`
-- Vitest (pruebas) · Prettier
-
-## Estructura
-
-```text
-apps/frontend/
-├── libs/
-│   ├── core/            # auth (MSAL), guards, interceptores, tema (ThemeService), config, modelos
-│   ├── shared-ui/       # layout (DashboardShell, PortalHeader, menu) y UI reutilizable (SeccionCard, DayTabs, Paginador)
-│   ├── public-portal/   # landing publico
-│   ├── academico/       # componentes academicos, modelos del perfil y servicios reales (perfil/asistencias)
-│   ├── estudiante/      # portal estudiante (inicio, horarios, notas, asistencias, progreso)
-│   ├── apoderado/       # portal apoderado (multipupilo: pupilos, horarios, notas, asistencias, progreso, solicitudes)
-│   ├── docente/         # portal docente (inicio, cursos, horarios, registrar-notas, registrar-asistencias)
-│   ├── admin/           # portal administracion (inicio, usuarios, roles, asignaturas)
-│   └── mocks/           # datos mock centralizados (fallback de los servicios reales)
-├── src/
-│   ├── app/             # app.ts, app.config.ts, app.routes.ts (rutas por rol) y auth-error
-│   ├── main.ts          # carga config runtime y hace bootstrap
-│   └── types/           # tipos generados desde el BFF
-├── public/config.json   # configuracion runtime (BFF + MSAL)
-├── proxy.conf.json      # proxy /api -> BFF en desarrollo
-├── nginx.conf           # servidor SPA + proxy /api en contenedor (local)
-├── Dockerfile
-├── angular.json
-└── project.json
-```
-
-## Comandos
+## Inicio local
 
 Desde `apps/frontend`:
 
 ```bash
-npm install
-npm start                        # servidor de desarrollo en http://localhost:4200
-npm run build                    # build de produccion en dist/frontend/browser
-npm test                         # pruebas unitarias (Vitest)
-npm test -- --watch=false        # ejecucion unica (como en CI)
-npx tsc -p tsconfig.app.json --noEmit   # typecheck (como en CI)
+npm ci
+npm start
+npx tsc -p tsconfig.app.json --noEmit
+npm test -- --watch=false
+npm run build -- --configuration production
 ```
 
-Linting y formateo con Nx / Prettier (desde la raiz):
+`npm start` usa `proxy.conf.json` para `/api → http://localhost:8080`. Docker sirve el build con Nginx y proxy local al BFF; en AWS el navegador llama `/api` en el mismo origen del API Gateway. Los pasos del stack están en el [README raíz](../../README.md).
 
-```bash
-npx nx lint frontend
-npx prettier --write "apps/frontend/**/*.{ts,html,css}"
-```
+## Configuración y autenticación
 
-`npm start` usa `proxy.conf.json` para redirigir `/api` hacia el BFF en
-`http://localhost:8080`; en Docker el SPA llama al API Gateway via `config.json`.
+- `main.ts` carga `/config.json` antes del bootstrap. La misma imagen puede usar configuración distinta en local/AWS.
+- `public/config.json` es la plantilla local; en CD se genera un `config.json` runtime. `bffBaseUrl` selecciona la ruta al BFF y `useMocks` está desactivado por defecto.
+- Login/logout usan `AuthService` y MSAL redirect; el inicializador procesa el retorno, selecciona la cuenta activa y limpia parámetros MSAL.
+- `MsalGuard` protege la sesión y `roleGuard` consulta `GET /api/me` al BFF para resolver el rol.
+- `authInterceptor` propio ejecuta `acquireTokenSilent` y agrega el Bearer a llamadas al BFF. La fábrica de configuración de `MsalInterceptor` existe, pero la app registra el interceptor propio; ver [`docs/frontend.md`](../../docs/frontend.md) para el detalle frente a la rúbrica EP1.
+- Los guards de cliente no sustituyen los roles/scopes del backend.
 
-## Estilos (Tailwind CSS)
+## Datos reales y modo demo
 
-- **Tailwind CSS 4** integrado via PostCSS (`.postcssrc.json` con el plugin `@tailwindcss/postcss`).
-- Import en `src/styles.css`: `@import 'tailwindcss';` y `@source "../libs"` para incluir las librerias Nx.
-- Los **temas** (oscuro por defecto magenta/dorado y claro institucional) se definen como tokens CSS (`--siga-*`) expuestos a Tailwind con `@theme inline`; el estado lo maneja `ThemeService` (`data-theme` en `<html>` + persistencia en `localStorage`).
-- Las clases se **ordenan automaticamente** con `prettier-plugin-tailwindcss` (configurado en `.prettierrc`).
-- Formatear estilos/clases:
-  ```bash
-  npx prettier --write "src/**/*.{ts,html,css}" "libs/**/*.ts"
-  ```
-- Los componentes usan utilidades de Tailwind; se evitan estilos inline.
+`useMocks=false` es el comportamiento normal. Los recursos conectados consumen endpoints BFF; si falla una solicitud se muestra error/vacío y opción de reintento, no un fallback automático a datos ficticios. `useMocks=true` habilita explícitamente demo; algunas librerías exportan constantes reutilizables. El mapa de pantalla → servicio → endpoint y el estado de integración están en [`docs/frontend.md`](../../docs/frontend.md).
 
-## Configuracion runtime
+## Rutas
 
-La configuracion se carga antes del bootstrap desde `public/config.json` (servido en `/config.json`):
+`/` portal público; `/auth` retorno MSAL; `/sin-acceso` cuenta no habilitada; `/error-acceso` fallo de sesión/token; `/estudiante`, `/apoderado`, `/docente` y `/admin` están protegidas por sesión y rol, con carga lazy.
 
-```jsonc
-{
-  "bffBaseUrl": "/api",
-  "useMocks": false,
-  "msal": {
-    "clientId": "<AZURE_CLIENT_ID>",
-    "authority": "https://login.microsoftonline.com/<AZURE_TENANT_ID>",
-    "redirectUri": "/auth",
-    "postLogoutRedirectUri": "/sin-acceso",
-    // Acceso.Base + los 42 scopes granulares (lista completa en public/config.json
-    // y en el ejemplo del checklist de testing-login.md)
-    "scopes": ["api://<AZURE_CLIENT_ID>/Acceso.Base", "api://<AZURE_CLIENT_ID>/usuarios:read", "..."]
-  }
-}
-```
+## Documentos relacionados
 
-Gracias a esto, la misma imagen se puede desplegar en distintos entornos sin recompilar.
-
-## Autenticacion y rutas
-
-Autenticacion con **MSAL Angular v6 + Azure AD**. El retorno del login se procesa en `/auth`
-(`AuthRedirectComponent`). Un **`authInterceptor` propio** adjunta el token de acceso a las
-llamadas al BFF y, ante un fallo de token, registra el error y lo re-lanza **sin** disparar
-`loginRedirect` (evita el loop de login); `AuthErrorService` + la ruta `/error-acceso`
-muestran el motivo.
-
-| Ruta | Acceso |
-| --- | --- |
-| `/` | Portal publico de bienvenida |
-| `/auth` | Retorno de Azure AD (MSAL) |
-| `/sin-acceso` | Cuenta autenticada pero no habilitada (cierra sesion) |
-| `/error-acceso` | Error de sesion/token (incluye el detalle de Azure) |
-| `/estudiante` | Rol `ESTUDIANTE` |
-| `/apoderado` | Rol `APODERADO` |
-| `/docente` | Rol `DOCENTE` |
-| `/admin` | Rol `ADMIN` |
-
-Cada portal se carga con lazy loading y **rutas hijas** (layout `DashboardShell` con sidebar):
-
-| Portal | Rutas hijas |
-| --- | --- |
-| Estudiante | `inicio`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso` |
-| Apoderado | `inicio`, `pupilos`, `horarios`, `notas`, `asistencias`, `asistencias/:id`, `progreso`, `solicitudes` |
-| Docente | `inicio`, `cursos`, `horarios`, `registrar-notas`, `registrar-asistencias` |
-| Admin | `inicio`, `usuarios`, `roles`, `asignaturas` |
-
-`MsalGuard` valida la sesion y `roleGuard([...])` valida el rol. El rol autoritativo se obtiene del BFF (`GET /api/me`).
-
-## Paginacion
-
-- Modelo `Page<T>` y utilidades en `@siga/core`
-  (`libs/core/src/lib/models/page.model.ts`): `pageQueryParams()` construye los
-  parametros `page`/`size`/`sort` para HTTP y `toPage()` pagina en cliente
-  (util para los listados que aun paginan en memoria).
-- UI: `siga-paginador` (`@siga/shared-ui`) muestra "Mostrando X–Y de Z" y la
-  navegacion; emite la pagina seleccionada (1-indexada).
-- Vistas con paginador: `admin/usuarios` (resetea a pagina 1 al filtrar) y
-  `admin/asignaturas`; `academico/asistencia-historial` ya lo usaba.
-- Contrato completo del backend en [docs/paginacion.md](../../docs/paginacion.md).
-
-## Docker
-
-- Build en dos etapas: `node:24-alpine` (build) → `nginx:alpine` (servido).
-- Nginx sirve la SPA con fallback a `index.html` y los assets, y **proxya `/api` al BFF**
-  (`http://bff-web:8080`) para el entorno local (Docker), donde `bffBaseUrl` de `config.json` es relativo (`/api`).
-  En AWS esa ruta **no se usa**: el API Gateway intercepta `/api/{proxy+}` y lo envia directo al BFF;
-  alli `config.json` se monta con la URL absoluta del API Gateway.
-- Publicado en `http://localhost:4200` (mapeo `4200:80`).
-
-```bash
-# desde la raiz del repositorio
-docker compose up -d --build frontend
-```
-
-## Estado
-
-- Disponible: bootstrap, autenticacion MSAL, rutas por rol con guards, layout con header y sidebar, tema oscuro/claro y portal publico.
-- Disponible: consumo de `GET /api/me` (el BFF ya lo implementa) para resolver el rol autoritativo.
-- Disponible: **pantallas de los portales** (Inicio, Horarios, Notas, Asistencias, Progreso Academico, Cursos, Registrar notas/asistencias, Usuarios/Roles/Asignaturas) y componentes reutilizables.
-- Disponible: **paginacion** (`Page<T>` + `pageQueryParams()`/`toPage()` + `siga-paginador`).
-- Disponible: **datos reales del BFF** para perfil academico (`perfil/me`), pupilos, cursos/horario docente, admin (usuarios/asignaturas) y asistencias; cada servicio cae al mock de `libs/mocks` (`@siga/mocks`) si la llamada falla o `useMocks` es `true`.
-- Pendiente: escritura de notas por el docente contra el BFF, formularios/validaciones y pruebas funcionales.
-
-## Documentacion
-
-- [README raiz](../../README.md) · [Indice de docs](../../docs/README.md)
-- [docs/frontend.md](../../docs/frontend.md) · [docs/arquitectura.md](../../docs/arquitectura.md)
-- [docs/paginacion.md](../../docs/paginacion.md)
-- [docs/testing-login.md](../../docs/testing-login.md) · [apps/backend/README.md](../backend/README.md)
+- [`docs/frontend.md`](../../docs/frontend.md) — arquitectura modular detallada.
+- [`docs/testing-login.md`](../../docs/testing-login.md) — runbook de autenticación.
+- [`docs/microservicios/bff-web.md`](../../docs/microservicios/bff-web.md) — contrato del BFF.

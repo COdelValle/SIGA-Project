@@ -32,20 +32,38 @@ Los tags se pueden consultar con `git tag -l "archive/*"` y
 `git show archive/<nombre>`. Para recuperar una rama:
 `git branch <nueva-rama> archive/<nombre>`.
 
-`deploy` quedo alineada con `main` (ya no es el scaffold viejo).
+`deploy` quedó alineada con `main` en la limpieza documentada. Verificar ambos
+heads antes de sincronizarlos: la alineación histórica no garantiza que sigan
+iguales hoy.
 
 ## Flujo de trabajo
 
 1. Crear `feature/<algo>` o `fix/<algo>` desde `dev`.
 2. PR a `dev` (merge `--no-ff`).
 3. PR `dev` -> `main` (merge `--no-ff`).
-4. Actualizar `deploy` desde `main` para disparar el CD:
+4. Actualizar `deploy` solo desde `main`. Este push **dispara el CD** por
+   `.github/workflows/cd.yml` (`push` en `deploy`):
    ```bash
    git fetch origin
-   git branch -f deploy origin/main
-   git push origin deploy --force-with-lease
+   git switch deploy
+   git merge --ff-only origin/main
+   git push origin deploy
    ```
 5. Borrar la rama corta tras el merge.
+
+### Sincronización documental sin despliegue
+
+Si se necesita actualizar `deploy` solo con documentación y no desplegar:
+
+1. Comprobar que no haya un CD activo o pendiente.
+2. Deshabilitar temporalmente el workflow **CD** en GitHub Actions (no modificar
+   su YAML).
+3. Sincronizar el commit documental hacia `deploy` con fast-forward; CI puede
+   ejecutarse, pero CD debe permanecer deshabilitado.
+4. Verificar que no se creó un run CD y reactivar el workflow para cambios futuros.
+
+No ejecutar `workflow_dispatch` en esta operación. Un push exclusivamente `.md`
+no se excluye automáticamente del disparador de despliegue.
 
 ## Protecciones recomendadas en GitHub
 

@@ -164,7 +164,7 @@ this.http.get<Page<Usuario>>(`${base}/usuarios/search`, {
   params: { ...filtros, ...pageQueryParams({ page: 0, size: 20, sort: 'email,asc' }) },
 });
 
-// Mientras las vistas usan mocks, se pagina en cliente:
+// Para listados de demo o recursos que aún se paginan en memoria:
 const pagina = toPage(filtrados, page - 1, pageSize);
 ```
 

@@ -1,5 +1,12 @@
 # Auditoria del backend
 
+> **Documento histórico:** esta auditoría captura un corte de `dev` en el commit
+> `6204d54` y una lista de remediaciones posteriores. Sus hallazgos/resúmenes no
+> se deben leer como auditoría nueva del HEAD actual. Para el estado actual por
+> servicio consulte [`backend.md`](backend.md) y [`microservicios/`](microservicios/README.md);
+> para la revisión de rúbricas EP1/EP2 consulte los informes externos en
+> `Desktop/SIGA-Evaluacion`.
+
 Revision exhaustiva de los 10 modulos del backend (base `dev`, commit `6204d54`).
 Objetivo: dejar por escrito los hallazgos, su impacto y las decisiones pendientes
 para que el equipo priorice. Los PRs #49 a #53 ya corrigieron la compilacion del

@@ -1,9 +1,9 @@
 # SIGA - Infraestructura AWS (Terraform)
 
 Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.large`, un
-volumen EBS dedicado para los datos de MariaDB y un API Gateway HTTP API que
-sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure AD antes de
-llegar al BFF.
+volumen EBS dedicado para datos MariaDB y ambos nodos RabbitMQ, y un API Gateway
+HTTP API que sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure
+AD antes de llegar al BFF.
 
 Contexto del proyecto en el [README raiz](../../README.md) e
 [`docs/arquitectura.md`](../../docs/arquitectura.md); indice en
@@ -71,7 +71,7 @@ Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
 | `aws_region` | `us-east-1` | Region permitida en el Learner Lab. |
 | `management_name` | `SIGA` | Prefijo de nombres/etiquetas. |
 | `instance_type` | `t3.large` | Tipo de instancia EC2 (el stack supera 5.8 GB en contenedores). |
-| `data_volume_size` | `10` | Tamano (GB) del EBS gp3 de MariaDB. |
+| `data_volume_size` | `10` | Tamaño (GB) del EBS gp3 usado por datos MariaDB y los dos nodos RabbitMQ. |
 | `key_name` | `vockey` | Key pair del Learner Lab. |
 | `ssh_cidr` | `0.0.0.0/0` | CIDR autorizado para SSH. |
 | `cors_allowed_origins` | `["http://localhost:4200"]` | Orígenes permitidos por CORS en el Gateway. |
@@ -93,7 +93,7 @@ Outputs utiles:
 | `ssh_command` | Comando SSH para administrar la instancia. |
 | `frontend_config_json` | Contenido esperado de `config.json`. |
 
-## Persistencia de datos
+## Persistencia, respaldos y límites de disponibilidad
 
 - Los datos de MariaDB viven en el volumen EBS etiquetado `siga-data`
   (`/home/ubuntu/siga-data`), separado del disco raíz.
@@ -106,8 +106,15 @@ Outputs utiles:
 - Reemplazar la instancia (cambio de AMI o de `user_data`) conserva los datos.
 - `prevent_destroy` evita que `terraform destroy` borre el volumen; para
   eliminarlo a propósito hay que quitar ese `lifecycle` del `ebs.tf`.
-- Sin backups por ahora: un **Reset** del laboratorio borra el volumen y los
-  datos no se recuperan.
+- El workflow CD instala un respaldo diario (06:15 UTC): dump de las diez bases
+  y export de definiciones RabbitMQ en `/home/ubuntu/siga-data/backups/diario/`
+  con retención de siete días. La configuración está en el script generado por
+  `.github/workflows/cd.yml`; revisar `crontab`/`cron.log` para confirmar la
+  ejecución real, porque la existencia del script no demuestra que un respaldo
+  reciente se completó.
+- El respaldo comparte el mismo EBS y la misma instancia; no es copia off-site ni
+  protege ante **Reset** del Learner Lab o pérdida del volumen. Exportaciones
+  verificadas externamente siguen siendo necesarias para recuperación fuerte.
 - El CD nunca usa `docker compose down -v`.
 - El `user_data` de la EC2 se envía **gzip + base64** (`user_data_base64`): el
   script renderizado (compose + init-db embebidos) supera el límite de 16 KB de
@@ -132,7 +139,20 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 `siga-asistencias`, `siga-notificaciones`, `siga-rabbitmq-admin`,
 `siga-bff-web` y `siga-frontend`.
 
-## Panel de RabbitMQ y respaldos
+## Seguridad de red y terminación TLS
+
+`security.tf` abre 80 (SPA), 8080 (BFF para integración Gateway), 443 (panel Caddy)
+y 22 (SSH según `ssh_cidr`). El default de SSH está abierto y debe restringirse
+al CIDR de administración antes de usar el stack fuera del entorno académico.
+Los puertos internos de microservicios, MariaDB y AMQP no se publican mediante
+ese security group; RabbitMQ Management se publica por Caddy en 443. El BFF sigue
+validando JWT porque la integración HTTP_PROXY de Gateway no sustituye la
+seguridad del backend.
+
+La SPA usa HTTPS del dominio `execute-api`; las integraciones internas API Gateway
+→ EC2 son HTTP y TLS termina en Gateway. Caddy ofrece HTTPS al panel RabbitMQ.
+
+## Panel de RabbitMQ
 
 - El Management UI se publica por **HTTPS público** con Caddy:
   `https://<eip-con-guiones>.sslip.io` (p. ej. `https://52-54-139-252.sslip.io`).
@@ -141,12 +161,7 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
   HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
   un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
   la EC2 y el SG abre 443.
-- **Respaldo diario** (cron del usuario `ubuntu`, 06:15 UTC): `backup-bd.sh`
-  deja un dump por base + `export_definitions` de RabbitMQ en
-  `/home/ubuntu/siga-data/backups/diario/<fecha>/` con rotación de 7 días.
-  El CD reinstala script y cron en cada deploy (idempotente).
-- Los datos (MariaDB y RabbitMQ) viven en el EBS: sobreviven reinicios,
-  redeploys y reemplazos de instancia. Un **Reset** del laboratorio los borra.
+La persistencia y los respaldos están descritos en la sección anterior.
 
 ## Notas del laboratorio
 
@@ -155,6 +170,20 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 - Key pair por defecto en `us-east-1`: `vockey`.
 - Sin NAT Gateway (consume presupuesto y sigue cobrando fuera de sesión).
 - EBS gp3 de 10 GB ≈ **$0.80/mes** aunque la instancia esté detenida.
+
+## CI y CD en GitHub Actions
+
+- `ci.yml`: push en `dev`, `main`, `deploy` y pull request hacia `dev`/`main`;
+  compila/prueba backend y ejecuta typecheck, Vitest y build frontend.
+- `cd.yml`: push a `deploy` **dispara despliegue**, además de `workflow_dispatch`.
+  No tiene `paths-ignore`: un cambio exclusivamente `.md` en `deploy` también
+  inicia despliegue si CD está activo.
+- Para sincronizar solo documentación con `deploy` sin desplegar: confirmar que no
+  hay CD corriendo, deshabilitar temporalmente el workflow CD desde GitHub Actions,
+  actualizar la rama, verificar que no se creó un run CD y reactivar el workflow.
+  CI puede correr y no publica ni despliega imágenes; no invocar `workflow_dispatch`.
+- El procedimiento anterior no cambia el YAML de workflows ni altera el código
+  del producto. Una futura actualización normal de `deploy` volverá a desplegar.
 
 ## Secretos de GitHub Actions
 

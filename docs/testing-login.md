@@ -25,10 +25,12 @@ resto de lo implementado, levantando el sistema con Docker Compose.
 Las pruebas manuales y los pasos detallados de cada sesion se registran en
 [`registro-pruebas.md`](registro-pruebas.md).
 
-**Pantallas de negocio (datos mock):** los portales (estudiante, apoderado, docente, admin)
-ya tienen dashboards con opciones (Inicio, Horarios, Notas, Asistencias, Progreso Academico,
-Cursos, Usuarios, etc.), pero usan **datos de ejemplo** en el frontend; la conexion real al
-BFF esta pendiente para los recursos sin endpoint.
+**Estado de las pantallas:** los portales (estudiante, apoderado, docente y admin)
+consumen el BFF para los recursos que cuentan con endpoint. `useMocks=false` es el
+default; los datos de `libs/mocks` se habilitan explícitamente para demo/constantes.
+Una falla de una petición real muestra error/vacío y reintento, no un fallback
+automático a mocks. No todos los recursos/pantallas tienen integración backend;
+ver el mapa por vista en [`frontend.md`](frontend.md).
 
 ## 2. Checklist para Azure (responsable: equipo TI / companera)
 
@@ -296,7 +298,7 @@ Mientras no haya acceso al tenant se puede comprobar:
 - `docker compose up -d --build` y que todos los servicios queden arriba.
 - Migracion Flyway y existencia de las tablas (`usuarios`, `estudiantes`, etc.).
 - Endpoints publicos (`/actuator/health`, `/docs/swagger`) y que `/api/me` sin token da 401.
-- UI de `http://localhost:4200`: portal publico, `/sin-acceso`, `/error-acceso` y la navegacion del dashboard (con datos mock) en cada rol.
+- UI de `http://localhost:4200`: portal público, `/sin-acceso`, `/error-acceso` y navegación del dashboard. Sin Azure se puede usar el modo demo explícito (`useMocks=true`); esa navegación no acredita consumo real del BFF.
 
 **Requiere Azure:** login real, `/api/me` con rol, redireccion por rol y CRUD autenticado.
 

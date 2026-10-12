@@ -5,109 +5,26 @@ multi-módulo** basado en **Spring Boot 3.5 / Java 21** que separa el dominio
 académico en microservicios independientes, expone APIs REST protegidas con
 OAuth2/JWT (Azure AD) y centraliza los contratos en la librería `core-share`.
 
-El núcleo académico completo (estudiantes → clases → asignaturas → evaluaciones →
-notas, más asistencias) y la orquestación de portales del BFF son funcionales.
-La documentación ampliada está en [`docs/backend.md`](../../docs/backend.md).
+El núcleo académico y la orquestación de portales del BFF son funcionales para los
+recursos con endpoints implementados. El panorama y patrones comunes están en
+[`docs/backend.md`](../../docs/backend.md); las fichas por servicio, POM,
+acoplamientos y flujos están en
+[`docs/microservicios/`](../../docs/microservicios/README.md). Este README conserva
+el catálogo operativo de endpoints y comandos.
 
-## Módulos
+## Catálogo de módulos y arquitectura
 
-| Módulo | Puerto | Responsabilidad |
-| --- | --- | --- |
-| `libs/core-share` | — | DTOs, validadores, seguridad, excepciones y OpenAPI compartidos. |
-| `bff-web` | 8080 | Backend For Frontend: `/api/me` y orquestación por Feign. |
-| `ms-usuarios-auth` | 8081 | Usuarios, roles, `/me` y sincronización con Microsoft Graph. |
-| `ms-estudiantes` | 8083 | Ficha personal y académica del estudiante. |
-| `ms-asignaturas` | 8086 | Asignaturas (básicas/electivas), horarios e inscripciones. |
-| `ms-notas` | 8089 | Calificaciones; valida estudiante y evaluación por Feign. |
-| `ms-docentes` | 8085 | Docentes y certificados. |
-| `ms-apoderados` | 8084 | Apoderados, teléfonos y estudiantes a cargo. |
-| `ms-clases` | 8087 | Cursos (nivel/letra/año) y docente jefe. |
-| `ms-evaluaciones` | 8088 | Evaluaciones por asignatura (tipo y ponderación). |
-| `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (unique por fecha y soft delete). |
-| `ms-notificaciones` | 8091 | Consume eventos académicos y mantiene la bandeja in-app de estudiantes y apoderados. |
-| `ms-rabbitmq-admin` | 8092 | API REST para administrar la topología RabbitMQ (colas, exchanges y bindings). |
-
-El módulo `ms-auditoria` sigue declarado como futuro (comentado en el POM padre);
-su puerto queda **reservado**: `8082`.
-
-### Mensajería (RabbitMQ)
-
-Productor-consumidor sobre el **clúster de dos nodos** (`rabbitmq1`/`rabbitmq2`,
-misma EC2) con **intercambio tipo Topic**. Los servicios se conectan con
-`SPRING_RABBITMQ_ADDRESSES` y la topología se declara una sola vez desde
-`core-share`:
-
-- Intercambio: `intercambio-notificaciones` (compartido para las 3 colas de notificaciones).
-- Cola 1: `cola-notificaciones-evaluaciones`, enlazada con el patrón `evaluacion.*`
-  (`evaluacion.creada`, `evaluacion.actualizada`, `evaluacion.eliminada`).
-- Cola 2: `cola-notificaciones-asistencias`, enlazada con el patrón `asistencia.*`
-  (clave `asistencia.registrada`). Se publica solo al **crear** (POST) con estado
-  `AUSENTE` o `ATRASADO`; el PUT de justificación no notifica. El mensaje lleva el
-  porcentaje de inasistencia del mes (faltas `AUSENTE` / registros del estudiante en
-  la dictación) y el campo `superaUmbralInasistencia` (>= 60%).
-- Cola 3: `cola-notificaciones-notas`, enlazada con el patrón `nota.*`
-  (`nota.creada`, `nota.actualizada`). Se publica al **crear** y **modificar**;
-  el DELETE lógico no notifica. El POST que reactiva una nota borrada
-  lógicamente se avisa como `ACTUALIZADA` (la fila ya existía).
-- Productores: `ms-evaluaciones`, `ms-asistencias` y `ms-notas` guardan el evento en
-  un outbox dentro de la misma transacción que el CRUD. El dispatcher publica con
-  confirmación RabbitMQ, reintentos acotados e idempotencia por `idEvento`.
-- Consumidor: `ms-notificaciones` persiste cada evento una sola vez. Al consultar
-  la bandeja, deriva el OID del JWT y resuelve estudiante/apoderado y dictaciones
-  autorizadas usando el mismo token propagado por Feign. Las lecturas se guardan
-  por OID para que estudiante y apoderado mantengan estados independientes.
-- Mensajes específicos: los productores agregan el nombre de la asignatura y de la
-  evaluación al evento (si el Feign falla, se publica igual y el consumidor usa un
-  texto de respaldo). El resumen nunca incluye la nota.
-- Canal de esta etapa: campana y bandeja in-app compartida en los portales de
-  estudiante y apoderado; **no envía correo ni accede a Gmail/Exchange**. Los
-  consumidores usan **ACK/NACK manuales** (`ConfirmadorMensajes`): ACK al
-  persistir (o si el evento ya existía, por idempotencia), reintentos acotados en
-  memoria con backoff y, al agotarse o ante un evento inválido, NACK sin requeue
-  hacia la DLQ del tipo. Cada cola deriva al direct `siga.dlx.direct` y cada DLQ
-  está enlazada con su nombre como routing key. Eventos que agoten ocho intentos
-  de publicación quedan en estado `FALLIDO` en el outbox para diagnóstico y
-  reproceso manual.
-- El **retry del contenedor queda desactivado** (`spring.rabbitmq.listener.simple.retry.enabled=false`,
-  también `SPRING_RABBITMQ_LISTENER_SIMPLE_RETRY_ENABLED=false` en Compose): con
-  ACK manual, el recoverer por defecto no rechaza el mensaje y este quedaría
-  retenido sin confirmar. Los reintentos viven en `ConfirmadorMensajes`; un error
-  de conversión es fatal y deriva de inmediato a la DLQ.
-- API de la bandeja (vía BFF): `GET .../me`, `GET .../me/no-leidas/count`,
-  `PATCH .../me/{id}/leida`, `PATCH .../me/leidas` (marcar todas) y
-  `DELETE .../me/leidas` (limpiar mis leídas; oculta solo para el OID actual sin
-  borrar la fila compartida).
-- Retención: las notificaciones se conservan; una purga programada elimina las
-  mayores a `siga.notificaciones.retencion-dias` (90 por defecto). Los
-  microservicios fijan `TZ=America/Santiago` para que las horas de la bandeja
-  queden en hora de Chile.
-- La resolución de destinatarios se cachea por OID 3 minutos para que el contador
-  (la campana consulta cada 10 s y al volver a la pestaña) no repita llamadas
-  Feign; cambios de vínculos/inscripciones pueden tardar hasta ese TTL.
-- El PATCH del BFF hacia `ms-notificaciones` usa el cliente Apache HC5
-  (`feign-hc5`): el cliente por defecto de Feign no soporta PATCH.
-- Nombres en español en `core-share`: `NombresMensajeria` (exchange topic, colas y
-  DLQ), `ConfiguracionTopologiaNotificaciones` (exchange directo `siga.dlx.direct`
-  y bindings), `ConfiguracionMensajeriaCompartida` (conversor JSON, `RetryTemplate`
-  y `ConfirmadorMensajes`) y `EventoEvaluacion`/`AccionEvaluacion`.
-- Administración del broker: `ms-rabbitmq-admin` (`/api/v1/rabbitmq/**`) declara y
-  elimina colas, exchanges y bindings con `AmqpAdmin` y DTO validados; el BFF
-  reexpone la API bajo `/api/bff/v1/admin/rabbitmq/**`.
-
-## Tecnologías
-
-- Java 21 · Spring Boot 3.5.0 · Spring Cloud 2025.0.0 (OpenFeign) + Resilience4j.
-- Spring Security / OAuth2 Resource Server con JWT (Azure AD).
-- Spring Data JPA + Hibernate · MapStruct · Lombok.
-- MariaDB 11.4 (una base por microservicio) + Flyway.
-- RabbitMQ 4 en **clúster de dos nodos** (`rabbitmq1`/`rabbitmq2` sobre la misma EC2);
-  topología centralizada en `core-share`, ACK/NACK manuales con reintentos y DLQ
-  por cola, y `ms-rabbitmq-admin` para operar el broker por REST.
-- springdoc 2.8.14 (Swagger UI + Scalar).
+La lista completa de ejecutables/puertos y sus POM, entidades, patrones, dependencias
+HTTP y flujos RabbitMQ está en [`docs/microservicios/README.md`](../../docs/microservicios/README.md).
+El panorama transversal (security, Feign, persistencia y outbox) está en
+[`docs/backend.md`](../../docs/backend.md). RabbitMQ tiene dos rutas funcionales
+separadas: registro de usuarios y notificaciones académicas; no comparten contrato
+ni consumidores. Esta guía mantiene abajo un único catálogo de endpoints y los
+comandos de operación para desarrolladores.
 
 ## Requisitos
 
-- **JDK 21** y **Maven** (hay wrappers `mvnw` / `mvnw.cmd` en cada módulo).
+- **JDK 21** y **Maven**. Los wrappers Maven solo están en algunos módulos; para el reactor completo usa Maven del sistema y el POM padre.
 - **MariaDB** accesible (o Docker Compose, que la provee).
 
 ## Comandos
@@ -288,7 +205,7 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | Método | Ruta | Autorización |
 | --- | --- | --- |
 | `POST` | `/queues` | `ADMIN` + `SCOPE_usuarios:write` |
-| `GET` | `/queues/{nombre}` | `ADMIN` + `SCOPE_usuarios:read` (mensajes y consumidores) |
+| `GET` | `/queues/{nombre}` | `ADMIN` + `SCOPE_usuarios:read` (conteos de mensajes listos y consumidores) |
 | `DELETE` | `/queues/{nombre}` | `ADMIN` + `SCOPE_usuarios:delete` |
 | `POST` | `/exchanges` | `ADMIN` + `SCOPE_usuarios:write` (`DIRECT`, `TOPIC`, `FANOUT`, `HEADERS`) |
 | `DELETE` | `/exchanges/{nombre}` | `ADMIN` + `SCOPE_usuarios:delete` |
@@ -300,41 +217,24 @@ nunca se conecta al broker). Los DTO se validan con Bean Validation.
 
 ## Comunicación entre servicios
 
-- **Feign** es el cliente declarativo: `bff-web` orquesta usuarios, estudiantes,
-  clases, asignaturas, evaluaciones, notas, docentes y asistencias; `ms-notas`
-  valida estudiante y evaluación; `ms-asistencias` valida estudiante y asignatura;
-  `ms-asignaturas` valida docente, clase y estudiante; `ms-clases` valida docente;
-  `ms-apoderados` valida estudiante; `ms-evaluaciones` valida asignatura.
-- **Resilience4j** aporta circuit breaker y timeouts; si un servicio no responde
-  se activa el fallback correspondiente (`*Fallback`, respuesta 503).
-- **Propagación del token**: `SharedFeignAuthConfig` (en `core-share`) reenvía el
-  `Authorization` entrante en todas las llamadas Feign; el BFF usa su propio
-  `FeignClientConfig`.
-- **Mensajería RabbitMQ**: topología centralizada en `core-share`
-  (`ConfiguracionTopologiaNotificaciones`): topic `intercambio-notificaciones`
-  reparte `nota.*`/`asistencia.*`/`evaluacion.*` a una cola por tipo, cada una con
-  su DLQ enlazada al direct `siga.dlx.direct`. Los consumidores confirman con
-  ACK/NACK manuales (`ConfirmadorMensajes`): reintentos acotados en memoria y, al
-  agotarse o ante un evento inválido, NACK sin requeue hacia la DLQ. El registro
-  asíncrono de usuarios usa `user.topic.exchange` con las mismas reglas
-  (`siga.mensajeria.registro.topology-enabled=true` en los cuatro servicios del
-  flujo). Los servicios se conectan con `SPRING_RABBITMQ_ADDRESSES` a los dos
-  nodos del clúster.
+- El grafo Feign y la razón de cada acoplamiento están en
+  [`docs/microservicios/README.md`](../../docs/microservicios/README.md) y en la
+  ficha de cada servicio. Cuando el módulo declara Feign/Resilience4j, timeouts y
+  fallback son dependencias síncronas; no sustituyen una garantía de disponibilidad.
+- `core-share` aporta propagación Bearer/correlation ID en los clientes que la
+  importan. RabbitMQ contiene dos flujos separados (registro y notificaciones);
+  topología/consumidores/ACK/DLQ están en las fichas de
+  [`docs/microservicios/`](../../docs/microservicios/README.md), para no duplicar aquí
+  nombres y routing keys.
 
 ## Seguridad
 
-- OAuth2/JWT con Azure AD (`spring.cloud.azure.active-directory`).
-- Autorización por método: roles (`hasRole`) y scopes (`hasAuthority('SCOPE_...')`).
-- **Ownership por `oid`**: APODERADO/DOCENTE/ESTUDIANTE solo modifican sus
-  propios recursos (`SecurityUtils.requireOwnerOrAdmin`).
-- Rutas públicas limitadas a salud y documentación técnica (`/actuator/**`, `/docs/**`, `/v3/api-docs/**`).
-- `core-share` aporta `SharedSecurityConfig` (filtro stateless y conversión de
-  claims `scp`/`roles`) y `SecurityUtils`.
-- El frontend nunca accede a los microservicios directamente: lo hace a través del BFF.
-- **Autorización unificada**: lecturas con `hasAuthority('SCOPE_x:read')`; escrituras
-  con `hasRole(...) and hasAuthority('SCOPE_x:write|update|delete')` (ADMIN incluido).
-  Los 42 scopes granulares se mantienen y deben exponerse/consentirse en Entra ID
-  (ver [`docs/testing-login.md`](../../docs/testing-login.md)).
+La cadena de filtros, conversión de claims, ownership y límites entre browser/BFF
+están en [`docs/backend.md`](../../docs/backend.md) y la ficha
+[`docs/microservicios/core-share.md`](../../docs/microservicios/core-share.md). La
+columna Autorización de las tablas de endpoints que siguen es el catálogo concreto
+de roles/scopes por operación. La configuración de scopes/consentimiento externo
+se revisa en [`docs/testing-login.md`](../../docs/testing-login.md).
 
 ## Datos y configuración
 

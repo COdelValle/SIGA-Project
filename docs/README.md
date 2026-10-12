@@ -1,34 +1,40 @@
 # Documentación de SIGA
 
-Índice de la documentación técnica del proyecto. Para una visión general y el
-inicio rápido, ver el [`README.md`](../README.md) de la raíz.
+Índice y reglas de navegación. El [README raíz](../README.md) es la entrada rápida; esta carpeta contiene la documentación técnica canónica del repositorio.
 
-## Guías por tema
+## Arquitectura y componentes
+
+| Documento | Es responsabilidad de este documento |
+|---|---|
+| [`arquitectura.md`](arquitectura.md) | Vista del sistema, fronteras, flujos síncronos/asíncronos, seguridad y estado actual de alto nivel. |
+| [`backend.md`](backend.md) | Convenciones compartidas, stack y entrada al backend; no duplica cada endpoint de cada dominio. |
+| [`microservicios/README.md`](microservicios/README.md) | Catálogo por servicio, dependencias y grafo de acoplamientos. |
+| [`frontend.md`](frontend.md) | Arquitectura Angular/Nx, autenticación, consumo del BFF y estado de datos. |
+| [`../infra/terraform/README.md`](../infra/terraform/README.md) | Recursos AWS, Compose, persistencia, RabbitMQ, seguridad operativa y CI/CD. |
+| [`paginacion.md`](paginacion.md) | Contrato común `Page<T>` y consultas paginadas. |
+
+## Pruebas e historial
+
+| Documento | Uso |
+|---|---|
+| [`testing-login.md`](testing-login.md) | Runbook para login/Entra, Docker y comprobaciones funcionales actuales. |
+| [`registro-pruebas.md`](registro-pruebas.md) | Bitácora cronológica de verificaciones ejecutadas; conservar como evidencia histórica. |
+| [`auditoria-backend.md`](auditoria-backend.md) | Auditoría histórica y trazabilidad de remediaciones; no usar sus hallazgos antiguos como estado vigente sin cotejar con las fichas actuales. |
+| [`branch-cleanup.md`](branch-cleanup.md) | Convenciones/historial de ramas. |
+
+## Guías de repositorio
 
 | Documento | Contenido |
-| --- | --- |
-| [`arquitectura.md`](arquitectura.md) | Visión general, capas, flujo de una solicitud, seguridad, comunicación, despliegue y estado actual frente a la arquitectura objetivo. |
-| [`backend.md`](backend.md) | Proyecto Maven multi-módulo, microservicios, endpoints, `core-share`, seguridad y datos. |
-| [`frontend.md`](frontend.md) | Aplicación Angular, MSAL, rutas por rol, librerías Nx y contratos con el BFF. |
-| [`paginacion.md`](paginacion.md) | Contrato de paginación (`Page<T>`) de los `GET /search`, ejemplos y guía para backend y frontend. |
-| [`testing-login.md`](testing-login.md) | Guía paso a paso para validar login con Azure AD y el sistema completo con Docker Compose. |
-| [`registro-pruebas.md`](registro-pruebas.md) | Bitácora reutilizable de pruebas y pasos por sesión: plantilla, entradas registradas, runbook (comandos, SQL y colas) y checklist de cierre. |
-| [`auditoria-backend.md`](auditoria-backend.md) | Hallazgos de la auditoría del backend (P0–P3), inventario de scopes y la decisión pendiente de autorización (roles vs scopes granulares). |
-| [`branch-cleanup.md`](branch-cleanup.md) | Modelo de ramas (`feature -> dev -> main -> deploy`) y limpieza de ramas ejecutada. |
+|---|---|
+| [`../apps/backend/README.md`](../apps/backend/README.md) | Comandos, build, pruebas y enlaces técnicos del backend. |
+| [`../apps/frontend/README.md`](../apps/frontend/README.md) | Inicio rápido y comandos Angular. |
+| [`../README.md`](../README.md) | Resumen del producto, inicio local y mapa de documentos. |
 
-## Guías de componentes
+## Orden recomendado
 
-| Documento | Contenido |
-| --- | --- |
-| [`../apps/backend/README.md`](../apps/backend/README.md) | Backend: módulos, comandos Maven, puertos y endpoints. |
-| [`../apps/frontend/README.md`](../apps/frontend/README.md) | Frontend: comandos, estilos, configuración runtime y rutas. |
-| [`../infra/terraform/README.md`](../infra/terraform/README.md) | Infraestructura AWS: topología, uso, persistencia y secretos. |
+1. `README.md` raíz e [`arquitectura.md`](arquitectura.md) para entender el sistema.
+2. [`backend.md`](backend.md) y [`microservicios/README.md`](microservicios/README.md) para backend y dependencias.
+3. [`frontend.md`](frontend.md) e infraestructura para límites de cliente y despliegue.
+4. [`testing-login.md`](testing-login.md) para reproducir validaciones; registrar resultados nuevos al final de `registro-pruebas.md`.
 
-## Orden de lectura recomendado
-
-1. [`arquitectura.md`](arquitectura.md) — entender el sistema completo.
-2. [`backend.md`](backend.md) y [`frontend.md`](frontend.md) — profundizar por capa.
-3. [`paginacion.md`](paginacion.md) — contrato de las búsquedas paginadas.
-4. [`testing-login.md`](testing-login.md) — levantar y probar localmente.
-5. [`registro-pruebas.md`](registro-pruebas.md) — registrar y reproducir pruebas entre sesiones.
-6. [`branch-cleanup.md`](branch-cleanup.md) — flujo de trabajo con Git.
+Los informes de rúbricas EP1/EP2 se mantienen en la carpeta externa `Desktop/SIGA-Evaluacion` y por eso no se versionan ni enlazan desde este índice.
