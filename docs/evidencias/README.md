@@ -35,7 +35,7 @@ La matriz concreta por indicador (incluidos archivos y pasos de demostración) e
 
 ## Trazabilidad EP1/EP2 — actualizada 2026-10-20
 
-Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke checks verdes. La columna **Estado** distingue lo demostrado en el entorno de lo que aún falta.
+Release actual `efdd7f37` desplegado en AWS desde `deploy`; CI y smoke checks verdes. Las capturas de token/PKCE corresponden al contrato validado en `2104a266` y fueron revalidadas en `efdd7f37` con la matriz de rutas. La columna **Estado** distingue lo demostrado de lo que aún falta.
 
 | Indicador de rúbrica | Implementación | Prueba o evidencia | Estado |
 |---|---|---|---|
@@ -51,7 +51,9 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 | EP2: API admin y validación de path/query | `RabbitAdminController`, DTOs | `RabbitAdminControllerValidationTest`, `SolicitudRabbitValidationTest`, `RabbitAdminServiceTest`; consulta admin real 200 | Verde |
 | EP2: topología desplegada y datos | `cd.yml` | 18 colas, 13 consumidores, dos nodos, exchanges y conteos pre/post idénticos; respaldo 2026-10-20 | Verde en AWS |
 | EP2: evento académico end-to-end | Outbox, dispatcher, cola y listener | Evento sintético con destino centinela: 1736 ms, 1 notificación, outbox `ENVIADO`, limpieza 0 | Verde |
-| Rendimiento acordado | `tools/performance/` | Evento Rabbit 1.7 s y scripts validados; lectura, escritura y memoria pendientes | Parcial |
+| EP1: matriz de rutas y JSON | BFF/Gateway | `verificar-rutas.ps1`: 13 rutas; admin 200, roles insuficientes 403, sin 503 | Verde |
+| EP2: escritura admin aislada | `verificar-rabbit-admin.ps1` | 20 iteraciones, 120 escrituras, 0 fallos, p95 811.5 ms; sin topología residual | Verde |
+| Rendimiento acordado | `tools/performance/` | Evento Rabbit 1.7 s y escritura admin p95 0.8 s; lectura y memoria pendientes | Parcial |
 
 Los totales locales de esta sesión están en [`../registro-pruebas.md`](../registro-pruebas.md), sección 9. Cualquier resultado nuevo debe conservar el fallo original, la corrección y una ejecución `OK` separada.
 
