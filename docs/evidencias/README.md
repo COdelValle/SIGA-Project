@@ -44,7 +44,7 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 | EP1: camino de error de token | `role.guard.ts` + `/error-acceso` | Caso `InteractionRequiredAuthError` en `role.guard.spec.ts` | Verde |
 | EP1: JWT firma/issuer/audience/exp | `JwtResourceServerConfiguration`, `JwtAudienceValidator`, `JwtClaimAuthoritiesConverter` | tests unitarios/filtro; `iss`/`aud` reales alineados con el JWT Authorizer | Verde |
 | EP1: validación en Gateway/BFF real | Terraform + resource server | smoke AWS: SPA 200, sin token/inválido 401; ADMIN `/api/me` y admin RabbitMQ 200; DOCENTE admin RabbitMQ 403 | Verde |
-| EP1: PKCE y renovación silenciosa | MSAL SPA | Sin captura de `code_challenge`/renovación en esta sesión | Pendiente de evidencia |
+| EP1: PKCE y renovación silenciosa | MSAL SPA | `EP1-PRES-PKCE/authorize.png`: `response_type=code`, `code_challenge`, `S256`; renovación cubierta por specs MSAL | Verde PKCE; renovación con token real pendiente |
 | EP2: nombres centralizados | `ConfiguracionNombresRabbitMQ` + aliases | `ConfiguracionNombresRabbitMQTest` | Verde |
 | EP2: beans y bindings | `RegistrationMessagingConfig`, `ConfiguracionTopologiaNotificaciones` | `RegistrationMessagingConfigTest`, `ConfiguracionTopologiaNotificacionesTest` | Verde |
 | EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Verde en CI (run `39356000842`) |
@@ -58,17 +58,11 @@ Los totales locales de esta sesión están en [`../registro-pruebas.md`](../regi
 
 - [`EP1-ENC-TOKEN-ADMIN.png`](EP1-ENC-TOKEN-ADMIN.png): token real ADMIN; `roles=ADMIN`, sin token/inválido 401, `/api/me` 200 y admin RabbitMQ 200.
 - [`EP1-ENC-TOKEN-DOCENTE-403.png`](EP1-ENC-TOKEN-DOCENTE-403.png): token real DOCENTE; `roles=DOCENTE`, `/api/me` 200 y admin RabbitMQ 403.
-- [`EP1-PRES-PKCE/README.md`](EP1-PRES-PKCE/README.md): instrucciones y registro de la captura PKCE.
+- [`EP1-PRES-PKCE/authorize.png`](EP1-PRES-PKCE/authorize.png) y [`README.md`](EP1-PRES-PKCE/README.md): `authorize` con `response_type=code`, `code_challenge` y `S256`; `state`/`nonce` tapados.
 
 Las capturas fueron recortadas para excluir los tokens; no se versionan tokens, cookies ni credenciales. Si una captura contiene un token, debe eliminarse o taparse antes de commitearla.
 
-## Capturas pendientes para cerrar EP1
-
-### PKCE
-
-1. Abrir DevTools → Network antes de iniciar sesión.
-2. En la petición `authorize` verificar `response_type=code`, `code_challenge`, `code_challenge_method=S256`, `redirect_uri`, `state` y `nonce`.
-3. Guardar una captura saneada en `docs/evidencias/EP1-PRES-PKCE/` sin mostrar token, código de autorización, `code_verifier`, estado ni nonce completos.
+## Evidencia de ejecución pendiente
 
 ### Carga
 

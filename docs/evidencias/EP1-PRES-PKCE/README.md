@@ -40,10 +40,9 @@ No se debe mostrar el `code_verifier`, el código de autorización, tokens, cook
 
 ## Registro
 
-Completar al guardar la captura:
-
-- Fecha y hora:
-- Navegador:
-- Commit: `2104a266`
+- Fecha y hora: 2026-10-20 01:10 (UTC-3)
+- Navegador: Google Chrome 155, ventana InPrivate
+- Commit: `2104a2668d34277a3c021046c4d1d07f3f36e135`
 - Archivo: `authorize.png`
-- Observaciones:
+- Resultado: **OK**. La petición muestra `response_type=code`, `code_challenge=1Mhx…` y `code_challenge_method=S256`; `state`, `nonce` y `client-request-id` están tapados.
+- Observaciones: el `scope` visible es del login OIDC (`openid profile offline_access`); los scopes de la API se validaron por separado con el token real de 43 scopes. No se incluyeron cookies, tokens ni `code_verifier`.
