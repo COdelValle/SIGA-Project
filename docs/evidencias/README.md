@@ -50,7 +50,8 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 | EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Verde en CI (run `39356000842`) |
 | EP2: API admin y validación de path/query | `RabbitAdminController`, DTOs | `RabbitAdminControllerValidationTest`, `SolicitudRabbitValidationTest`, `RabbitAdminServiceTest`; consulta admin real 200 | Verde |
 | EP2: topología desplegada y datos | `cd.yml` | 18 colas, 13 consumidores, dos nodos, exchanges y conteos pre/post idénticos; respaldo 2026-10-20 | Verde en AWS |
-| Rendimiento acordado | `tools/performance/` | `siga-api.js`, `siga-escrituras.js` y `medir-recursos.ps1`; sintaxis validada | Pendiente de ejecución |
+| EP2: evento académico end-to-end | Outbox, dispatcher, cola y listener | Evento sintético con destino centinela: 1736 ms, 1 notificación, outbox `ENVIADO`, limpieza 0 | Verde |
+| Rendimiento acordado | `tools/performance/` | Evento Rabbit 1.7 s y scripts validados; lectura, escritura y memoria pendientes | Parcial |
 
 Los totales locales de esta sesión están en [`../registro-pruebas.md`](../registro-pruebas.md), sección 9. Cualquier resultado nuevo debe conservar el fallo original, la corrección y una ejecución `OK` separada.
 
