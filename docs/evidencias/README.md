@@ -33,23 +33,23 @@ La matriz concreta por indicador (incluidos archivos y pasos de demostración) e
 - dos nodos activos, tres colas académicas y sus DLQ, exchanges topic/direct, y Compose desplegado;
 - persistencia antes/después del despliegue, Flyway y respaldo verificado si hubo migración.
 
-## Trazabilidad local EP1/EP2 — 2026-10-19
+## Trazabilidad EP1/EP2 — actualizada 2026-10-20
 
-Estado de la rama `feature/rubric-100-ep1-ep2` sobre `1be2c3b`; los cambios aún no tienen SHA publicado ni artifact CI. La columna **Estado local** no reemplaza la evidencia de Entra/AWS/CI.
+Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke checks verdes. La columna **Estado** distingue lo demostrado en el entorno de lo que aún falta.
 
-| Indicador de rúbrica | Implementación | Prueba o evidencia local | Estado local |
+| Indicador de rúbrica | Implementación | Prueba o evidencia | Estado |
 |---|---|---|---|
 | EP1: `MsalInterceptor` literal | `app.config.ts`, `msal.factory.ts` | `msal.factory.spec.ts` (mapa + Bearer solo al BFF) | Verde |
-| EP1: roles/scopes desde claims | `access-token-claims.service.ts`, `role.guard.ts` | `access-token-claims.service.spec.ts`, `role.guard.spec.ts` | Verde |
+| EP1: roles/scopes desde claims | `access-token-claims.service.ts`, `role.guard.ts` | specs de claims/guard; token real ADMIN con `roles=ADMIN` y 43 scopes | Verde ADMIN; falta rol no ADMIN |
 | EP1: camino de error de token | `role.guard.ts` + `/error-acceso` | Caso `InteractionRequiredAuthError` en `role.guard.spec.ts` | Verde |
-| EP1: JWT firma/issuer/audience/exp | `JwtResourceServerConfiguration`, `JwtAudienceValidator`, `JwtClaimAuthoritiesConverter` | `JwtResourceServerConfigurationTest`, `SharedSecurityFilterTest` (200/401/403) | Verde |
-| EP1: validación en Gateway/BFF real | Terraform + resource server | CD smoke 401/SPA/CORS; token real pendiente | Pendiente de entorno |
-| EP1: PKCE y renovación silenciosa | MSAL SPA | Sin captura de `code_challenge`/renovación en esta sesión | Pendiente de entorno |
+| EP1: JWT firma/issuer/audience/exp | `JwtResourceServerConfiguration`, `JwtAudienceValidator`, `JwtClaimAuthoritiesConverter` | tests unitarios/filtro; `iss`/`aud` reales alineados con el JWT Authorizer | Verde |
+| EP1: validación en Gateway/BFF real | Terraform + resource server | smoke AWS: SPA 200, sin token/inválido 401, `/api/me` ADMIN 200, admin RabbitMQ 200 | Verde ADMIN; falta 403 no-admin |
+| EP1: PKCE y renovación silenciosa | MSAL SPA | Sin captura de `code_challenge`/renovación en esta sesión | Pendiente de evidencia |
 | EP2: nombres centralizados | `ConfiguracionNombresRabbitMQ` + aliases | `ConfiguracionNombresRabbitMQTest` | Verde |
 | EP2: beans y bindings | `RegistrationMessagingConfig`, `ConfiguracionTopologiaNotificaciones` | `RegistrationMessagingConfigTest`, `ConfiguracionTopologiaNotificacionesTest` | Verde |
-| EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Unitario e integración CI verdes (run `39356000842`) |
-| EP2: API admin y validación de path/query | `RabbitAdminController`, DTOs | `RabbitAdminControllerValidationTest`, `SolicitudRabbitValidationTest`, `RabbitAdminServiceTest` | Verde |
-| EP2: topología desplegada y datos | `cd.yml` | Chequeos de 18 colas/13 consumidores/exchanges/cluster y conteos pre/post | Pendiente de AWS |
-| Rendimiento acordado | `tools/performance/` | `siga-api.js` (lectura), `siga-escrituras.js` (escritura opt-in) y `medir-recursos.ps1` (RAM/CPU por SSH); sintaxis validada | Guiones listos; ejecución pendiente de ventana/AWS |
+| EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Verde en CI (run `39356000842`) |
+| EP2: API admin y validación de path/query | `RabbitAdminController`, DTOs | `RabbitAdminControllerValidationTest`, `SolicitudRabbitValidationTest`, `RabbitAdminServiceTest`; consulta admin real 200 | Verde |
+| EP2: topología desplegada y datos | `cd.yml` | 18 colas, 13 consumidores, dos nodos, exchanges y conteos pre/post idénticos; respaldo 2026-10-20 | Verde en AWS |
+| Rendimiento acordado | `tools/performance/` | `siga-api.js`, `siga-escrituras.js` y `medir-recursos.ps1`; sintaxis validada | Pendiente de ejecución |
 
 Los totales locales de esta sesión están en [`../registro-pruebas.md`](../registro-pruebas.md), sección 9. Cualquier resultado nuevo debe conservar el fallo original, la corrección y una ejecución `OK` separada.
