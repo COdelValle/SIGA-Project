@@ -53,3 +53,29 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 | Rendimiento acordado | `tools/performance/` | `siga-api.js`, `siga-escrituras.js` y `medir-recursos.ps1`; sintaxis validada | Pendiente de ejecución |
 
 Los totales locales de esta sesión están en [`../registro-pruebas.md`](../registro-pruebas.md), sección 9. Cualquier resultado nuevo debe conservar el fallo original, la corrección y una ejecución `OK` separada.
+
+## Capturas pendientes para cerrar EP1
+
+### 403 con cuenta sin rol/scope
+
+1. Iniciar sesión en la SPA con una cuenta de prueba **no ADMIN** (estudiante, docente o apoderado).
+2. Copiar el `Authorization` de una petición `/api` y ejecutar:
+
+```powershell
+$env:SIGA_BEARER_TOKEN = 'Bearer ...'
+powershell -ExecutionPolicy Bypass -File tools\verificar-jwt.ps1
+powershell -ExecutionPolicy Bypass -File tools\verificar-rutas.ps1 -Perfil OTRO
+Remove-Item Env:SIGA_BEARER_TOKEN
+```
+
+3. Guardar solo la salida: `me=200`, rutas admin `403` y `admin_rabbitmq=403`. No guardar el token.
+
+### PKCE
+
+1. Abrir DevTools → Network antes de iniciar sesión.
+2. En la petición `authorize` verificar `response_type=code`, `code_challenge`, `code_challenge_method=S256`, `redirect_uri`, `state` y `nonce`.
+3. Guardar una captura saneada en `docs/evidencias/EP1-PRES-PKCE/` sin mostrar token, código de autorización, `code_verifier`, estado ni nonce completos.
+
+### Carga
+
+Ejecutar `tools/performance/README.md` en una ventana aprobada con datos descartables; registrar fecha, commit, ambiente, p95, errores, evento RabbitMQ, integridad y memoria máxima. No adjuntar tokens.
