@@ -6,7 +6,7 @@ volumes:
   caddy_config:
 
 # Variables comunes a todos los microservicios.
-# AZURE_* alimenta los placeholders de core-share/common-properties.yaml.
+# AZURE_* alimenta el Resource Server compartido y la integración Microsoft Graph.
 x-ms-common-env: &ms-common-env
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
   # Zona horaria institucional: los LocalDateTime.now() de los servicios
@@ -15,6 +15,9 @@ x-ms-common-env: &ms-common-env
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
+  AZURE_JWT_ISSUER: ${AZURE_JWT_ISSUER:-}
+  AZURE_JWKS_URI: ${AZURE_JWKS_URI:-}
+  AZURE_JWT_AUDIENCES: ${AZURE_JWT_AUDIENCES:-}
   # RabbitMQ (mensajeria entre microservicios): clúster de dos nodos en la
   # misma EC2. Spring intenta cada dirección en orden.
   SPRING_RABBITMQ_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672

@@ -67,7 +67,11 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "include": ["src/**/*.spec.ts", "../libs/**/*.spec.ts"]
+            "include": ["src/**/*.spec.ts", "../libs/**/*.spec.ts"],
+            "reporters": [
+              "default",
+              ["junit", { "outputFile": "dist/test-results/frontend-junit.xml" }]
+            ]
           }
         }
       }

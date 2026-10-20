@@ -1,5 +1,7 @@
 package cl.siga.coreshare.messaging;
 
+import cl.siga.coreshare.mensajeria.ConfiguracionNombresRabbitMQ;
+
 /**
  * Topología de mensajería del registro asíncrono. Los nombres viven en
  * core-share para que productor y consumidores no puedan divergir.
@@ -15,35 +17,35 @@ public final class RegistrationMessagingConstants {
     private RegistrationMessagingConstants() {
     }
 
-    public static final String EXCHANGE = "user.topic.exchange";
+    public static final String EXCHANGE = ConfiguracionNombresRabbitMQ.Registro.EXCHANGE;
 
-    public static final String AZURE_QUEUE = "user.azure.sync.queue";
-    public static final String ESTUDIANTES_QUEUE = "ms.estudiantes.queue";
-    public static final String DOCENTES_QUEUE = "ms.docentes.queue";
-    public static final String APODERADOS_QUEUE = "ms.apoderados.queue";
-    public static final String STATUS_QUEUE = "user.registration.status.queue";
-    public static final String CREDENTIALS_QUEUE = "user.credentials.notify.queue";
+    public static final String AZURE_QUEUE = ConfiguracionNombresRabbitMQ.Registro.AZURE_QUEUE;
+    public static final String ESTUDIANTES_QUEUE = ConfiguracionNombresRabbitMQ.Registro.ESTUDIANTES_QUEUE;
+    public static final String DOCENTES_QUEUE = ConfiguracionNombresRabbitMQ.Registro.DOCENTES_QUEUE;
+    public static final String APODERADOS_QUEUE = ConfiguracionNombresRabbitMQ.Registro.APODERADOS_QUEUE;
+    public static final String STATUS_QUEUE = ConfiguracionNombresRabbitMQ.Registro.STATUS_QUEUE;
+    public static final String CREDENTIALS_QUEUE = ConfiguracionNombresRabbitMQ.Registro.CREDENTIALS_QUEUE;
 
-    public static final String AZURE_DLQ = "user.azure.sync.dlq";
-    public static final String ESTUDIANTES_DLQ = "ms.estudiantes.dlq";
-    public static final String DOCENTES_DLQ = "ms.docentes.dlq";
-    public static final String APODERADOS_DLQ = "ms.apoderados.dlq";
-    public static final String STATUS_DLQ = "user.registration.status.dlq";
-    public static final String CREDENTIALS_DLQ = "user.credentials.notify.dlq";
+    public static final String AZURE_DLQ = ConfiguracionNombresRabbitMQ.Registro.AZURE_DLQ;
+    public static final String ESTUDIANTES_DLQ = ConfiguracionNombresRabbitMQ.Registro.ESTUDIANTES_DLQ;
+    public static final String DOCENTES_DLQ = ConfiguracionNombresRabbitMQ.Registro.DOCENTES_DLQ;
+    public static final String APODERADOS_DLQ = ConfiguracionNombresRabbitMQ.Registro.APODERADOS_DLQ;
+    public static final String STATUS_DLQ = ConfiguracionNombresRabbitMQ.Registro.STATUS_DLQ;
+    public static final String CREDENTIALS_DLQ = ConfiguracionNombresRabbitMQ.Registro.CREDENTIALS_DLQ;
 
     /** Etapa de aprovisionamiento en Entra ID (evento inicial). */
-    public static final String RK_AZURE_SYNC = "user.registration.azure";
+    public static final String RK_AZURE_SYNC = ConfiguracionNombresRabbitMQ.Registro.RK_AZURE_SYNC;
 
     /** Evento de dominio, ya con el oid resuelto, hacia el microservicio del rol. */
-    public static final String RK_REGISTER_ESTUDIANTE = "user.register.estudiante";
-    public static final String RK_REGISTER_DOCENTE = "user.register.docente";
-    public static final String RK_REGISTER_APODERADO = "user.register.apoderado";
+    public static final String RK_REGISTER_ESTUDIANTE = ConfiguracionNombresRabbitMQ.Registro.RK_REGISTER_ESTUDIANTE;
+    public static final String RK_REGISTER_DOCENTE = ConfiguracionNombresRabbitMQ.Registro.RK_REGISTER_DOCENTE;
+    public static final String RK_REGISTER_APODERADO = ConfiguracionNombresRabbitMQ.Registro.RK_REGISTER_APODERADO;
 
     /** Resultado de la etapa de dominio publicada por los microservicios de rol. */
-    public static final String RK_STATUS = "user.registration.status";
+    public static final String RK_STATUS = ConfiguracionNombresRabbitMQ.Registro.RK_STATUS;
 
     /** Reservada para el futuro servicio de notificaciones (entrega por correo). */
-    public static final String RK_CREDENTIALS_NOTIFY = "user.credentials.notify";
+    public static final String RK_CREDENTIALS_NOTIFY = ConfiguracionNombresRabbitMQ.Registro.RK_CREDENTIALS_NOTIFY;
 
-    public static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
+    public static final String HEADER_CORRELATION_ID = ConfiguracionNombresRabbitMQ.Registro.HEADER_CORRELATION_ID;
 }

@@ -26,7 +26,7 @@ npm run build -- --configuration production
 - `public/config.json` es la plantilla local; en CD se genera un `config.json` runtime. `bffBaseUrl` selecciona la ruta al BFF y `useMocks` está desactivado por defecto.
 - Login/logout usan `AuthService` y MSAL redirect; el inicializador procesa el retorno, selecciona la cuenta activa y limpia parámetros MSAL.
 - `MsalGuard` protege la sesión y `roleGuard` consulta `GET /api/me` al BFF para resolver el rol.
-- `authInterceptor` propio ejecuta `acquireTokenSilent` y agrega el Bearer a llamadas al BFF. La fábrica de configuración de `MsalInterceptor` existe, pero la app registra el interceptor propio; ver [`docs/frontend.md`](../../docs/frontend.md) para el detalle frente a la rúbrica EP1.
+- `MsalInterceptor` de MSAL Angular usa el `protectedResourceMap` del BFF y agrega el Bearer adquirido silenciosamente. La UI compara roles/scopes del token con el perfil del BFF para navegación; el servidor sigue siendo autoridad de seguridad.
 - Los guards de cliente no sustituyen los roles/scopes del backend.
 
 ## Datos reales y modo demo

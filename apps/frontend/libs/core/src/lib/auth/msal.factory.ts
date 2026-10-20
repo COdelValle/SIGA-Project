@@ -34,5 +34,6 @@ export function msalInterceptorConfigFactory(config: AppConfig): MsalInterceptor
   return {
     interactionType: InteractionType.Redirect,
     protectedResourceMap,
+    strictMatching: true,
   };
 }

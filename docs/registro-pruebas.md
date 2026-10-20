@@ -1072,3 +1072,23 @@ datos y Azure AD.
 - [ ] Datos de prueba limpiados (Entra + BD).
 - [ ] Flags devueltos a su estado acordado (`REGISTRO_ASYNC_ENABLED`).
 - [ ] Documentación actualizada y entrada nueva en este registro.
+
+## 9. Verificación local EP1/EP2 — 2026-10-19
+
+**Entorno:** rama `feature/rubric-100-ep1-ep2`, commit base `1be2c3ba60a9bac78d44e41af151d8ea6b3af342`, árbol de trabajo con cambios no confirmados. Esta es evidencia de trabajo local; el SHA definitivo y el enlace al artifact de CI se deben añadir al publicar la rama.
+
+### Ejecuciones correctas
+
+- **Backend — OK:** `mvn -f apps/backend/pom.xml -B -ntp package "-Dtest=!*ApplicationTests" "-DfailIfNoTests=false" "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtypescript.generator.skip=true"`. Los 14 módulos Maven compilaron y empaquetaron; 252 pruebas reportadas, 0 fallos y 0 errores. 10 pruebas quedaron omitidas. Testcontainers no encontró Docker válido en Windows (respuesta 400 del named pipe), por lo que `RabbitAdminServiceRabbitTest` y `ConfirmadorMensajesRabbitTest` no ejecutaron contra broker; las migraciones de integración también quedaron omitidas por sus requisitos de entorno. Reejecutar estas pruebas en CI Linux con Docker.
+- **Backend — OK:** `CoreShareApplicationTests` se ejecutó por separado (excluido del comando anterior por el patrón `!*ApplicationTests`) y pasó 1/1 con propiedades JWT sintéticas.
+- **Frontend — OK:** `npm test -- --watch=false`; 13 archivos y 55 pruebas pasaron, incluido el caso nuevo de fallo de adquisición silenciosa del token. Reporte JUnit local: `apps/frontend/dist/test-results/frontend-junit.xml`.
+- **Frontend — OK:** `npx tsc -p tsconfig.app.json --noEmit` y `npm run build -- --configuration production` completaron correctamente.
+- **CI/CD — OK:** ambos workflows parsearon como YAML con PyYAML; el script remoto de despliegue extraído de `cd.yml` pasó `bash -n` al normalizar CRLF del checkout Windows.
+- **Carga — preparación OK:** `tools/performance/siga-escrituras.js` y `medir-recursos.ps1` se agregaron para cubrir escrituras p95 <3 s y memoria <80%; ambos pasaron validación de sintaxis (`node --check` y parser de PowerShell). No se ejecutaron contra AWS. La medición de evento RabbitMQ <5 s y la integridad sin duplicados sigue requiriendo el procedimiento sintético autorizado.
+
+### Fallos observados y corrección
+
+- **Backend — FALLA de invocación, no del código:** el primer comando Maven ejecutado desde PowerShell sin comillas alrededor de `-Dsurefire.failIfNoSpecifiedTests=false` se separó en argumentos y Maven informó `Unknown lifecycle phase ".failIfNoSpecifiedTests=false"`; no llegó a ejecutar pruebas. Se citaron los argumentos `-D` completos y la ejecución posterior de todos los módulos terminó en `BUILD SUCCESS`.
+- **Validación shell local — FALLA de formato:** el primer `bash -n` recibió CRLF convertido por la tubería de PowerShell/Windows y señaló `do\r`. Al enviar el script normalizado como bytes, `bash -n` terminó con código 0; el archivo del workflow no requirió cambios de sintaxis.
+
+**Estado de aceptación:** la suite unitaria/backend y frontend local están verdes. No declarar EP1/EP2 al 100% todavía: faltan ejecución de los casos de broker real en CI, autenticación con token Entra efectivo, pruebas de carga acordadas, despliegue/health checks en AWS y comparación de persistencia antes/después.
