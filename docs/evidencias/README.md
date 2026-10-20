@@ -47,7 +47,7 @@ Estado de la rama `feature/rubric-100-ep1-ep2` sobre `1be2c3b`; los cambios aún
 | EP1: PKCE y renovación silenciosa | MSAL SPA | Sin captura de `code_challenge`/renovación en esta sesión | Pendiente de entorno |
 | EP2: nombres centralizados | `ConfiguracionNombresRabbitMQ` + aliases | `ConfiguracionNombresRabbitMQTest` | Verde |
 | EP2: beans y bindings | `RegistrationMessagingConfig`, `ConfiguracionTopologiaNotificaciones` | `RegistrationMessagingConfigTest`, `ConfiguracionTopologiaNotificacionesTest` | Verde |
-| EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Unitario verde; integración omitida sin Docker local |
+| EP2: ACK/NACK/reintentos/DLQ | `ConfirmadorMensajes` y listeners | `ConfirmadorMensajesTest`, `ConfirmadorMensajesRabbitTest`, `RabbitAdminServiceRabbitTest` | Unitario e integración CI verdes (run `39356000842`) |
 | EP2: API admin y validación de path/query | `RabbitAdminController`, DTOs | `RabbitAdminControllerValidationTest`, `SolicitudRabbitValidationTest`, `RabbitAdminServiceTest` | Verde |
 | EP2: topología desplegada y datos | `cd.yml` | Chequeos de 18 colas/13 consumidores/exchanges/cluster y conteos pre/post | Pendiente de AWS |
 | Rendimiento acordado | `tools/performance/` | `siga-api.js` (lectura), `siga-escrituras.js` (escritura opt-in) y `medir-recursos.ps1` (RAM/CPU por SSH); sintaxis validada | Guiones listos; ejecución pendiente de ventana/AWS |
