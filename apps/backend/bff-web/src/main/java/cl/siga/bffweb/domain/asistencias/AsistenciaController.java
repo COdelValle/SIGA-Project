@@ -30,7 +30,7 @@ public class AsistenciaController {
 
     /** Asistencias del estudiante autenticado. */
     @GetMapping("/estudiante/me")
-    @PreAuthorize("hasAuthority('SCOPE_asistencias:read')")
+    @PreAuthorize("hasRole('ESTUDIANTE') and hasAuthority('SCOPE_asistencias:read')")
     public ResponseEntity<List<AsistenciaResponseDTO>> getAsistenciasMe() {
         return ResponseEntity.ok(service.getAsistenciasMe());
     }
