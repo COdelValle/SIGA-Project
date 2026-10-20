@@ -26,7 +26,7 @@ if (!Number.isFinite(p95Ms) || p95Ms <= 0) {
   throw new Error('SIGA_WRITE_P95_MS debe ser un número positivo.');
 }
 if (bodyTemplate) {
-  parseBody(bodyTemplate, 'validacion');
+  parseBody(bodyTemplate, 'validacion', 0, 0);
 }
 
 export const options = {
@@ -44,7 +44,7 @@ export const options = {
 
 export default function () {
   const correlationId = `${runId}-${__VU}-${__ITER}`;
-  const body = bodyTemplate ? parseBody(bodyTemplate, correlationId) : null;
+  const body = bodyTemplate ? parseBody(bodyTemplate, correlationId, __VU, __ITER) : null;
   const headers = {
     Authorization: `Bearer ${bearerToken}`,
     'X-Correlation-Id': correlationId,
@@ -83,12 +83,12 @@ function parseStatuses(value) {
   return statuses;
 }
 
-function parseBody(template, correlationId) {
+function parseBody(template, correlationId, vu, iteration) {
   const rendered = template
     .replace(/\{\{correlationId\}\}/g, correlationId)
     .replace(/\{\{runId\}\}/g, runId)
-    .replace(/\{\{vu\}\}/g, String(__VU))
-    .replace(/\{\{iteration\}\}/g, String(__ITER));
+    .replace(/\{\{vu\}\}/g, String(vu))
+    .replace(/\{\{iteration\}\}/g, String(iteration));
 
   try {
     return JSON.parse(rendered);

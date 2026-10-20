@@ -40,10 +40,10 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 | Indicador de rúbrica | Implementación | Prueba o evidencia | Estado |
 |---|---|---|---|
 | EP1: `MsalInterceptor` literal | `app.config.ts`, `msal.factory.ts` | `msal.factory.spec.ts` (mapa + Bearer solo al BFF) | Verde |
-| EP1: roles/scopes desde claims | `access-token-claims.service.ts`, `role.guard.ts` | specs de claims/guard; token real ADMIN con `roles=ADMIN` y 43 scopes | Verde ADMIN; falta rol no ADMIN |
+| EP1: roles/scopes desde claims | `access-token-claims.service.ts`, `role.guard.ts` | specs de claims/guard; tokens reales ADMIN y DOCENTE con 43 scopes | Verde |
 | EP1: camino de error de token | `role.guard.ts` + `/error-acceso` | Caso `InteractionRequiredAuthError` en `role.guard.spec.ts` | Verde |
 | EP1: JWT firma/issuer/audience/exp | `JwtResourceServerConfiguration`, `JwtAudienceValidator`, `JwtClaimAuthoritiesConverter` | tests unitarios/filtro; `iss`/`aud` reales alineados con el JWT Authorizer | Verde |
-| EP1: validación en Gateway/BFF real | Terraform + resource server | smoke AWS: SPA 200, sin token/inválido 401, `/api/me` ADMIN 200, admin RabbitMQ 200 | Verde ADMIN; falta 403 no-admin |
+| EP1: validación en Gateway/BFF real | Terraform + resource server | smoke AWS: SPA 200, sin token/inválido 401; ADMIN `/api/me` y admin RabbitMQ 200; DOCENTE admin RabbitMQ 403 | Verde |
 | EP1: PKCE y renovación silenciosa | MSAL SPA | Sin captura de `code_challenge`/renovación en esta sesión | Pendiente de evidencia |
 | EP2: nombres centralizados | `ConfiguracionNombresRabbitMQ` + aliases | `ConfiguracionNombresRabbitMQTest` | Verde |
 | EP2: beans y bindings | `RegistrationMessagingConfig`, `ConfiguracionTopologiaNotificaciones` | `RegistrationMessagingConfigTest`, `ConfiguracionTopologiaNotificacionesTest` | Verde |
@@ -54,21 +54,15 @@ Estado del release `2104a266` desplegado en AWS desde `deploy`; CI y smoke check
 
 Los totales locales de esta sesión están en [`../registro-pruebas.md`](../registro-pruebas.md), sección 9. Cualquier resultado nuevo debe conservar el fallo original, la corrección y una ejecución `OK` separada.
 
+## Evidencias adjuntas
+
+- [`EP1-ENC-TOKEN-ADMIN.png`](EP1-ENC-TOKEN-ADMIN.png): token real ADMIN; `roles=ADMIN`, sin token/inválido 401, `/api/me` 200 y admin RabbitMQ 200.
+- [`EP1-ENC-TOKEN-DOCENTE-403.png`](EP1-ENC-TOKEN-DOCENTE-403.png): token real DOCENTE; `roles=DOCENTE`, `/api/me` 200 y admin RabbitMQ 403.
+- [`EP1-PRES-PKCE/README.md`](EP1-PRES-PKCE/README.md): instrucciones y registro de la captura PKCE.
+
+Las capturas fueron recortadas para excluir los tokens; no se versionan tokens, cookies ni credenciales. Si una captura contiene un token, debe eliminarse o taparse antes de commitearla.
+
 ## Capturas pendientes para cerrar EP1
-
-### 403 con cuenta sin rol/scope
-
-1. Iniciar sesión en la SPA con una cuenta de prueba **no ADMIN** (estudiante, docente o apoderado).
-2. Copiar el `Authorization` de una petición `/api` y ejecutar:
-
-```powershell
-$env:SIGA_BEARER_TOKEN = 'Bearer ...'
-powershell -ExecutionPolicy Bypass -File tools\verificar-jwt.ps1
-powershell -ExecutionPolicy Bypass -File tools\verificar-rutas.ps1 -Perfil OTRO
-Remove-Item Env:SIGA_BEARER_TOKEN
-```
-
-3. Guardar solo la salida: `me=200`, rutas admin `403` y `admin_rabbitmq=403`. No guardar el token.
 
 ### PKCE
 
