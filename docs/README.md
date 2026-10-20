@@ -19,6 +19,7 @@
 |---|---|
 | [`testing-login.md`](testing-login.md) | Runbook para login/Entra, Docker y comprobaciones funcionales actuales. |
 | [`registro-pruebas.md`](registro-pruebas.md) | Bitácora cronológica de verificaciones ejecutadas; conservar como evidencia histórica. |
+| [`evidencias/README.md`](evidencias/README.md) | Convención para guardar pruebas positivas/negativas y vincular artefactos. |
 | [`auditoria-backend.md`](auditoria-backend.md) | Auditoría histórica y trazabilidad de remediaciones; no usar sus hallazgos antiguos como estado vigente sin cotejar con las fichas actuales. |
 | [`branch-cleanup.md`](branch-cleanup.md) | Convenciones/historial de ramas. |
 
@@ -28,6 +29,7 @@
 |---|---|
 | [`../apps/backend/README.md`](../apps/backend/README.md) | Comandos, build, pruebas y enlaces técnicos del backend. |
 | [`../apps/frontend/README.md`](../apps/frontend/README.md) | Inicio rápido y comandos Angular. |
+| [`../tools/performance/README.md`](../tools/performance/README.md) | Prueba k6 de rendimiento mínima, autenticada y sin escrituras. |
 | [`../README.md`](../README.md) | Resumen del producto, inicio local y mapa de documentos. |
 
 ## Orden recomendado

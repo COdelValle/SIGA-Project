@@ -4,23 +4,30 @@ import {
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  provideHttpClient,
+  withInterceptors,
+  withInterceptorsFromDi,
+} from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { catchError, lastValueFrom, of } from 'rxjs';
 import {
   MSAL_GUARD_CONFIG,
+  MSAL_INTERCEPTOR_CONFIG,
   MSAL_INSTANCE,
   MsalBroadcastService,
   MsalGuard,
+  MsalInterceptor,
   MsalService,
 } from '@azure/msal-angular';
 import {
   APP_CONFIG,
   AppConfig,
   AuthErrorService,
-  authInterceptor,
   errorInterceptor,
   msalGuardConfigFactory,
+  msalInterceptorConfigFactory,
   msalInstanceFactory,
   normalizeAuthError,
 } from '@siga/core';
@@ -32,10 +39,15 @@ export function appConfig(config: AppConfig): ApplicationConfig {
     providers: [
       provideBrowserGlobalErrorListeners(),
       provideRouter(routes),
-      provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+      provideHttpClient(withInterceptors([errorInterceptor]), withInterceptorsFromDi()),
       { provide: APP_CONFIG, useValue: config },
       { provide: MSAL_INSTANCE, useFactory: () => msalInstanceFactory(config) },
       { provide: MSAL_GUARD_CONFIG, useFactory: () => msalGuardConfigFactory(config) },
+      {
+        provide: MSAL_INTERCEPTOR_CONFIG,
+        useFactory: () => msalInterceptorConfigFactory(config),
+      },
+      { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
       MsalService,
       MsalGuard,
       MsalBroadcastService,

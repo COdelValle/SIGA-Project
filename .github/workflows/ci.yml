@@ -4,7 +4,7 @@ on:
   push:
     branches: [dev, main, deploy]
   pull_request:
-    branches: [dev, main]
+    branches: [dev, deploy, main]
 
 permissions:
   contents: read
@@ -45,6 +45,15 @@ jobs:
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtypescript.generator.skip=true
 
+      - name: Guardar reportes JUnit del backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-surefire-${{ github.sha }}
+          path: apps/backend/**/target/surefire-reports/*.xml
+          if-no-files-found: warn
+          retention-days: 30
+
   frontend:
     name: Frontend (typecheck + tests + build)
     runs-on: ubuntu-latest
@@ -75,3 +84,12 @@ jobs:
 
       - name: Build de produccion
         run: npm run build -- --configuration production
+
+      - name: Guardar reporte JUnit del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-junit-${{ github.sha }}
+          path: apps/frontend/dist/test-results/frontend-junit.xml
+          if-no-files-found: warn
+          retention-days: 30
