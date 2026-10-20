@@ -64,19 +64,19 @@ class ConfirmadorMensajesRabbitTest {
 
         try (Connection connection = factory.createConnection(); Channel channel = connection.createChannel(false)) {
             publisher.convertAndSend("", queueName, "evento-valido");
-            GetResponse valid = channel.basicGet(queueName, false);
+            GetResponse valid = esperarMensaje(channel, queueName);
             assertThat(valid).isNotNull();
             confirmador.procesar(channel, valid.getEnvelope().getDeliveryTag(), queueName, () -> {});
-            assertThat(admin.getQueueProperties(queueName).get(RabbitAdmin.QUEUE_MESSAGE_COUNT)).isEqualTo(0);
-            assertThat(admin.getQueueProperties(dlqName).get(RabbitAdmin.QUEUE_MESSAGE_COUNT)).isEqualTo(0);
+            esperarConteo(admin, queueName, 0);
+            esperarConteo(admin, dlqName, 0);
 
             publisher.convertAndSend("", queueName, "evento-invalido");
-            GetResponse invalid = channel.basicGet(queueName, false);
+            GetResponse invalid = esperarMensaje(channel, queueName);
             assertThat(invalid).isNotNull();
             confirmador.procesar(channel, invalid.getEnvelope().getDeliveryTag(), queueName,
                 () -> { throw new EventoInvalidoException("payload inválido sintético"); });
-            assertThat(admin.getQueueProperties(queueName).get(RabbitAdmin.QUEUE_MESSAGE_COUNT)).isEqualTo(0);
-            assertThat(admin.getQueueProperties(dlqName).get(RabbitAdmin.QUEUE_MESSAGE_COUNT)).isEqualTo(1);
+            esperarConteo(admin, queueName, 0);
+            esperarConteo(admin, dlqName, 1);
 
             admin.purgeQueue(dlqName);
         } finally {
@@ -85,5 +85,32 @@ class ConfirmadorMensajesRabbitTest {
             admin.deleteExchange(dlxName);
             factory.destroy();
         }
+    }
+
+    private static GetResponse esperarMensaje(Channel channel, String cola) throws Exception {
+        long limite = System.currentTimeMillis() + 5_000;
+        while (System.currentTimeMillis() < limite) {
+            GetResponse respuesta = channel.basicGet(cola, false);
+            if (respuesta != null) {
+                return respuesta;
+            }
+            Thread.sleep(50);
+        }
+        return null;
+    }
+
+    private static void esperarConteo(RabbitAdmin admin, String cola, int esperado) throws Exception {
+        long limite = System.currentTimeMillis() + 5_000;
+        Integer ultimo = null;
+        while (System.currentTimeMillis() < limite) {
+            var propiedades = admin.getQueueProperties(cola);
+            Object valor = propiedades == null ? null : propiedades.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
+            ultimo = valor == null ? null : ((Number) valor).intValue();
+            if (ultimo != null && ultimo == esperado) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        assertThat(ultimo).isEqualTo(esperado);
     }
 }
