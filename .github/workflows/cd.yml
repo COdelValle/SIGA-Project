@@ -529,18 +529,19 @@ jobs:
             FLUSH PRIVILEGES;
             SQL
 
-            # Fail closed ante una base de asignaturas antigua. Nunca borrar ni
-            # recrear una base con datos desde el CD: Flyway debe aplicar una
-            # migración versionada y no destructiva. Una base nueva/vacía se deja
-            # intacta para que el servicio la inicialice con Flyway al arrancar.
+            # Fail closed si una base existente no tiene las columnas que exige
+            # la entidad actual de asignaturas. La columna tipo_asignatura ya no
+            # pertenece al esquema vigente; no usarla como señal de versión.
+            # Nunca borrar ni recrear una base con datos desde el CD: una base
+            # nueva/vacía se deja para que Flyway la inicialice al arrancar.
             TABLAS_ASIGNATURAS=$(docker compose --env-file .env exec -T mariadb \
               mariadb -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" -e \
               "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='siga_asignaturas_db' AND TABLE_TYPE='BASE TABLE';")
-            COLUMNA_TIPO_ASIGNATURA=$(docker compose --env-file .env exec -T mariadb \
+            COLUMNAS_ASIGNATURAS=$(docker compose --env-file .env exec -T mariadb \
               mariadb -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" -e \
-              "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='siga_asignaturas_db' AND TABLE_NAME='asignaturas' AND COLUMN_NAME='tipo_asignatura';")
-            if [ "${TABLAS_ASIGNATURAS:-0}" -gt 0 ] && [ "${COLUMNA_TIPO_ASIGNATURA:-0}" -eq 0 ]; then
-              echo "::error::siga_asignaturas_db contiene tablas con esquema anterior; se detiene el deploy para preservar datos. Requiere migración Flyway revisada y respaldo verificado." >&2
+              "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='siga_asignaturas_db' AND TABLE_NAME='asignaturas' AND COLUMN_NAME IN ('id','nombre','nombre_corto','descripcion','area','calificable','active');")
+            if [ "${TABLAS_ASIGNATURAS:-0}" -gt 0 ] && [ "${COLUMNAS_ASIGNATURAS:-0}" -lt 7 ]; then
+              echo "::error::siga_asignaturas_db no contiene todas las columnas del esquema actual; se detiene el deploy para preservar datos. Requiere migración Flyway revisada y respaldo verificado." >&2
               exit 1
             fi
 
