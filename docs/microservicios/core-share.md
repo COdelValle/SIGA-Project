@@ -8,21 +8,21 @@ Centraliza capacidades técnicas y contratos que deben ser compatibles entre mic
 
 ## Dependencias declaradas
 
-[`pom.xml`](../../apps/backend/libs/core-share/pom.xml) incluye Validation API, Spring Boot starter, Web, Security, OAuth2 Resource Server, Azure Spring Active Directory, Springdoc Swagger/Scalar, Spring TX/JDBC, OpenFeign opcional, AMQP y Spring Retry/Spring Data Commons. Su alcance debe mantenerse transversal: no incluir entidades JPA de negocio ni depender de un microservicio concreto.
+[`pom.xml`](../../apps/backend/libs/core-share/pom.xml) incluye Validation API, Spring Boot starter, Web, Security, OAuth2 Resource Server, Springdoc Swagger/Scalar, Spring TX/JDBC, OpenFeign opcional, AMQP y Spring Retry/Spring Data Commons. El Resource Server se configura explícitamente con Spring Security/Nimbus; la integración Graph usa Azure Identity solo en `ms-usuarios-auth`. `core-share` no debe incluir entidades JPA de negocio ni depender de un microservicio concreto.
 
 ## Patrones y responsabilidades
 
 - **Spring Boot auto-configuration** registrada en `META-INF/spring/...AutoConfiguration.imports`; `SharedSecurityConfig` usa `@ConditionalOnMissingBean` para permitir override explícito.
-- **Seguridad JWT común:** cadena stateless, OPTIONS para CORS, documentación/health públicas, resto autenticado; mapeo `scp → SCOPE_` y `roles → ROLE_` desde `common-properties.yaml`.
+- **Seguridad JWT común:** `JwtResourceServerConfiguration` deriva issuer, JWKS y audiences de Entra (con override por entorno); `NimbusJwtDecoder` comprueba firma, issuer, timestamp y audience. `JwtClaimAuthoritiesConverter` mapea `scp → SCOPE_` y `roles → ROLE_`; `SharedSecurityConfig` exige autenticación y activa method security.
 - **Contratos compartidos:** DTOs API/Feign y eventos Rabbit versionados; validadores personalizados (`@RUT`, teléfono, nota) y manejador global de errores.
 - **RabbitMQ:** `ConfiguracionTopologiaNotificaciones` declara topic/direct, colas, DLQs/bindings; `RegistrationMessagingConfig` define el flujo de registro bajo property; `ConfirmadorMensajes` comparte ACK/NACK y reintentos.
 - **Trazabilidad/formato:** correlation ID en MDC y mensajes AMQP; fechas ISO y configuración equivalente para OpenFeign.
 
-Código representativo: `security/SharedSecurityConfig.java`, `security/SecurityUtils.java`, `exception/GlobalExceptionHandler.java`, `config/SharedFeignAuthConfig.java`, `config/CommonDateFormatConfig.java`, `mensajeria/ConfiguracionTopologiaNotificaciones.java`, `mensajeria/ConfiguracionMensajeriaCompartida.java`, `mensajeria/ConfirmadorMensajes.java` y `messaging/RegistrationMessagingConfig.java`. La carga automática se registra en `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
+Código representativo: `security/JwtResourceServerConfiguration.java`, `security/JwtAudienceValidator.java`, `security/JwtClaimAuthoritiesConverter.java`, `security/SharedSecurityConfig.java`, `security/SecurityUtils.java`, `exception/GlobalExceptionHandler.java`, `config/SharedFeignAuthConfig.java`, `config/CommonDateFormatConfig.java`, `mensajeria/ConfiguracionNombresRabbitMQ.java`, `mensajeria/ConfiguracionTopologiaNotificaciones.java`, `mensajeria/ConfiguracionMensajeriaCompartida.java`, `mensajeria/ConfirmadorMensajes.java` y `messaging/RegistrationMessagingConfig.java`. La carga automática se registra en `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
 
 ## Dependencias implícitas y riesgos de cambio
 
-Al depender de `core-share`, cada servicio que incluya el JAR hereda clases de auto-configuración y parte del classpath, incluyendo AMQP en módulos donde no aparece declarado directamente en su POM. Esto reduce duplicación, pero un cambio en seguridad, DTO o topología afecta a varios servicios. La versión del contrato es la versión del reactor Maven; al evolucionar un evento, coordinar productor/consumidor, compatibilidad de esquema y pruebas.
+Al depender de `core-share`, cada servicio que incluya el JAR hereda clases de auto-configuración y parte del classpath, incluyendo AMQP en módulos donde no aparece declarado directamente en su POM. En despliegue los overrides opcionales son `AZURE_JWT_ISSUER`, `AZURE_JWKS_URI` y `AZURE_JWT_AUDIENCES`; los defaults corresponden al issuer v1 del tenant, sus JWKS y audiencias App ID URI/client ID. Esto reduce duplicación, pero un cambio en seguridad, DTO o topología afecta a varios servicios. La versión del contrato es la versión del reactor Maven; al evolucionar un evento, coordinar productor/consumidor, compatibilidad de esquema y pruebas.
 
 ## Pruebas
 

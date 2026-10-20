@@ -238,16 +238,16 @@ Detalles de la topología AWS y secretos en
 ## Flujo de trabajo (ramas)
 
 ```text
-feature/*  ->  dev  ->  main  ->  deploy
-                                 (dispara CD)
+feature/*  ->  dev  ->  deploy  ->  main
+                         (CD + AWS)  (solo tras aceptación AWS)
 ```
 
-- `dev`: integración. `main`: estable. `deploy`: dispara el despliegue (CD).
+- `dev`: integración. `deploy`: candidato de release y despliegue AWS. `main`:
+  release estable, se actualiza con el mismo SHA solo después de aceptar AWS.
 - Ramas cortas `feature/*` y `fix/*` se eliminan al integrar.
-- CI corre en push a `dev`, `main` y `deploy`, y en PR a `dev`/`main`.
-- CD se dispara por push a `deploy` o manualmente con `workflow_dispatch`. Un push
-  de solo documentación a `deploy` también dispara CD mientras el workflow esté
-  activo; consultar `docs/branch-cleanup.md`/README de infraestructura antes de
-  sincronizar ramas sin despliegue.
+- CI corre en push a `dev`, `main` y `deploy`, y en PR a `dev`/`deploy`/`main`.
+- CD se dispara por push a `deploy` o manualmente con `workflow_dispatch`; ejecuta
+  su propia puerta de calidad antes de publicar imágenes. Un push de solo
+  documentación a `deploy` también dispara CD mientras el workflow esté activo.
 
 Ver [`docs/branch-cleanup.md`](docs/branch-cleanup.md).

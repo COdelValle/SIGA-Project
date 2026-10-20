@@ -79,7 +79,7 @@ Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
 | `azure_client_id` | GUID de la app | Client ID de la SPA/API. |
 | `azure_app_id_uri` | `api://<client-id>` | Prefijo de los scopes del SPA. |
 | `azure_audience` | lista de audiences | `aud` aceptados por el JWT Authorizer. |
-| `azure_issuer` | issuer v2.0 | `iss` exacto del token. |
+| `azure_issuer` | `https://sts.windows.net/<tenant>/` | `iss` exacto de los tokens v1 actuales; si Entra cambia a v2, ajustar al issuer v2. |
 
 Outputs utiles:
 
@@ -92,6 +92,12 @@ Outputs utiles:
 | `azure_post_logout_redirect_uri` | `…/sin-acceso` a registrar en Entra ID. |
 | `ssh_command` | Comando SSH para administrar la instancia. |
 | `frontend_config_json` | Contenido esperado de `config.json`. |
+
+El backend valida JWT con JWKS/issuer/audiences mediante `core-share`; por defecto
+deriva issuer v1, JWKS y audiencias de `AZURE_TENANT_ID`, `AZURE_APP_ID_URI` y
+`AZURE_CLIENT_ID`. Los overrides opcionales (`AZURE_JWT_ISSUER`, `AZURE_JWKS_URI`,
+`AZURE_JWT_AUDIENCES`) deben mantenerse en sincronía con `azure_issuer` y
+`azure_audience` del Gateway si se cambia la versión del token.
 
 ## Persistencia, respaldos y límites de disponibilidad
 
@@ -173,11 +179,12 @@ La persistencia y los respaldos están descritos en la sección anterior.
 
 ## CI y CD en GitHub Actions
 
-- `ci.yml`: push en `dev`, `main`, `deploy` y pull request hacia `dev`/`main`;
+- `ci.yml`: push en `dev`, `main`, `deploy` y pull request hacia las tres ramas;
   compila/prueba backend y ejecuta typecheck, Vitest y build frontend.
 - `cd.yml`: push a `deploy` **dispara despliegue**, además de `workflow_dispatch`.
-  No tiene `paths-ignore`: un cambio exclusivamente `.md` en `deploy` también
-  inicia despliegue si CD está activo.
+  El job `verify` vuelve a ejecutar build/tests antes del job de imágenes/deploy;
+  solo permite despliegues cuando `github.ref` es `deploy`. No tiene
+  `paths-ignore`: un cambio exclusivamente `.md` en `deploy` también inicia CD.
 - Para sincronizar solo documentación con `deploy` sin desplegar: confirmar que no
   hay CD corriendo, deshabilitar temporalmente el workflow CD desde GitHub Actions,
   actualizar la rama, verificar que no se creó un run CD y reactivar el workflow.

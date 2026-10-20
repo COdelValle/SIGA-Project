@@ -30,6 +30,14 @@ class SolicitudRabbitValidationTest {
     }
 
     @Test
+    void deadLetterExchangeYRoutingKeyDebenDefinirseJuntos() {
+        assertThat(validator.validate(new SolicitudColaDTO(
+            "cola.prueba", "siga.dlx.direct", null))).isNotEmpty();
+        assertThat(validator.validate(new SolicitudColaDTO(
+            "cola.prueba", null, "cola.prueba.dlq"))).isNotEmpty();
+    }
+
+    @Test
     void exchangeSinTipoEsInvalido() {
         assertThat(validator.validate(new SolicitudExchangeDTO("siga.exchange.prueba", null))).isNotEmpty();
         assertThat(validator.validate(new SolicitudExchangeDTO(

@@ -24,11 +24,12 @@ Node carga `/config.json` antes del bootstrap, luego construye providers MSAL y 
 1. `AuthService.login()` inicia redirect MSAL; `PublicClientApplication` procesa el regreso en `/auth` mediante el inicializador de `app.config.ts`.
 2. El inicializador procesa `handleRedirectObservable`, registra errores normalizados, fija cuenta activa y limpia parámetros MSAL de URL.
 3. `MsalGuard` exige una cuenta en rutas privadas. `roleGuard` llama `MeService.getMe()` (`GET /api/me`) y enruta con el rol autoritativo que devuelve BFF/servicio usuarios.
-4. `authInterceptor` solo modifica solicitudes que empiezan con `bffBaseUrl`; llama `acquireTokenSilent` con scopes runtime y adjunta `Authorization: Bearer <accessToken>`.
-5. `errorInterceptor` y `AuthErrorService` normalizan errores HTTP/adquisición; no inician redirects recursivos al fallar la obtención silenciosa.
-6. Logout limpia caché de cuenta antes de `logoutRedirect`.
+4. `MsalInterceptor` usa `protectedResourceMap` para limitar solicitudes al BFF; llama `acquireTokenSilent` con scopes runtime y adjunta `Authorization: Bearer <accessToken>`.
+5. `AccessTokenClaimsService` decodifica `roles` y `scp` del access token para navegación/diagnóstico; exige coincidencia con el perfil del BFF y los scopes solicitados. No valida firma ni se usa como autorización: eso corresponde a Gateway/backend.
+6. `errorInterceptor` y `AuthErrorService` normalizan errores de retorno/HTTP; los errores de autorización y los flows interactivos los maneja MSAL.
+7. Logout limpia caché de cuenta antes de `logoutRedirect`.
 
-**Detalle relevante para EP1:** `msal.factory.ts` contiene `msalInterceptorConfigFactory` y el tipo de `MsalInterceptorConfiguration`, pero `app.config.ts` registra el interceptor funcional propio `authInterceptor` mediante `withInterceptors`. Si el evaluador exige literalmente `MsalInterceptor`, el código difiere del descriptor aunque agregue token mediante MSAL. La autorización real sigue en Gateway/BFF/backend; los guards del cliente no son una barrera de seguridad.
+`app.config.ts` registra explícitamente `MSAL_INTERCEPTOR_CONFIG` y `MsalInterceptor` como `HTTP_INTERCEPTORS` con `withInterceptorsFromDi()`. `msal.factory.spec.ts` comprueba el mapa del BFF y que el Bearer se adjunte solo a recursos protegidos.
 
 El SDK MSAL para SPA usa Authorization Code con PKCE como flujo de navegador; la app invoca redirect sin implementar a mano `code_verifier`. Para demostrarlo se debe inspeccionar la solicitud OIDC (code challenge S256/state/nonce) o evidencia del proveedor; no mostrar el token ni el verifier.
 

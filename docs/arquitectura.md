@@ -72,13 +72,13 @@ Las flechas Feign son HTTP síncrono; las líneas discontinuas hacia RabbitMQ so
 5. BFF llama al dueño del recurso por Feign, propagando `Authorization` y correlation ID cuando corresponda.
 6. El servicio valida entrada/reglas del dominio, persiste con su repositorio y responde DTO.
 
-El JWT Authorizer usa issuer/audience del token efectivo de Entra. `SharedSecurityConfig` usa Azure Spring Resource Server, stateless, y mapea `scp → SCOPE_` y `roles → ROLE_`. `OPTIONS` se permite para preflight; documentación técnica y health son rutas públicas explícitas. Guards de Angular mejoran navegación, pero no reemplazan autorización de servidor.
+El JWT Authorizer usa issuer/audience del token efectivo de Entra. `core-share/JwtResourceServerConfiguration` configura el `NimbusJwtDecoder` compartido: valida firma mediante JWKS, issuer, expiración y audience; `JwtClaimAuthoritiesConverter` mapea `scp → SCOPE_` y `roles → ROLE_`. `AZURE_JWT_ISSUER`, `AZURE_JWKS_URI` y `AZURE_JWT_AUDIENCES` permiten override no secreto; los defaults reflejan el issuer v1 registrado en la bitácora. `SharedSecurityConfig` aplica Resource Server stateless y `@PreAuthorize`. `OPTIONS` se permite para preflight; documentación técnica y health son rutas públicas explícitas. Guards Angular comparan claims para navegación, pero no reemplazan autorización de servidor.
 
 ## Mensajería desacoplada
 
 ### Registro asíncrono
 
-`ms-usuarios-auth` guarda proceso/outbox en la misma transacción y publica la etapa de aprovisionamiento a `user.topic.exchange`. Tras resolver cuenta/rol en Entra ID, enruta perfil a `ms-estudiantes`, `ms-docentes` o `ms-apoderados`. Cada perfil procesa idempotentemente y publica resultado a la cola de estado. La topología se declara en `core-share/RegistrationMessagingConfig` bajo property para los servicios participantes.
+`ms-usuarios-auth` guarda proceso/outbox en la misma transacción y publica la etapa de aprovisionamiento a `user.topic.exchange`. Tras resolver cuenta/rol en Entra ID, enruta perfil a `ms-estudiantes`, `ms-docentes` o `ms-apoderados`. Cada perfil procesa idempotentemente y publica resultado a la cola de estado. La topología se declara en `core-share/RegistrationMessagingConfig` bajo property para los servicios participantes. El flujo asíncrono es opcional (`REGISTRO_ASYNC_ENABLED`, default `false`); el alta administrativa requerida por EP1 no depende de activar esta opción.
 
 ### Notificaciones académicas
 
@@ -92,7 +92,7 @@ Ambos flujos usan ACK manual, reintentos acotados y logs/correlation ID comparti
 - **AWS Academy:** Terraform crea VPC/subnet pública, EC2 `t3.large`, EIP, EBS, ECR y API Gateway HTTP API. Una sola EC2 corre el stack Compose, incluidos ambos nodos RabbitMQ; los dos nodos comparten el mismo host/failure domain y no equivalen a alta disponibilidad multi-AZ.
 - **TLS:** API Gateway da HTTPS al navegador; integración Gateway→EC2 usa HTTP. Caddy publica el Management UI RabbitMQ por HTTPS con autenticación del propio broker.
 - **Persistencia/respaldo:** datos MariaDB/RabbitMQ montados en EBS; el workflow CD instala respaldo diario de las diez bases y definiciones de RabbitMQ, con retención configurada. El respaldo depende de la instancia/lab; un reset de Academy puede borrar EBS.
-- **CI/CD:** `.github/workflows/ci.yml` ejecuta build/tests backend y typecheck/tests/build frontend en push `dev`, `main`, `deploy` y PR `dev`/`main`. `.github/workflows/cd.yml` despliega por push a `deploy` o `workflow_dispatch` manual. Para una actualización documental de `deploy` sin despliegue, hay que deshabilitar CD antes del push y reactivarlo después; no basta que los archivos cambiados sean `.md`.
+- **CI/CD:** `.github/workflows/ci.yml` ejecuta build/tests backend y typecheck/tests/build frontend en push `dev`, `main`, `deploy` y PR a las tres ramas. `.github/workflows/cd.yml` limita el despliegue a `deploy` y `workflow_dispatch`, y ahora verifica backend/frontend antes del job AWS. Flujo de release: `feature → dev → deploy (AWS + aceptación) → main (mismo SHA)`; para una sincronización documental sin despliegue, CD debe deshabilitarse temporalmente antes del push a `deploy`.
 
 Detalles concretos, variables y operación están en [`../infra/terraform/README.md`](../infra/terraform/README.md), [`testing-login.md`](testing-login.md) y [`backend.md`](backend.md).
 

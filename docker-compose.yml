@@ -39,6 +39,10 @@ x-ms-common-env: &ms-common-env
   AZURE_TENANT_ID: ${AZURE_TENANT_ID}
   AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
   AZURE_APP_ID_URI: ${AZURE_APP_ID_URI}
+  # Opcionales; por defecto core-share deriva issuer/JWKS/audiences del tenant.
+  AZURE_JWT_ISSUER: ${AZURE_JWT_ISSUER:-}
+  AZURE_JWKS_URI: ${AZURE_JWKS_URI:-}
+  AZURE_JWT_AUDIENCES: ${AZURE_JWT_AUDIENCES:-}
   # RabbitMQ (mensajeria entre microservicios): clúster de dos nodos en la
   # misma EC2. Spring intenta cada dirección en orden.
   SPRING_RABBITMQ_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672

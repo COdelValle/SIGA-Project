@@ -22,7 +22,7 @@ Flujos centrales:
 
 ## Dependencias declaradas
 
-Ver [`pom.xml`](../../apps/backend/bff-web/pom.xml): Spring MVC + WebFlux, Validation, Spring Security y OAuth2 Resource Server, OpenFeign, Resilience4j, `feign-hc5`, Springdoc Swagger/Scalar, Actuator, Azure Spring, MapStruct y `core-share`. `feign-hc5` es necesario para que Feign emita PATCH hacia la bandeja. El plugin TypeScript Generator crea modelos desde DTOs bajo `apps/frontend/src/types`; `-Dtypescript.generator.skip=true` evita escritura cruzada en CI.
+Ver [`pom.xml`](../../apps/backend/bff-web/pom.xml): Spring MVC + WebFlux, Validation, Spring Security y OAuth2 Resource Server, OpenFeign, Resilience4j, `feign-hc5`, Springdoc Swagger/Scalar, Actuator, MapStruct y `core-share`. `feign-hc5` es necesario para que Feign emita PATCH hacia la bandeja. El plugin TypeScript Generator crea modelos desde DTOs bajo `apps/frontend/src/types`; `-Dtypescript.generator.skip=true` evita escritura cruzada en CI.
 
 ## Patrones, seguridad y fallas
 
