@@ -42,6 +42,18 @@ k6 run tools/performance/siga-escrituras.js
 Remove-Item Env:SIGA_BEARER_TOKEN, Env:SIGA_WRITE_BODY, Env:SIGA_ALLOW_WRITES
 ```
 
+## Escritura aislada RabbitMQ: `verificar-rabbit-admin.ps1`
+
+Mide el camino de escritura del API admin creando, consultando y eliminando una cola, un exchange y un binding con nombres únicos. No toca datos de negocio ni deja topología residual. Requiere un token ADMIN; el default es 20 iteraciones y p95 <3 s.
+
+```powershell
+$env:SIGA_BEARER_TOKEN = 'Bearer ...'
+powershell -ExecutionPolicy Bypass -File tools\performance\verificar-rabbit-admin.ps1 -Iterations 20
+Remove-Item Env:SIGA_BEARER_TOKEN
+```
+
+Cada iteración verifica que la cola desaparezca al final; el script falla si algún status esperado no coincide o si el p95 de escritura alcanza el umbral. Usarlo en lugar de `siga-escrituras.js` cuando no exista un endpoint de negocio descartable.
+
 ## Memoria y contenedores: `medir-recursos.ps1`
 
 Ejecuta por SSH, en modo lectura, `free -m` y `docker stats --no-stream` durante la ventana de carga. No reinicia ni modifica contenedores. Guarda muestras JSON y falla si la memoria máxima alcanza el umbral (default 80%) o si no pudo interpretar ninguna muestra.
@@ -57,7 +69,7 @@ El archivo de salida incluye porcentaje de memoria, línea `free -m`, memoria/CP
 
 ## Evento RabbitMQ e integridad
 
-El objetivo de <5 s y la ausencia de pérdida/duplicación requieren un evento sintético y datos desechables. Usar el procedimiento ya documentado en `docs/registro-pruebas.md` (evento de outbox sintético, PR-20261011-11): registrar el identificador del evento, medir el tiempo hasta la fila en `notificaciones`, verificar que exista **exactamente una** fila para ese `idEvento` y comparar conteos antes/después. Purgar solo los IDs creados por la prueba; no borrar colas compartidas ni datos reales.
+El objetivo de <5 s y la ausencia de pérdida/duplicación requieren un evento sintético y datos desechables. Usar el procedimiento ya documentado en `docs/registro-pruebas.md` (evento de outbox sintético, PR-20261011-11) o un destino centinela (`idEstudiante=999999999`) con un marcador único en `nombreEvaluacion`/`nombreAsignatura`: medir el tiempo hasta la fila en `notificaciones`, verificar que exista **exactamente una** fila con ese marcador, confirmar el outbox en `ENVIADO` y borrar el evento y la notificación. No usar estudiantes reales ni borrar colas compartidas.
 
 ## Registro
 
