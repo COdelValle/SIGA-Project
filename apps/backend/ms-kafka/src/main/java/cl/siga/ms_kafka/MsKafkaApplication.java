@@ -1,13 +1,14 @@
 package cl.siga.ms_kafka;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import static org.springframework.boot.SpringApplication.*;
 
 @SpringBootApplication
 public class MsKafkaApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MsKafkaApplication.class, args);
+		run(MsKafkaApplication.class, args);
 	}
 
 }
