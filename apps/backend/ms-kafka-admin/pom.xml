@@ -9,7 +9,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-	<artifactId>ms-kafka</artifactId>
+	<artifactId>ms-kafka-admin</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
   <description>Para implementación de kafka..</description>
 
