@@ -567,7 +567,7 @@ services:
       - "8094:8094"
 
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
 
     depends_on:
       - kafka
@@ -576,7 +576,7 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
-      - kafka
+      - ms-kafka-admin
     ports:
       - "8085:8080"
     environment:

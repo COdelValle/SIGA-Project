@@ -30,5 +30,14 @@ public class AdminService {
     adminClient.createTopics(
       Collections.singleton(topic)
     ).all().get();
+
+  }
+
+  public void eliminarTopic(String nombre)
+    throws Exception {
+
+    adminClient.deleteTopics(
+      Collections.singleton(nombre)
+    ).all().get();
   }
 }

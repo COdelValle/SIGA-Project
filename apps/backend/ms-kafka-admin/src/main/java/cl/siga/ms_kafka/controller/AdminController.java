@@ -29,7 +29,19 @@ public class AdminController {
     service.crearTopic(request);
 
     return ResponseEntity.ok(
-      "Topic creado correctamente"
+      "Topic creado: " + request.nombre()
+    );
+  }
+
+  @DeleteMapping("/topics/{nombre}")
+  public ResponseEntity<String> eliminarTopic(
+    @PathVariable String nombre)
+    throws Exception {
+
+    service.eliminarTopic(nombre);
+
+    return ResponseEntity.ok(
+      "Topic eliminado: " + nombre
     );
   }
 }
