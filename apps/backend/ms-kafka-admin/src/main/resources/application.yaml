@@ -1,22 +1,19 @@
 spring:
   application:
     name: ms-kafka
-    kafka:
-    bootstrap-servers: localhost:8093
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
     consumer:
-    group-id: kafka for SIGA
-    auto-offset-reset: earliest
-    key-deserializer:
-      org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer:
-      org.apache.kafka.common.serialization.StringDeserializer
-    enable-auto-commit: true
+      group-id: kafka-siga
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
     producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    server:
-    port: 8094
-    logging:
-    level:
-    root: INFO
-    org.springframework.kafka: DEBUG
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8094
