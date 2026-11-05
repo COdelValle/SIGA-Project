@@ -555,6 +555,23 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+
+  ms-kafka-admin:
+    build:
+        context: ./apps/backend
+        dockerfile: ms-kafka-admin/Dockerfile
+
+    container_name: ms-kafka-admin
+
+    ports:
+      - "8094:8094"
+
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092
+
+    depends_on:
+      - kafka
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
