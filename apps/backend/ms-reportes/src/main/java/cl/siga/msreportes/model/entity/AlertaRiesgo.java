@@ -46,6 +46,15 @@ public class AlertaRiesgo {
     @Column(name = "nivel_nuevo", nullable = false, length = 20)
     private NivelRiesgo nivelNuevo;
 
+    @Column(name = "porcentaje_inasistencia")
+    private Double porcentajeInasistencia;
+
+    @Column(name = "promedio")
+    private Double promedio;
+
+    @Column(name = "evaluaciones_insuficientes")
+    private Long evaluacionesInsuficientes;
+
     @Column(nullable = false, length = 500)
     private String motivo;
 

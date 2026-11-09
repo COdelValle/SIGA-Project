@@ -9,6 +9,11 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://${DB_HOST:localhost}:3306/siga_reportes_db}
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:root}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASS:dev_password}}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -30,6 +35,11 @@ spring:
       missing-topics-fatal: false
   config:
     import: "optional:classpath:common-properties.yaml"
+
+siga:
+  notificaciones:
+    outbox:
+      enabled: true
 
 springdoc:
   api-docs:

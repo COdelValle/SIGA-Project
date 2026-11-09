@@ -6,6 +6,7 @@ import cl.siga.coreshare.dto.notificaciones.NivelRiesgo;
 import cl.siga.coreshare.dto.notificaciones.TipoRiesgo;
 import cl.siga.msreportes.model.entity.*;
 import cl.siga.msreportes.repository.*;
+import cl.siga.msreportes.mensajeria.PublicadorAlertaRiesgo;
 import java.time.LocalDateTime;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -26,6 +27,17 @@ public class ReporteProcesamientoService {
     private final ProyeccionAsistenciaRepository asistenciaRepository;
     private final ProyeccionRendimientoRepository rendimientoRepository;
     private final AlertaRiesgoRepository alertasRepository;
+    private final PublicadorAlertaRiesgo publicadorAlerta;
+
+    public ReporteProcesamientoService(
+            Validator validator,
+            EventoReporteProcesadoRepository eventosRepository,
+            ProyeccionAsistenciaRepository asistenciaRepository,
+            ProyeccionRendimientoRepository rendimientoRepository,
+            AlertaRiesgoRepository alertasRepository) {
+        this(validator, eventosRepository, asistenciaRepository, rendimientoRepository,
+            alertasRepository, null);
+    }
 
     @Transactional
     public void procesarAsistencia(ConsumerRecord<String, EventoAsistenciaKafka> record) {
@@ -173,6 +185,7 @@ public class ReporteProcesamientoService {
             .idCursoAsignatura(evento.idCursoAsignatura())
             .nivelAnterior(nivelAnterior)
             .nivelNuevo(nivelNuevo)
+            .porcentajeInasistencia(evento.porcentajeInasistencia())
             .motivo(motivoAsistencia(evento.porcentajeInasistencia(), umbral))
             .idEvento(evento.idEvento())
             .correlationId(evento.correlationId())
@@ -199,6 +212,8 @@ public class ReporteProcesamientoService {
             .idCursoAsignatura(evento.idCursoAsignatura())
             .nivelAnterior(nivelAnterior)
             .nivelNuevo(nivelNuevo)
+            .promedio(evento.promedio() == null ? evento.puntaje() : evento.promedio())
+            .evaluacionesInsuficientes(evento.evaluacionesInsuficientes())
             .motivo(motivo)
             .idEvento(evento.idEvento())
             .correlationId(evento.correlationId())
@@ -238,6 +253,9 @@ public class ReporteProcesamientoService {
         }
         try {
             alertasRepository.save(alerta);
+            if (publicadorAlerta != null) {
+                publicadorAlerta.publicar(alerta);
+            }
         } catch (DataIntegrityViolationException error) {
             log.info("Alerta concurrente ignorada claveIdempotencia={}", alerta.getClaveIdempotencia());
         }

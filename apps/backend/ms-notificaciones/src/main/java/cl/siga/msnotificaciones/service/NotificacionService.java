@@ -6,6 +6,9 @@ import cl.siga.coreshare.dto.notificaciones.ContadorNotificacionesDTO;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
+import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
 import cl.siga.coreshare.dto.notificaciones.NotificacionResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.TipoDestinoNotificacion;
 import cl.siga.coreshare.dto.notificaciones.TipoNotificacion;
@@ -95,6 +98,7 @@ public class NotificacionService {
             throw new EventoInvalidoException(
                 "Evento de asistencia sin idEstudiante (idEvento=" + evento.idEvento() + ").");
         }
+
         String estado = evento.estado() == null ? "asistencia" : evento.estado().name().toLowerCase();
         String asignatura = textoOpcional(evento.nombreAsignatura());
         String titulo = evento.estado() == null
@@ -117,6 +121,39 @@ public class NotificacionService {
             evento.idEvento(), "ASISTENCIA|" + evento.idAsistencia() + "|" + evento.accion() + "|" + evento.fechaHora(),
             TipoNotificacion.ASISTENCIA, evento.accion().name(), TipoDestinoNotificacion.ESTUDIANTE,
             evento.idEstudiante(), titulo, resumen.toString(), evento.fechaHora());
+    }
+
+    @Transactional
+    public void registrarEvento(EventoRiesgoAsistencia evento) {
+        validarRiesgo(evento.idEstudiante(), evento.idEvento());
+        insertar(evento.idEvento(), "RIESGO|" + evento.idEstudiante() + "|" + evento.timestamp(),
+            TipoNotificacion.RIESGO, evento.nivelRiesgo().name(), TipoDestinoNotificacion.ESTUDIANTE,
+            evento.idEstudiante(), "Riesgo de inasistencia",
+            textoSeguro(evento.motivo(), "Se detectó un riesgo de inasistencia."), evento.timestamp());
+    }
+
+    @Transactional
+    public void registrarEvento(EventoRiesgoRendimiento evento) {
+        validarRiesgo(evento.idEstudiante(), evento.idEvento());
+        insertar(evento.idEvento(), "RIESGO|" + evento.idEstudiante() + "|" + evento.timestamp(),
+            TipoNotificacion.RIESGO, evento.nivelRiesgo().name(), TipoDestinoNotificacion.ESTUDIANTE,
+            evento.idEstudiante(), "Riesgo de rendimiento",
+            textoSeguro(evento.motivo(), "Se detectó un riesgo de rendimiento académico."), evento.timestamp());
+    }
+
+    @Transactional
+    public void registrarEvento(EventoCambioEstadoAcademico evento) {
+        validarRiesgo(evento.idEstudiante(), evento.idEvento());
+        insertar(evento.idEvento(), "ESTADO|" + evento.idEstudiante() + "|" + evento.timestamp(),
+            TipoNotificacion.RIESGO, evento.estadoNuevo().name(), TipoDestinoNotificacion.ESTUDIANTE,
+            evento.idEstudiante(), "Cambio de estado académico",
+            textoSeguro(evento.motivo(), "Cambió el estado académico del estudiante."), evento.timestamp());
+    }
+
+    private void validarRiesgo(Long idEstudiante, String idEvento) {
+        if (idEstudiante == null || idEvento == null || idEvento.isBlank()) {
+            throw new EventoInvalidoException("Evento de riesgo inválido.");
+        }
     }
 
     @Transactional(readOnly = true)

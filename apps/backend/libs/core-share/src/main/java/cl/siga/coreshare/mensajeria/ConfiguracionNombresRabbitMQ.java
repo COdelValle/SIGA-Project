@@ -31,6 +31,12 @@ public class ConfiguracionNombresRabbitMQ {
         public static final String CLAVE_RIESGO_INASISTENCIA = "riesgo.inasistencia";
         public static final String CLAVE_RIESGO_RENDIMIENTO = "riesgo.rendimiento";
         public static final String CLAVE_CAMBIO_ESTADO_ACADEMICO = "riesgo.estado-academico";
+        public static final String COLA_RIESGO_INASISTENCIA = "cola-notificaciones-riesgo-inasistencia";
+        public static final String DLQ_RIESGO_INASISTENCIA = "cola-notificaciones-riesgo-inasistencia.dlq";
+        public static final String COLA_RIESGO_RENDIMIENTO = "cola-notificaciones-riesgo-rendimiento";
+        public static final String DLQ_RIESGO_RENDIMIENTO = "cola-notificaciones-riesgo-rendimiento.dlq";
+        public static final String COLA_CAMBIO_ESTADO_ACADEMICO = "cola-notificaciones-cambio-estado";
+        public static final String DLQ_CAMBIO_ESTADO_ACADEMICO = "cola-notificaciones-cambio-estado.dlq";
 
         public static final String COLA_NOTAS = "cola-notificaciones-notas";
         public static final String DLQ_NOTAS = "cola-notificaciones-notas.dlq";
