@@ -237,11 +237,10 @@ services:
     image: mariadb:11.4
     container_name: mariadb-kafka
     environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      SPRING.PROFILES.ACTIVE: docker
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-RAHHH234}
       MARIADB_DATABASE: kafka_database
-      MARIADB_USER: ${KFK_USER}
-      MARIADB_PASSWORD: ${KFK_PASS}
+      MARIADB_USER: ${KFK_USER:-kafka233}
+      MARIADB_PASSWORD: ${KFK_PASS:-fakta2}
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
@@ -555,6 +554,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - siga-network
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -576,7 +577,11 @@ services:
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
+    networks:
+      - siga-network
+
   ms-kafka-admin:
+
     build:
         context: ./apps/backend
         dockerfile: ms-kafka-admin/Dockerfile
@@ -587,10 +592,13 @@ services:
       - "8094:8094"
 
     environment:
+      <<: *ms-common-env
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
     depends_on:
       - kafka
+    networks:
+      - siga-network
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -603,6 +611,8 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - siga-network
 
 
   # ---------------------------------------------------------------

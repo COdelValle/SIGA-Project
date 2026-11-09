@@ -3,9 +3,9 @@ spring:
     name: ms-kafka-admin
 
   datasource:
-    url: jdbc:mariadb://mariadb_kafka:3306/kafka_database
-    username: ${KFK_USER:Kafka233}
-    password: ${KFK_PASS:fakta2}
+    url: jdbc:mariadb://mariadb-kafka:3306/kafka_database
+    username: ${KFK_USER:-kafka233}
+    password: ${KFK_PASS:-fakta2}
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
