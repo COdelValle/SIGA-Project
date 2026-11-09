@@ -2,10 +2,13 @@ package cl.siga.ms_kafka.model.entity;
 
 import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
 import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.coreshare.dto.asistencia.enums.State;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -32,7 +35,12 @@ public class AsistenciaProjection {
 
   private LocalDateTime ultimaActualizacion;
 
+  private Map<State, Integer> estados = new EnumMap<>(State.class);
   public AsistenciaProjection() {
+
+    for (State estado : State.values()) {
+      estados.put(estado, 0);
+    };
 
     this.totalClases = 0;
     this.totalPresentes = 0;
@@ -44,33 +52,89 @@ public class AsistenciaProjection {
     this.porcentajeAusencia = 0.0;
 
     this.nivelRiesgo = NivelRiesgo.NORMAL;
+
   }
 
-  public void registrarEstado(EstadoAsistencia estado) {
+  public void calcularEstado(State estado) {
 
-    totalClases++;
+    estados.computeIfPresent(
+      estado,
+      (k, v) -> v + 1
+    );
+  }
 
-    switch (estado) {
+  public void regEstado(State estado) {
 
-      case PRESENTE -> totalPresentes++;
+    estados.put(
+      estado,
+      estados.get(estado) + 1
+    );
+  }
 
-      case AUSENTE -> totalAusencias++;
+  private Integer totalClases() {
 
-      case ATRASO -> totalAtrasos++;
+    int presentes =
+      estados.getOrDefault(
+        State.PRESENTE,
+        0
+      );
 
-      case JUSTIFICADO -> totalJustificados++;
+    int ausencias =
+      estados.getOrDefault(
+        State.AUSENTE,
+        0
+      );
+
+    return presentes + ausencias;
+  }
+
+  public int totalAusencias(){
+    return estados.getOrDefault(
+      State.AUSENTE,
+      0
+    );
+  }
+
+  public double porcentajeAusencias() {
+
+    int total = totalClases();
+
+    if (total == 0) {
+      return 0.0;
     }
 
-    recalcularPorcentajes();
+    return (totalAusencias() * 100.0)
+      / total;
   }
 
-  private void recalcularPorcentajes() {
+  public NivelRiesgo calcularNivelRiesgo() {
 
-    porcentajeAsistencia =
-      (totalPresentes * 100.0) / totalClases;
+    double percent = porcentajeAusencias();
 
-    porcentajeAusencia =
-      (totalAusencias * 100.0) / totalClases;
+    if (percent >= 60) {
+      return NivelRiesgo.CRITICO;
+    }
+
+    if (percent  >= 40) {
+      return NivelRiesgo.ALTO;
+    }
+
+    if (percent  >= 20) {
+      return NivelRiesgo.PREVENTIVO;
+    }
+
+    return NivelRiesgo.NORMAL;
   }
 
+  public void actualizarIndicadores() {
+
+    this.porcentajeAusencia =
+      porcentajeAusencias();
+
+    this.porcentajeAsistencia =
+      100 - porcentajeAusencia;
+
+    this.nivelRiesgo =
+      calcularNivelRiesgo();
+  }
 }

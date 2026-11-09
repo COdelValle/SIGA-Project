@@ -4,7 +4,6 @@ public enum NivelRiesgo{
   CRITICO,
   PREVENTIVO,
   ALTO,
-  MEDIO,
   NORMAL
 }
 

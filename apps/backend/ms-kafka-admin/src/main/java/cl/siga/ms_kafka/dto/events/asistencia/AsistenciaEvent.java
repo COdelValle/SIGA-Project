@@ -1,9 +1,12 @@
 package cl.siga.ms_kafka.dto.events.asistencia;
 
 
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
 import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.coreshare.dto.asistencia.enums.State;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -12,17 +15,18 @@ public record AsistenciaEvent(
   UUID idEvento,
   UUID correlationId,
 
+  Long idAsistencia,
   Long idEstudiante,
-  Long idCurso,
-  Long idAsignatura,
+  Long idCursoAsignatura,
 
-  LocalDateTime fechaRegistro,
+  LocalDate fecha,
 
-  EstadoAsistencia estado,
-  NivelRiesgo nivelRiesgo,
+  State estado,
+  Justificacion justificacion,
 
-  String registradoPor,
-  Integer porcentajeAusencia
+  String observacion,
 
-) {
-}
+  String registradoPor
+
+) {}
+

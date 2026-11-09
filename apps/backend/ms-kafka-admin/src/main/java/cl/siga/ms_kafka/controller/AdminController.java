@@ -1,5 +1,7 @@
 package cl.siga.ms_kafka.controller;
 
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
 import cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent;
 import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -60,17 +63,22 @@ public class AdminController {
       new AsistenciaEvent(
         UUID.randomUUID(),
         UUID.randomUUID(),
+
         1L,
         1L,
         1L,
-        LocalDateTime.now(),
-        EstadoAsistencia.JUSTIFICADO,
-        NivelRiesgo.ALTO,
-        "lola",
-        60
+
+        LocalDate.now(),
+
+        State.AUSENTE,
+        Justificacion.NO,
+
+        "Prueba Kafka",
+        "lola"
       );
 
     kafkaProducer.enviar(event);
+
     return "Evento enviado";
   }
 }

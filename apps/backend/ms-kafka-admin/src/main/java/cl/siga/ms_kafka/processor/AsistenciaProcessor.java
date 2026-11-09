@@ -1,5 +1,7 @@
 package cl.siga.ms_kafka.processor;
 
+import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.ms_kafka.model.entity.AsistenciaProjection;
 import cl.siga.ms_kafka.service.rules.AsistenciaRules;
 import cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent;
 import lombok.RequiredArgsConstructor;
@@ -14,43 +16,33 @@ import org.springframework.stereotype.Service;
 public class AsistenciaProcessor {
 
   private final AsistenciaRules rules;
+  private final AsistenciaProjection projection;
 
   @KafkaListener(
     topics = "siga.academico.asistencias",
     groupId = "reportes-asistencias"
   )
-  public void process(AsistenciaEvent event) {
+  public void process(
+    AsistenciaEvent event
+  ) {
 
-    try {
+    projection.regEstado(event.estado());
 
-      rules.obtenerEstado(event.estado());
+    projection.actualizarIndicadores();
 
+    NivelRiesgo riesgo =
       rules.calcularRiesgo(
-        event.porcentajeAusencia()
+        projection.getPorcentajeAusencia()
       );
 
-      log.info(
-        "Evento procesado correctamente {}",
-        event.idEvento()
-      );
+    projection.setNivelRiesgo(riesgo);
 
-    } catch (IllegalArgumentException ex) {
-
-      log.warn(
-        "Datos inválidos para estudiante {}",
-        event.idEstudiante()
-      );
-
-    } catch (Exception ex) {
-
-      log.error(
-        "Error procesando evento {}",
-        event.idEvento(),
-        ex
-      );
-
-      throw ex;
-    }
+    log.info(
+      "Estudiante {} - {}% - {}",
+      projection.getIdEstudiante(),
+      projection.getPorcentajeAusencia(),
+      riesgo
+    );
   }
 }
 
