@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: ms-kafka-admin
+  profiles:
+    active: docker
+  datasource:
+      url: jdbc:mariadb://mariadb:3306/kafka_database
+      username: ${KFK_USER:Kafka233}
+      password: ${KFK_PASS:fakta2}
+      driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: kafka:29092
+
+    consumer:
+      group-id: kafka-siga
+      auto-offset-reset: earliest
+
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+server:
+  port: 8094

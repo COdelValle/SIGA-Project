@@ -3,6 +3,7 @@ package cl.siga.ms_kafka.model.entity;
 import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
 import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
 import cl.siga.coreshare.dto.asistencia.enums.State;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -13,8 +14,11 @@ import java.util.UUID;
 
 @AllArgsConstructor
 @Data
+@Entity
+@Table(name = "asistencia_projection")
 public class AsistenciaProjection {
 
+  @Id
   private UUID id;
 
   private Long idEstudiante;
@@ -35,7 +39,15 @@ public class AsistenciaProjection {
 
   private LocalDateTime ultimaActualizacion;
 
-  private Map<State, Integer> estados = new EnumMap<>(State.class);
+  @ElementCollection
+  @CollectionTable(
+    name = "asistencia_contadores",
+    joinColumns = @JoinColumn(name = "projection_id")
+  )
+  @MapKeyEnumerated(EnumType.STRING)
+  @Column(name = "cantidad")
+  private Map<State, Integer> estados =
+    new EnumMap<>(State.class);
   public AsistenciaProjection() {
 
     for (State estado : State.values()) {

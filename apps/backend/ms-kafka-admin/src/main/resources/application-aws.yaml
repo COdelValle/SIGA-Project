@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    active:
+      - aws
+  application:
+    name:
+server:
+  port: 8094

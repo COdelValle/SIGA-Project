@@ -6,7 +6,7 @@ import cl.siga.ms_kafka.service.rules.AsistenciaRules;
 import cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import cl.siga.ms_kafka.repository.kafkaRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 public class AsistenciaProcessor {
 
   private final AsistenciaRules rules;
-  private final AsistenciaProjection projection;
+  private final kafkaRepository repository;
 
   @KafkaListener(
     topics = "siga.academico.asistencias",
@@ -25,6 +25,13 @@ public class AsistenciaProcessor {
   public void process(
     AsistenciaEvent event
   ) {
+
+    AsistenciaProjection projection =
+      repository
+        .findByIdEstudiante(
+          event.idEstudiante()
+        )
+        .orElse(new AsistenciaProjection());
 
     projection.regEstado(event.estado());
 

@@ -17,6 +17,7 @@ volumes:
   mariadb_notificaciones_data:
   rabbitmq1_data:
   rabbitmq2_data:
+  kafka_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
 x-mariadb-common: &mariadb-common
@@ -232,6 +233,25 @@ services:
       retries: 10
     networks:
       - siga-network
+  mariadb-kafka:
+    image: mariadb:11.4
+    container_name: mariadb-kafka
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      SPRING.PROFILES.ACTIVE: docker
+      MARIADB_DATABASE: kafka_database
+      MARIADB_USER: ${KFK_USER}
+      MARIADB_PASSWORD: ${KFK_PASS}
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - siga-network
+    volumes:
+      - kafka_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
   # Microservicios
