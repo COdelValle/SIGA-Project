@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import cl.siga.coreshare.dto.kafka.EventoAsistenciaKafka;
+import cl.siga.msreportes.model.entity.AlertaRiesgo;
 import cl.siga.msreportes.repository.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -51,7 +52,8 @@ class ReporteProcesamientoServiceTest {
         when(eventos.existsByIdEvento("evento-1")).thenReturn(true);
         ProyeccionAsistenciaRepository asistencias = mock(ProyeccionAsistenciaRepository.class);
         ReporteProcesamientoService service = new ReporteProcesamientoService(
-            validator, eventos, asistencias, mock(ProyeccionRendimientoRepository.class));
+            validator, eventos, asistencias, mock(ProyeccionRendimientoRepository.class),
+            mock(AlertaRiesgoRepository.class));
         EventoAsistenciaKafka evento = new EventoAsistenciaKafka(
             1L, 10L, 4L, LocalDate.now(), cl.siga.coreshare.dto.asistencia.enums.State.AUSENTE,
             null, 60.0, 10, 6, LocalDateTime.now(), "evento-1", "corr-1");
@@ -62,11 +64,30 @@ class ReporteProcesamientoServiceTest {
         verify(asistencias, never()).save(any());
     }
 
+    @Test
+    void persisteAlertaCuandoLaInasistenciaSuperaUmbral() {
+        EventoReporteProcesadoRepository eventos = mock(EventoReporteProcesadoRepository.class);
+        ProyeccionAsistenciaRepository asistencias = mock(ProyeccionAsistenciaRepository.class);
+        AlertaRiesgoRepository alertas = mock(AlertaRiesgoRepository.class);
+        when(alertas.existsByClaveIdempotencia(any())).thenReturn(false);
+        ReporteProcesamientoService service = new ReporteProcesamientoService(
+            validator, eventos, asistencias, mock(ProyeccionRendimientoRepository.class), alertas);
+        EventoAsistenciaKafka evento = new EventoAsistenciaKafka(
+            1L, 10L, 4L, LocalDate.now(), cl.siga.coreshare.dto.asistencia.enums.State.AUSENTE,
+            null, 60.0, 10, 6, LocalDateTime.now(), "evento-2", "corr-2");
+
+        service.procesarAsistencia(
+            new ConsumerRecord<>("siga.academico.asistencias", 0, 2L, "10", evento));
+
+        verify(alertas, atLeastOnce()).save(any(AlertaRiesgo.class));
+    }
+
     private ReporteProcesamientoService servicio() {
         return new ReporteProcesamientoService(
             validator,
             mock(EventoReporteProcesadoRepository.class),
             mock(ProyeccionAsistenciaRepository.class),
-            mock(ProyeccionRendimientoRepository.class));
+            mock(ProyeccionRendimientoRepository.class),
+            mock(AlertaRiesgoRepository.class));
     }
 }
