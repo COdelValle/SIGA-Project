@@ -19,6 +19,9 @@ import cl.siga.coreshare.dto.notificaciones.AccionNota;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.NivelRiesgo;
+import cl.siga.coreshare.dto.notificaciones.TipoRiesgo;
 import cl.siga.coreshare.dto.notificaciones.TipoDestinoNotificacion;
 import cl.siga.coreshare.dto.notificaciones.TipoNotificacion;
 import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
@@ -94,6 +97,36 @@ class NotificacionServiceTest {
         assertThat(resumen.getValue())
             .contains("07/10/2026")
             .contains("60%");
+    }
+
+    @Test
+    void eventoRiesgoSePersisteComoNotificacionParaElEstudiante() {
+        EventoRiesgoAsistencia evento = new EventoRiesgoAsistencia(
+            41L, 8L, NivelRiesgo.CRITICO, TipoRiesgo.INASISTENCIA, 45.0,
+            "La inasistencia superó el umbral.", LocalDateTime.now(), "riesgo-1", "corr-1");
+        when(notificacionRepository.insertarSiNuevo(
+            anyString(), eq("RIESGO"), eq("CRITICO"), eq("ESTUDIANTE"), eq(41L),
+            eq("Riesgo de inasistencia"), anyString(), any(LocalDateTime.class))).thenReturn(1);
+
+        service.registrarEvento(evento);
+
+        verify(notificacionRepository).insertarSiNuevo(
+            anyString(), eq("RIESGO"), eq("CRITICO"), eq("ESTUDIANTE"), eq(41L),
+            eq("Riesgo de inasistencia"), eq("La inasistencia superó el umbral."),
+            any(LocalDateTime.class));
+    }
+
+    @Test
+    void rechazaAlertaDeRiesgoSinEstudiante() {
+        EventoRiesgoAsistencia evento = new EventoRiesgoAsistencia(
+            null, 8L, NivelRiesgo.CRITICO, TipoRiesgo.INASISTENCIA, 45.0,
+            "Inválido", LocalDateTime.now(), "riesgo-2", "corr-2");
+
+        assertThatThrownBy(() -> service.registrarEvento(evento))
+            .isInstanceOf(EventoInvalidoException.class);
+        verify(notificacionRepository, never()).insertarSiNuevo(
+            anyString(), anyString(), anyString(), anyString(), any(),
+            anyString(), anyString(), any(LocalDateTime.class));
     }
 
     @Test
