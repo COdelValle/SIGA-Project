@@ -1,8 +1,5 @@
 spring:
-  profiles:
-    active:
-      - aws
   application:
-    name:
+    name: kafka_aws
 server:
   port: 8094
