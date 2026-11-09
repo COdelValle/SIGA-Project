@@ -19,6 +19,7 @@ import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.mensajeria.PublicadorNota;
+import cl.siga.msnotas.mensajeria.PublicadorNotaKafka;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapper;
 import cl.siga.msnotas.model.specifications.NotaSpecifications;
@@ -39,6 +40,7 @@ public class NotaService {
     private final EvaluacionClient evaluacionClient;
 
     private final PublicadorNota publicador; // Productor RabbitMQ (misma lógica que las otras colas)
+    private final PublicadorNotaKafka publicadorKafka;
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
@@ -80,12 +82,14 @@ public class NotaService {
             nota.setActive(true);
             NotaResponseDTO reactivada = mapper.toResponseDto(repository.save(nota));
             publicador.publicarActualizada(reactivada);
+            publicadorKafka.publicar(reactivada);
             return reactivada;
         }
 
         Nota nota = mapper.toEntity(request);
         NotaResponseDTO creada = mapper.toResponseDto(repository.save(nota));
         publicador.publicarCreada(creada);
+        publicadorKafka.publicar(creada);
         return creada;
     }
 
@@ -98,6 +102,7 @@ public class NotaService {
 
         NotaResponseDTO actualizada = mapper.toResponseDto(repository.save(existingNota));
         publicador.publicarActualizada(actualizada);
+        publicadorKafka.publicar(actualizada);
         return actualizada;
     }
 

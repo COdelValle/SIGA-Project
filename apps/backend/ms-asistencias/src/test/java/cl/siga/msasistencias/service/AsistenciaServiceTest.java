@@ -21,6 +21,7 @@ import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
 import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistenciaKafka;
 import cl.siga.msasistencias.model.entity.Asistencia;
 import cl.siga.msasistencias.model.mapper.AsistenciaMapperImpl;
 import cl.siga.msasistencias.repository.AsistenciaRepository;
@@ -31,9 +32,10 @@ class AsistenciaServiceTest {
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
     private final PublicadorAsistencia publicador = mock(PublicadorAsistencia.class);
+    private final PublicadorAsistenciaKafka publicadorKafka = mock(PublicadorAsistenciaKafka.class);
 
     private final AsistenciaService service = new AsistenciaService(
-        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient, publicador);
+        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient, publicador, publicadorKafka);
 
     private final LocalDate fecha = LocalDate.of(2026, 10, 1);
 

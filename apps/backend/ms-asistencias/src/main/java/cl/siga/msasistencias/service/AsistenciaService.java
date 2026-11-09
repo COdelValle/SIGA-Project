@@ -20,6 +20,7 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
 import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistenciaKafka;
 import cl.siga.msasistencias.model.entity.Asistencia;
 import cl.siga.msasistencias.model.mapper.AsistenciaMapper;
 import cl.siga.msasistencias.model.specifications.AsistenciaSpecifications;
@@ -36,6 +37,7 @@ public class AsistenciaService {
     private final EstudianteClient estudianteClient;
     private final AsignaturaClient asignaturaClient;
     private final PublicadorAsistencia publicador; // Productor RabbitMQ (misma lógica que evaluaciones)
+    private final PublicadorAsistenciaKafka publicadorKafka;
 
     @Transactional(readOnly = true)
     public AsistenciaResponseDTO getAsistenciaById(Long id) {
@@ -83,10 +85,17 @@ public class AsistenciaService {
         asistencia.setActive(true);
         AsistenciaResponseDTO creada = mapper.toResponseDto(repository.save(asistencia));
 
-        // Productor: solo se avisa si el estado es AUSENTE o ATRASADO (el PUT de justificación no notifica).
+        double porcentajeInasistencia = calcularPorcentajeInasistenciaDelMes(
+            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());
+        long totalInasistencias = contarInasistenciasDelMes(
+            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());
+        long totalRegistros = contarRegistrosDelMes(
+            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());
+        publicadorKafka.publicar(creada, porcentajeInasistencia, totalRegistros, totalInasistencias);
+
+        // RabbitMQ solo avisa si el estado es AUSENTE o ATRASADO (el PUT de
+        // justificación no notifica).
         if (creada.estado() != State.PRESENTE) {
-            double porcentajeInasistencia = calcularPorcentajeInasistenciaDelMes(
-                creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());
             publicador.publicarRegistrada(
                 creada,
                 porcentajeInasistencia,
@@ -125,18 +134,27 @@ public class AsistenciaService {
      * no dividir por cero.
      */
     public double calcularPorcentajeInasistenciaDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
-        LocalDate inicioMes = fecha.withDayOfMonth(1);
-        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());
-
-        long faltas = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
-            idEstudiante, idCursoAsignatura, inicioMes, finMes, State.AUSENTE);
-        long total = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
-            idEstudiante, idCursoAsignatura, inicioMes, finMes);
+        long faltas = contarInasistenciasDelMes(idEstudiante, idCursoAsignatura, fecha);
+        long total = contarRegistrosDelMes(idEstudiante, idCursoAsignatura, fecha);
 
         if (total == 0) {
             return 0.0;
         }
         return (faltas * 100.0) / total;
+    }
+
+    private long contarInasistenciasDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
+        LocalDate inicioMes = fecha.withDayOfMonth(1);
+        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());
+        return repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            idEstudiante, idCursoAsignatura, inicioMes, finMes, State.AUSENTE);
+    }
+
+    private long contarRegistrosDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
+        LocalDate inicioMes = fecha.withDayOfMonth(1);
+        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());
+        return repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            idEstudiante, idCursoAsignatura, inicioMes, finMes);
     }
 
     @Transactional
