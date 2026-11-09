@@ -28,6 +28,9 @@ public class ConfiguracionNombresRabbitMQ {
         public static final String DLQ_ASISTENCIAS = "cola-notificaciones-asistencias.dlq";
         public static final String CLAVE_ASISTENCIA_REGISTRADA = "asistencia.registrada";
         public static final String PATRON_ASISTENCIA = "asistencia.*";
+        public static final String CLAVE_RIESGO_INASISTENCIA = "riesgo.inasistencia";
+        public static final String CLAVE_RIESGO_RENDIMIENTO = "riesgo.rendimiento";
+        public static final String CLAVE_CAMBIO_ESTADO_ACADEMICO = "riesgo.estado-academico";
 
         public static final String COLA_NOTAS = "cola-notificaciones-notas";
         public static final String DLQ_NOTAS = "cola-notificaciones-notas.dlq";
