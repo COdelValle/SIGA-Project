@@ -81,6 +81,8 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/api/bff/v1/admin/registraciones/{processId}/credencial` | `ADMIN` + `SCOPE_usuarios:read` | Credencial temporal de un solo uso (solo el admin iniciador). |
 | `POST` | `/api/bff/v1/admin/usuarios/{idUsuario}/reset-password` | `ADMIN` + `SCOPE_usuarios:update` | Regenera la clave temporal (requiere el rol User Administrator en Graph). |
 | `GET` | `/api/bff/v1/asistencias/estudiante/me` · `/{id}` | `SCOPE_asistencias:read` (ownership para `{id}`) | Asistencias del estudiante autenticado, de un pupilo vinculado o de un docente. |
+| `GET` | `/api/bff/v1/reportes/asistencia?idEstudiante=&idCursoAsignatura=&from=&to=` | `SCOPE_asistencias:read` | Indicadores de asistencia proyectados, filtrables por estudiante, curso y período. |
+| `GET` | `/api/bff/v1/reportes/rendimiento?idEstudiante=&idCursoAsignatura=&from=&to=` | `SCOPE_notas:read` | Indicadores de rendimiento proyectados, filtrables por estudiante, curso y período. |
 | `GET` | `/api/bff/v1/asistencias/asignatura/{id}?fecha=` | `DOCENTE` + `SCOPE_asistencias:read` (ownership) | Asistencias de una asignatura en una fecha, para el docente dueño. |
 | `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` (ownership) | Registra asistencia. |
 | `PUT` | `/api/bff/v1/asistencias/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:update` (ownership) | Actualiza justificación/observación y, opcionalmente, el estado. |
