@@ -10,6 +10,13 @@ spring:
   application:
     name: ms-notas
     description: Microservicio para la gestiÃ³n de notas
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
   datasource:
     url: jdbc:mariadb://${DB_HOST:localhost}:3306/siga_notas_db
     username: ${DB_USER:root}

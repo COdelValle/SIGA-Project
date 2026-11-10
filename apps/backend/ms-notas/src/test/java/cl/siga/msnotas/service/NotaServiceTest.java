@@ -21,6 +21,7 @@ import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.msnotas.client.EstudianteClient;
 import cl.siga.msnotas.client.EvaluacionClient;
 import cl.siga.msnotas.mensajeria.PublicadorNota;
+import cl.siga.msnotas.mensajeria.PublicadorNotaKafka;
 import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapperImpl;
 import cl.siga.msnotas.repository.NotaRepository;
@@ -31,9 +32,10 @@ class NotaServiceTest {
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
     private final PublicadorNota publicador = mock(PublicadorNota.class);
+    private final PublicadorNotaKafka publicadorKafka = mock(PublicadorNotaKafka.class);
 
     private final NotaService service = new NotaService(
-        repository, new NotaMapperImpl(), estudianteClient, evaluacionClient, publicador);
+        repository, new NotaMapperImpl(), estudianteClient, evaluacionClient, publicador, publicadorKafka);
 
     @BeforeEach
     void existenciasOk() {
@@ -111,6 +113,7 @@ class NotaServiceTest {
         service.saveNota(new RegistrarNotaRequestDTO(1L, 9L, 6.5));
 
         org.mockito.Mockito.verify(publicador).publicarCreada(any(NotaResponseDTO.class));
+        verify(publicadorKafka).publicar(new NotaResponseDTO(100L, 1L, 9L, 6.5));
         org.mockito.Mockito.verify(publicador, org.mockito.Mockito.never())
             .publicarActualizada(org.mockito.ArgumentMatchers.any());
     }
@@ -140,6 +143,7 @@ class NotaServiceTest {
 
         assertThat(actualizada.score()).isEqualTo(6.2);
         verify(publicador).publicarActualizada(actualizada);
+        verify(publicadorKafka).publicar(actualizada);
     }
 
     @Test

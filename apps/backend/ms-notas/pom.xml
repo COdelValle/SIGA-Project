@@ -16,6 +16,12 @@
     <description>Se encarga del ingreso, calculo y visualizacion de notas y evaluaciones</description>
 
     <dependencies>
+        <!-- Publicación funcional de eventos académicos hacia Kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- Web y Validacion -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
