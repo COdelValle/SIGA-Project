@@ -8,6 +8,7 @@ import cl.siga.msreportes.model.entity.*;
 import cl.siga.msreportes.repository.*;
 import cl.siga.msreportes.mensajeria.PublicadorAlertaRiesgo;
 import java.time.LocalDateTime;
+import java.util.List;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -95,15 +96,59 @@ public class ReporteProcesamientoService {
         proyeccion.setPuntaje(evento.puntaje());
         proyeccion.setPromedio(evento.promedio());
         proyeccion.setEvaluacionesInsuficientes(evento.evaluacionesInsuficientes());
+        rendimientoRepository.save(proyeccion);
+
+        IndicadoresRendimiento indicadores = recalcularIndicadores(evento, proyeccion);
+        proyeccion.setPromedio(indicadores.promedio());
+        proyeccion.setEvaluacionesInsuficientes(indicadores.evaluacionesInsuficientes());
+        EventoRendimientoKafka eventoCalculado = new EventoRendimientoKafka(
+            evento.idNota(), evento.idEstudiante(), evento.idEvaluacion(),
+            evento.idCursoAsignatura(), evento.puntaje(), indicadores.promedio(),
+            indicadores.evaluacionesInsuficientes(), evento.timestamp(),
+            evento.idEvento(), evento.correlationId());
+        nivelNuevo = nivelRendimiento(eventoCalculado);
         proyeccion.setNivelRiesgo(nivelNuevo);
         proyeccion.setIdEvento(evento.idEvento());
         proyeccion.setCorrelationId(evento.correlationId());
         proyeccion.setActualizadoEn(evento.timestamp());
         rendimientoRepository.save(proyeccion);
-        registrarAlertaRendimiento(evento, nivelAnterior, nivelNuevo);
+        registrarAlertaRendimiento(eventoCalculado, nivelAnterior, nivelNuevo);
         registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),
             evento.idCursoAsignatura(), nivelAnterior, nivelNuevo, "rendimiento");
         registrarProcesado(record, evento.idEvento(), evento.timestamp(), evento.correlationId());
+    }
+
+    private IndicadoresRendimiento recalcularIndicadores(
+            EventoRendimientoKafka evento,
+            ProyeccionRendimiento actual) {
+        if (evento.idCursoAsignatura() == null) {
+            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());
+        }
+        List<ProyeccionRendimiento> proyecciones =
+            rendimientoRepository.findByIdEstudianteAndIdCursoAsignatura(
+                evento.idEstudiante(), evento.idCursoAsignatura());
+        if (proyecciones.isEmpty()) {
+            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());
+        }
+        double suma = 0.0;
+        long cantidad = 0;
+        long insuficientes = 0;
+        for (ProyeccionRendimiento proyeccion : proyecciones) {
+            if (proyeccion.getPuntaje() != null) {
+                suma += proyeccion.getPuntaje();
+                cantidad++;
+                if (proyeccion.getPuntaje() < 4.0) {
+                    insuficientes++;
+                }
+            }
+        }
+        if (cantidad == 0) {
+            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());
+        }
+        return new IndicadoresRendimiento(suma / cantidad, insuficientes);
+    }
+
+    private record IndicadoresRendimiento(Double promedio, long evaluacionesInsuficientes) {
     }
 
     private <T> T validar(T evento) {

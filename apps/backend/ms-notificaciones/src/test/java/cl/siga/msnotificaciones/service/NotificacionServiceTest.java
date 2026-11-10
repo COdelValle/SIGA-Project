@@ -117,6 +117,42 @@ class NotificacionServiceTest {
     }
 
     @Test
+    void apoderadoVeEnSuBandejaLaNotificacionDeRiesgoDeSuPupiloComoNoLeida() {
+        LocalDateTime fecha = LocalDateTime.of(2026, 11, 9, 22, 0);
+        EventoRiesgoAsistencia evento = new EventoRiesgoAsistencia(
+            41L, 8L, NivelRiesgo.CRITICO, TipoRiesgo.INASISTENCIA, 65.0,
+            "La inasistencia superó el umbral.", fecha, "riesgo-bandeja", "corr-bandeja");
+        when(notificacionRepository.insertarSiNuevo(
+            anyString(), eq("RIESGO"), eq("CRITICO"), eq("ESTUDIANTE"), eq(41L),
+            eq("Riesgo de inasistencia"), anyString(), eq(fecha))).thenReturn(1);
+
+        service.registrarEvento(evento);
+
+        Notificacion persistida = Notificacion.builder()
+            .id(101L).idEvento("riesgo-bandeja").tipo(TipoNotificacion.RIESGO)
+            .accion("CRITICO").tipoDestino(TipoDestinoNotificacion.ESTUDIANTE)
+            .idDestino(41L).titulo("Riesgo de inasistencia")
+            .resumen("La inasistencia superó el umbral.").fechaHora(fecha).build();
+        when(resolver.resolverActual()).thenReturn(
+            new DestinatariosNotificacion("oid-apoderado", Set.of(41L), Set.of()));
+        when(notificacionRepository.buscarVisibles(
+            eq(true), eq(TipoDestinoNotificacion.ESTUDIANTE), anyList(),
+            eq(false), eq(TipoDestinoNotificacion.CURSO_ASIGNATURA), anyList(),
+            eq("oid-apoderado"), any(PageRequest.class)))
+            .thenReturn(new PageImpl<>(List.of(persistida), PageRequest.of(0, 10), 1));
+        when(lecturaRepository.buscarIdsLeidos("oid-apoderado", List.of(101L)))
+            .thenReturn(List.of());
+
+        var bandeja = service.obtenerMisNotificaciones(0, 10);
+
+        assertThat(bandeja.getContent()).singleElement().satisfies(notificacion -> {
+            assertThat(notificacion.id()).isEqualTo(101L);
+            assertThat(notificacion.titulo()).isEqualTo("Riesgo de inasistencia");
+            assertThat(notificacion.leida()).isFalse();
+        });
+    }
+
+    @Test
     void rechazaAlertaDeRiesgoSinEstudiante() {
         EventoRiesgoAsistencia evento = new EventoRiesgoAsistencia(
             null, 8L, NivelRiesgo.CRITICO, TipoRiesgo.INASISTENCIA, 45.0,

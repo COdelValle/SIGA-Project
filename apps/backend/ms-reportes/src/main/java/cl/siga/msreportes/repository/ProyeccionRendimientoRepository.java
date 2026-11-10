@@ -13,6 +13,9 @@ public interface ProyeccionRendimientoRepository extends JpaRepository<Proyeccio
     Optional<ProyeccionRendimiento> findByIdEstudianteAndIdEvaluacion(
         Long idEstudiante, Long idEvaluacion);
 
+    List<ProyeccionRendimiento> findByIdEstudianteAndIdCursoAsignatura(
+        Long idEstudiante, Long idCursoAsignatura);
+
     @Query("""
         select p from ProyeccionRendimiento p
         where (:estudiante is null or p.idEstudiante = :estudiante)

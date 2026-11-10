@@ -113,6 +113,7 @@ class NotaServiceTest {
         service.saveNota(new RegistrarNotaRequestDTO(1L, 9L, 6.5));
 
         org.mockito.Mockito.verify(publicador).publicarCreada(any(NotaResponseDTO.class));
+        verify(publicadorKafka).publicar(new NotaResponseDTO(100L, 1L, 9L, 6.5));
         org.mockito.Mockito.verify(publicador, org.mockito.Mockito.never())
             .publicarActualizada(org.mockito.ArgumentMatchers.any());
     }
@@ -142,6 +143,7 @@ class NotaServiceTest {
 
         assertThat(actualizada.score()).isEqualTo(6.2);
         verify(publicador).publicarActualizada(actualizada);
+        verify(publicadorKafka).publicar(actualizada);
     }
 
     @Test

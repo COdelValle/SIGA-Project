@@ -173,6 +173,28 @@ class AsistenciaServiceTest {
             .publicarRegistrada(org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyDouble(),
                 org.mockito.ArgumentMatchers.anyBoolean());
+        org.mockito.Mockito.verify(publicadorKafka).publicar(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.anyDouble(),
+            org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(0L));
+    }
+
+    @Test
+    void ausenciaPublicaEnRabbitYKafkaAlRegistrarAsistencia() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(2L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(10L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(
+            1L, 5L, fecha, State.AUSENTE, "sin aviso"));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.eq(20.0),
+            org.mockito.ArgumentMatchers.eq(false));
+        org.mockito.Mockito.verify(publicadorKafka).publicar(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.eq(20.0),
+            org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(2L));
     }
 
     @Test
