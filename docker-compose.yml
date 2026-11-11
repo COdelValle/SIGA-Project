@@ -606,7 +606,7 @@ services:
     depends_on:
       - ms-kafka-admin
     ports:
-      - "8085:8080"
+      - "8095:8095"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092

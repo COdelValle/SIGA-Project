@@ -16,6 +16,6 @@ USER siga
 
 COPY --from=builder /app/ms-kafka-admin/target/*.jar app.jar
 
-EXPOSE 8095
+EXPOSE 8094
 
 ENTRYPOINT ["java","-jar","app.jar"]
