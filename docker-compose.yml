@@ -780,6 +780,8 @@ services:
         condition: service_healthy
       kafka-3:
         condition: service_healthy
+    networks:
+      - siga-network
 
 
   # ---------------------------------------------------------------
