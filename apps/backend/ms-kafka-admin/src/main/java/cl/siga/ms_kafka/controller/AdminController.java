@@ -82,6 +82,35 @@ public class AdminController {
     );
   }
 
+  @GetMapping("/consumer-groups")
+  public ResponseEntity<?> obtenerConsumerGroups()
+    throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerConsumerGroups()
+    );
+  }
+
+  @GetMapping("/consumer-groups/{groupId}")
+  public ResponseEntity<?> describirConsumerGroup(
+    @PathVariable String groupId
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.describirConsumerGroup(groupId)
+    );
+  }
+
+  @GetMapping("/consumer-groups/{groupId}/lag")
+  public ResponseEntity<?> obtenerConsumerLag(
+    @PathVariable String groupId
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerConsumerLag(groupId)
+    );
+  }
+
   // SOLO Para TEST.
   @PostMapping("/test")
   public String test() {

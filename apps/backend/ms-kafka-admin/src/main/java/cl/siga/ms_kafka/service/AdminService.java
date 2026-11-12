@@ -13,6 +13,14 @@ import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.springframework.stereotype.Service;
 
+import org.apache.kafka.clients.admin.ConsumerGroupListing;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.clients.admin.MemberDescription;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -153,5 +161,133 @@ public class AdminService {
     adminClient.incrementalAlterConfigs(
       Collections.singletonMap(resource, operaciones)
     ).all().get();
+  }
+
+  public List<String> obtenerConsumerGroups() throws Exception {
+    return adminClient.listConsumerGroups()
+      .all()
+      .get()
+      .stream()
+      .map(ConsumerGroupListing::groupId)
+      .sorted()
+      .collect(Collectors.toList());
+  }
+
+  public Map<String, Object> describirConsumerGroup(
+    String groupId
+  ) throws Exception {
+
+    ConsumerGroupDescription description =
+      adminClient.describeConsumerGroups(
+          Collections.singleton(groupId)
+        ).describedGroups()
+        .get(groupId)
+        .get();
+
+    List<Map<String, Object>> members =
+      description.members().stream()
+        .map(member -> {
+
+          Map<String, Object> data =
+            new LinkedHashMap<>();
+
+          data.put(
+            "consumerId",
+            member.consumerId()
+          );
+
+          data.put(
+            "clientId",
+            member.clientId()
+          );
+
+          data.put(
+            "host",
+            member.host()
+          );
+
+          data.put(
+            "particionesAsignadas",
+            member.assignment()
+              .topicPartitions()
+              .stream()
+              .map(tp -> Map.of(
+                "topic", tp.topic(),
+                "partition", tp.partition()
+              ))
+              .collect(Collectors.toList())
+          );
+
+          return data;
+        })
+        .collect(Collectors.toList());
+
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("groupId", description.groupId());
+    resultado.put("estado", description.state().toString());
+    resultado.put("tipoProtocolo",description.type().toString());
+    resultado.put("coordinator", description.coordinator().id());
+    resultado.put("members", members);
+
+    return resultado;
+  }
+
+  // =====================================================
+// 8. CALCULAR CONSUMER LAG
+// =====================================================
+
+  public List<Map<String, Object>> obtenerConsumerLag(
+    String groupId
+  ) throws Exception {
+
+    Map<TopicPartition, OffsetAndMetadata> offsets =
+      adminClient.listConsumerGroupOffsets(groupId)
+        .partitionsToOffsetAndMetadata()
+        .get();
+
+    if (offsets.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    Map<TopicPartition, OffsetSpec> requests =
+      new HashMap<>();
+
+    offsets.keySet().forEach(partition ->
+      requests.put(partition, OffsetSpec.latest())
+    );
+
+    Map<TopicPartition,
+      org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo>
+      latestOffsets = adminClient.listOffsets(requests)
+      .all()
+      .get();
+
+    List<Map<String, Object>> resultado = new ArrayList<>();
+
+    for (Map.Entry<TopicPartition, OffsetAndMetadata> entry
+      : offsets.entrySet()) {
+
+      TopicPartition partition = entry.getKey();
+
+      long currentOffset = entry.getValue().offset();
+
+      long logEndOffset =
+        latestOffsets.get(partition).offset();
+
+      long lag = Math.max(0, logEndOffset - currentOffset);
+
+      Map<String, Object> data = new LinkedHashMap<>();
+
+      data.put("topic", partition.topic());
+      data.put("partition", partition.partition());
+      data.put("currentOffset", currentOffset);
+      data.put("logEndOffset", logEndOffset);
+      data.put("lag", lag);
+
+      resultado.add(data);
+    }
+
+    return resultado;
   }
 }
