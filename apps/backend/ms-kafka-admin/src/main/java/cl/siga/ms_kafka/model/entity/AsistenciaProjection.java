@@ -1,7 +1,7 @@
 package cl.siga.ms_kafka.model.entity;
 
-import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
-import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.ms_kafka.dto.events.enums.EstadoAsistencia;
+import cl.siga.ms_kafka.dto.events.enums.NivelRiesgo;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

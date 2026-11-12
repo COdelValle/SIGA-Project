@@ -1,6 +1,6 @@
 package cl.siga.ms_kafka.service.rules;
 
-import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.ms_kafka.dto.events.enums.NivelRiesgo;
 import org.springframework.stereotype.Component;
 
 @Component

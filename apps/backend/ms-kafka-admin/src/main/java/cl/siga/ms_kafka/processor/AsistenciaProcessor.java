@@ -1,6 +1,6 @@
 package cl.siga.ms_kafka.processor;
 
-import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
+import cl.siga.ms_kafka.dto.events.enums.NivelRiesgo;
 import cl.siga.ms_kafka.model.entity.AsistenciaProjection;
 import cl.siga.ms_kafka.service.rules.AsistenciaRules;
 import cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent;

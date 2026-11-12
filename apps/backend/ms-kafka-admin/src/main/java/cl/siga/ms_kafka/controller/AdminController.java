@@ -4,8 +4,6 @@ import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
 import cl.siga.ms_kafka.dto.events.asistencia.AsistenciaEvent;
-import cl.siga.ms_kafka.dto.events.notificacion.EstadoAsistencia;
-import cl.siga.ms_kafka.dto.events.notificacion.NivelRiesgo;
 import cl.siga.ms_kafka.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import cl.siga.ms_kafka.producer.KafkaProducer;
@@ -14,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,6 +53,36 @@ public class AdminController {
     );
   }
 
+
+  @GetMapping("/topics/{nombre}")
+  public ResponseEntity<?> describirTopic(
+    @PathVariable String nombre
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.describirTopic(nombre)
+    );
+  }
+
+  @PatchMapping("/topics/{nombre}/retention")
+  public ResponseEntity<String> modificarRetencion(
+    @PathVariable String nombre,
+    @RequestParam Long retentionMs,
+    @RequestParam(required = false) Long retentionBytes
+  ) throws Exception {
+
+    service.modificarRetencion(
+      nombre,
+      retentionMs,
+      retentionBytes
+    );
+
+    return ResponseEntity.ok(
+      "Retención actualizada para topic: " + nombre
+    );
+  }
+
+  // SOLO Para TEST.
   @PostMapping("/test")
   public String test() {
 

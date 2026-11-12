@@ -1,4 +1,4 @@
-package cl.siga.ms_kafka.dto.events.notificacion;
+package cl.siga.ms_kafka.dto.events.enums;
 
 public enum EstadoAsistencia{
   PRESENTE,
