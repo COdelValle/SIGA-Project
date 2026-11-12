@@ -676,6 +676,8 @@ services:
         condition: service_healthy
       zookeeper-3:
         condition: service_healthy
+      kafka-1:
+        condition: service_healthy
     ports:
       - "9093:9093"
     environment:
@@ -712,6 +714,8 @@ services:
       zookeeper-2:
         condition: service_healthy
       zookeeper-3:
+        condition: service_healthy
+      kafka-2:
         condition: service_healthy
     ports:
       - "9094:9094"
