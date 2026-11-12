@@ -18,18 +18,20 @@ import java.util.*;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import java.util.NoSuchElementException;
-import org.apache.kafka.clients.admin.MemberDescription;
+//import org.apache.kafka.clients.admin.MemberDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-
-import org.apache.kafka.common.Node;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.Config;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.*;
+
+// Se llevaran comentarios breves para entender un poco las particiones de cada public.
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +66,7 @@ public class AdminService {
     ).all().get();
   }
 
+  //Descripción BÁSICA de TOPIC
   public Map<String, Object> describirTopic(String nombre)
     throws Exception {
 
@@ -245,60 +248,111 @@ public class AdminService {
     return resultado;
   }
 
-  // =====================================================
-  // 8. CALCULAR CONSUMER LAG
-  // =====================================================
+  // CALCULAR CONSUMER LAG
 
-  public List<Map<String, Object>> obtenerConsumerLag(
-    String groupId
-  ) throws Exception {
+  public Map<String, Object> obtenerConsumerLag(String groupId)
+    throws Exception {
 
-    Map<TopicPartition, OffsetAndMetadata> offsets =
-      adminClient.listConsumerGroupOffsets(groupId)
-        .partitionsToOffsetAndMetadata()
-        .get();
-
-    if (offsets.isEmpty()) {
-      return Collections.emptyList();
-    }
-
-    Map<TopicPartition, OffsetSpec> requests =
-      new HashMap<>();
-
-    offsets.keySet().forEach(partition ->
-      requests.put(partition, OffsetSpec.latest())
-    );
-
-    Map<TopicPartition,
-      org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo>
-      latestOffsets = adminClient.listOffsets(requests)
+    // Verificar que el grupo exista
+    var grupos = adminClient
+      .listConsumerGroups()
       .all()
       .get();
 
-    List<Map<String, Object>> resultado = new ArrayList<>();
+    boolean existe = grupos.stream()
+      .anyMatch(grupo -> grupo.groupId().equals(groupId));
 
-    for (Map.Entry<TopicPartition, OffsetAndMetadata> entry
-      : offsets.entrySet()) {
+    if (!existe) {
+      throw new NoSuchElementException(
+        "No existe el Consumer Group: " + groupId
+      );
+    }
+
+    // Obtener descripción del grupo
+    ConsumerGroupDescription descripcion = adminClient
+      .describeConsumerGroups(Collections.singleton(groupId))
+      .describedGroups()
+      .get(groupId)
+      .get();
+
+    int consumidoresActivos = descripcion.members().size();
+
+    // Obtener offsets confirmados
+    Map<TopicPartition, OffsetAndMetadata> offsetsConsumidos =
+      adminClient
+        .listConsumerGroupOffsets(groupId)
+        .partitionsToOffsetAndMetadata()
+        .get();
+
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("consumerGroup", groupId);
+    resultado.put("estadoGrupo", descripcion.state().toString());
+    resultado.put("consumidoresActivos", consumidoresActivos);
+
+    // Grupo sin offsets confirmados
+    if (offsetsConsumidos.isEmpty()) {
+
+      resultado.put("estadoLag", "SIN_OFFSETS");
+      resultado.put("lagTotal", null);
+      resultado.put("totalParticiones", 0);
+      resultado.put("particiones", Collections.emptyList());
+
+      return resultado;
+    }
+
+    // Consultar último offset de cada partición
+    Map<TopicPartition, OffsetSpec> solicitudes = new HashMap<>();
+
+    offsetsConsumidos.keySet().forEach(partition ->
+      solicitudes.put(partition, OffsetSpec.latest())
+    );
+
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      offsetsActuales = adminClient
+      .listOffsets(solicitudes)
+      .all()
+      .get();
+
+    List<Map<String, Object>> particiones = new ArrayList<>();
+
+    long lagTotal = 0;
+
+    // Calcular lag
+    for (Map.Entry<TopicPartition, OffsetAndMetadata> entry :
+      offsetsConsumidos.entrySet()) {
 
       TopicPartition partition = entry.getKey();
 
-      long currentOffset = entry.getValue().offset();
+      long offsetConsumido = entry.getValue().offset();
 
-      long logEndOffset =
-        latestOffsets.get(partition).offset();
+      long ultimoOffset = offsetsActuales
+        .get(partition)
+        .offset();
 
-      long lag = Math.max(0, logEndOffset - currentOffset);
+      long lag = Math.max(0, ultimoOffset - offsetConsumido);
 
-      Map<String, Object> data = new LinkedHashMap<>();
+      lagTotal += lag;
 
-      data.put("topic", partition.topic());
-      data.put("partition", partition.partition());
-      data.put("currentOffset", currentOffset);
-      data.put("logEndOffset", logEndOffset);
-      data.put("lag", lag);
+      Map<String, Object> info = new LinkedHashMap<>();
 
-      resultado.add(data);
+      info.put("topic", partition.topic());
+      info.put("partition", partition.partition());
+      info.put("offsetConsumido", offsetConsumido);
+      info.put("ultimoOffset", ultimoOffset);
+      info.put("lag", lag);
+
+      particiones.add(info);
     }
+
+    // Construir respuesta
+    resultado.put("totalParticiones", particiones.size());
+    resultado.put("lagTotal", lagTotal);
+    resultado.put(
+      "estadoLag",
+      lagTotal == 0 ? "AL_DIA" : "ATRASADO"
+    );
+    resultado.put("particiones", particiones);
 
     return resultado;
   }
@@ -396,4 +450,273 @@ public class AdminService {
       })
       .toList();
   }
+
+  public Map<String, Object> obtenerEstadoParticiones() throws Exception {
+
+    // Obtener todos los topics
+    Set<String> nombresTopics = adminClient
+      .listTopics()
+      .names()
+      .get();
+
+    // Obtener descripción de los topics
+    Map<String, TopicDescription> descripciones = adminClient
+      .describeTopics(nombresTopics)
+      .all()
+      .get();
+
+    List<Map<String, Object>> topicsInfo = new ArrayList<>();
+
+    int totalParticiones = 0;
+    int particionesUnderReplicated = 0;
+    int particionesSinLeader = 0;
+
+    for (TopicDescription topic : descripciones.values()) {
+
+      List<Map<String, Object>> particionesInfo = new ArrayList<>();
+
+      for (TopicPartitionInfo particion : topic.partitions()) {
+
+        Node leader = particion.leader();
+
+        List<Integer> replicas = particion.replicas()
+          .stream()
+          .map(Node::id)
+          .toList();
+
+        List<Integer> isr = particion.isr()
+          .stream()
+          .map(Node::id)
+          .toList();
+
+        boolean sinLeader = leader == null || leader.id() < 0;
+
+        boolean underReplicated =
+          isr.size() < replicas.size();
+
+        if (sinLeader) {
+          particionesSinLeader++;
+        }
+
+        if (underReplicated) {
+          particionesUnderReplicated++;
+        }
+
+        Map<String, Object> particionInfo = new LinkedHashMap<>();
+
+        particionInfo.put("partition", particion.partition());
+
+        particionInfo.put(
+          "leader",
+          sinLeader ? null : leader.id()
+        );
+
+        particionInfo.put("replicas", replicas);
+        particionInfo.put("isr", isr);
+        particionInfo.put("underReplicated", underReplicated);
+        particionInfo.put("sinLeader", sinLeader);
+
+        particionesInfo.add(particionInfo);
+
+        totalParticiones++;
+      }
+
+      Map<String, Object> topicInfo = new LinkedHashMap<>();
+
+      topicInfo.put("nombre", topic.name());
+      topicInfo.put("interno", topic.isInternal());
+      topicInfo.put("cantidadParticiones", topic.partitions().size());
+      topicInfo.put("particiones", particionesInfo);
+
+      topicsInfo.add(topicInfo);
+    }
+
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("cantidadTopics", nombresTopics.size());
+    resultado.put("totalParticiones", totalParticiones);
+    resultado.put("underReplicated", particionesUnderReplicated);
+    resultado.put("particionesSinLeader", particionesSinLeader);
+    resultado.put("topics", topicsInfo);
+
+    resultado.put(
+      "estado",
+      particionesSinLeader > 0 ? "DEGRADADO" :
+        particionesUnderReplicated > 0 ? "ADVERTENCIA" :
+          "SALUDABLE"
+    );
+
+    return resultado;
+  }
+
+  public Map<String, Object> obtenerDistribucionBrokers() throws Exception {
+
+    // Obtener brokers
+    var cluster = adminClient.describeCluster();
+
+    Collection<Node> brokers = cluster.nodes().get();
+    Node controller = cluster.controller().get();
+
+    // Obtener topics
+    Set<String> nombresTopics = adminClient
+      .listTopics()
+      .names()
+      .get();
+
+    Map<String, TopicDescription> descripciones = adminClient
+      .describeTopics(nombresTopics)
+      .all()
+      .get();
+
+    // Inicializar estadísticas por broker
+    Map<Integer, Map<String, Object>> estadisticas = new LinkedHashMap<>();
+
+    for (Node broker : brokers) {
+
+      Map<String, Object> info = new LinkedHashMap<>();
+
+      info.put("brokerId", broker.id());
+      info.put("host", broker.host());
+      info.put("port", broker.port());
+
+      info.put(
+        "controller",
+        controller != null && controller.id() == broker.id()
+      );
+
+      info.put("particionesLideradas", 0);
+      info.put("replicasAsignadas", 0);
+      info.put("replicasSincronizadas", 0);
+
+      estadisticas.put(broker.id(), info);
+    }
+
+    int totalParticiones = 0;
+
+    // Recorrer topics y particiones
+    for (TopicDescription topic : descripciones.values()) {
+
+      for (TopicPartitionInfo particion : topic.partitions()) {
+
+        totalParticiones++;
+
+        Node leader = particion.leader();
+
+        if (leader != null && estadisticas.containsKey(leader.id())) {
+
+          Map<String, Object> info = estadisticas.get(leader.id());
+
+          int cantidad = (int) info.get("particionesLideradas");
+
+          info.put("particionesLideradas", cantidad + 1);
+        }
+
+        for (Node replica : particion.replicas()) {
+
+          Map<String, Object> info = estadisticas.get(replica.id());
+
+          if (info != null) {
+            int cantidad = (int) info.get("replicasAsignadas");
+
+            info.put("replicasAsignadas", cantidad + 1);
+          }
+        }
+
+        for (Node replica : particion.isr()) {
+
+          Map<String, Object> info = estadisticas.get(replica.id());
+
+          if (info != null) {
+            int cantidad = (int) info.get("replicasSincronizadas");
+
+            info.put("replicasSincronizadas", cantidad + 1);
+          }
+        }
+      }
+    }
+
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("totalBrokers", brokers.size());
+    resultado.put("totalParticiones", totalParticiones);
+    resultado.put("brokers", new ArrayList<>(estadisticas.values()));
+
+    return resultado;
+  }
+
+  // TOPICS
+
+  //Descripción más DETALLADA de TOPIC
+  public Map<String, Object> obtenerDetallesTopic(String nombre)
+    throws Exception {
+
+    // Obtener descripción del topic
+    TopicDescription description = adminClient
+      .describeTopics(Collections.singleton(nombre))
+      .all()
+      .get()
+      .get(nombre);
+
+    // Obtener configuración del topic
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    Config configuracion = adminClient
+      .describeConfigs(Collections.singleton(resource))
+      .all()
+      .get()
+      .get(resource);
+
+    // Extraer configuraciones relevantes
+    Map<String, Object> configs = new LinkedHashMap<>();
+
+    Set<String> propiedades = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas"
+      )
+    );
+
+    for (var entry : configuracion.entries()) {
+      if (propiedades.contains(entry.name())) {
+        configs.put(entry.name(), entry.value());
+      }
+    }
+
+    // Reutilizar el mapeo de particiones existente
+    List<Map<String, Object>> particiones =
+      description.partitions().stream()
+        .map(this::mapearParticion)
+        .collect(Collectors.toList());
+
+    // Obtener factores de replicación
+    List<Integer> factoresReplicacion =
+      description.partitions().stream()
+        .map(partition -> partition.replicas().size())
+        .distinct()
+        .sorted()
+        .collect(Collectors.toList());
+
+    Integer factorReplicacion = factoresReplicacion.size() == 1
+      ? factoresReplicacion.get(0)
+      : null;
+
+    // Construir respuesta
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("nombre", description.name());
+    resultado.put("interno", description.isInternal());
+    resultado.put("cantidadParticiones", particiones.size());
+    resultado.put("factorReplicacion", factorReplicacion);
+    resultado.put("factoresReplicacion", factoresReplicacion);
+    resultado.put("configuracion", configs);
+    resultado.put("particiones", particiones);
+
+    return resultado;
+  }
+
 }

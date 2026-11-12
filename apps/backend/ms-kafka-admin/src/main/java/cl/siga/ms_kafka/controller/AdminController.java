@@ -3,9 +3,9 @@ package cl.siga.ms_kafka.controller;
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
 import cl.siga.ms_kafka.service.AdminService;
 import lombok.RequiredArgsConstructor;
-import cl.siga.ms_kafka.producer.KafkaProducer;
+//import cl.siga.ms_kafka.producer.KafkaProducer;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -18,6 +18,7 @@ public class AdminController {
 
   private final AdminService service;
 
+  //TOPICS
   @GetMapping("/topics")
   public Set<String> obtenerTopics() throws Exception {
 
@@ -59,6 +60,16 @@ public class AdminController {
     );
   }
 
+  @GetMapping("/topics/{nombre}/details")
+  public ResponseEntity<?> obtenerDetallesTopic(
+    @PathVariable String nombre
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerDetallesTopic(nombre)
+    );
+  }
+
   @PatchMapping("/topics/{nombre}/retention")
   public ResponseEntity<String> modificarRetencion(
     @PathVariable String nombre,
@@ -77,6 +88,30 @@ public class AdminController {
     );
   }
 
+  @GetMapping("/topics/health")
+  public ResponseEntity<?> obtenerEstadoParticiones() {
+
+    try {
+      return ResponseEntity.ok(
+        service.obtenerEstadoParticiones()
+      );
+
+    } catch (Exception e) {
+
+      Map<String, Object> error = new HashMap<>();
+
+      error.put("error", "No se pudo consultar el estado de las particiones");
+      error.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+
+      return ResponseEntity.internalServerError().body(error);
+    }
+  }
+  //END-TOPICS
+
+  //CONSUMER-GROUPS
   @GetMapping("/consumer-groups")
   public ResponseEntity<?> obtenerConsumerGroups()
     throws Exception {
@@ -98,14 +133,39 @@ public class AdminController {
 
   @GetMapping("/consumer-groups/{groupId}/lag")
   public ResponseEntity<?> obtenerConsumerLag(
-    @PathVariable String groupId
-  ) throws Exception {
+    @PathVariable String groupId) {
 
-    return ResponseEntity.ok(
-      service.obtenerConsumerLag(groupId)
-    );
+    try {
+
+      return ResponseEntity.ok(
+        service.obtenerConsumerLag(groupId)
+      );
+
+    } catch (NoSuchElementException e) {
+
+      Map<String, Object> error = new HashMap<>();
+
+      error.put("error", "Consumer Group no encontrado");
+      error.put("detalle", e.getMessage());
+
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(error);
+
+    } catch (Exception e) {
+
+      Map<String, Object> error = new HashMap<>();
+
+      error.put("error", "No se pudo consultar el Consumer Lag");
+      error.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+
+      return ResponseEntity.internalServerError()
+        .body(error);
+    }
   }
-
+  //BROKERS
   @GetMapping("/brokers")
   public ResponseEntity<?> obtenerBrokers() {
 
@@ -124,6 +184,28 @@ public class AdminController {
     }
   }
 
+  @GetMapping("/brokers/distribution")
+  public ResponseEntity<?> obtenerDistribucionBrokers() {
+
+    try {
+      return ResponseEntity.ok(
+        service.obtenerDistribucionBrokers()
+      );
+
+    } catch (Exception e) {
+
+      Map<String, Object> error = new HashMap<>();
+
+      error.put("error", "No se pudo consultar la distribución de brokers");
+      error.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+
+      return ResponseEntity.internalServerError().body(error);
+    }
+  }
+  //CLUSTER
   @GetMapping("/cluster/status")
   public ResponseEntity<Map<String, Object>> obtenerEstadoCluster() {
 
