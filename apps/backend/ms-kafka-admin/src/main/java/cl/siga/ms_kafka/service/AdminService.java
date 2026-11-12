@@ -12,17 +12,24 @@ import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.springframework.stereotype.Service;
+import org.apache.kafka.common.Node;
+import java.util.*;
 
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import java.util.NoSuchElementException;
 import org.apache.kafka.clients.admin.MemberDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import org.apache.kafka.common.Node;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -230,12 +237,17 @@ public class AdminService {
     resultado.put("coordinator", description.coordinator().id());
     resultado.put("members", members);
 
+    if (description.state().toString().equals("DEAD")) {
+      throw new NoSuchElementException(
+        "Consumer Group no encontrado: " + groupId
+      );
+    }
     return resultado;
   }
 
   // =====================================================
-// 8. CALCULAR CONSUMER LAG
-// =====================================================
+  // 8. CALCULAR CONSUMER LAG
+  // =====================================================
 
   public List<Map<String, Object>> obtenerConsumerLag(
     String groupId
@@ -289,5 +301,99 @@ public class AdminService {
     }
 
     return resultado;
+  }
+
+  public Map<String, Object> obtenerEstadoCluster() {
+
+    try {
+      // Consultar información general del clúster
+      var cluster = adminClient.describeCluster();
+
+      // Obtener brokers
+      Collection<Node> brokers = cluster.nodes().get();
+
+      // Obtener controller
+      Node controller = cluster.controller().get();
+
+      // Información de cada broker
+      List<Map<String, Object>> brokersInfo = brokers.stream()
+        .map(broker -> {
+          Map<String, Object> info = new LinkedHashMap<>();
+
+          info.put("id", broker.id());
+          info.put("host", broker.host());
+          info.put("port", broker.port());
+          info.put("rack", broker.rack());
+
+          return info;
+        })
+        .toList();
+
+      // Información del controller
+      Map<String, Object> controllerInfo = null;
+
+      if (controller != null) {
+        controllerInfo = new LinkedHashMap<>();
+        controllerInfo.put("id", controller.id());
+        controllerInfo.put("host", controller.host());
+        controllerInfo.put("port", controller.port());
+      }
+
+      // Respuesta final
+      Map<String, Object> resultado = new LinkedHashMap<>();
+
+      resultado.put("estado", "ACTIVO");
+      resultado.put("clusterId", cluster.clusterId().get());
+      resultado.put("brokersActivos", brokers.size());
+      resultado.put("brokers", brokersInfo);
+      resultado.put("controller", controllerInfo);
+
+      return resultado;
+
+    } catch (Exception e) {
+
+      Map<String, Object> error = new LinkedHashMap<>();
+
+      error.put("estado", "ERROR");
+      error.put("error", "No se pudo consultar el estado del clúster");
+      error.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+      return error;
+    }
+  }
+
+  public List<Map<String, Object>> obtenerBrokers() throws Exception {
+
+    Collection<Node> brokers = adminClient
+      .describeCluster()
+      .nodes()
+      .get();
+
+    Node controller = adminClient
+      .describeCluster()
+      .controller()
+      .get();
+
+    return brokers.stream()
+      .map(broker -> {
+        Map<String, Object> info = new LinkedHashMap<>();
+
+        info.put("id", broker.id());
+        info.put("host", broker.host());
+        info.put("port", broker.port());
+        info.put("rack", broker.rack());
+
+        info.put(
+          "controller",
+          controller != null && controller.id() == broker.id()
+        );
+
+        info.put("estado", "ACTIVO");
+
+        return info;
+      })
+      .toList();
   }
 }
