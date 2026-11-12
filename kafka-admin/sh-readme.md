@@ -1,4 +1,7 @@
 # Como usar en Consola
+
+no requiere JWT, puesto No son endpoints de MicroServicio.
+
 ## Administración de TOPICS
 
 ---
