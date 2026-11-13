@@ -1,6 +1,7 @@
 package cl.siga.ms_kafka.controller;
 
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
+import cl.siga.ms_kafka.dto.ResetConsumerGroupOffsetsRequest;
 import cl.siga.ms_kafka.service.AdminService;
 import lombok.RequiredArgsConstructor;
 //import cl.siga.ms_kafka.producer.KafkaProducer;
@@ -308,6 +309,34 @@ public class AdminController {
     return ResponseEntity.ok(
       service.eliminarOffsetsConsumerGroup(groupId)
     );
+  }
+
+  @PatchMapping("/consumer-groups/{groupId}/offsets/reset")
+  public ResponseEntity<?> reiniciarOffsetsConsumerGroup(
+    @PathVariable String groupId,
+    @RequestBody ResetConsumerGroupOffsetsRequest request
+  ) throws Exception {
+
+    try {
+      return ResponseEntity.ok(
+        service.reiniciarOffsetsConsumerGroup(groupId, request)
+      );
+
+    } catch (IllegalArgumentException e) {
+
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", e.getMessage());
+
+      return ResponseEntity.badRequest().body(respuesta);
+
+    } catch (IllegalStateException e) {
+
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", e.getMessage());
+
+      return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(respuesta);
+    }
   }
 
 }

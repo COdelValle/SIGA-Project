@@ -2,6 +2,7 @@
 package cl.siga.ms_kafka.service;
 
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
+import cl.siga.ms_kafka.dto.ResetConsumerGroupOffsetsRequest;
 import lombok.RequiredArgsConstructor;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -17,7 +18,6 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import java.util.NoSuchElementException;
-//import org.apache.kafka.clients.admin.MemberDescription;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -1290,5 +1290,239 @@ public class AdminService {
 
     return respuesta;
   }
+
+  public Map<String, Object> reiniciarOffsetsConsumerGroup(
+    String groupId,
+    ResetConsumerGroupOffsetsRequest request
+  ) throws Exception {
+
+    if (request == null || request.getEstrategia() == null) {
+      throw new IllegalArgumentException(
+        "Debe indicar una estrategia de reinicio."
+      );
+    }
+
+    String estrategia = request.getEstrategia()
+      .trim()
+      .toUpperCase(Locale.ROOT);
+
+    if (!Arrays.asList("EARLIEST", "LATEST", "OFFSET")
+      .contains(estrategia)) {
+
+      throw new IllegalArgumentException(
+        "Estrategia no válida. Utilice EARLIEST, LATEST u OFFSET."
+      );
+    }
+
+    // Verifica que el consumer group esté vacío
+    ConsumerGroupDescription description = adminClient
+      .describeConsumerGroups(Collections.singleton(groupId))
+      .all()
+      .get()
+      .get(groupId);
+
+    if (description.state() != ConsumerGroupState.EMPTY
+      || !description.members().isEmpty()) {
+
+      throw new IllegalStateException(
+        "El consumer group debe estar vacío y sin consumidores activos."
+      );
+    }
+
+    // Obtener offsets actuales
+    Map<TopicPartition, OffsetAndMetadata> offsetsActuales =
+      adminClient
+        .listConsumerGroupOffsets(groupId)
+        .partitionsToOffsetAndMetadata()
+        .get();
+
+    if (offsetsActuales.isEmpty()) {
+      throw new IllegalStateException(
+        "El consumer group no tiene offsets comprometidos."
+      );
+    }
+
+    // Consulta límites disponibles para las particiones
+    Map<TopicPartition, OffsetSpec> earliestSpecs =
+      new LinkedHashMap<>();
+
+    Map<TopicPartition, OffsetSpec> latestSpecs =
+      new LinkedHashMap<>();
+
+    for (TopicPartition tp : offsetsActuales.keySet()) {
+      earliestSpecs.put(tp, OffsetSpec.earliest());
+      latestSpecs.put(tp, OffsetSpec.latest());
+    }
+
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      earliestOffsets = adminClient
+      .listOffsets(earliestSpecs)
+      .all()
+      .get();
+
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      latestOffsets = adminClient
+      .listOffsets(latestSpecs)
+      .all()
+      .get();
+
+    // Prepara offsets nuevos
+    Map<TopicPartition, OffsetAndMetadata> nuevosOffsets =
+      new LinkedHashMap<>(offsetsActuales);
+
+    List<Map<String, Object>> detalles =
+      new ArrayList<>();
+
+    if (estrategia.equals("EARLIEST")
+      || estrategia.equals("LATEST")) {
+
+      for (TopicPartition tp : offsetsActuales.keySet()) {
+
+        ListOffsetsResult.ListOffsetsResultInfo limite =
+          estrategia.equals("EARLIEST")
+            ? earliestOffsets.get(tp)
+            : latestOffsets.get(tp);
+
+        if (limite == null) {
+          throw new IllegalStateException(
+            "No se pudo obtener el offset disponible de "
+              + tp.topic() + " partición " + tp.partition()
+          );
+        }
+
+        long offsetAnterior = offsetsActuales.get(tp).offset();
+        long offsetNuevo = limite.offset();
+
+        nuevosOffsets.put(
+          tp,
+          new OffsetAndMetadata(offsetNuevo)
+        );
+
+        Map<String, Object> detalle = new LinkedHashMap<>();
+
+        detalle.put("topic", tp.topic());
+        detalle.put("particion", tp.partition());
+        detalle.put("offsetAnterior", offsetAnterior);
+        detalle.put("offsetNuevo", offsetNuevo);
+
+        detalles.add(detalle);
+      }
+
+    } else {
+
+      // Valida offsets específicos
+      List<ResetConsumerGroupOffsetsRequest.PartitionOffset>
+        solicitados = request.getOffsets();
+
+      if (solicitados == null || solicitados.isEmpty()) {
+        throw new IllegalArgumentException(
+          "Debe proporcionar los offsets específicos."
+        );
+      }
+
+      Set<TopicPartition> procesados = new HashSet<>();
+
+      for (ResetConsumerGroupOffsetsRequest.PartitionOffset item :
+        solicitados) {
+
+        if (item == null
+          || item.getTopic() == null
+          || item.getTopic().trim().isEmpty()
+          || item.getParticion() == null
+          || item.getOffset() == null) {
+
+          throw new IllegalArgumentException(
+            "Cada offset debe incluir topic, partición y offset."
+          );
+        }
+
+        if (item.getParticion() < 0 || item.getOffset() < 0) {
+          throw new IllegalArgumentException(
+            "La partición y el offset no pueden ser negativos."
+          );
+        }
+
+        TopicPartition tp = new TopicPartition(
+          item.getTopic().trim(),
+          item.getParticion()
+        );
+
+        if (!procesados.add(tp)) {
+          throw new IllegalArgumentException(
+            "La partición está repetida: " + tp
+          );
+        }
+
+        if (!offsetsActuales.containsKey(tp)) {
+          throw new IllegalArgumentException(
+            "El grupo no tiene un offset comprometido para "
+              + tp.topic() + " partición " + tp.partition()
+          );
+        }
+
+        ListOffsetsResult.ListOffsetsResultInfo earliest =
+          earliestOffsets.get(tp);
+
+        ListOffsetsResult.ListOffsetsResultInfo latest =
+          latestOffsets.get(tp);
+
+        if (earliest == null || latest == null) {
+          throw new IllegalStateException(
+            "No se pudieron consultar los límites de " + tp
+          );
+        }
+
+        long offsetNuevo = item.getOffset();
+
+        if (offsetNuevo < earliest.offset()
+          || offsetNuevo > latest.offset()) {
+
+          throw new IllegalArgumentException(
+            "El offset solicitado para "
+              + tp.topic() + " partición " + tp.partition()
+              + " debe estar entre "
+              + earliest.offset() + " y " + latest.offset()
+          );
+        }
+
+        long offsetAnterior = offsetsActuales.get(tp).offset();
+
+        nuevosOffsets.put(
+          tp,
+          new OffsetAndMetadata(offsetNuevo)
+        );
+
+        Map<String, Object> detalle = new LinkedHashMap<>();
+
+        detalle.put("topic", tp.topic());
+        detalle.put("particion", tp.partition());
+        detalle.put("offsetAnterior", offsetAnterior);
+        detalle.put("offsetNuevo", offsetNuevo);
+
+        detalles.add(detalle);
+      }
+    }
+
+    // Aplica los nuevos offsets
+    adminClient.alterConsumerGroupOffsets(
+      groupId,
+      nuevosOffsets
+    ).all().get();
+
+    // Respuesta
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("groupId", groupId);
+    resultado.put("estrategia", estrategia);
+    resultado.put("particionesActualizadas", detalles.size());
+    resultado.put("particiones", detalles);
+    resultado.put(
+      "mensaje",
+      "Offsets del consumer group actualizados correctamente."
+    );
+
+    return resultado;
+  }
+
 
 }
