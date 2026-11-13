@@ -5,18 +5,15 @@ import cl.siga.ms_kafka.dto.ModificarRetencionRequest;
 import cl.siga.ms_kafka.dto.ResetConsumerGroupOffsetsRequest;
 import cl.siga.ms_kafka.service.AdminService;
 import lombok.RequiredArgsConstructor;
-//import cl.siga.ms_kafka.producer.KafkaProducer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import cl.siga.ms_kafka.dto.ModificarRetencionRequest;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/kafka")
 @RequiredArgsConstructor
 public class AdminController {
-  //private final KafkaProducer kafkaProducer;
 
   private final AdminService service;
 
@@ -386,7 +383,6 @@ public class AdminController {
   //CONSUMER-GROUPS
   @GetMapping("/consumer-groups")
   public ResponseEntity<?> obtenerConsumerGroups() {
-
     try {
       return ResponseEntity.ok(
         service.obtenerConsumerGroups()
@@ -403,7 +399,8 @@ public class AdminController {
         Objects.toString(e.getMessage(), "Error desconocido")
       );
 
-      return ResponseEntity.internalServerError().body(respuesta);
+      return ResponseEntity.internalServerError()
+        .body(respuesta);
     }
   }
 
@@ -411,7 +408,6 @@ public class AdminController {
   public ResponseEntity<?> describirConsumerGroup(
     @PathVariable String groupId
   ) {
-
     try {
       return ResponseEntity.ok(
         service.describirConsumerGroup(groupId)
@@ -422,49 +418,55 @@ public class AdminController {
       respuesta.put("error", "Consumer Group no encontrado");
       respuesta.put("detalle", e.getMessage());
 
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(respuesta);
 
     } catch (IllegalArgumentException e) {
       Map<String, Object> respuesta = new LinkedHashMap<>();
       respuesta.put("error", e.getMessage());
 
-      return ResponseEntity.badRequest().body(respuesta);
+      return ResponseEntity.badRequest()
+        .body(respuesta);
 
     } catch (Exception e) {
       Map<String, Object> respuesta = new LinkedHashMap<>();
       respuesta.put("error", "No se pudo consultar el Consumer Group");
-      respuesta.put("detalle", Objects.toString(
-        e.getMessage(), "Error desconocido"
-      ));
+      respuesta.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
 
-      return ResponseEntity.internalServerError().body(respuesta);
+      return ResponseEntity.internalServerError()
+        .body(respuesta);
     }
   }
 
   @GetMapping("/consumer-groups/{groupId}/lag")
   public ResponseEntity<?> obtenerConsumerLag(
-    @PathVariable String groupId) {
-
+    @PathVariable String groupId
+  ) {
     try {
-
       return ResponseEntity.ok(
         service.obtenerConsumerLag(groupId)
       );
 
     } catch (NoSuchElementException e) {
-
-      Map<String, Object> error = new HashMap<>();
-
+      Map<String, Object> error = new LinkedHashMap<>();
       error.put("error", "Consumer Group no encontrado");
       error.put("detalle", e.getMessage());
 
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(error);
 
+    } catch (IllegalArgumentException e) {
+      Map<String, Object> error = new LinkedHashMap<>();
+      error.put("error", e.getMessage());
+
+      return ResponseEntity.badRequest()
+        .body(error);
+
     } catch (Exception e) {
-
-      Map<String, Object> error = new HashMap<>();
-
+      Map<String, Object> error = new LinkedHashMap<>();
       error.put("error", "No se pudo consultar el Consumer Lag");
       error.put(
         "detalle",
@@ -478,7 +480,6 @@ public class AdminController {
   //BROKERS
   @GetMapping("/brokers")
   public ResponseEntity<?> obtenerBrokers() {
-
     try {
       return ResponseEntity.ok(
         service.obtenerBrokers()
@@ -492,13 +493,13 @@ public class AdminController {
         Objects.toString(e.getMessage(), "Error desconocido")
       );
 
-      return ResponseEntity.internalServerError().body(respuesta);
+      return ResponseEntity.internalServerError()
+        .body(respuesta);
     }
   }
 
   @GetMapping("/brokers/distribution")
   public ResponseEntity<?> obtenerDistribucionBrokers() {
-
     try {
       return ResponseEntity.ok(
         service.obtenerDistribucionBrokers()
@@ -514,8 +515,8 @@ public class AdminController {
         "detalle",
         Objects.toString(e.getMessage(), "Error desconocido")
       );
-
-      return ResponseEntity.internalServerError().body(respuesta);
+      return ResponseEntity.internalServerError()
+        .body(respuesta);
     }
   }
   //CLUSTER
@@ -527,7 +528,10 @@ public class AdminController {
     if (respuesta == null) {
       respuesta = new LinkedHashMap<>();
       respuesta.put("estado", "ERROR");
-      respuesta.put("detalle", "No se recibió respuesta del servicio Kafka.");
+      respuesta.put(
+        "detalle",
+        "No se recibió respuesta del servicio Kafka."
+      );
     }
 
     if ("ERROR".equals(respuesta.get("estado"))) {
@@ -536,22 +540,47 @@ public class AdminController {
 
     return ResponseEntity.ok(respuesta);
   }
+
   //OFFSETs
   @GetMapping("/topics/{nombre}/offsets")
   public ResponseEntity<?> obtenerOffsetsTopic(
     @PathVariable String nombre
-  ) throws Exception {
+  ) {
 
-    return ResponseEntity.ok(
-      service.obtenerOffsetsTopic(nombre)
-    );
+    try {
+      return ResponseEntity.ok(
+        service.obtenerOffsetsTopic(nombre)
+      );
+
+    } catch (IllegalArgumentException e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", e.getMessage());
+
+      return ResponseEntity.badRequest().body(respuesta);
+
+    } catch (NoSuchElementException e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", "Topic no encontrado");
+      respuesta.put("detalle", e.getMessage());
+
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+
+    } catch (Exception e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", "No se pudieron consultar los offsets del Topic");
+      respuesta.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+
+      return ResponseEntity.internalServerError().body(respuesta);
+    }
   }
 
   @GetMapping("/consumer-groups/{groupId}/offsets")
   public ResponseEntity<?> obtenerOffsetsConsumerGroup(
     @PathVariable String groupId
   ) {
-
     try {
       return ResponseEntity.ok(
         service.obtenerOffsetsConsumerGroup(groupId)
@@ -562,22 +591,26 @@ public class AdminController {
       respuesta.put("error", "Consumer Group no encontrado");
       respuesta.put("detalle", e.getMessage());
 
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(respuesta);
 
     } catch (IllegalArgumentException e) {
       Map<String, Object> respuesta = new LinkedHashMap<>();
       respuesta.put("error", e.getMessage());
 
-      return ResponseEntity.badRequest().body(respuesta);
+      return ResponseEntity.badRequest()
+        .body(respuesta);
 
     } catch (Exception e) {
       Map<String, Object> respuesta = new LinkedHashMap<>();
       respuesta.put("error", "No se pudieron consultar los offsets");
-      respuesta.put("detalle", Objects.toString(
-        e.getMessage(), "Error desconocido"
-      ));
+      respuesta.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
 
-      return ResponseEntity.internalServerError().body(respuesta);
+      return ResponseEntity.internalServerError()
+        .body(respuesta);
     }
   }
 
@@ -585,7 +618,7 @@ public class AdminController {
   public ResponseEntity<?> eliminarOffsetsConsumerGroup(
     @PathVariable String groupId,
     @RequestParam(defaultValue = "false") boolean confirmar
-  ) throws Exception {
+  ) {
 
     if (!confirmar) {
       return ResponseEntity.badRequest().body(
@@ -608,32 +641,6 @@ public class AdminController {
 
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
 
-    } catch (IllegalStateException e) {
-      Map<String, Object> respuesta = new LinkedHashMap<>();
-      respuesta.put("error", e.getMessage());
-
-      return ResponseEntity.status(HttpStatus.CONFLICT).body(respuesta);
-    }
-  }
-
-  @PatchMapping("/consumer-groups/{groupId}/offsets/reset")
-  public ResponseEntity<?> reiniciarOffsetsConsumerGroup(
-    @PathVariable String groupId,
-    @RequestBody ResetConsumerGroupOffsetsRequest request
-  ) throws Exception {
-
-    try {
-      return ResponseEntity.ok(
-        service.reiniciarOffsetsConsumerGroup(groupId, request)
-      );
-
-    } catch (NoSuchElementException e) {
-      Map<String, Object> respuesta = new LinkedHashMap<>();
-      respuesta.put("error", "Consumer Group no encontrado");
-      respuesta.put("detalle", e.getMessage());
-
-      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
-
     } catch (IllegalArgumentException e) {
       Map<String, Object> respuesta = new LinkedHashMap<>();
       respuesta.put("error", e.getMessage());
@@ -645,6 +652,49 @@ public class AdminController {
       respuesta.put("error", e.getMessage());
 
       return ResponseEntity.status(HttpStatus.CONFLICT).body(respuesta);
+
+    } catch (Exception e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", "No se pudieron eliminar los offsets");
+      respuesta.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+
+      return ResponseEntity.internalServerError().body(respuesta);
+    }
+  }
+
+  @PatchMapping("/consumer-groups/{groupId}/offsets/reset")
+  public ResponseEntity<?> reiniciarOffsetsConsumerGroup(
+    @PathVariable String groupId,
+    @RequestBody ResetConsumerGroupOffsetsRequest request
+  ) {
+    try {
+      return ResponseEntity.ok(
+        service.reiniciarOffsetsConsumerGroup(groupId, request)
+      );
+    } catch (NoSuchElementException e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", "Consumer Group no encontrado");
+      respuesta.put("detalle", e.getMessage());
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+    } catch (IllegalArgumentException e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", e.getMessage());
+      return ResponseEntity.badRequest().body(respuesta);
+    } catch (IllegalStateException e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", e.getMessage());
+      return ResponseEntity.status(HttpStatus.CONFLICT).body(respuesta);
+    } catch (Exception e) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+      respuesta.put("error", "No se pudieron reiniciar los offsets");
+      respuesta.put(
+        "detalle",
+        Objects.toString(e.getMessage(), "Error desconocido")
+      );
+      return ResponseEntity.internalServerError().body(respuesta);
     }
   }
 }

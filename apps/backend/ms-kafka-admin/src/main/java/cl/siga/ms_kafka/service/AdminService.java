@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.errors.TopicDeletionDisabledException;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.springframework.stereotype.Service;
 import org.apache.kafka.common.Node;
 import java.util.HashMap;
@@ -20,6 +23,8 @@ import org.apache.kafka.common.TopicPartition;
 import java.util.NoSuchElementException;
 
 import org.apache.kafka.common.ConsumerGroupState;
+
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.*;
 
@@ -47,26 +52,87 @@ public class AdminService {
       request.replicas()
     );
 
-    adminClient.createTopics(
-      Collections.singleton(topic)
-    ).all().get();
+    try {
+      adminClient.createTopics(
+        Collections.singleton(topic)
+      ).all().get();
+
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof TopicExistsException topicExists) {
+        throw topicExists;
+      }
+
+      throw e;
+    }
   }
   public void eliminarTopic(String nombre)
     throws Exception {
 
-    adminClient.deleteTopics(
-      Collections.singleton(nombre)
-    ).all().get();
+    if (nombre == null || nombre.isBlank()) {
+      throw new IllegalArgumentException(
+        "El nombre del topic es obligatorio."
+      );
+    }
+
+    try {
+      adminClient.deleteTopics(
+        Collections.singleton(nombre.trim())
+      ).all().get();
+
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof UnknownTopicOrPartitionException) {
+        throw new NoSuchElementException(
+          "No se encontró el topic: " + nombre
+        );
+      }
+
+      if (causa instanceof TopicDeletionDisabledException) {
+        throw new IllegalStateException(
+          "La eliminación de topics está deshabilitada en Kafka."
+        );
+      }
+
+      throw e;
+    }
   }
 
   //Descripción BÁSICA de TOPIC
   public Map<String, Object> describirTopic(String nombre)
     throws Exception {
 
-    TopicDescription description =
-      adminClient.describeTopics(
-        Collections.singleton(nombre)
-      ).values().get(nombre).get();
+    if (nombre == null || nombre.isBlank()) {
+      throw new IllegalArgumentException(
+        "El nombre del topic es obligatorio."
+      );
+    }
+
+    String topic = nombre.trim();
+
+    TopicDescription description;
+
+    try {
+      description = adminClient.describeTopics(
+        Collections.singleton(topic)
+      ).values().get(topic).get();
+
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof UnknownTopicOrPartitionException) {
+        throw new NoSuchElementException(
+          "No se encontró el topic: " + topic
+        );
+      }
+
+      throw e;
+    }
 
     List<Map<String, Object>> partitions =
       description.partitions().stream()
@@ -82,92 +148,43 @@ public class AdminService {
     return resultado;
   }
 
-  //Descripción más DETALLADA de TOPIC
-  public Map<String, Object> obtenerDetallesTopic(String nombre)
-    throws Exception {
-
-    // Obtener descripción del topic
-    TopicDescription description = adminClient
-      .describeTopics(Collections.singleton(nombre))
-      .all()
-      .get()
-      .get(nombre);
-
-    // Obtener configuración del topic
-    ConfigResource resource = new ConfigResource(
-      ConfigResource.Type.TOPIC,
-      nombre
-    );
-
-    Config configuracion = adminClient
-      .describeConfigs(Collections.singleton(resource))
-      .all()
-      .get()
-      .get(resource);
-
-    // Extraer configuraciones relevantes
-    Map<String, Object> configs = new LinkedHashMap<>();
-
-    Set<String> propiedades = new LinkedHashSet<>(
-      Arrays.asList(
-        "retention.ms",
-        "retention.bytes",
-        "cleanup.policy",
-        "min.insync.replicas"
-      )
-    );
-
-    for (var entry : configuracion.entries()) {
-      if (propiedades.contains(entry.name())) {
-        configs.put(entry.name(), entry.value());
-      }
-    }
-
-    // Reutilizar el mapeo de particiones existente
-    List<Map<String, Object>> particiones =
-      description.partitions().stream()
-        .map(this::mapearParticion)
-        .collect(Collectors.toList());
-
-    // Obtener factores de replicación
-    List<Integer> factoresReplicacion =
-      description.partitions().stream()
-        .map(partition -> partition.replicas().size())
-        .distinct()
-        .sorted()
-        .collect(Collectors.toList());
-
-    Integer factorReplicacion = factoresReplicacion.size() == 1
-      ? factoresReplicacion.get(0)
-      : null;
-
-    // Construir respuesta
-    Map<String, Object> resultado = new LinkedHashMap<>();
-
-    resultado.put("nombre", description.name());
-    resultado.put("interno", description.isInternal());
-    resultado.put("cantidadParticiones", particiones.size());
-    resultado.put("factorReplicacion", factorReplicacion);
-    resultado.put("factoresReplicacion", factoresReplicacion);
-    resultado.put("configuracion", configs);
-    resultado.put("particiones", particiones);
-
-    return resultado;
-  }
-
   public Map<String, Object> obtenerConfiguracionTopic(String nombre)
     throws Exception {
 
+    if (nombre == null || nombre.isBlank()) {
+      throw new IllegalArgumentException(
+        "El nombre del topic es obligatorio."
+      );
+    }
+
+    String topic = nombre.trim();
+
     ConfigResource resource = new ConfigResource(
       ConfigResource.Type.TOPIC,
-      nombre
+      topic
     );
 
-    Config configuracion = adminClient
-      .describeConfigs(Collections.singleton(resource))
-      .all()
-      .get()
-      .get(resource);
+    Config configuracion;
+
+    try {
+      configuracion = adminClient
+        .describeConfigs(Collections.singleton(resource))
+        .all()
+        .get()
+        .get(resource);
+
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof UnknownTopicOrPartitionException) {
+        throw new NoSuchElementException(
+          "No se encontró el topic: " + topic
+        );
+      }
+
+      throw e;
+    }
 
     Set<String> propiedades = new LinkedHashSet<>(
       Arrays.asList(
@@ -206,11 +223,19 @@ public class AdminService {
     Map<String, String> propiedades
   ) throws Exception {
 
+    if (nombre == null || nombre.isBlank()) {
+      throw new IllegalArgumentException(
+        "El nombre del topic es obligatorio."
+      );
+    }
+
     if (propiedades == null || propiedades.isEmpty()) {
       throw new IllegalArgumentException(
         "Debe proporcionar al menos una configuración."
       );
     }
+
+    String topic = nombre.trim();
 
     Set<String> permitidas = new LinkedHashSet<>(
       Arrays.asList(
@@ -248,12 +273,16 @@ public class AdminService {
       if (clave.equals("cleanup.policy")
         || clave.equals("compression.type")) {
 
-        valorNormalizado = valorNormalizado.toLowerCase(Locale.ROOT);
+        valorNormalizado =
+          valorNormalizado.toLowerCase(Locale.ROOT);
       }
 
       validarConfiguracionTopic(clave, valorNormalizado);
 
-      ConfigEntry entry = new ConfigEntry(clave, valorNormalizado);
+      ConfigEntry entry = new ConfigEntry(
+        clave,
+        valorNormalizado
+      );
 
       operaciones.add(
         new AlterConfigOp(
@@ -265,14 +294,27 @@ public class AdminService {
 
     ConfigResource resource = new ConfigResource(
       ConfigResource.Type.TOPIC,
-      nombre
+      topic
     );
 
-    adminClient.incrementalAlterConfigs(
-      Collections.singletonMap(resource, operaciones)
-    ).all().get();
-  }
+    try {
+      adminClient.incrementalAlterConfigs(
+        Collections.singletonMap(resource, operaciones)
+      ).all().get();
 
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof UnknownTopicOrPartitionException) {
+        throw new NoSuchElementException(
+          "No se encontró el topic: " + topic
+        );
+      }
+
+      throw e;
+    }
+  }
 
   private void validarConfiguracionTopic(
     String clave,
@@ -370,11 +412,19 @@ public class AdminService {
     List<String> propiedades
   ) throws Exception {
 
+    if (nombre == null || nombre.isBlank()) {
+      throw new IllegalArgumentException(
+        "El nombre del topic es obligatorio."
+      );
+    }
+
     if (propiedades == null || propiedades.isEmpty()) {
       throw new IllegalArgumentException(
         "Debe indicar al menos una configuración para restaurar."
       );
     }
+
+    String topic = nombre.trim();
 
     Set<String> permitidas = new LinkedHashSet<>(
       Arrays.asList(
@@ -417,12 +467,26 @@ public class AdminService {
 
     ConfigResource resource = new ConfigResource(
       ConfigResource.Type.TOPIC,
-      nombre
+      topic
     );
 
-    adminClient.incrementalAlterConfigs(
-      Collections.singletonMap(resource, operaciones)
-    ).all().get();
+    try {
+      adminClient.incrementalAlterConfigs(
+        Collections.singletonMap(resource, operaciones)
+      ).all().get();
+
+    } catch (ExecutionException e) {
+
+      Throwable causa = e.getCause();
+
+      if (causa instanceof UnknownTopicOrPartitionException) {
+        throw new NoSuchElementException(
+          "No se encontró el topic: " + topic
+        );
+      }
+
+      throw e;
+    }
   }
   //END-TOPICS
 
@@ -644,25 +708,25 @@ public class AdminService {
       .get();
 
     boolean existe = grupos.stream()
-      .anyMatch(grupo -> grupo.groupId().equals(groupId));
+      .anyMatch(grupo -> grupo.groupId().equals(idGrupo));
 
     if (!existe) {
       throw new NoSuchElementException(
-        "No existe el Consumer Group: " + groupId
+        "No existe el Consumer Group: " + idGrupo
       );
     }
 
     // Obtener descripción del grupo
     ConsumerGroupDescription descripcion = adminClient
-      .describeConsumerGroups(Collections.singleton(groupId))
+      .describeConsumerGroups(Collections.singleton(idGrupo))
       .describedGroups()
-      .get(groupId)
+      .get(idGrupo)
       .get();
 
     if (descripcion == null) {
       throw new NoSuchElementException(
         "No se pudo obtener la descripción del Consumer Group: "
-          + groupId
+          + idGrupo
       );
     }
 
@@ -671,13 +735,13 @@ public class AdminService {
     // Obtener offsets confirmados
     Map<TopicPartition, OffsetAndMetadata> offsetsConsumidos =
       adminClient
-        .listConsumerGroupOffsets(groupId)
+        .listConsumerGroupOffsets(idGrupo)
         .partitionsToOffsetAndMetadata()
         .get();
 
     Map<String, Object> resultado = new LinkedHashMap<>();
 
-    resultado.put("consumerGroup", groupId);
+    resultado.put("consumerGroup", idGrupo);
     resultado.put("estadoGrupo", descripcion.state().toString());
     resultado.put("consumidoresActivos", consumidoresActivos);
 
@@ -766,7 +830,6 @@ public class AdminService {
 
     return resultado;
   }
-
 
   public Map<String, Object> obtenerEstadoCluster() {
 
@@ -1553,7 +1616,7 @@ public class AdminService {
       .get(groupId);
 
     if (description == null) {
-      throw new IllegalArgumentException(
+      throw new NoSuchElementException(
         "No se encontró el consumer group: " + groupId
       );
     }
