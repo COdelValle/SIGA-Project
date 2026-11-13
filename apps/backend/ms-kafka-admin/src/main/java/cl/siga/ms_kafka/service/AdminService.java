@@ -767,21 +767,31 @@ public class AdminService {
     return resultado;
   }
 
+
   public Map<String, Object> obtenerEstadoCluster() {
 
     try {
+
       // Consultar información general del clúster
       var cluster = adminClient.describeCluster();
 
       // Obtener brokers
       Collection<Node> brokers = cluster.nodes().get();
 
+      if (brokers == null) {
+        throw new IllegalStateException(
+          "No se pudo obtener la lista de brokers."
+        );
+      }
+
       // Obtener controller
       Node controller = cluster.controller().get();
 
-      // Información de cada broker
+      // Ordenar brokers por ID
       List<Map<String, Object>> brokersInfo = brokers.stream()
+        .sorted(Comparator.comparingInt(Node::id))
         .map(broker -> {
+
           Map<String, Object> info = new LinkedHashMap<>();
 
           info.put("id", broker.id());
@@ -797,16 +807,26 @@ public class AdminService {
       Map<String, Object> controllerInfo = null;
 
       if (controller != null) {
+
         controllerInfo = new LinkedHashMap<>();
+
         controllerInfo.put("id", controller.id());
         controllerInfo.put("host", controller.host());
         controllerInfo.put("port", controller.port());
       }
 
-      // Respuesta final
+      // Determinar estado general
+      boolean saludable = !brokers.isEmpty()
+        && controller != null;
+
+      // Construir respuesta
       Map<String, Object> resultado = new LinkedHashMap<>();
 
-      resultado.put("estado", "ACTIVO");
+      resultado.put(
+        "estado",
+        saludable ? "ACTIVO" : "DEGRADADO"
+      );
+
       resultado.put("clusterId", cluster.clusterId().get());
       resultado.put("brokersActivos", brokers.size());
       resultado.put("brokers", brokersInfo);
@@ -816,32 +836,44 @@ public class AdminService {
 
     } catch (Exception e) {
 
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+
       Map<String, Object> error = new LinkedHashMap<>();
 
       error.put("estado", "ERROR");
-      error.put("error", "No se pudo consultar el estado del clúster");
+      error.put(
+        "error",
+        "No se pudo consultar el estado del clúster"
+      );
       error.put(
         "detalle",
         Objects.toString(e.getMessage(), "Error desconocido")
       );
+
       return error;
     }
   }
 
   public List<Map<String, Object>> obtenerBrokers() throws Exception {
 
-    Collection<Node> brokers = adminClient
-      .describeCluster()
-      .nodes()
-      .get();
+    // Consultar información del clúster una sola vez
+    var cluster = adminClient.describeCluster();
 
-    Node controller = adminClient
-      .describeCluster()
-      .controller()
-      .get();
+    Collection<Node> brokers = cluster.nodes().get();
+    Node controller = cluster.controller().get();
+
+    if (brokers == null) {
+      throw new IllegalStateException(
+        "No se pudo obtener la lista de brokers."
+      );
+    }
 
     return brokers.stream()
+      .sorted(Comparator.comparingInt(Node::id))
       .map(broker -> {
+
         Map<String, Object> info = new LinkedHashMap<>();
 
         info.put("id", broker.id());
@@ -851,7 +883,8 @@ public class AdminService {
 
         info.put(
           "controller",
-          controller != null && controller.id() == broker.id()
+          controller != null
+            && controller.id() == broker.id()
         );
 
         info.put("estado", "ACTIVO");
@@ -860,7 +893,6 @@ public class AdminService {
       })
       .toList();
   }
-
 
   public Map<String, Object> obtenerEstadoParticiones() throws Exception {
 
