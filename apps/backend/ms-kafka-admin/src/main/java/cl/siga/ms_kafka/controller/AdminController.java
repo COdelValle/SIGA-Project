@@ -109,6 +109,57 @@ public class AdminController {
       return ResponseEntity.internalServerError().body(error);
     }
   }
+
+  @GetMapping("/topics/{nombre}/config")
+  public ResponseEntity<?> obtenerConfiguracionTopic(
+    @PathVariable String nombre
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerConfiguracionTopic(nombre)
+    );
+  }
+
+  @PatchMapping("/topics/{nombre}/config")
+  public ResponseEntity<?> modificarConfiguracionTopic(
+    @PathVariable String nombre,
+    @RequestBody Map<String, String> propiedades
+  ) throws Exception {
+
+    service.modificarConfiguracionTopic(
+      nombre,
+      propiedades
+    );
+
+    Map<String, Object> respuesta = new LinkedHashMap<>();
+
+    respuesta.put("mensaje", "Configuración actualizada correctamente.");
+    respuesta.put("topic", nombre);
+    respuesta.put("configuracionesActualizadas", propiedades);
+
+    return ResponseEntity.ok(respuesta);
+  }
+
+  @PatchMapping("/topics/{nombre}/config/reset")
+  public ResponseEntity<?> restaurarConfiguracionTopic(
+    @PathVariable String nombre,
+    @RequestBody List<String> propiedades
+  ) throws Exception {
+
+    service.restaurarConfiguracionTopic(nombre, propiedades);
+
+    Map<String, Object> respuesta = new LinkedHashMap<>();
+
+    respuesta.put(
+      "mensaje",
+      "Configuraciones restauradas correctamente."
+    );
+
+    respuesta.put("topic", nombre);
+    respuesta.put("configuracionesRestauradas", propiedades);
+
+    return ResponseEntity.ok(respuesta);
+  }
   //END-TOPICS
 
   //CONSUMER-GROUPS
@@ -217,4 +268,46 @@ public class AdminController {
 
     return ResponseEntity.ok(respuesta);
   }
+
+  //OFFSETs
+  @GetMapping("/topics/{nombre}/offsets")
+  public ResponseEntity<?> obtenerOffsetsTopic(
+    @PathVariable String nombre
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerOffsetsTopic(nombre)
+    );
+  }
+
+  @GetMapping("/consumer-groups/{groupId}/offsets")
+  public ResponseEntity<?> obtenerOffsetsConsumerGroup(
+    @PathVariable String groupId
+  ) throws Exception {
+
+    return ResponseEntity.ok(
+      service.obtenerOffsetsConsumerGroup(groupId)
+    );
+  }
+
+  @DeleteMapping("/consumer-groups/{groupId}/offsets")
+  public ResponseEntity<?> eliminarOffsetsConsumerGroup(
+    @PathVariable String groupId,
+    @RequestParam(defaultValue = "false") boolean confirmar
+  ) throws Exception {
+
+    if (!confirmar) {
+      return ResponseEntity.badRequest().body(
+        Map.of(
+          "error",
+          "Debe enviar confirmar=true para eliminar los offsets."
+        )
+      );
+    }
+
+    return ResponseEntity.ok(
+      service.eliminarOffsetsConsumerGroup(groupId)
+    );
+  }
+
 }

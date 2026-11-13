@@ -13,7 +13,6 @@ import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.springframework.stereotype.Service;
 import org.apache.kafka.common.Node;
-import java.util.*;
 
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
@@ -24,10 +23,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.Config;
-
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import org.apache.kafka.common.ConsumerGroupState;
 import java.util.stream.Collectors;
 import java.util.*;
 
@@ -37,6 +33,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AdminService {
 
+  //TOPICS
   private final AdminClient adminClient;
   public Set<String> obtenerTopics() throws Exception {
 
@@ -89,36 +86,404 @@ public class AdminService {
     return resultado;
   }
 
-  private Map<String, Object> mapearParticion(
-    TopicPartitionInfo partition) {
+  //Descripción más DETALLADA de TOPIC
+  public Map<String, Object> obtenerDetallesTopic(String nombre)
+    throws Exception {
+
+    // Obtener descripción del topic
+    TopicDescription description = adminClient
+      .describeTopics(Collections.singleton(nombre))
+      .all()
+      .get()
+      .get(nombre);
+
+    // Obtener configuración del topic
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    Config configuracion = adminClient
+      .describeConfigs(Collections.singleton(resource))
+      .all()
+      .get()
+      .get(resource);
+
+    // Extraer configuraciones relevantes
+    Map<String, Object> configs = new LinkedHashMap<>();
+
+    Set<String> propiedades = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas"
+      )
+    );
+
+    for (var entry : configuracion.entries()) {
+      if (propiedades.contains(entry.name())) {
+        configs.put(entry.name(), entry.value());
+      }
+    }
+
+    // Reutilizar el mapeo de particiones existente
+    List<Map<String, Object>> particiones =
+      description.partitions().stream()
+        .map(this::mapearParticion)
+        .collect(Collectors.toList());
+
+    // Obtener factores de replicación
+    List<Integer> factoresReplicacion =
+      description.partitions().stream()
+        .map(partition -> partition.replicas().size())
+        .distinct()
+        .sorted()
+        .collect(Collectors.toList());
+
+    Integer factorReplicacion = factoresReplicacion.size() == 1
+      ? factoresReplicacion.get(0)
+      : null;
+
+    // Construir respuesta
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("nombre", description.name());
+    resultado.put("interno", description.isInternal());
+    resultado.put("cantidadParticiones", particiones.size());
+    resultado.put("factorReplicacion", factorReplicacion);
+    resultado.put("factoresReplicacion", factoresReplicacion);
+    resultado.put("configuracion", configs);
+    resultado.put("particiones", particiones);
+
+    return resultado;
+  }
+
+  public Map<String, Object> obtenerConfiguracionTopic(String nombre)
+    throws Exception {
+
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    Config configuracion = adminClient
+      .describeConfigs(Collections.singleton(resource))
+      .all()
+      .get()
+      .get(resource);
+
+    Set<String> propiedades = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas",
+        "compression.type",
+        "max.message.bytes"
+      )
+    );
 
     Map<String, Object> resultado = new LinkedHashMap<>();
+
+    for (ConfigEntry entry : configuracion.entries()) {
+
+      if (!propiedades.contains(entry.name())) {
+        continue;
+      }
+
+      Map<String, Object> detalle = new LinkedHashMap<>();
+
+      detalle.put("valor", entry.value());
+      detalle.put("porDefecto", entry.isDefault());
+      detalle.put("sensible", entry.isSensitive());
+
+      resultado.put(entry.name(), detalle);
+    }
+
+    return resultado;
+  }
+
+
+  public void modificarConfiguracionTopic(
+    String nombre,
+    Map<String, String> propiedades
+  ) throws Exception {
+
+    if (propiedades == null || propiedades.isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar al menos una configuración."
+      );
+    }
+
+    Set<String> permitidas = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas",
+        "compression.type",
+        "max.message.bytes"
+      )
+    );
+
+    List<AlterConfigOp> operaciones = new ArrayList<>();
+
+    for (Map.Entry<String, String> propiedad :
+      propiedades.entrySet()) {
+
+      String clave = propiedad.getKey();
+      String valor = propiedad.getValue();
+
+      if (!permitidas.contains(clave)) {
+        throw new IllegalArgumentException(
+          "Configuración no permitida: " + clave
+        );
+      }
+
+      if (valor == null || valor.trim().isEmpty()) {
+        throw new IllegalArgumentException(
+          "El valor de " + clave + " no puede estar vacío."
+        );
+      }
+
+      String valorNormalizado = valor.trim();
+
+      if (clave.equals("cleanup.policy")
+        || clave.equals("compression.type")) {
+
+        valorNormalizado = valorNormalizado.toLowerCase(Locale.ROOT);
+      }
+
+      validarConfiguracionTopic(clave, valorNormalizado);
+
+      ConfigEntry entry = new ConfigEntry(clave, valorNormalizado);
+
+      operaciones.add(
+        new AlterConfigOp(
+          entry,
+          AlterConfigOp.OpType.SET
+        )
+      );
+    }
+
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    adminClient.incrementalAlterConfigs(
+      Collections.singletonMap(resource, operaciones)
+    ).all().get();
+  }
+
+
+  private void validarConfiguracionTopic(
+    String clave,
+    String valor
+  ) {
+
+    switch (clave) {
+
+      case "retention.ms":
+      case "retention.bytes":
+
+        long retencion;
+
+        try {
+          retencion = Long.parseLong(valor);
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException(
+            clave + " debe ser un número entero."
+          );
+        }
+
+        if (retencion < -1) {
+          throw new IllegalArgumentException(
+            clave + " debe ser mayor o igual a -1."
+          );
+        }
+
+        break;
+
+      case "min.insync.replicas":
+      case "max.message.bytes":
+
+        try {
+          if (Integer.parseInt(valor) <= 0) {
+            throw new IllegalArgumentException(
+              clave + " debe ser mayor que cero."
+            );
+          }
+        } catch (NumberFormatException e) {
+          throw new IllegalArgumentException(
+            clave + " debe ser un número entero."
+          );
+        }
+
+        break;
+
+      case "cleanup.policy":
+
+        Set<String> politicasPermitidas =
+          new HashSet<>(Arrays.asList("delete", "compact"));
+
+        for (String politica : valor.split(",")) {
+          if (!politicasPermitidas.contains(
+            politica.trim().toLowerCase()
+          )) {
+            throw new IllegalArgumentException(
+              "cleanup.policy admite delete, compact o ambas."
+            );
+          }
+        }
+
+        break;
+
+      case "compression.type":
+
+        Set<String> compresionesPermitidas =
+          new HashSet<>(Arrays.asList(
+            "producer",
+            "uncompressed",
+            "gzip",
+            "snappy",
+            "lz4",
+            "zstd"
+          ));
+
+        if (!compresionesPermitidas.contains(
+          valor.toLowerCase()
+        )) {
+          throw new IllegalArgumentException(
+            "Tipo de compresión no válido."
+          );
+        }
+
+        break;
+
+      default:
+        throw new IllegalArgumentException(
+          "Configuración no reconocida: " + clave
+        );
+    }
+  }
+
+  public void restaurarConfiguracionTopic(
+    String nombre,
+    List<String> propiedades
+  ) throws Exception {
+
+    if (propiedades == null || propiedades.isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe indicar al menos una configuración para restaurar."
+      );
+    }
+
+    Set<String> permitidas = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas",
+        "compression.type",
+        "max.message.bytes"
+      )
+    );
+
+    List<AlterConfigOp> operaciones = new ArrayList<>();
+
+    for (String propiedad : propiedades) {
+
+      if (propiedad == null || propiedad.trim().isEmpty()) {
+        throw new IllegalArgumentException(
+          "El nombre de la configuración no puede estar vacío."
+        );
+      }
+
+      String clave = propiedad.trim();
+
+      if (!permitidas.contains(clave)) {
+        throw new IllegalArgumentException(
+          "Configuración no permitida: " + clave
+        );
+      }
+
+      ConfigEntry entry = new ConfigEntry(clave, null);
+
+      operaciones.add(
+        new AlterConfigOp(
+          entry,
+          AlterConfigOp.OpType.DELETE
+        )
+      );
+    }
+
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    adminClient.incrementalAlterConfigs(
+      Collections.singletonMap(resource, operaciones)
+    ).all().get();
+  }
+  //END-TOPICS
+
+  private Map<String, Object> mapearParticion(
+    TopicPartitionInfo partition
+  ) {
+
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    Node leader = partition.leader();
+
+    boolean sinLeader =
+      leader == null || leader.id() < 0;
+
+    boolean underReplicated =
+      partition.isr().size() < partition.replicas().size();
+
+    String estado;
+
+    if (sinLeader) {
+      estado = "SIN_LEADER";
+    } else if (underReplicated) {
+      estado = "UNDER_REPLICATED";
+    } else {
+      estado = "SALUDABLE";
+    }
 
     resultado.put("particion", partition.partition());
 
     resultado.put(
       "lider",
-      partition.leader() != null
-        ? partition.leader().id()
-        : null
+      sinLeader ? null : leader.id()
     );
 
     resultado.put(
       "replicas",
       partition.replicas().stream()
-        .map(node -> node.id())
+        .map(Node::id)
         .collect(Collectors.toList())
     );
 
     resultado.put(
       "isr",
       partition.isr().stream()
-        .map(node -> node.id())
+        .map(Node::id)
         .collect(Collectors.toList())
     );
 
+    resultado.put("cantidadReplicas", partition.replicas().size());
+    resultado.put("cantidadIsr", partition.isr().size());
+    resultado.put("underReplicated", underReplicated);
+    resultado.put("sinLeader", sinLeader);
+    resultado.put("estado", estado);
+
     return resultado;
   }
+
 
   public void modificarRetencion(
     String nombre,
@@ -644,79 +1009,286 @@ public class AdminService {
     return resultado;
   }
 
-  // TOPICS
+  //OFFSETs
 
-  //Descripción más DETALLADA de TOPIC
-  public Map<String, Object> obtenerDetallesTopic(String nombre)
-    throws Exception {
-
-    // Obtener descripción del topic
+  public Map<String, Object> obtenerOffsetsTopic(
+    String nombre
+  ) throws Exception {
+    //Descripción de TOPIC
     TopicDescription description = adminClient
       .describeTopics(Collections.singleton(nombre))
       .all()
       .get()
       .get(nombre);
 
-    // Obtener configuración del topic
-    ConfigResource resource = new ConfigResource(
-      ConfigResource.Type.TOPIC,
-      nombre
-    );
+    Map<TopicPartition, OffsetSpec> earliestSpecs =
+      new LinkedHashMap<>();
 
-    Config configuracion = adminClient
-      .describeConfigs(Collections.singleton(resource))
-      .all()
-      .get()
-      .get(resource);
+    Map<TopicPartition, OffsetSpec> latestSpecs =
+      new LinkedHashMap<>();
+    //Desc Partición
+    for (TopicPartitionInfo particion : description.partitions()) {
 
-    // Extraer configuraciones relevantes
-    Map<String, Object> configs = new LinkedHashMap<>();
+      TopicPartition tp = new TopicPartition(
+        nombre,
+        particion.partition()
+      );
 
-    Set<String> propiedades = new LinkedHashSet<>(
-      Arrays.asList(
-        "retention.ms",
-        "retention.bytes",
-        "cleanup.policy",
-        "min.insync.replicas"
-      )
-    );
-
-    for (var entry : configuracion.entries()) {
-      if (propiedades.contains(entry.name())) {
-        configs.put(entry.name(), entry.value());
-      }
+      earliestSpecs.put(tp, OffsetSpec.earliest());
+      latestSpecs.put(tp, OffsetSpec.latest());
     }
 
-    // Reutilizar el mapeo de particiones existente
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      earliestOffsets = adminClient
+      .listOffsets(earliestSpecs)
+      .all()
+      .get();
+
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      latestOffsets = adminClient
+      .listOffsets(latestSpecs)
+      .all()
+      .get();
+
     List<Map<String, Object>> particiones =
-      description.partitions().stream()
-        .map(this::mapearParticion)
-        .collect(Collectors.toList());
+      new ArrayList<>();
 
-    // Obtener factores de replicación
-    List<Integer> factoresReplicacion =
-      description.partitions().stream()
-        .map(partition -> partition.replicas().size())
-        .distinct()
-        .sorted()
-        .collect(Collectors.toList());
+    long totalRegistrosPotenciales = 0;
 
-    Integer factorReplicacion = factoresReplicacion.size() == 1
-      ? factoresReplicacion.get(0)
-      : null;
+    for (TopicPartitionInfo particion : description.partitions()) {
 
-    // Construir respuesta
+      TopicPartition tp = new TopicPartition(
+        nombre,
+        particion.partition()
+      );
+
+      long offsetInicial = earliestOffsets.get(tp).offset();
+      long offsetFinal = latestOffsets.get(tp).offset();
+
+      long registrosPotenciales = Math.max(
+        0,
+        offsetFinal - offsetInicial
+      );
+
+      totalRegistrosPotenciales += registrosPotenciales;
+
+      Map<String, Object> detalle = new LinkedHashMap<>();
+
+      detalle.put("particion", particion.partition());
+      detalle.put("offsetInicial", offsetInicial);
+      detalle.put("offsetFinal", offsetFinal);
+      detalle.put("registrosPotenciales", registrosPotenciales);
+
+      particiones.add(detalle);
+    }
+
     Map<String, Object> resultado = new LinkedHashMap<>();
 
-    resultado.put("nombre", description.name());
-    resultado.put("interno", description.isInternal());
+    resultado.put("topic", nombre);
     resultado.put("cantidadParticiones", particiones.size());
-    resultado.put("factorReplicacion", factorReplicacion);
-    resultado.put("factoresReplicacion", factoresReplicacion);
-    resultado.put("configuracion", configs);
+    resultado.put(
+      "totalRegistrosPotenciales",
+      totalRegistrosPotenciales
+    );
     resultado.put("particiones", particiones);
 
     return resultado;
+  }
+
+
+  public Map<String, Object> obtenerOffsetsConsumerGroup(
+    String groupId
+  ) throws Exception {
+
+    // Obtener información del consumer group
+    ConsumerGroupDescription description = adminClient
+      .describeConsumerGroups(Collections.singleton(groupId))
+      .all()
+      .get()
+      .get(groupId);
+
+    // Obtener offsets comprometidos
+    Map<TopicPartition, OffsetAndMetadata> offsetsComprometidos =
+      adminClient
+        .listConsumerGroupOffsets(groupId)
+        .partitionsToOffsetAndMetadata()
+        .get();
+
+    List<Map<String, Object>> particiones = new ArrayList<>();
+
+    long lagTotal = 0;
+
+    // Consultar estado general del grupo
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("groupId", groupId);
+    resultado.put("estado", description.state().toString());
+    resultado.put("consumidoresActivos", description.members().size());
+
+    // Si no existen offsets comprometidos
+    if (offsetsComprometidos.isEmpty()) {
+
+      resultado.put("estadoOffsets", "SIN_OFFSETS");
+      resultado.put("totalParticiones", 0);
+      resultado.put("lagTotal", null);
+      resultado.put("particiones", particiones);
+
+      return resultado;
+    }
+
+    // Preparar consulta de últimos offsets
+    Map<TopicPartition, OffsetSpec> latestSpecs =
+      new LinkedHashMap<>();
+
+    for (TopicPartition tp : offsetsComprometidos.keySet()) {
+      latestSpecs.put(tp, OffsetSpec.latest());
+    }
+
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
+      latestOffsets = adminClient
+      .listOffsets(latestSpecs)
+      .all()
+      .get();
+
+    // Calcular lag por partición
+    for (Map.Entry<TopicPartition, OffsetAndMetadata> entry :
+      offsetsComprometidos.entrySet()) {
+
+      TopicPartition tp = entry.getKey();
+
+      long offsetConsumido = entry.getValue().offset();
+
+      ListOffsetsResult.ListOffsetsResultInfo latestInfo =
+        latestOffsets.get(tp);
+
+      if (latestInfo == null) {
+        continue;
+      }
+
+      long offsetDisponible = latestInfo.offset();
+
+      long lag = Math.max(
+        0,
+        offsetDisponible - offsetConsumido
+      );
+
+      lagTotal += lag;
+
+      Map<String, Object> detalle = new LinkedHashMap<>();
+
+      detalle.put("topic", tp.topic());
+      detalle.put("particion", tp.partition());
+      detalle.put("offsetConsumido", offsetConsumido);
+      detalle.put("offsetDisponible", offsetDisponible);
+      detalle.put("lag", lag);
+      detalle.put("metadata", entry.getValue().metadata());
+
+      particiones.add(detalle);
+    }
+
+    // Ordenar resultados
+    particiones.sort(
+      Comparator
+        .comparing((Map<String, Object> p) ->
+          p.get("topic").toString())
+        .thenComparing(p ->
+          (Integer) p.get("particion"))
+    );
+
+    resultado.put("estadoOffsets", "DISPONIBLES");
+    resultado.put("totalParticiones", particiones.size());
+    resultado.put("lagTotal", lagTotal);
+    resultado.put(
+      "estadoConsumo",
+      lagTotal == 0 ? "AL_DIA" : "ATRASADO"
+    );
+    resultado.put("particiones", particiones);
+
+    return resultado;
+  }
+
+
+  public Map<String, Object> eliminarOffsetsConsumerGroup(
+    String groupId
+  ) throws Exception {
+
+    // Consultar el estado del consumer group
+    ConsumerGroupDescription description = adminClient
+      .describeConsumerGroups(Collections.singleton(groupId))
+      .all()
+      .get()
+      .get(groupId);
+
+    if (description == null) {
+      throw new NoSuchElementException(
+        "No existe el consumer group: " + groupId
+      );
+    }
+
+    // Impedir la eliminación si el grupo está activo
+    if (description.state() != ConsumerGroupState.EMPTY
+      || !description.members().isEmpty()) {
+
+      throw new IllegalStateException(
+        "No se pueden eliminar los offsets. "
+          + "El consumer group debe estar EMPTY y sin consumidores activos."
+      );
+    }
+
+    // Obtener los offsets comprometidos
+    Map<TopicPartition, OffsetAndMetadata> offsets =
+      adminClient
+        .listConsumerGroupOffsets(groupId)
+        .partitionsToOffsetAndMetadata()
+        .get();
+
+    // Si no existen offsets, no hay nada que eliminar
+    if (offsets.isEmpty()) {
+      Map<String, Object> respuesta = new LinkedHashMap<>();
+
+      respuesta.put(
+        "mensaje",
+        "El consumer group no tiene offsets comprometidos."
+      );
+      respuesta.put("groupId", groupId);
+      respuesta.put("offsetsEliminados", 0);
+      respuesta.put("particiones", Collections.emptyList());
+
+      return respuesta;
+    }
+
+    // Preparar las particiones cuyos offsets se eliminarán
+    Set<TopicPartition> particiones = offsets.keySet();
+
+    List<Map<String, Object>> eliminadas = new ArrayList<>();
+
+    for (TopicPartition tp : particiones) {
+      Map<String, Object> detalle = new LinkedHashMap<>();
+
+      detalle.put("topic", tp.topic());
+      detalle.put("particion", tp.partition());
+
+      eliminadas.add(detalle);
+    }
+
+    // Eliminar offsets mediante Kafka AdminClient
+    adminClient
+      .deleteConsumerGroupOffsets(groupId, particiones)
+      .all()
+      .get();
+
+    // Construir respuesta
+    Map<String, Object> respuesta = new LinkedHashMap<>();
+
+    respuesta.put(
+      "mensaje",
+      "Offsets del consumer group eliminados correctamente."
+    );
+    respuesta.put("groupId", groupId);
+    respuesta.put("offsetsEliminados", eliminadas.size());
+    respuesta.put("particiones", eliminadas);
+
+    return respuesta;
   }
 
 }
