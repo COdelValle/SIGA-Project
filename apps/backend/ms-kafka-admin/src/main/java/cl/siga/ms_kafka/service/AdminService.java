@@ -217,6 +217,77 @@ public class AdminService {
     return resultado;
   }
 
+  public Map<String, Object> obtenerDetallesTopic(String nombre)
+    throws Exception {
+
+    // Obtener descripción del topic
+    TopicDescription description = adminClient
+      .describeTopics(Collections.singleton(nombre))
+      .all()
+      .get()
+      .get(nombre);
+
+    // Obtener configuración del topic
+    ConfigResource resource = new ConfigResource(
+      ConfigResource.Type.TOPIC,
+      nombre
+    );
+
+    Config configuracion = adminClient
+      .describeConfigs(Collections.singleton(resource))
+      .all()
+      .get()
+      .get(resource);
+
+    // Extraer configuraciones relevantes
+    Map<String, Object> configs = new LinkedHashMap<>();
+
+    Set<String> propiedades = new LinkedHashSet<>(
+      Arrays.asList(
+        "retention.ms",
+        "retention.bytes",
+        "cleanup.policy",
+        "min.insync.replicas"
+      )
+    );
+
+    for (var entry : configuracion.entries()) {
+      if (propiedades.contains(entry.name())) {
+        configs.put(entry.name(), entry.value());
+      }
+    }
+
+    // Reutilizar el mapeo de particiones existente
+    List<Map<String, Object>> particiones =
+      description.partitions().stream()
+        .map(this::mapearParticion)
+        .collect(Collectors.toList());
+
+    // Obtener factores de replicación
+    List<Integer> factoresReplicacion =
+      description.partitions().stream()
+        .map(partition -> partition.replicas().size())
+        .distinct()
+        .sorted()
+        .collect(Collectors.toList());
+
+    Integer factorReplicacion = factoresReplicacion.size() == 1
+      ? factoresReplicacion.get(0)
+      : null;
+
+    // Construir respuesta
+    Map<String, Object> resultado = new LinkedHashMap<>();
+
+    resultado.put("nombre", description.name());
+    resultado.put("interno", description.isInternal());
+    resultado.put("cantidadParticiones", particiones.size());
+    resultado.put("factorReplicacion", factorReplicacion);
+    resultado.put("factoresReplicacion", factoresReplicacion);
+    resultado.put("configuracion", configs);
+    resultado.put("particiones", particiones);
+
+    return resultado;
+  }
 
   public void modificarConfiguracionTopic(
     String nombre,
@@ -412,19 +483,11 @@ public class AdminService {
     List<String> propiedades
   ) throws Exception {
 
-    if (nombre == null || nombre.isBlank()) {
-      throw new IllegalArgumentException(
-        "El nombre del topic es obligatorio."
-      );
-    }
-
     if (propiedades == null || propiedades.isEmpty()) {
       throw new IllegalArgumentException(
         "Debe indicar al menos una configuración para restaurar."
       );
     }
-
-    String topic = nombre.trim();
 
     Set<String> permitidas = new LinkedHashSet<>(
       Arrays.asList(
@@ -467,26 +530,12 @@ public class AdminService {
 
     ConfigResource resource = new ConfigResource(
       ConfigResource.Type.TOPIC,
-      topic
+      nombre
     );
 
-    try {
-      adminClient.incrementalAlterConfigs(
-        Collections.singletonMap(resource, operaciones)
-      ).all().get();
-
-    } catch (ExecutionException e) {
-
-      Throwable causa = e.getCause();
-
-      if (causa instanceof UnknownTopicOrPartitionException) {
-        throw new NoSuchElementException(
-          "No se encontró el topic: " + topic
-        );
-      }
-
-      throw e;
-    }
+    adminClient.incrementalAlterConfigs(
+      Collections.singletonMap(resource, operaciones)
+    ).all().get();
   }
   //END-TOPICS
 
