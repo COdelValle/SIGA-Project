@@ -597,7 +597,12 @@ services:
   ms-kafka-admin:
     image: ${REGISTRY}/siga-kafka-admin:${IMAGE_TAG}
     container_name: ms-kafka-admin
-    healthcheck: *ms-healthcheck
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8095/api/kafka/cluster/status || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 240s
     restart: unless-stopped
     environment:
       <<: *ms-common-env

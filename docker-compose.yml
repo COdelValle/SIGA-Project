@@ -738,8 +738,6 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
     depends_on:
-      mariadb-kafka:
-        condition: service_healthy
       kafka-1:
         condition: service_healthy
       kafka-2:

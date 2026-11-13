@@ -641,7 +641,7 @@ jobs:
               docker exec rabbitmq1 rabbitmqctl list_queues name messages consumers || true
               exit 1
             fi
-            CONTENEDORES_HEALTHY="siga-mariadb rabbitmq1 rabbitmq2 caddy ms-usuarios-auth ms-estudiantes ms-apoderados ms-docentes ms-asignaturas ms-clases ms-evaluaciones ms-notas ms-asistencias ms-notificaciones ms-rabbitmq-admin bff-web"
+            CONTENEDORES_HEALTHY="siga-mariadb rabbitmq1 rabbitmq2 caddy ms-usuarios-auth ms-estudiantes ms-apoderados ms-docentes ms-asignaturas ms-clases ms-evaluaciones ms-notas ms-asistencias ms-notificaciones ms-rabbitmq-admin ms-kafka-admin bff-web"
             for CONTENEDOR in $CONTENEDORES_HEALTHY; do
               ESTADO=$(docker inspect -f '{{.State.Health.Status}}' "$CONTENEDOR" 2>/dev/null || echo missing)
               if [ "$ESTADO" != "healthy" ]; then
