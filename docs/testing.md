@@ -153,3 +153,27 @@ JSON. Aun asi, no adjuntar datos personales ni secretos en nuevos tests.
 La meta de cobertura global del 100% requiere ampliar unit tests de servicios,
 paginas y componentes existentes. El CI publica los reportes de cobertura para
 priorizar los archivos con menor porcentaje.
+
+## 10. Alcance del reporte y detalles
+
+El reporte unificado debe contener:
+
+| Suite | Resultados esperados |
+|---|---|
+| Backend JUnit | 286 |
+| Frontend Vitest | 55 |
+| E2E Playwright | 2 |
+| Infraestructura | 3 |
+| **Total** | **346** |
+
+El job de reporte ejecuta `tools/allure/verify-results.mjs` y falla si falta
+cualquiera de las suites.
+
+El porcentaje grande del dashboard (por ejemplo 100%) es la **tasa de exito de
+las pruebas**, no la cobertura de codigo.
+
+- Backend: `allure-assertj` convierte las aserciones AssertJ en pasos. Los tests
+  de contrato adjuntan la especificacion OpenAPI, el stub y la validacion.
+- Frontend: Vitest registra los expect como pasos.
+- E2E: Playwright registra navegacion, expectativas y adjuntos; los tests
+  agregan pasos y respuestas de API con `allure.step`/`allure.attachment`.

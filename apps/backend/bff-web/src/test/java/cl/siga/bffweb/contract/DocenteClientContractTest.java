@@ -38,7 +38,8 @@ class DocenteClientContractTest extends AbstractFeignContractTest {
              "activo":true,"area":"Ciencias Naturales y Exactas","certificados":[]}
             """);
 
-        DocenteResponseDTO docente = docenteClient.getDocenteById(5L);
+        DocenteResponseDTO docente = paso("GET /api/v1/docentes/5",
+            () -> docenteClient.getDocenteById(5L));
 
         assertThat(docente).isNotNull();
         assertThat(docente.id()).isEqualTo(5L);

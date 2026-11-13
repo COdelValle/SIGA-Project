@@ -34,7 +34,8 @@ class UsuarioClientContractTest extends AbstractFeignContractTest {
         stubGet("/api/v1/usuarios/me",
             "{\"id\":\"u1\",\"fullName\":\"Admin SIGA\",\"email\":\"admin@siga.cl\",\"rol\":\"ADMIN\",\"state\":\"ACTIVO\"}");
 
-        UsuarioResponseDTO usuario = usuarioClient.getCurrentUsuario();
+        UsuarioResponseDTO usuario = paso("GET /api/v1/usuarios/me",
+            () -> usuarioClient.getCurrentUsuario());
 
         assertThat(usuario).isNotNull();
         assertThat(usuario.id()).isEqualTo("u1");

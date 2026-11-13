@@ -33,7 +33,8 @@ class NotificacionClientContractTest extends AbstractFeignContractTest {
     void contarNoLeidasCumpleElContratoOpenApi() {
         stubGet("/api/v1/notificaciones/me/no-leidas/count", "{\"noLeidas\":2}");
 
-        ContadorNotificacionesDTO contador = notificacionClient.contarNoLeidas();
+        ContadorNotificacionesDTO contador = paso("GET /api/v1/notificaciones/me/no-leidas/count",
+            () -> notificacionClient.contarNoLeidas());
 
         assertThat(contador).isNotNull();
         assertThat(contador.noLeidas()).isEqualTo(2);

@@ -37,7 +37,8 @@ class EvaluacionClientContractTest extends AbstractFeignContractTest {
              "idCursoAsignatura":3,"active":true}
             """);
 
-        EvaluacionResponseDTO evaluacion = evaluacionClient.getEvaluacionById(9L);
+        EvaluacionResponseDTO evaluacion = paso("GET /api/v1/evaluaciones/9",
+            () -> evaluacionClient.getEvaluacionById(9L));
 
         assertThat(evaluacion).isNotNull();
         assertThat(evaluacion.id()).isEqualTo(9L);

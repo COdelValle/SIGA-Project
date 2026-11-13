@@ -34,7 +34,8 @@ class RabbitMqAdminClientContractTest extends AbstractFeignContractTest {
         stubGet("/api/v1/rabbitmq/queues/cola.prueba",
             "{\"nombre\":\"cola.prueba\",\"mensajes\":0,\"consumidores\":0}");
 
-        EstadoColaDTO estado = rabbitMqAdminClient.estadoCola("cola.prueba");
+        EstadoColaDTO estado = paso("GET /api/v1/rabbitmq/queues/cola.prueba",
+            () -> rabbitMqAdminClient.estadoCola("cola.prueba"));
 
         assertThat(estado).isNotNull();
         assertThat(estado.nombre()).isEqualTo("cola.prueba");
