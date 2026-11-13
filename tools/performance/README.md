@@ -74,3 +74,23 @@ El objetivo de <5 s y la ausencia de pérdida/duplicación requieren un evento s
 ## Registro
 
 Ejecutar solo después de que los smoke checks pasen y en una ventana aprobada. Guardar en `docs/registro-pruebas.md`: fecha, ambiente, commit, resumen de k6, máximo de memoria y resultado de integridad, sin tokens, cookies, credenciales ni filas personales. Si no se cumplen los umbrales, perfilar antes de cambiar índices, pools o concurrencia y repetir con idéntico volumen.
+
+## Integracion con Allure 3
+
+Los scripts siga-api.js y siga-escrituras.js implementan handleSummary y escriben:
+
+- 	ools/performance/allure-results/performance.json con p95, promedio, errores y throughput.
+- Un resultado Allure por cada threshold k6 (passed/failed).
+- El resumen k6 como adjunto.
+
+Ejecutar k6 desde la raiz del repositorio para que las rutas relativas queden bajo 	ools/performance/allure-results. Luego generar el reporte unificado:
+
+``bash
+npx allure generate tools/performance/allure-results --config allurerc.mjs --clean
+``
+
+Crear el directorio antes de ejecutar k6:
+
+``bash
+mkdir -p tools/performance/allure-results
+``
