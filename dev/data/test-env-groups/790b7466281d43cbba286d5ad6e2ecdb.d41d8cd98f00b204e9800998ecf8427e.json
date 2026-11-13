@@ -1,0 +1,1 @@
+{"id":"790b7466281d43cbba286d5ad6e2ecdb.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:libs/academico/src/lib/state/asistencia.service.spec.ts#AsistenciaService (modo real) propaga el error del BFF sin caer a mocks","name":"propaga el error del BFF sin caer a mocks","status":"passed","testResultsByEnv":{"default":"36f95a699a237516ac4477b1963c30bb"}}

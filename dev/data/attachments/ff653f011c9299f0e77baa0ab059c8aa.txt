@@ -1,0 +1,3 @@
+{"id":2,"idUsuario":"u1","firstName":"Maria","middleName":"Elena","firstSurname":"Diaz",
+ "secondSurname":"Rojas","rut":"33.333.333-3","telefonos":["+56911111111"],
+ "estudiantes":[],"activo":true}

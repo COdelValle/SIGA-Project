@@ -1,0 +1,1 @@
+{"nombre":"cola.prueba","mensajes":0,"consumidores":0}

@@ -1,0 +1,1 @@
+{"id":"4ef8b061e2d8f4030717fa2cc5c488b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:libs/core/src/lib/auth/role.guard.spec.ts#roleGuard envía a la página del rol autorizado cuando solicita otra ruta","name":"envía a la página del rol autorizado cuando solicita otra ruta","status":"passed","testResultsByEnv":{"default":"4bd9e0049205a52aa9db71f41d2a51e9"}}

@@ -1,0 +1,1 @@
+{"id":"ce8d0b9f4f6de77a1d513f128cec416a.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:libs/academico/src/lib/state/perfil-estudiante.service.spec.ts#PerfilEstudianteService (modo demo) no llama al BFF y devuelve null","name":"no llama al BFF y devuelve null","status":"passed","testResultsByEnv":{"default":"c48fa237db3195abeeb6bc9697eb4db4"}}
