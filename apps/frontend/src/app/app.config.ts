@@ -31,10 +31,74 @@ import {
   msalInstanceFactory,
   normalizeAuthError,
 } from '@siga/core';
+import { InteractionStatus } from '@azure/msal-browser';
 import { routes } from './app.routes';
 import { limpiarParametrosMsal } from './msal-url.util';
 
+/**
+ * Autenticacion simulada para E2E: no hay redireccion a Microsoft y el
+ * interceptor sigue adjuntando un JWT de prueba al BFF. Nunca se habilita en
+ * el config.json de produccion.
+ */
+function mockAuthProviders(config: AppConfig): ApplicationConfig['providers'] {
+  const token = config.mockAccessToken ?? '';
+  const account = {
+    homeAccountId: 'e2e-account',
+    environment: 'e2e',
+    tenantId: 'e2e',
+    username: 'e2e@siga.cl',
+    localAccountId: 'e2e',
+    name: 'E2E SIGA',
+  };
+  const msalService = {
+    instance: {
+      getActiveAccount: () => account,
+      getAllAccounts: () => [account],
+      setActiveAccount: () => undefined,
+      acquireTokenSilent: async () => ({
+        accessToken: token,
+        account,
+        scopes: [],
+        expiresOn: new Date(Date.now() + 3_600_000),
+      }),
+      clearCache: async () => undefined,
+      logoutRedirect: async () => undefined,
+    },
+    acquireTokenSilent: () => of({ accessToken: token, account }),
+    handleRedirectObservable: () => of(null),
+    getLogger: () => ({
+      verbose: () => undefined,
+      info: () => undefined,
+      infoPii: () => undefined,
+      error: () => undefined,
+      warning: () => undefined,
+    }),
+  };
+
+  return [
+    provideBrowserGlobalErrorListeners(),
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([errorInterceptor]), withInterceptorsFromDi()),
+    { provide: APP_CONFIG, useValue: config },
+    {
+      provide: MSAL_INTERCEPTOR_CONFIG,
+      useFactory: () => msalInterceptorConfigFactory(config),
+    },
+    { provide: MsalService, useValue: msalService },
+    { provide: MsalGuard, useValue: { canActivate: () => true } },
+    {
+      provide: MsalBroadcastService,
+      useValue: { inProgress$: of(InteractionStatus.None) },
+    },
+    { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+  ];
+}
+
 export function appConfig(config: AppConfig): ApplicationConfig {
+  if (config.authMode === 'mock') {
+    return { providers: mockAuthProviders(config) };
+  }
+
   return {
     providers: [
       provideBrowserGlobalErrorListeners(),

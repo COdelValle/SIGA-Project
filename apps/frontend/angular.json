@@ -68,9 +68,27 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "include": ["src/**/*.spec.ts", "../libs/**/*.spec.ts"],
+            "coverage": false,
+            "coverageReporters": ["lcov", "text-summary"],
+            "coverageInclude": ["src/**/*.ts", "libs/**/*.ts"],
+            "coverageExclude": ["**/*.spec.ts", "src/main.ts"],
             "reporters": [
               "default",
-              ["junit", { "outputFile": "dist/test-results/frontend-junit.xml" }]
+              ["junit", { "outputFile": "dist/test-results/frontend-junit.xml" }],
+              [
+                "allure-vitest/reporter",
+                {
+                  "resultsDir": "allure-results",
+                  "globalLabels": [
+                    { "name": "layer", "value": "unit" },
+                    { "name": "owner", "value": "frontend" }
+                  ],
+                  "environmentInfo": {
+                    "framework": "Angular + Vitest",
+                    "runner": "jsdom"
+                  }
+                }
+              ]
             ]
           }
         }

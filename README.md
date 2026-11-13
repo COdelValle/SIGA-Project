@@ -8,6 +8,8 @@ separados por dominio, con persistencia *database-per-service* en MariaDB.
 - **Backend**: `apps/backend` (Maven multi-módulo, Spring Boot 3.5, Java 21).
 - **Infraestructura**: `infra/terraform` (AWS Academy Learner Lab: EC2, EBS, ECR y API Gateway HTTP API).
 - **Documentación detallada**: [`docs/`](docs/README.md).
+- **Reporte de pruebas (Allure 3)**: [`https://codelvalle.github.io/SIGA-Project/`](https://codelvalle.github.io/SIGA-Project/)
+  - Guia de ejecucion y contratos: [`docs/testing.md`](docs/testing.md).
 
 > Estado del repositorio: el backend contiene los dominios académicos, el BFF y
 > los flujos asíncronos de registro/notificaciones RabbitMQ. El frontend dispone
