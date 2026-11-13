@@ -1,3 +1,4 @@
+
 package cl.siga.ms_kafka.config;
 
 import java.util.Properties;
@@ -14,8 +15,9 @@ public class Adminclient {
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
-  @Bean
+  @Bean(destroyMethod = "close")
   public AdminClient adminClient() {
+
     Properties properties = new Properties();
 
     properties.put(

@@ -4,25 +4,21 @@ package cl.siga.ms_kafka.service;
 import cl.siga.ms_kafka.dto.CreateTopicRequest;
 import cl.siga.ms_kafka.dto.ResetConsumerGroupOffsetsRequest;
 import lombok.RequiredArgsConstructor;
-
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.AlterConfigOp;
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.springframework.stereotype.Service;
 import org.apache.kafka.common.Node;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.kafka.clients.admin.ConsumerGroupListing;
-import org.apache.kafka.clients.admin.ConsumerGroupDescription;
-import java.util.NoSuchElementException;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.clients.admin.ListOffsetsResult;
-import org.apache.kafka.clients.admin.Config;
+
+import java.util.NoSuchElementException;
+
 import org.apache.kafka.common.ConsumerGroupState;
 import java.util.stream.Collectors;
 import java.util.*;
@@ -548,17 +544,46 @@ public class AdminService {
       .collect(Collectors.toList());
   }
 
-  public Map<String, Object> describirConsumerGroup(
-    String groupId
-  ) throws Exception {
+  public Map<String, Object> describirConsumerGroup(String groupId)
+    throws Exception {
 
-    ConsumerGroupDescription description =
-      adminClient.describeConsumerGroups(
-          Collections.singleton(groupId)
-        ).describedGroups()
-        .get(groupId)
-        .get();
+    if (groupId == null || groupId.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar un identificador de Consumer Group."
+      );
+    }
 
+    final String idGrupo = groupId.trim();
+
+    // Consultar descripción del Consumer Group
+    ConsumerGroupDescription description = adminClient
+      .describeConsumerGroups(Collections.singleton(idGrupo))
+      .describedGroups()
+      .get(idGrupo)
+      .get();
+
+    if (description == null) {
+      throw new NoSuchElementException(
+        "Consumer Group no encontrado: " + idGrupo
+      );
+    }
+
+    // Validar estado del grupo
+    if (description.state() == ConsumerGroupState.DEAD) {
+      throw new NoSuchElementException(
+        "Consumer Group no encontrado o eliminado: " + idGrupo
+      );
+    }
+
+    // Consultar coordinator
+    if (description.coordinator() == null) {
+      throw new IllegalStateException(
+        "No se pudo obtener el coordinator del Consumer Group: "
+          + idGrupo
+      );
+    }
+
+    // Obtener miembros y sus particiones asignadas
     List<Map<String, Object>> members =
       description.members().stream()
         .map(member -> {
@@ -566,20 +591,9 @@ public class AdminService {
           Map<String, Object> data =
             new LinkedHashMap<>();
 
-          data.put(
-            "consumerId",
-            member.consumerId()
-          );
-
-          data.put(
-            "clientId",
-            member.clientId()
-          );
-
-          data.put(
-            "host",
-            member.host()
-          );
+          data.put("consumerId", member.consumerId());
+          data.put("clientId", member.clientId());
+          data.put("host", member.host());
 
           data.put(
             "particionesAsignadas",
@@ -597,19 +611,15 @@ public class AdminService {
         })
         .collect(Collectors.toList());
 
+    // Construir respuesta
     Map<String, Object> resultado = new LinkedHashMap<>();
 
     resultado.put("groupId", description.groupId());
     resultado.put("estado", description.state().toString());
-    resultado.put("tipoProtocolo",description.type().toString());
+    resultado.put("tipoProtocolo", description.type().toString());
     resultado.put("coordinator", description.coordinator().id());
     resultado.put("members", members);
 
-    if (description.state().toString().equals("DEAD")) {
-      throw new NoSuchElementException(
-        "Consumer Group no encontrado: " + groupId
-      );
-    }
     return resultado;
   }
 
@@ -617,6 +627,15 @@ public class AdminService {
 
   public Map<String, Object> obtenerConsumerLag(String groupId)
     throws Exception {
+
+    // Validar identificador
+    if (groupId == null || groupId.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar un identificador de consumer group."
+      );
+    }
+
+    final String idGrupo = groupId.trim();
 
     // Verificar que el grupo exista
     var grupos = adminClient
@@ -640,6 +659,13 @@ public class AdminService {
       .get(groupId)
       .get();
 
+    if (descripcion == null) {
+      throw new NoSuchElementException(
+        "No se pudo obtener la descripción del Consumer Group: "
+          + groupId
+      );
+    }
+
     int consumidoresActivos = descripcion.members().size();
 
     // Obtener offsets confirmados
@@ -655,8 +681,8 @@ public class AdminService {
     resultado.put("estadoGrupo", descripcion.state().toString());
     resultado.put("consumidoresActivos", consumidoresActivos);
 
-    // Grupo sin offsets confirmados
-    if (offsetsConsumidos.isEmpty()) {
+    // Verificar si existen offsets confirmados
+    if (offsetsConsumidos == null || offsetsConsumidos.isEmpty()) {
 
       resultado.put("estadoLag", "SIN_OFFSETS");
       resultado.put("lagTotal", null);
@@ -679,6 +705,7 @@ public class AdminService {
       .all()
       .get();
 
+    // Preparar resultado por partición
     List<Map<String, Object>> particiones = new ArrayList<>();
 
     long lagTotal = 0;
@@ -689,34 +716,52 @@ public class AdminService {
 
       TopicPartition partition = entry.getKey();
 
-      long offsetConsumido = entry.getValue().offset();
+      if (entry.getValue() == null) {
+        throw new IllegalStateException(
+          "No se encontró el offset confirmado de "
+            + partition.topic()
+            + " partición " + partition.partition()
+        );
+      }
 
-      long ultimoOffset = offsetsActuales
-        .get(partition)
-        .offset();
+      ListOffsetsResult.ListOffsetsResultInfo info =
+        offsetsActuales.get(partition);
+
+      if (info == null) {
+        throw new IllegalStateException(
+          "No se pudo obtener el último offset de "
+            + partition.topic()
+            + " partición " + partition.partition()
+        );
+      }
+
+      long offsetConsumido = entry.getValue().offset();
+      long ultimoOffset = info.offset();
 
       long lag = Math.max(0, ultimoOffset - offsetConsumido);
 
       lagTotal += lag;
 
-      Map<String, Object> info = new LinkedHashMap<>();
+      Map<String, Object> detalle = new LinkedHashMap<>();
 
-      info.put("topic", partition.topic());
-      info.put("partition", partition.partition());
-      info.put("offsetConsumido", offsetConsumido);
-      info.put("ultimoOffset", ultimoOffset);
-      info.put("lag", lag);
+      detalle.put("topic", partition.topic());
+      detalle.put("partition", partition.partition());
+      detalle.put("offsetConsumido", offsetConsumido);
+      detalle.put("ultimoOffset", ultimoOffset);
+      detalle.put("lag", lag);
 
-      particiones.add(info);
+      particiones.add(detalle);
     }
 
     // Construir respuesta
     resultado.put("totalParticiones", particiones.size());
     resultado.put("lagTotal", lagTotal);
+
     resultado.put(
       "estadoLag",
       lagTotal == 0 ? "AL_DIA" : "ATRASADO"
     );
+
     resultado.put("particiones", particiones);
 
     return resultado;
@@ -816,6 +861,7 @@ public class AdminService {
       .toList();
   }
 
+
   public Map<String, Object> obtenerEstadoParticiones() throws Exception {
 
     // Obtener todos los topics
@@ -824,19 +870,46 @@ public class AdminService {
       .names()
       .get();
 
-    // Obtener descripción de los topics
-    Map<String, TopicDescription> descripciones = adminClient
-      .describeTopics(nombresTopics)
-      .all()
-      .get();
-
     List<Map<String, Object>> topicsInfo = new ArrayList<>();
 
     int totalParticiones = 0;
     int particionesUnderReplicated = 0;
     int particionesSinLeader = 0;
 
+    // Construir respuesta vacía si no existen topics
+    if (nombresTopics == null || nombresTopics.isEmpty()) {
+
+      Map<String, Object> resultado = new LinkedHashMap<>();
+
+      resultado.put("cantidadTopics", 0);
+      resultado.put("totalParticiones", 0);
+      resultado.put("underReplicated", 0);
+      resultado.put("particionesSinLeader", 0);
+      resultado.put("topics", topicsInfo);
+      resultado.put("estado", "SIN_TOPICS");
+
+      return resultado;
+    }
+
+    // Obtener descripción de los topics
+    Map<String, TopicDescription> descripciones = adminClient
+      .describeTopics(nombresTopics)
+      .all()
+      .get();
+
+    if (descripciones == null) {
+      throw new IllegalStateException(
+        "No se pudieron obtener las descripciones de los topics."
+      );
+    }
+
     for (TopicDescription topic : descripciones.values()) {
+
+      if (topic == null) {
+        throw new IllegalStateException(
+          "Kafka devolvió una descripción de topic nula."
+        );
+      }
 
       List<Map<String, Object>> particionesInfo = new ArrayList<>();
 
@@ -870,12 +943,10 @@ public class AdminService {
         Map<String, Object> particionInfo = new LinkedHashMap<>();
 
         particionInfo.put("partition", particion.partition());
-
         particionInfo.put(
           "leader",
           sinLeader ? null : leader.id()
         );
-
         particionInfo.put("replicas", replicas);
         particionInfo.put("isr", isr);
         particionInfo.put("underReplicated", underReplicated);
@@ -886,19 +957,37 @@ public class AdminService {
         totalParticiones++;
       }
 
+      // Ordenar particiones por número
+      particionesInfo.sort(
+        Comparator.comparing(
+          p -> (Integer) p.get("partition")
+        )
+      );
+
       Map<String, Object> topicInfo = new LinkedHashMap<>();
 
       topicInfo.put("nombre", topic.name());
       topicInfo.put("interno", topic.isInternal());
-      topicInfo.put("cantidadParticiones", topic.partitions().size());
+      topicInfo.put(
+        "cantidadParticiones",
+        topic.partitions().size()
+      );
       topicInfo.put("particiones", particionesInfo);
 
       topicsInfo.add(topicInfo);
     }
 
+    // Ordenar topics por nombre
+    topicsInfo.sort(
+      Comparator.comparing(
+        t -> t.get("nombre").toString()
+      )
+    );
+
+    // Construir respuesta general
     Map<String, Object> resultado = new LinkedHashMap<>();
 
-    resultado.put("cantidadTopics", nombresTopics.size());
+    resultado.put("cantidadTopics", descripciones.size());
     resultado.put("totalParticiones", totalParticiones);
     resultado.put("underReplicated", particionesUnderReplicated);
     resultado.put("particionesSinLeader", particionesSinLeader);
@@ -914,13 +1003,26 @@ public class AdminService {
     return resultado;
   }
 
+
+
   public Map<String, Object> obtenerDistribucionBrokers() throws Exception {
 
-    // Obtener brokers
+    // Obtener información del clúster
     var cluster = adminClient.describeCluster();
 
     Collection<Node> brokers = cluster.nodes().get();
     Node controller = cluster.controller().get();
+
+    if (brokers == null) {
+      throw new IllegalStateException(
+        "No se pudo obtener la lista de brokers del clúster."
+      );
+    }
+
+    // Ordenar brokers por ID para mantener resultados consistentes
+    List<Node> brokersOrdenados = brokers.stream()
+      .sorted(Comparator.comparingInt(Node::id))
+      .toList();
 
     // Obtener topics
     Set<String> nombresTopics = adminClient
@@ -928,15 +1030,28 @@ public class AdminService {
       .names()
       .get();
 
-    Map<String, TopicDescription> descripciones = adminClient
-      .describeTopics(nombresTopics)
-      .all()
-      .get();
+    Map<String, TopicDescription> descripciones = Collections.emptyMap();
+
+    // Consultar descripciones solamente si existen topics
+    if (nombresTopics != null && !nombresTopics.isEmpty()) {
+
+      descripciones = adminClient
+        .describeTopics(nombresTopics)
+        .all()
+        .get();
+
+      if (descripciones == null) {
+        throw new IllegalStateException(
+          "No se pudieron obtener las descripciones de los topics."
+        );
+      }
+    }
 
     // Inicializar estadísticas por broker
-    Map<Integer, Map<String, Object>> estadisticas = new LinkedHashMap<>();
+    Map<Integer, Map<String, Object>> estadisticas =
+      new LinkedHashMap<>();
 
-    for (Node broker : brokers) {
+    for (Node broker : brokersOrdenados) {
 
       Map<String, Object> info = new LinkedHashMap<>();
 
@@ -961,37 +1076,53 @@ public class AdminService {
     // Recorrer topics y particiones
     for (TopicDescription topic : descripciones.values()) {
 
+      if (topic == null) {
+        throw new IllegalStateException(
+          "Kafka devolvió una descripción de topic nula."
+        );
+      }
+
       for (TopicPartitionInfo particion : topic.partitions()) {
 
         totalParticiones++;
 
+        // Contabilizar líder
         Node leader = particion.leader();
 
-        if (leader != null && estadisticas.containsKey(leader.id())) {
+        if (leader != null
+          && leader.id() >= 0
+          && estadisticas.containsKey(leader.id())) {
 
-          Map<String, Object> info = estadisticas.get(leader.id());
+          Map<String, Object> info =
+            estadisticas.get(leader.id());
 
           int cantidad = (int) info.get("particionesLideradas");
 
           info.put("particionesLideradas", cantidad + 1);
         }
 
+        // Contabilizar réplicas asignadas
         for (Node replica : particion.replicas()) {
 
-          Map<String, Object> info = estadisticas.get(replica.id());
+          Map<String, Object> info =
+            estadisticas.get(replica.id());
 
           if (info != null) {
+
             int cantidad = (int) info.get("replicasAsignadas");
 
             info.put("replicasAsignadas", cantidad + 1);
           }
         }
 
+        // Contabilizar réplicas sincronizadas (ISR)
         for (Node replica : particion.isr()) {
 
-          Map<String, Object> info = estadisticas.get(replica.id());
+          Map<String, Object> info =
+            estadisticas.get(replica.id());
 
           if (info != null) {
+
             int cantidad = (int) info.get("replicasSincronizadas");
 
             info.put("replicasSincronizadas", cantidad + 1);
@@ -1000,14 +1131,16 @@ public class AdminService {
       }
     }
 
+    // Construir respuesta
     Map<String, Object> resultado = new LinkedHashMap<>();
 
-    resultado.put("totalBrokers", brokers.size());
+    resultado.put("totalBrokers", brokersOrdenados.size());
     resultado.put("totalParticiones", totalParticiones);
     resultado.put("brokers", new ArrayList<>(estadisticas.values()));
 
     return resultado;
   }
+
 
   //OFFSETs
 
@@ -1095,24 +1228,43 @@ public class AdminService {
     return resultado;
   }
 
+  public Map<String, Object> obtenerOffsetsConsumerGroup(String groupId)
+    throws Exception {
 
-  public Map<String, Object> obtenerOffsetsConsumerGroup(
-    String groupId
-  ) throws Exception {
+    if (groupId == null || groupId.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar un identificador de Consumer Group."
+      );
+    }
 
-    // Obtener información del consumer group
+    final String idGrupo = groupId.trim();
+
+    // Obtener información del Consumer Group
     ConsumerGroupDescription description = adminClient
-      .describeConsumerGroups(Collections.singleton(groupId))
+      .describeConsumerGroups(Collections.singleton(idGrupo))
       .all()
       .get()
-      .get(groupId);
+      .get(idGrupo);
+
+    if (description == null) {
+      throw new NoSuchElementException(
+        "No se encontró el Consumer Group: " + idGrupo
+      );
+    }
 
     // Obtener offsets comprometidos
     Map<TopicPartition, OffsetAndMetadata> offsetsComprometidos =
       adminClient
-        .listConsumerGroupOffsets(groupId)
+        .listConsumerGroupOffsets(idGrupo)
         .partitionsToOffsetAndMetadata()
         .get();
+
+    if (offsetsComprometidos == null) {
+      throw new IllegalStateException(
+        "No se pudieron obtener los offsets del Consumer Group: "
+          + idGrupo
+      );
+    }
 
     List<Map<String, Object>> particiones = new ArrayList<>();
 
@@ -1121,7 +1273,7 @@ public class AdminService {
     // Consultar estado general del grupo
     Map<String, Object> resultado = new LinkedHashMap<>();
 
-    resultado.put("groupId", groupId);
+    resultado.put("groupId", idGrupo);
     resultado.put("estado", description.state().toString());
     resultado.put("consumidoresActivos", description.members().size());
 
@@ -1150,11 +1302,25 @@ public class AdminService {
       .all()
       .get();
 
+    if (latestOffsets == null) {
+      throw new IllegalStateException(
+        "No se pudieron obtener los últimos offsets de Kafka."
+      );
+    }
+
     // Calcular lag por partición
     for (Map.Entry<TopicPartition, OffsetAndMetadata> entry :
       offsetsComprometidos.entrySet()) {
 
       TopicPartition tp = entry.getKey();
+
+      if (entry.getValue() == null) {
+        throw new IllegalStateException(
+          "No se encontró el offset comprometido de "
+            + tp.topic()
+            + " partición " + tp.partition()
+        );
+      }
 
       long offsetConsumido = entry.getValue().offset();
 
@@ -1162,7 +1328,11 @@ public class AdminService {
         latestOffsets.get(tp);
 
       if (latestInfo == null) {
-        continue;
+        throw new IllegalStateException(
+          "No se pudo obtener el último offset de "
+            + tp.topic()
+            + " partición " + tp.partition()
+        );
       }
 
       long offsetDisponible = latestInfo.offset();
@@ -1186,7 +1356,7 @@ public class AdminService {
       particiones.add(detalle);
     }
 
-    // Ordenar resultados
+    // Ordenar resultados por topic y partición
     particiones.sort(
       Comparator
         .comparing((Map<String, Object> p) ->
@@ -1207,21 +1377,27 @@ public class AdminService {
     return resultado;
   }
 
+  public Map<String, Object> eliminarOffsetsConsumerGroup(String groupId)
+    throws Exception {
 
-  public Map<String, Object> eliminarOffsetsConsumerGroup(
-    String groupId
-  ) throws Exception {
+    if (groupId == null || groupId.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar un identificador de Consumer Group."
+      );
+    }
 
-    // Consultar el estado del consumer group
+    final String idGrupo = groupId.trim();
+
+    // Consultar el estado del Consumer Group
     ConsumerGroupDescription description = adminClient
-      .describeConsumerGroups(Collections.singleton(groupId))
+      .describeConsumerGroups(Collections.singleton(idGrupo))
       .all()
       .get()
-      .get(groupId);
+      .get(idGrupo);
 
     if (description == null) {
       throw new NoSuchElementException(
-        "No existe el consumer group: " + groupId
+        "No existe el Consumer Group: " + idGrupo
       );
     }
 
@@ -1231,26 +1407,35 @@ public class AdminService {
 
       throw new IllegalStateException(
         "No se pueden eliminar los offsets. "
-          + "El consumer group debe estar EMPTY y sin consumidores activos."
+          + "El Consumer Group debe estar EMPTY "
+          + "y sin consumidores activos."
       );
     }
 
     // Obtener los offsets comprometidos
     Map<TopicPartition, OffsetAndMetadata> offsets =
       adminClient
-        .listConsumerGroupOffsets(groupId)
+        .listConsumerGroupOffsets(idGrupo)
         .partitionsToOffsetAndMetadata()
         .get();
 
+    if (offsets == null) {
+      throw new IllegalStateException(
+        "No se pudieron obtener los offsets del Consumer Group: "
+          + idGrupo
+      );
+    }
+
     // Si no existen offsets, no hay nada que eliminar
     if (offsets.isEmpty()) {
+
       Map<String, Object> respuesta = new LinkedHashMap<>();
 
       respuesta.put(
         "mensaje",
-        "El consumer group no tiene offsets comprometidos."
+        "El Consumer Group no tiene offsets comprometidos."
       );
-      respuesta.put("groupId", groupId);
+      respuesta.put("groupId", idGrupo);
       respuesta.put("offsetsEliminados", 0);
       respuesta.put("particiones", Collections.emptyList());
 
@@ -1258,11 +1443,12 @@ public class AdminService {
     }
 
     // Preparar las particiones cuyos offsets se eliminarán
-    Set<TopicPartition> particiones = offsets.keySet();
+    Set<TopicPartition> particiones = new HashSet<>(offsets.keySet());
 
     List<Map<String, Object>> eliminadas = new ArrayList<>();
 
     for (TopicPartition tp : particiones) {
+
       Map<String, Object> detalle = new LinkedHashMap<>();
 
       detalle.put("topic", tp.topic());
@@ -1273,7 +1459,7 @@ public class AdminService {
 
     // Eliminar offsets mediante Kafka AdminClient
     adminClient
-      .deleteConsumerGroupOffsets(groupId, particiones)
+      .deleteConsumerGroupOffsets(idGrupo, particiones)
       .all()
       .get();
 
@@ -1282,9 +1468,9 @@ public class AdminService {
 
     respuesta.put(
       "mensaje",
-      "Offsets del consumer group eliminados correctamente."
+      "Offsets del Consumer Group eliminados correctamente."
     );
-    respuesta.put("groupId", groupId);
+    respuesta.put("groupId", idGrupo);
     respuesta.put("offsetsEliminados", eliminadas.size());
     respuesta.put("particiones", eliminadas);
 
@@ -1296,7 +1482,20 @@ public class AdminService {
     ResetConsumerGroupOffsetsRequest request
   ) throws Exception {
 
-    if (request == null || request.getEstrategia() == null) {
+    // Validar identificador
+    if (groupId == null || groupId.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+        "Debe proporcionar un identificador de consumer group."
+      );
+    }
+
+    groupId = groupId.trim();
+
+    // Validar solicitud y estrategia
+    if (request == null
+      || request.getEstrategia() == null
+      || request.getEstrategia().trim().isEmpty()) {
+
       throw new IllegalArgumentException(
         "Debe indicar una estrategia de reinicio."
       );
@@ -1314,12 +1513,18 @@ public class AdminService {
       );
     }
 
-    // Verifica que el consumer group esté vacío
+    // Verificar que el consumer group esté vacío
     ConsumerGroupDescription description = adminClient
       .describeConsumerGroups(Collections.singleton(groupId))
       .all()
       .get()
       .get(groupId);
+
+    if (description == null) {
+      throw new IllegalArgumentException(
+        "No se encontró el consumer group: " + groupId
+      );
+    }
 
     if (description.state() != ConsumerGroupState.EMPTY
       || !description.members().isEmpty()) {
@@ -1329,50 +1534,44 @@ public class AdminService {
       );
     }
 
-    // Obtener offsets actuales
+    // Obtener offsets actuales del consumer group
     Map<TopicPartition, OffsetAndMetadata> offsetsActuales =
-      adminClient
-        .listConsumerGroupOffsets(groupId)
+      adminClient.listConsumerGroupOffsets(groupId)
         .partitionsToOffsetAndMetadata()
         .get();
 
-    if (offsetsActuales.isEmpty()) {
+    if (offsetsActuales == null || offsetsActuales.isEmpty()) {
       throw new IllegalStateException(
         "El consumer group no tiene offsets comprometidos."
       );
     }
 
-    // Consulta límites disponibles para las particiones
-    Map<TopicPartition, OffsetSpec> earliestSpecs =
-      new LinkedHashMap<>();
-
-    Map<TopicPartition, OffsetSpec> latestSpecs =
-      new LinkedHashMap<>();
+    // Consultar límites EARLIEST y LATEST
+    Map<TopicPartition, OffsetSpec> earliestSpecs = new HashMap<>();
+    Map<TopicPartition, OffsetSpec> latestSpecs = new HashMap<>();
 
     for (TopicPartition tp : offsetsActuales.keySet()) {
       earliestSpecs.put(tp, OffsetSpec.earliest());
       latestSpecs.put(tp, OffsetSpec.latest());
     }
 
-    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
-      earliestOffsets = adminClient
-      .listOffsets(earliestSpecs)
-      .all()
-      .get();
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> earliestOffsets =
+      adminClient.listOffsets(earliestSpecs)
+        .all()
+        .get();
 
-    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo>
-      latestOffsets = adminClient
-      .listOffsets(latestSpecs)
-      .all()
-      .get();
+    Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> latestOffsets =
+      adminClient.listOffsets(latestSpecs)
+        .all()
+        .get();
 
-    // Prepara offsets nuevos
+    // Preparar nuevos offsets y detalles
     Map<TopicPartition, OffsetAndMetadata> nuevosOffsets =
       new LinkedHashMap<>(offsetsActuales);
 
-    List<Map<String, Object>> detalles =
-      new ArrayList<>();
+    List<Map<String, Object>> detalles = new ArrayList<>();
 
+    // Aplicar estrategia EARLIEST o LATEST
     if (estrategia.equals("EARLIEST")
       || estrategia.equals("LATEST")) {
 
@@ -1410,7 +1609,7 @@ public class AdminService {
 
     } else {
 
-      // Valida offsets específicos
+      // Validar offsets específicos (OFFSET)
       List<ResetConsumerGroupOffsetsRequest.PartitionOffset>
         solicitados = request.getOffsets();
 
@@ -1422,8 +1621,7 @@ public class AdminService {
 
       Set<TopicPartition> procesados = new HashSet<>();
 
-      for (ResetConsumerGroupOffsetsRequest.PartitionOffset item :
-        solicitados) {
+      for (ResetConsumerGroupOffsetsRequest.PartitionOffset item : solicitados) {
 
         if (item == null
           || item.getTopic() == null
@@ -1503,13 +1701,43 @@ public class AdminService {
       }
     }
 
-    // Aplica los nuevos offsets
-    adminClient.alterConsumerGroupOffsets(
-      groupId,
-      nuevosOffsets
-    ).all().get();
+    // Aplicar los nuevos offsets y comprobar cada partición
+    AlterConsumerGroupOffsetsResult alteracion =
+      adminClient.alterConsumerGroupOffsets(
+        groupId,
+        nuevosOffsets
+      );
 
-    // Respuesta
+    List<String> actualizadas = new ArrayList<>();
+    List<String> fallidas = new ArrayList<>();
+
+    for (TopicPartition tp : nuevosOffsets.keySet()) {
+
+      try {
+        alteracion.partitionResult(tp).get();
+
+        actualizadas.add(
+          tp.topic() + "-" + tp.partition()
+        );
+
+      } catch (Exception e) {
+
+        fallidas.add(
+          tp.topic() + "-" + tp.partition()
+            + ": " + e.getMessage()
+        );
+      }
+    }
+
+    if (!fallidas.isEmpty()) {
+      throw new IllegalStateException(
+        "La actualización de offsets fue parcial. "
+          + "Particiones actualizadas: " + actualizadas
+          + ". Particiones fallidas: " + fallidas
+      );
+    }
+
+    // Construir respuesta
     Map<String, Object> resultado = new LinkedHashMap<>();
 
     resultado.put("groupId", groupId);
@@ -1523,6 +1751,5 @@ public class AdminService {
 
     return resultado;
   }
-
 
 }
