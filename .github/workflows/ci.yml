@@ -280,23 +280,22 @@ jobs:
             flaky
             retry
 
-      - name: Publicar reporte en GitHub Pages
+      - name: Preparar publicacion de Pages
         if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'deploy')
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./allure-report
-          destination_dir: ${{ github.ref_name }}
-          keep_files: true
+        run: |
+          rm -rf pages-publish
+          mkdir -p pages-publish
+          cp -R allure-report "pages-publish/${{ github.ref_name }}"
+          cp tools/allure/site/index.html pages-publish/index.html
+          touch pages-publish/.nojekyll
 
-      - name: Publicar indice de reportes en la raiz
+      - name: Publicar reporte e indice en GitHub Pages
         if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'deploy')
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: ./tools/allure/site
+          publish_dir: ./pages-publish
           destination_dir: .
           keep_files: true
           enable_jekyll: false
