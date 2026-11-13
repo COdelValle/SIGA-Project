@@ -289,3 +289,14 @@ jobs:
           publish_dir: ./allure-report
           destination_dir: ${{ github.ref_name }}
           keep_files: true
+
+      - name: Publicar indice de reportes en la raiz
+        if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'deploy')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./tools/allure/site
+          destination_dir: .
+          keep_files: true
+          enable_jekyll: false

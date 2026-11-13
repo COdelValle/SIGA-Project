@@ -201,6 +201,17 @@ jobs:
           destination_dir: deploy
           keep_files: true
 
+      - name: Publicar indice de reportes en la raiz
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./tools/allure/site
+          destination_dir: .
+          keep_files: true
+          enable_jekyll: false
+
   build-and-deploy:
     name: Build, push a ECR y deploy en EC2
     needs: verify

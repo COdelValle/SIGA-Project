@@ -109,6 +109,10 @@ El workflow `.github/workflows/ci.yml`:
 3. Genera un unico reporte Allure con `allurerc.mjs`.
 4. Comenta el resumen en el PR con `allure-framework/allure-action`.
 5. Publica en GitHub Pages las ramas `main`, `dev` y `deploy`.
+6. Publica un indice en la raiz que redirige a `/dev/` y enlaza las demas ramas.
+
+La raiz `https://codelvalle.github.io/SIGA-Project/` abre ese indice; el reporte
+de cada rama vive en `/dev/`, `/main/` o `/deploy/`.
 
 El workflow `.github/workflows/cd.yml` ejecuta la misma verificacion antes de
 desplegar y publica el reporte en `/deploy/`.
