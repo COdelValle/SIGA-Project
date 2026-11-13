@@ -1,6 +1,6 @@
 # Provisionamiento de topics Kafka – SIGA Académico
 
-## 1. Objetivo
+## 1. Objetivo principal
 
 Definir y provisionar los topics requeridos por SIGA Académico para el manejo de eventos de rendimiento y asistencia estudiantil.
 
