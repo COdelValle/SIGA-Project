@@ -104,3 +104,4 @@ Se incluye:
 - **LAG > 0:** existen mensajes pendientes de consumir.
 - **LAG creciente:** puede existir un consumidor lento, detenido o con capacidad insuficiente.
 
+.
