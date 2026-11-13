@@ -18,7 +18,8 @@ spring:
 
   kafka:
     bootstrap-servers: kafka-1:29092,kafka-2:29092,kafka-3:29092
-
+    admin:
+      fail-fast: true
     consumer:
       group-id: kafka-siga
       auto-offset-reset: earliest
