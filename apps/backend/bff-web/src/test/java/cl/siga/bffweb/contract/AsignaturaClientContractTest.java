@@ -39,7 +39,8 @@ class AsignaturaClientContractTest extends AbstractFeignContractTest {
              "totalInscritos":5,"horarios":[]}
             """);
 
-        CursoAsignaturaResponseDTO curso = asignaturaClient.getCursoAsignaturaById(3L);
+        CursoAsignaturaResponseDTO curso = paso("GET /api/v1/curso-asignaturas/3",
+            () -> asignaturaClient.getCursoAsignaturaById(3L));
 
         assertThat(curso).isNotNull();
         assertThat(curso.id()).isEqualTo(3L);

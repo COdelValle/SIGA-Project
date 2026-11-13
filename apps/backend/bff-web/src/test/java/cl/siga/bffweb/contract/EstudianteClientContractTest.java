@@ -38,7 +38,8 @@ class EstudianteClientContractTest extends AbstractFeignContractTest {
              "allergies":[],"state":"ACTIVO","idClase":4}
             """);
 
-        EstudianteResponseDTO estudiante = estudianteClient.getEstudianteById(1L);
+        EstudianteResponseDTO estudiante = paso("GET /api/v1/estudiantes/1",
+            () -> estudianteClient.getEstudianteById(1L));
 
         assertThat(estudiante).isNotNull();
         assertThat(estudiante.id()).isEqualTo(1L);

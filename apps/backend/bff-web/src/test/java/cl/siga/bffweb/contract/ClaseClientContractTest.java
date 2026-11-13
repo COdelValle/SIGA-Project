@@ -34,7 +34,8 @@ class ClaseClientContractTest extends AbstractFeignContractTest {
         stubGet("/api/v1/clases/4",
             "{\"id\":4,\"nivel\":\"8vo Básico\",\"letra\":\"A\",\"anioAcademico\":2026,\"idDocenteJefe\":1}");
 
-        ClaseResponseDTO clase = claseClient.getClaseById(4L);
+        ClaseResponseDTO clase = paso("GET /api/v1/clases/4",
+            () -> claseClient.getClaseById(4L));
 
         assertThat(clase).isNotNull();
         assertThat(clase.id()).isEqualTo(4L);

@@ -4,7 +4,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +23,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 
 import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import io.qameta.allure.Allure;
 import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
 import cl.siga.bffweb.integration.asistencias.AsistenciaClient;
 import cl.siga.bffweb.integration.clases.ClaseClient;
@@ -36,19 +39,21 @@ public abstract class AbstractFeignContractTest {
 
     protected WireMockServer server;
     protected OpenApiValidationListener validation;
+    protected Path specPath;
 
     protected abstract String specFile();
 
     protected abstract int port();
 
     @BeforeEach
-    void iniciarWireMock() {
-        Path spec = Path.of("..", "..", "..", "docs", "openapi", specFile()).normalize();
-        validation = new OpenApiValidationListener(spec.toAbsolutePath().toUri().toString());
+    void iniciarWireMock() throws Exception {
+        specPath = Path.of("..", "..", "..", "docs", "openapi", specFile()).normalize();
+        validation = new OpenApiValidationListener(specPath.toAbsolutePath().toUri().toString());
         server = new WireMockServer(WireMockConfiguration.options()
             .port(port())
             .extensions(validation));
         server.start();
+        Allure.attachment("openapi-spec", Files.readString(specPath));
     }
 
     @AfterEach
@@ -59,14 +64,20 @@ public abstract class AbstractFeignContractTest {
     }
 
     protected void stubGet(String path, String json) {
+        Allure.attachment("stub-request", path);
+        Allure.attachment("stub-response", json);
         server.stubFor(get(urlPathEqualTo(path))
             .willReturn(aResponse()
                 .withHeader("Content-Type", "application/json")
                 .withBody(json)));
     }
 
+    protected <T> T paso(String nombre, Supplier<T> llamada) {
+        return Allure.step(nombre, () -> llamada.get());
+    }
+
     protected void assertContrato() {
-        validation.assertValidationPassed();
+        Allure.step("Validar contrato OpenAPI", () -> validation.assertValidationPassed());
     }
 
     @SpringBootConfiguration

@@ -114,12 +114,19 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Preparar artefacto Allure del frontend
+        if: always()
+        run: |
+          rm -rf allure-artifact
+          mkdir -p allure-artifact/allure-results
+          cp -R allure-results/. allure-artifact/allure-results/
+
       - name: Guardar resultados Allure del frontend
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-allure-${{ github.sha }}
-          path: apps/frontend/allure-results
+          path: apps/frontend/allure-artifact
           if-no-files-found: warn
           retention-days: 30
 
@@ -161,12 +168,19 @@ jobs:
       - name: Ejecutar E2E
         run: npm run e2e
 
+      - name: Preparar artefacto Allure de E2E
+        if: always()
+        run: |
+          rm -rf allure-artifact
+          mkdir -p allure-artifact/allure-results-e2e
+          cp -R allure-results-e2e/. allure-artifact/allure-results-e2e/
+
       - name: Guardar resultados Allure de E2E
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-e2e-allure-${{ github.sha }}
-          path: apps/frontend/allure-results-e2e
+          path: apps/frontend/allure-artifact
           if-no-files-found: warn
           retention-days: 30
 
@@ -202,12 +216,19 @@ jobs:
           --dir tools/infra/allure-results --
           docker compose --env-file .env.example config -q
 
+      - name: Preparar artefacto Allure de infraestructura
+        if: always()
+        run: |
+          rm -rf allure-artifact
+          mkdir -p allure-artifact/allure-results
+          cp -R tools/infra/allure-results/. allure-artifact/allure-results/
+
       - name: Guardar resultados Allure de infraestructura
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: infra-allure-${{ github.sha }}
-          path: tools/infra/allure-results
+          path: allure-artifact
           if-no-files-found: warn
           retention-days: 30
 
@@ -249,6 +270,9 @@ jobs:
           key: allure-history-${{ env.ALLURE_BRANCH }}-${{ github.run_id }}
           restore-keys: |
             allure-history-${{ env.ALLURE_BRANCH }}-
+
+      - name: Verificar que esten todas las suites
+        run: node tools/allure/verify-results.mjs allure-results-download
 
       - name: Sanitizar resultados
         run: |

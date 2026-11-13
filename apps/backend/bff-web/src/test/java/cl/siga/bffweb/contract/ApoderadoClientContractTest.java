@@ -38,7 +38,8 @@ class ApoderadoClientContractTest extends AbstractFeignContractTest {
              "estudiantes":[],"activo":true}
             """);
 
-        ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario("u1");
+        ApoderadoResponseDTO apoderado = paso("GET /api/v1/apoderados/idUsuario/u1",
+            () -> apoderadoClient.getApoderadoByIdUsuario("u1"));
 
         assertThat(apoderado).isNotNull();
         assertThat(apoderado.id()).isEqualTo(2L);

@@ -42,7 +42,7 @@ class NotaClientContractTest extends AbstractFeignContractTest {
         stubGet("/api/v1/notas/7",
             "{\"id\":7,\"idEstudiante\":1,\"idEvaluacion\":9,\"score\":6.5}");
 
-        NotaResponseDTO nota = notaClient.getNotaById(7L);
+        NotaResponseDTO nota = paso("GET /api/v1/notas/7", () -> notaClient.getNotaById(7L));
 
         assertThat(nota).isNotNull();
         assertThat(nota.id()).isEqualTo(7L);

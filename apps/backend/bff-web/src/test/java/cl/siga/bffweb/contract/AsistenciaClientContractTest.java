@@ -37,7 +37,8 @@ class AsistenciaClientContractTest extends AbstractFeignContractTest {
              "estado":"PRESENTE","justificacion":"NO_APLICA","observacion":"Sin observacion"}
             """);
 
-        AsistenciaResponseDTO asistencia = asistenciaClient.getAsistenciaById(1L);
+        AsistenciaResponseDTO asistencia = paso("GET /api/v1/asistencias/1",
+            () -> asistenciaClient.getAsistenciaById(1L));
 
         assertThat(asistencia).isNotNull();
         assertThat(asistencia.id()).isEqualTo(1L);

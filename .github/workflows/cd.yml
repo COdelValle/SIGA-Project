@@ -92,20 +92,36 @@ jobs:
           path: apps/frontend/dist/test-results/frontend-junit.xml
           if-no-files-found: warn
 
+      - name: Preparar artefacto Allure del frontend
+        if: always()
+        working-directory: apps/frontend
+        run: |
+          rm -rf allure-artifact
+          mkdir -p allure-artifact/allure-results
+          cp -R allure-results/. allure-artifact/allure-results/
+
       - name: Guardar resultados Allure del frontend
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-allure-${{ github.sha }}
-          path: apps/frontend/allure-results
+          path: apps/frontend/allure-artifact
           if-no-files-found: warn
+
+      - name: Preparar artefacto Allure de E2E
+        if: always()
+        working-directory: apps/frontend
+        run: |
+          rm -rf allure-artifact-e2e
+          mkdir -p allure-artifact-e2e/allure-results-e2e
+          cp -R allure-results-e2e/. allure-artifact-e2e/allure-results-e2e/
 
       - name: Guardar resultados Allure de E2E
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-e2e-allure-${{ github.sha }}
-          path: apps/frontend/allure-results-e2e
+          path: apps/frontend/allure-artifact-e2e
           if-no-files-found: warn
 
       - name: Guardar cobertura del frontend
@@ -171,6 +187,9 @@ jobs:
           key: allure-history-deploy-${{ github.run_id }}
           restore-keys: |
             allure-history-deploy-
+
+      - name: Verificar que esten todas las suites
+        run: node tools/allure/verify-results.mjs allure-results-download
 
       - name: Sanitizar resultados
         run: |

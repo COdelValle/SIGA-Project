@@ -82,14 +82,13 @@ test('la autenticacion simulada entra al portal admin con JWT de prueba', async 
 
   await page.route('**/api/me', async (route) => {
     authorization = route.request().headers()['authorization'];
-    await route.fulfill({
-      json: {
-        id: 'e2e',
-        email: 'e2e@siga.cl',
-        displayName: 'E2E SIGA',
-        roles: ['ADMIN'],
-      },
-    });
+    const body = {
+      id: 'e2e',
+      email: 'e2e@siga.cl',
+      displayName: 'E2E SIGA',
+      roles: ['ADMIN'],
+    };
+    await route.fulfill({ json: body });
   });
 
   await page.goto('/');
