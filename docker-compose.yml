@@ -734,6 +734,7 @@ services:
       - "8095:8095"
     environment:
       <<: *ms-common-env
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
     depends_on:

@@ -601,6 +601,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *ms-common-env
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SERVER_PORT: "8095"
       SPRING_PROFILES_ACTIVE: aws
       KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
