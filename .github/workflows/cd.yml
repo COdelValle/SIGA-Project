@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: cd-deploy
@@ -70,9 +70,17 @@ jobs:
 
       - name: Pruebas frontend
         working-directory: apps/frontend
-        run: npm test -- --watch=false
+        run: npm test -- --watch=false --coverage
 
-      - name: Build de producción del frontend
+      - name: Instalar Chromium de Playwright
+        working-directory: apps/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E con autenticacion simulada
+        working-directory: apps/frontend
+        run: npm run e2e
+
+      - name: Build de producci��n del frontend
         working-directory: apps/frontend
         run: npm run build -- --configuration production
 
@@ -83,7 +91,115 @@ jobs:
           name: frontend-junit-${{ github.sha }}
           path: apps/frontend/dist/test-results/frontend-junit.xml
           if-no-files-found: warn
+
+      - name: Guardar resultados Allure del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-allure-${{ github.sha }}
+          path: apps/frontend/allure-results
+          if-no-files-found: warn
+
+      - name: Guardar resultados Allure de E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-allure-${{ github.sha }}
+          path: apps/frontend/allure-results-e2e
+          if-no-files-found: warn
+
+      - name: Guardar cobertura del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: apps/frontend/coverage
+          if-no-files-found: warn
+
+      - name: Guardar resultados Allure del backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-allure-${{ github.sha }}
+          path: apps/backend/**/target/allure-results
+          if-no-files-found: warn
+
+      - name: Guardar cobertura del backend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-${{ github.sha }}
+          path: apps/backend/**/target/site/jacoco
+          if-no-files-found: warn
           retention-days: 30
+
+  allure-report:
+    name: Reporte Allure centralizado (deploy)
+    needs: verify
+    if: github.ref == 'refs/heads/deploy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLURE_BRANCH: deploy
+      ALLURE_RUN: ${{ github.run_number }}
+      ALLURE_COMMIT: ${{ github.sha }}
+      ALLURE_ENV: deploy
+      ALLURE_HISTORY_PATH: .allure-history/deploy.jsonl
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependencias de reporte
+        run: npm ci --ignore-scripts
+
+      - name: Descargar resultados Allure
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*allure-${{ github.sha }}'
+          path: allure-results-download
+
+      - name: Restaurar historial de Allure
+        uses: actions/cache@v4
+        with:
+          path: .allure-history
+          key: allure-history-deploy-${{ github.run_id }}
+          restore-keys: |
+            allure-history-deploy-
+
+      - name: Sanitizar resultados
+        run: |
+          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \))
+          node tools/allure/sanitize-results.mjs "${RESULT_DIRS[@]}"
+
+      - name: Generar reporte Allure
+        run: |
+          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \))
+          npx allure generate "${RESULT_DIRS[@]}" --config allurerc.mjs --clean
+
+      - name: Guardar reporte Allure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.sha }}
+          path: allure-report
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publicar reporte en GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./allure-report
+          destination_dir: deploy
+          keep_files: true
 
   build-and-deploy:
     name: Build, push a ECR y deploy en EC2

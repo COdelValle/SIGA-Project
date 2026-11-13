@@ -11,7 +11,14 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
 
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
@@ -25,6 +32,11 @@ import cl.siga.msnotas.model.entity.Nota;
 import cl.siga.msnotas.model.mapper.NotaMapperImpl;
 import cl.siga.msnotas.repository.NotaRepository;
 
+@Epic("Gestion Academica")
+@Feature("Notas")
+@Owner("backend")
+@Severity(SeverityLevel.CRITICAL)
+@Tag("unit")
 class NotaServiceTest {
 
     private final NotaRepository repository = mock(NotaRepository.class);
