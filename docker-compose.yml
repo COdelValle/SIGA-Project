@@ -28,7 +28,6 @@ volumes:
   kafka1_data:
   kafka2_data:
   kafka3_data:
-  kafka_admin_data:
 
 # Configuración común a las instancias MariaDB (database-per-service)
 x-mariadb-common: &mariadb-common
@@ -244,24 +243,6 @@ services:
       retries: 10
     networks:
       - siga-network
-  mariadb-kafka:
-    image: mariadb:11.4
-    container_name: mariadb-kafka
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-RAHHH234}
-      MARIADB_DATABASE: kafka_database
-      MARIADB_USER: ${KFK_USER:-kafka233}
-      MARIADB_PASSWORD: ${KFK_PASS:-fakta2}
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - siga-network
-    volumes:
-      - kafka_admin_data:/var/lib/mysql
 
   # ---------------------------------------------------------------
   # Microservicios
@@ -753,12 +734,8 @@ services:
       - "8095:8095"
     environment:
       <<: *ms-common-env
-      KFK_USER: kafka233
-      KFK_PASS: fakta2
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-kafka:3306/kafka_database
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       mariadb-kafka:
         condition: service_healthy
