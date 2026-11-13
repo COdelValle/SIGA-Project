@@ -178,6 +178,7 @@ jobs:
           echo "MS_ASIS_ECR=${REGISTRY}/siga-asistencias" >> $GITHUB_ENV
           echo "MS_NOTIF_ECR=${REGISTRY}/siga-notificaciones" >> $GITHUB_ENV
           echo "MS_RABBIT_ADMIN_ECR=${REGISTRY}/siga-rabbitmq-admin" >> $GITHUB_ENV
+          echo "MS_KAFKA_ADMIN_ECR=${REGISTRY}/siga-kafka-admin" >> $GITHUB_ENV
 
       # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
       # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
@@ -270,6 +271,13 @@ jobs:
             -t $MS_RABBIT_ADMIN_ECR:${TAG_VERSION} -t $MS_RABBIT_ADMIN_ECR:latest \
             -f ./apps/backend/ms-rabbitmq-admin/Dockerfile ./apps/backend --push
 
+      - name: Build & Push - ms-kafka-admin
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_KAFKA_ADMIN_ECR:${TAG_VERSION} -t $MS_KAFKA_ADMIN_ECR:latest \
+            -f ./apps/backend/ms-kafka-admin/Dockerfile ./apps/backend --push
+
+
       - name: Build & Push - bff-web
         run: |
           docker buildx build --platform linux/amd64 \
@@ -351,7 +359,16 @@ jobs:
             PANEL_HOST="${EC2_HOST//./-}.sslip.io"
             cat > /home/ubuntu/siga/Caddyfile <<CADDY
             $PANEL_HOST {
+              redir /kafka-ui /kafka-ui/ 308
+              # Panel de RabbitMQ
+              handle {
                 reverse_proxy rabbitmq1:15672
+              }
+
+              # Panel de Kafka UI
+              handle /kafka-ui/* {
+                reverse_proxy kafka-ui:8080
+              }
             }
             CADDY
 

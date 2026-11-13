@@ -129,3 +129,13 @@ resource "aws_ecr_repository" "rabbitmq_admin" {
     scan_on_push = true
   }
 }
+
+resource "aws_ecr_repository" "kafka_admin" {
+  name                 = "siga-kafka-admin"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
