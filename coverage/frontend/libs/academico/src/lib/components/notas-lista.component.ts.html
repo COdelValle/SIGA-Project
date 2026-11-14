@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.69% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>15/26</span>
+                <span class='fraction'>26/26</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.57% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.75% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/16</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -110,37 +110,37 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">25x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">25x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">25x</span>
+<span class="cline-any cline-yes">25x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">25x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, Input } from '@angular/core';
@@ -152,21 +152,21 @@ import { NotaItem, formatearNota } from '../models/academico.model';
   template: `
     &lt;div class="overflow-hidden rounded-xl border border-gold/60"&gt;
       @for (item of items; track item.asignatura) {
-<span class="cstat-no" title="statement not covered" >        &lt;div</span>
+        &lt;div
           class="flex items-center justify-between px-4 py-3 text-sm text-ink"
-<span class="cstat-no" title="statement not covered" >          [class.bg-surface]="$odd"</span>
+          [class.bg-surface]="$odd"
           [class.bg-panel]="!$odd"
         &gt;
-          &lt;span&gt;<span class="cstat-no" title="statement not covered" >{{ item.asignatura }}<span class="cstat-no" title="statement not covered" >&lt;</span>/span&gt;</span>
-<span class="cstat-no" title="statement not covered" >          &lt;span <span class="cstat-no" title="statement not covered" >[</span>class]="'font-semibold ' + notaClass(item.nota)"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ formatear(item.nota) }}<span class="cstat-no" title="statement not covered" >&lt;</span>/span&gt;</span>
+          &lt;span&gt;{{ item.asignatura }}&lt;/span&gt;
+          &lt;span [class]="'font-semibold ' + notaClass(item.nota)"&gt;{{ formatear(item.nota) }}&lt;/span&gt;
         &lt;/div&gt;
       } @empty {
-<span class="cstat-no" title="statement not covered" >        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;<span class="cstat-no" title="statement not covered" >S</span>in notas registradas.<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;Sin notas registradas.&lt;/p&gt;
       }
     &lt;/div&gt;
   `,
 })
-export class NotasListaComponent<span class="missing-if-branch" title="else path not taken" >E</span> {
+export class NotasListaComponent {
   @Input() items: NotaItem[] = [];
 &nbsp;
   protected formatear(valor: number): string {
@@ -174,10 +174,10 @@ export class NotasListaComponent<span class="missing-if-branch" title="else path
   }
 &nbsp;
   protected notaClass(nota: number): string {
-    <span class="missing-if-branch" title="else path not taken" >E</span>if (nota &gt;= 6) {
+    if (nota &gt;= 6) {
       return 'text-ok';
     }
-    <span class="missing-if-branch" title="else path not taken" >E</span>if (nota &lt; 4) {
+    if (nota &lt; 4) {
       return 'text-bad';
     }
     return 'text-warn';
@@ -190,7 +190,7 @@ export class NotasListaComponent<span class="missing-if-branch" title="else path
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T03:14:25.528Z
+                at 2026-11-14T16:26:28.525Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

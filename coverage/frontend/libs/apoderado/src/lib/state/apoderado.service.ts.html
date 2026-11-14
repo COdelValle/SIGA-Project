@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">10% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/20</span>
+                <span class='fraction'>12/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">15% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/20</span>
+                <span class='fraction'>10/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>4/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.25% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/16</span>
+                <span class='fraction'>8/16</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -168,33 +168,33 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { HttpClient } from '@angular/common/http';
@@ -234,20 +234,20 @@ function <span class="fstat-no" title="function not covered" >relacionDisplay(r<
  * `null`; los errores reales se propagan a la vista (sin fallback a mocks).
  */
 @Injectable({ providedIn: 'root' })
-export class <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >ApoderadoService {</span></span>
-  private readonly http = <span class="cstat-no" title="statement not covered" >inject(HttpClient);</span>
-  private readonly config = <span class="cstat-no" title="statement not covered" >inject(APP_CONFIG);</span>
+export class ApoderadoService {
+  private readonly http = inject(HttpClient);
+  private readonly config = inject(APP_CONFIG);
   private cache$?: Observable&lt;Pupilo[] | null&gt;;
 &nbsp;
-<span class="fstat-no" title="function not covered" >  getPupilos(): Observable&lt;Pupilo[] | null&gt; </span>{
-<span class="cstat-no" title="statement not covered" >    if (!this.cache$) {</span>
-<span class="cstat-no" title="statement not covered" >      this.cache$ = this.config.useMocks</span>
+  getPupilos(): Observable&lt;Pupilo[] | null&gt; {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!this.cache$) {
+      this.cache$ = this.config.useMocks
         ? of&lt;Pupilo[] | null&gt;(null)
         : this.http
             .get&lt;PupiloDTO[]&gt;(`${this.config.bffBaseUrl}/bff/v1/apoderados/pupilos`)
             .pipe(
-              map(<span class="fstat-no" title="function not covered" >(p</span>upilos) =&gt;
-<span class="cstat-no" title="statement not covered" >                pupilos.map(<span class="fstat-no" title="function not covered" >(p</span>upilo) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+              map((pupilos) =&gt;
+                pupilos.map((pupilo) =&gt; ({
                   id: pupilo.id,
                   nombre: pupilo.nombre,
                   relacion: relacionDisplay(pupilo.relacion),
@@ -256,12 +256,12 @@ export class <span class="cstat-no" title="statement not covered" ><span class="
               ),
             );
     }
-<span class="cstat-no" title="statement not covered" >    return this.cache$.pipe(shareReplay(1));</span>
+    return this.cache$.pipe(shareReplay(1));
   }
 &nbsp;
   /** Invalida el cache de pupilos para forzar una recarga. */
-<span class="fstat-no" title="function not covered" >  invalidar(): void </span>{
-<span class="cstat-no" title="statement not covered" >    this.cache$ = undefined;</span>
+  invalidar(): void {
+    this.cache$ = undefined;
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -271,7 +271,7 @@ export class <span class="cstat-no" title="statement not covered" ><span class="
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T03:14:25.528Z
+                at 2026-11-14T16:26:28.525Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

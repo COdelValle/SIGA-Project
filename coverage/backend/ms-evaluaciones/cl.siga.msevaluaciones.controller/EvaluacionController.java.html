@@ -33,7 +33,7 @@ public class EvaluacionController {
   @GetMapping(&quot;/{id}&quot;)
   @PreAuthorize(&quot;hasAuthority('SCOPE_evaluaciones:read')&quot;)
   public ResponseEntity&lt;EvaluacionResponseDTO&gt; getEvaluacionById(@PathVariable Long id) {
-<span class="nc" id="L36">    return ResponseEntity.ok(evaluacionService.getEvaluacionById(id));</span>
+<span class="fc" id="L36">    return ResponseEntity.ok(evaluacionService.getEvaluacionById(id));</span>
   }
 
   @GetMapping(&quot;/search&quot;)
@@ -44,13 +44,13 @@ public class EvaluacionController {
     @RequestParam(required = false) Long idCursoAsignatura,
     @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
   ) {
-<span class="nc" id="L47">    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idCursoAsignatura, pageable));</span>
+<span class="fc" id="L47">    return ResponseEntity.ok(evaluacionService.searchEvaluaciones(nombre, tipo, idCursoAsignatura, pageable));</span>
   }
 
   @PostMapping
   @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:write')&quot;)
   public ResponseEntity&lt;EvaluacionResponseDTO&gt; registrarEvaluacion(@RequestBody @Valid RegistrarEvaluacionRequestDTO request) {
-<span class="nc" id="L53">    return ResponseEntity.status(HttpStatus.CREATED).body(evaluacionService.saveEvaluacion(request));</span>
+<span class="fc" id="L53">    return ResponseEntity.status(HttpStatus.CREATED).body(evaluacionService.saveEvaluacion(request));</span>
   }
 
   @PutMapping(&quot;/{id}&quot;)
@@ -59,20 +59,20 @@ public class EvaluacionController {
     @PathVariable Long id,
     @RequestBody @Valid ActualizarEvaluacionRequestDTO request
   ) {
-<span class="nc" id="L62">    return ResponseEntity.ok(evaluacionService.updateEvaluacion(id, request));</span>
+<span class="fc" id="L62">    return ResponseEntity.ok(evaluacionService.updateEvaluacion(id, request));</span>
   }
 
   @DeleteMapping(&quot;/{id}&quot;)
   @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:delete')&quot;)
   public ResponseEntity&lt;Void&gt; deleteEvaluacion(@PathVariable Long id) {
-<span class="nc" id="L68">    evaluacionService.deleteEvaluacion(id);</span>
-<span class="nc" id="L69">    return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L68">    evaluacionService.deleteEvaluacion(id);</span>
+<span class="fc" id="L69">    return ResponseEntity.noContent().build();</span>
   }
 
   @GetMapping(&quot;/exists/{id}&quot;)
   @PreAuthorize(&quot;hasAuthority('SCOPE_evaluaciones:read')&quot;)
   public ResponseEntity&lt;Boolean&gt; existsEvaluacionById(@PathVariable Long id) {
-<span class="nc" id="L75">    return ResponseEntity.ok(evaluacionService.existsEvaluacionById(id));</span>
+<span class="fc" id="L75">    return ResponseEntity.ok(evaluacionService.existsEvaluacionById(id));</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

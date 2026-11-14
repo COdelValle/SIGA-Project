@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">56.75% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>21/37</span>
+                <span class='fraction'>37/37</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">58.82% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/17</span>
+                <span class='fraction'>17/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -108,36 +108,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">20x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, Input } from '@angular/core';
 import { HorarioBloque } from '../models/academico.model';
@@ -158,15 +158,15 @@ import { HorarioBloque } from '../models/academico.model';
         &lt;/thead&gt;
         &lt;tbody&gt;
           @for (bloque of bloques; track $index) {
-<span class="cstat-no" title="statement not covered" >            &lt;tr class="text-ink" <span class="cstat-no" title="statement not covered" >[class.bg-surface]="$odd" [class.bg-panel]="!$odd"&gt;</span></span>
-              &lt;td class="px-4 py-3 align-middle"&gt;<span class="cstat-no" title="statement not covered" >{{ bloque.hora }}<span class="cstat-no" title="statement not covered" >&lt;</span>/td&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;td class="px-4 py-3 align-middle"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.asignatura }}<span class="cstat-no" title="statement not covered" >&lt;</span>/td&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;td class="px-4 py-3 align-middle"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.profesor }}<span class="cstat-no" title="statement not covered" >&lt;</span>/td&gt;</span>
-<span class="cstat-no" title="statement not covered" >              &lt;td class="px-4 py-3 align-middle"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.sala }}<span class="cstat-no" title="statement not covered" >&lt;</span>/td&gt;</span>
+            &lt;tr class="text-ink" [class.bg-surface]="$odd" [class.bg-panel]="!$odd"&gt;
+              &lt;td class="px-4 py-3 align-middle"&gt;{{ bloque.hora }}&lt;/td&gt;
+              &lt;td class="px-4 py-3 align-middle"&gt;{{ bloque.asignatura }}&lt;/td&gt;
+              &lt;td class="px-4 py-3 align-middle"&gt;{{ bloque.profesor }}&lt;/td&gt;
+              &lt;td class="px-4 py-3 align-middle"&gt;{{ bloque.sala }}&lt;/td&gt;
             &lt;/tr&gt;
           } @empty {
-<span class="cstat-no" title="statement not covered" >            &lt;tr class="bg-panel text-muted"&gt;</span>
-              &lt;td class="px-4 py-6 text-center" colspan="4"&gt;<span class="cstat-no" title="statement not covered" >Sin bloques para este día.<span class="cstat-no" title="statement not covered" >&lt;</span>/td&gt;</span>
+            &lt;tr class="bg-panel text-muted"&gt;
+              &lt;td class="px-4 py-6 text-center" colspan="4"&gt;Sin bloques para este día.&lt;/td&gt;
             &lt;/tr&gt;
           }
         &lt;/tbody&gt;
@@ -174,7 +174,7 @@ import { HorarioBloque } from '../models/academico.model';
     &lt;/div&gt;
   `,
 })
-export class HorarioTablaComponent<span class="missing-if-branch" title="else path not taken" >E</span> {
+export class HorarioTablaComponent {
   @Input() bloques: HorarioBloque[] = [];
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -184,7 +184,7 @@ export class HorarioTablaComponent<span class="missing-if-branch" title="else pa
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T03:14:25.528Z
+                at 2026-11-14T16:26:28.525Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

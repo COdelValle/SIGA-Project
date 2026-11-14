@@ -37,7 +37,7 @@ public class AsistenciaController {
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('SCOPE_asistencias:read')&quot;)
     public ResponseEntity&lt;AsistenciaResponseDTO&gt; getAsistenciaById(@PathVariable Long id) {
-<span class="nc" id="L40">        return ResponseEntity.ok(asistenciaService.getAsistenciaById(id));</span>
+<span class="fc" id="L40">        return ResponseEntity.ok(asistenciaService.getAsistenciaById(id));</span>
     }
 
     @GetMapping(&quot;/search&quot;)
@@ -49,7 +49,7 @@ public class AsistenciaController {
             @RequestParam(required = false) LocalDate to,
             @RequestParam(required = false) State estado,
             @PageableDefault(size = 20, sort = &quot;fecha&quot;) Pageable pageable) {
-<span class="nc" id="L52">        return ResponseEntity.ok(asistenciaService.searchAsistencias(</span>
+<span class="fc" id="L52">        return ResponseEntity.ok(asistenciaService.searchAsistencias(</span>
             idEstudiante, idCursoAsignatura, from, to, estado, pageable));
     }
 
@@ -57,7 +57,7 @@ public class AsistenciaController {
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_asistencias:write')&quot;)
     public ResponseEntity&lt;AsistenciaResponseDTO&gt; registrarAsistencia(
             @Valid @RequestBody RegistrarAsistenciaRequestDTO request) {
-<span class="nc" id="L60">        return ResponseEntity.status(HttpStatus.CREATED).body(asistenciaService.saveAsistencia(request));</span>
+<span class="fc" id="L60">        return ResponseEntity.status(HttpStatus.CREATED).body(asistenciaService.saveAsistencia(request));</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
@@ -65,20 +65,20 @@ public class AsistenciaController {
     public ResponseEntity&lt;AsistenciaResponseDTO&gt; actualizarAsistencia(
             @PathVariable Long id,
             @Valid @RequestBody ActualizarAsistenciaRequestDTO request) {
-<span class="nc" id="L68">        return ResponseEntity.ok(asistenciaService.updateAsistencia(id, request));</span>
+<span class="fc" id="L68">        return ResponseEntity.ok(asistenciaService.updateAsistencia(id, request));</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asistencias:delete')&quot;)
     public ResponseEntity&lt;Void&gt; deleteAsistencia(@PathVariable Long id) {
-<span class="nc" id="L74">        asistenciaService.deleteAsistencia(id);</span>
-<span class="nc" id="L75">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L74">        asistenciaService.deleteAsistencia(id);</span>
+<span class="fc" id="L75">        return ResponseEntity.noContent().build();</span>
     }
 
     @GetMapping(&quot;/exists/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('SCOPE_asistencias:read')&quot;)
     public ResponseEntity&lt;Boolean&gt; existsAsistenciaById(@PathVariable Long id) {
-<span class="nc" id="L81">        return ResponseEntity.ok(asistenciaService.existsAsistenciaById(id));</span>
+<span class="fc" id="L81">        return ResponseEntity.ok(asistenciaService.existsAsistenciaById(id));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

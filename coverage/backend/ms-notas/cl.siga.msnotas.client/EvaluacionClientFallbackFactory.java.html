@@ -7,20 +7,20 @@ import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.exception.FeignFallbacks;
 
 @Component
-<span class="nc" id="L10">public class EvaluacionClientFallbackFactory implements FallbackFactory&lt;EvaluacionClient&gt; {</span>
+<span class="fc" id="L10">public class EvaluacionClientFallbackFactory implements FallbackFactory&lt;EvaluacionClient&gt; {</span>
 
     @Override
     public EvaluacionClient create(Throwable cause) {
-<span class="nc" id="L14">        return new EvaluacionClient() {</span>
+<span class="fc" id="L14">        return new EvaluacionClient() {</span>
             @Override
             public boolean existsById(Long id) {
-<span class="nc" id="L17">                throw FeignFallbacks.noDisponible(cause,</span>
+<span class="fc" id="L17">                throw FeignFallbacks.noDisponible(cause,</span>
                     &quot;No se pudo verificar la existencia de la evaluación &quot; + id);
             }
 
             @Override
             public EvaluacionResponseDTO getEvaluacionById(Long id) {
-<span class="nc" id="L23">                throw FeignFallbacks.noDisponible(cause,</span>
+<span class="fc" id="L23">                throw FeignFallbacks.noDisponible(cause,</span>
                     &quot;No se pudo obtener la evaluación &quot; + id);
             }
         };

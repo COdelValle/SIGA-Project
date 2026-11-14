@@ -53,17 +53,17 @@ public class PublicadorAsistencia {
 <span class="fc" id="L53">    }</span>
 
     private String nombreAsignatura(AsistenciaResponseDTO asistencia) {
-<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (asistencia.idCursoAsignatura() == null) {</span>
-<span class="nc" id="L57">            return null;</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (asistencia.idCursoAsignatura() == null) {</span>
+<span class="fc" id="L57">            return null;</span>
         }
         try {
 <span class="fc" id="L60">            CursoAsignaturaResponseDTO dictacion =</span>
 <span class="fc" id="L61">                    asignaturaClient.getCursoAsignaturaById(asistencia.idCursoAsignatura());</span>
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">            return dictacion == null ? null : dictacion.nombre();</span>
-<span class="nc" id="L63">        } catch (Exception error) {</span>
-<span class="nc" id="L64">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
-<span class="nc" id="L65">                    asistencia.idCursoAsignatura(), error.getMessage());</span>
-<span class="nc" id="L66">            return null;</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            return dictacion == null ? null : dictacion.nombre();</span>
+<span class="fc" id="L63">        } catch (Exception error) {</span>
+<span class="fc" id="L64">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
+<span class="fc" id="L65">                    asistencia.idCursoAsignatura(), error.getMessage());</span>
+<span class="fc" id="L66">            return null;</span>
         }
     }
 }

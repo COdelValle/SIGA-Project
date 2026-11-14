@@ -1,0 +1,10 @@
+$ terraform -chdir=infra/terraform validate
+
+exitCode: 0
+
+stdout:
+[32m[1mSuccess![0m The configuration is valid.
+[0m
+
+
+stderr:

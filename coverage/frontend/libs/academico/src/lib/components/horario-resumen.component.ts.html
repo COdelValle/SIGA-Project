@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">24.32% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/37</span>
+                <span class='fraction'>37/37</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">23.8% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/21</span>
+                <span class='fraction'>21/21</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -118,40 +118,40 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">20x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">20x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">20x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, Input } from '@angular/core';
 import { HorarioResumen } from '../models/academico.model';
@@ -165,37 +165,37 @@ import { HorarioResumen } from '../models/academico.model';
   template: `
     &lt;div class="overflow-hidden rounded-xl border border-gold/60"&gt;
       @for (bloque of bloques; track $index) {
-<span class="cstat-no" title="statement not covered" >        &lt;div</span>
+        &lt;div
           class="grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-4"
-<span class="cstat-no" title="statement not covered" >          [class.bg-surface]="$odd"</span>
+          [class.bg-surface]="$odd"
           [class.bg-panel]="!$odd"
         &gt;
           &lt;div&gt;
-            &lt;p class="text-xs font-semibold text-muted"&gt;<span class="cstat-no" title="statement not covered" >Horario<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;p class="text-sm text-ink"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.hora }}<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+            &lt;p class="text-xs font-semibold text-muted"&gt;Horario&lt;/p&gt;
+            &lt;p class="text-sm text-ink"&gt;{{ bloque.hora }}&lt;/p&gt;
           &lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >          &lt;div&gt;</span>
-            &lt;p class="text-xs font-semibold text-muted"&gt;<span class="cstat-no" title="statement not covered" >Asignatura<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;p class="text-sm text-ink"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.asignatura }}<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+          &lt;div&gt;
+            &lt;p class="text-xs font-semibold text-muted"&gt;Asignatura&lt;/p&gt;
+            &lt;p class="text-sm text-ink"&gt;{{ bloque.asignatura }}&lt;/p&gt;
           &lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >          &lt;div&gt;</span>
-            &lt;p class="text-xs font-semibold text-muted"&gt;<span class="cstat-no" title="statement not covered" >Profesor(a)<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;p class="text-sm text-ink"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.profesor }}<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+          &lt;div&gt;
+            &lt;p class="text-xs font-semibold text-muted"&gt;Profesor(a)&lt;/p&gt;
+            &lt;p class="text-sm text-ink"&gt;{{ bloque.profesor }}&lt;/p&gt;
           &lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >          &lt;div&gt;</span>
-            &lt;p class="text-xs font-semibold text-muted"&gt;<span class="cstat-no" title="statement not covered" >Ubicación<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;p class="text-sm text-ink"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ bloque.sala }}<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+          &lt;div&gt;
+            &lt;p class="text-xs font-semibold text-muted"&gt;Ubicación&lt;/p&gt;
+            &lt;p class="text-sm text-ink"&gt;{{ bloque.sala }}&lt;/p&gt;
           &lt;/div&gt;
         &lt;/div&gt;
       } @empty {
-<span class="cstat-no" title="statement not covered" >        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;</span>
-<span class="cstat-no" title="statement not covered" >          Sin bloques para este día.</span>
-<span class="cstat-no" title="statement not covered" >        &lt;/p&gt;</span>
+        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;
+          Sin bloques para este día.
+        &lt;/p&gt;
       }
     &lt;/div&gt;
   `,
 })
-export class HorarioResumenComponent<span class="missing-if-branch" title="else path not taken" >E</span> {
+export class HorarioResumenComponent {
   @Input() bloques: HorarioResumen[] = [];
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -205,7 +205,7 @@ export class HorarioResumenComponent<span class="missing-if-branch" title="else 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T03:14:25.528Z
+                at 2026-11-14T16:26:28.525Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

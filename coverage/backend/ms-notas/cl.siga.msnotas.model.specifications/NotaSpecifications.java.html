@@ -6,42 +6,42 @@ import cl.siga.msnotas.model.entity.Nota;
 
 <span class="nc" id="L7">public class NotaSpecifications {</span>
     public static Specification&lt;Nota&gt; isActive() {
-<span class="nc" id="L9">        return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
+<span class="fc" id="L9">        return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
     }
 
     public static Specification&lt;Nota&gt; hasIdEstudiante(Long idEstudiante) {
-<span class="nc" id="L13">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L14" title="All 2 branches missed.">            if (idEstudiante == null) {</span>
-<span class="nc" id="L15">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L13">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L14" title="All 2 branches covered.">            if (idEstudiante == null) {</span>
+<span class="fc" id="L15">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L17">            return criteriaBuilder.equal(root.get(&quot;idEstudiante&quot;), idEstudiante);</span>
+<span class="fc" id="L17">            return criteriaBuilder.equal(root.get(&quot;idEstudiante&quot;), idEstudiante);</span>
         };
     }
 
     public static Specification&lt;Nota&gt; hasIdEvaluacion(Long idEvaluacion) {
-<span class="nc" id="L22">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L23" title="All 2 branches missed.">            if (idEvaluacion == null) {</span>
-<span class="nc" id="L24">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L22">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L23" title="All 2 branches covered.">            if (idEvaluacion == null) {</span>
+<span class="fc" id="L24">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L26">            return criteriaBuilder.equal(root.get(&quot;idEvaluacion&quot;), idEvaluacion);</span>
+<span class="fc" id="L26">            return criteriaBuilder.equal(root.get(&quot;idEvaluacion&quot;), idEvaluacion);</span>
         };
     }
 
     public static Specification&lt;Nota&gt; hasScoreGreaterThanOrEqual(Double score) {
-<span class="nc" id="L31">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L32" title="All 2 branches missed.">            if (score == null) {</span>
-<span class="nc" id="L33">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L31">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            if (score == null) {</span>
+<span class="fc" id="L33">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L35">            return criteriaBuilder.greaterThanOrEqualTo(root.get(&quot;score&quot;), score);</span>
+<span class="fc" id="L35">            return criteriaBuilder.greaterThanOrEqualTo(root.get(&quot;score&quot;), score);</span>
         };
     }
 
     public static Specification&lt;Nota&gt; hasScoreLessThanOrEqual(Double score) {
-<span class="nc" id="L40">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L41" title="All 2 branches missed.">            if (score == null) {</span>
-<span class="nc" id="L42">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L40">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">            if (score == null) {</span>
+<span class="fc" id="L42">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L44">            return criteriaBuilder.lessThanOrEqualTo(root.get(&quot;score&quot;), score);</span>
+<span class="fc" id="L44">            return criteriaBuilder.lessThanOrEqualTo(root.get(&quot;score&quot;), score);</span>
         };
     }
 }

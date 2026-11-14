@@ -12,51 +12,51 @@ public class AsistenciaSpecifications {
     }
 
     public static Specification&lt;Asistencia&gt; isActive() {
-<span class="nc" id="L15">        return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
+<span class="fc" id="L15">        return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
     }
 
     public static Specification&lt;Asistencia&gt; hasIdEstudiante(Long idEstudiante) {
-<span class="nc" id="L19">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L20" title="All 2 branches missed.">            if (idEstudiante == null) {</span>
-<span class="nc" id="L21">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L19">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L20" title="All 2 branches covered.">            if (idEstudiante == null) {</span>
+<span class="fc" id="L21">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L23">            return criteriaBuilder.equal(root.get(&quot;idEstudiante&quot;), idEstudiante);</span>
+<span class="fc" id="L23">            return criteriaBuilder.equal(root.get(&quot;idEstudiante&quot;), idEstudiante);</span>
         };
     }
 
     public static Specification&lt;Asistencia&gt; hasIdCursoAsignatura(Long idCursoAsignatura) {
-<span class="nc" id="L28">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L29" title="All 2 branches missed.">            if (idCursoAsignatura == null) {</span>
-<span class="nc" id="L30">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L28">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">            if (idCursoAsignatura == null) {</span>
+<span class="fc" id="L30">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L32">            return criteriaBuilder.equal(root.get(&quot;idCursoAsignatura&quot;), idCursoAsignatura);</span>
+<span class="fc" id="L32">            return criteriaBuilder.equal(root.get(&quot;idCursoAsignatura&quot;), idCursoAsignatura);</span>
         };
     }
 
     public static Specification&lt;Asistencia&gt; hasFechaGreaterThanOrEqual(LocalDate from) {
-<span class="nc" id="L37">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (from == null) {</span>
-<span class="nc" id="L39">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L37">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">            if (from == null) {</span>
+<span class="fc" id="L39">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L41">            return criteriaBuilder.greaterThanOrEqualTo(root.get(&quot;fecha&quot;), from);</span>
+<span class="fc" id="L41">            return criteriaBuilder.greaterThanOrEqualTo(root.get(&quot;fecha&quot;), from);</span>
         };
     }
 
     public static Specification&lt;Asistencia&gt; hasFechaLessThanOrEqual(LocalDate to) {
-<span class="nc" id="L46">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (to == null) {</span>
-<span class="nc" id="L48">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L46">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (to == null) {</span>
+<span class="fc" id="L48">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L50">            return criteriaBuilder.lessThanOrEqualTo(root.get(&quot;fecha&quot;), to);</span>
+<span class="fc" id="L50">            return criteriaBuilder.lessThanOrEqualTo(root.get(&quot;fecha&quot;), to);</span>
         };
     }
 
     public static Specification&lt;Asistencia&gt; hasEstado(State estado) {
-<span class="nc" id="L55">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (estado == null) {</span>
-<span class="nc" id="L57">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L55">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (estado == null) {</span>
+<span class="fc" id="L57">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L59">            return criteriaBuilder.equal(root.get(&quot;estado&quot;), estado);</span>
+<span class="fc" id="L59">            return criteriaBuilder.equal(root.get(&quot;estado&quot;), estado);</span>
         };
     }
 }

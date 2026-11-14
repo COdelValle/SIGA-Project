@@ -42,18 +42,18 @@ public class NotaService {
 
     @Transactional (readOnly = true)
     public NotaResponseDTO getNotaById(Long id) {
-<span class="nc" id="L45">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
-<span class="nc" id="L46">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+<span class="fc" id="L45">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
     }
 
     @Transactional (readOnly = true)
     public Page&lt;NotaResponseDTO&gt; searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore, Pageable pageable) {
-<span class="nc" id="L51">        Specification&lt;Nota&gt; spec = NotaSpecifications.isActive()</span>
-<span class="nc" id="L52">                .and(NotaSpecifications.hasIdEstudiante(idEstudiante))</span>
-<span class="nc" id="L53">                .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))</span>
-<span class="nc" id="L54">                .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))</span>
-<span class="nc" id="L55">                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));</span>
-<span class="nc" id="L56">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+<span class="fc" id="L51">        Specification&lt;Nota&gt; spec = NotaSpecifications.isActive()</span>
+<span class="fc" id="L52">                .and(NotaSpecifications.hasIdEstudiante(idEstudiante))</span>
+<span class="fc" id="L53">                .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))</span>
+<span class="fc" id="L54">                .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))</span>
+<span class="fc" id="L55">                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));</span>
+<span class="fc" id="L56">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
     }
 
     @Transactional
@@ -92,7 +92,7 @@ public class NotaService {
     @Transactional
     public NotaResponseDTO updateNota(Long id, @Valid ActualizarNotaRequestDTO request) {
 <span class="fc" id="L94">        Nota existingNota = repository.findByIdAndActiveTrue(id)</span>
-<span class="pc" id="L95">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L95">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
 
 <span class="fc" id="L97">        mapper.updateEntityFromDto(request, existingNota);</span>
 
@@ -104,7 +104,7 @@ public class NotaService {
     @Transactional
     public void deleteNota(Long id) {
 <span class="fc" id="L106">        Nota existingNota = repository.findById(id)</span>
-<span class="pc" id="L107">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L107">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
 <span class="fc" id="L108">        existingNota.setActive(false);</span>
 <span class="fc" id="L109">        repository.save(existingNota);</span>
 <span class="fc" id="L110">    }</span>

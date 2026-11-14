@@ -35,19 +35,19 @@ public class EvaluacionService {
 
   @Transactional(readOnly = true)
   public EvaluacionResponseDTO getEvaluacionById(Long id) {
-<span class="nc" id="L38">    return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
-<span class="nc" id="L39">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+<span class="fc" id="L38">    return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L39">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
   }
 
   @Transactional(readOnly = true)
   public Page&lt;EvaluacionResponseDTO&gt; searchEvaluaciones(
       String nombre, TipoEvaluacion tipo, Long idCursoAsignatura, Pageable pageable) {
-<span class="nc" id="L45">    Specification&lt;Evaluacion&gt; spec = EvaluacionSpecifications.isActive()</span>
-<span class="nc" id="L46">      .and(EvaluacionSpecifications.hasNombre(nombre))</span>
-<span class="nc" id="L47">      .and(EvaluacionSpecifications.hasTipo(tipo))</span>
-<span class="nc" id="L48">      .and(EvaluacionSpecifications.hasIdCursoAsignatura(idCursoAsignatura));</span>
+<span class="fc" id="L45">    Specification&lt;Evaluacion&gt; spec = EvaluacionSpecifications.isActive()</span>
+<span class="fc" id="L46">      .and(EvaluacionSpecifications.hasNombre(nombre))</span>
+<span class="fc" id="L47">      .and(EvaluacionSpecifications.hasTipo(tipo))</span>
+<span class="fc" id="L48">      .and(EvaluacionSpecifications.hasIdCursoAsignatura(idCursoAsignatura));</span>
 
-<span class="nc" id="L50">    return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+<span class="fc" id="L50">    return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
   }
 
   @Transactional
@@ -55,10 +55,10 @@ public class EvaluacionService {
 <span class="fc" id="L55">    validarDictacionCalificable(request.idCursoAsignatura());</span>
 
 <span class="pc bpc" id="L57" title="1 of 2 branches missed.">    String nombreNormalizado = request.nombre() != null ? request.nombre().trim() : null;</span>
-<span class="pc bpc" id="L58" title="1 of 2 branches missed.">    if (repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue(nombreNormalizado, request.idCursoAsignatura())) {</span>
-<span class="nc" id="L59">      throw new BusinessException(</span>
-<span class="nc" id="L60">        String.format(&quot;Ya existe una evaluación llamada '%s' para la dictación con ID %d.&quot;,</span>
-<span class="nc" id="L61">          nombreNormalizado, request.idCursoAsignatura())</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">    if (repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrue(nombreNormalizado, request.idCursoAsignatura())) {</span>
+<span class="fc" id="L59">      throw new BusinessException(</span>
+<span class="fc" id="L60">        String.format(&quot;Ya existe una evaluación llamada '%s' para la dictación con ID %d.&quot;,</span>
+<span class="fc" id="L61">          nombreNormalizado, request.idCursoAsignatura())</span>
       );
     }
 
@@ -76,7 +76,7 @@ public class EvaluacionService {
   @Transactional
   public EvaluacionResponseDTO updateEvaluacion(Long idEvaluacion, @Valid ActualizarEvaluacionRequestDTO request) {
 <span class="fc" id="L78">    Evaluacion existingEvaluacion = repository.findByIdAndActiveTrue(idEvaluacion)</span>
-<span class="pc" id="L79">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + idEvaluacion + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L79">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + idEvaluacion + &quot; no encontrada.&quot;));</span>
 
 <span class="pc bpc" id="L81" title="1 of 2 branches missed.">    String nombreNormalizado = request.nombre() != null ? request.nombre().trim() : null;</span>
 <span class="pc bpc" id="L82" title="1 of 4 branches missed.">    if (nombreNormalizado != null &amp;&amp; repository.existsByNombreIgnoreCaseAndIdCursoAsignaturaAndActiveTrueAndIdNot(</span>
@@ -100,13 +100,13 @@ public class EvaluacionService {
 
   @Transactional(readOnly = true)
   public boolean existsEvaluacionById(Long id) {
-<span class="nc" id="L103">    return repository.existsByIdAndActiveTrue(id);</span>
+<span class="fc" id="L103">    return repository.existsByIdAndActiveTrue(id);</span>
   }
 
   @Transactional
   public void deleteEvaluacion(Long id) {
 <span class="fc" id="L108">    Evaluacion existingEvaluacion = repository.findById(id)</span>
-<span class="pc" id="L109">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L109">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;));</span>
 
 <span class="fc" id="L111">    existingEvaluacion.setActive(false);</span>
 <span class="fc" id="L112">    EvaluacionResponseDTO eliminada = mapper.toResponseDto(repository.save(existingEvaluacion));</span>
@@ -156,7 +156,7 @@ public class EvaluacionService {
 
 <span class="fc" id="L157">    double sumaActual = evaluacionesDictacion.stream()</span>
 <span class="fc bfc" id="L158" title="All 2 branches covered.">      .filter(ev -&gt; ev.getTipo() == TipoEvaluacion.SUMATIVA)</span>
-<span class="pc bpc" id="L159" title="3 of 4 branches missed.">      .filter(ev -&gt; idEvaluacionActual == null || !ev.getId().equals(idEvaluacionActual))</span>
+<span class="fc bfc" id="L159" title="All 4 branches covered.">      .filter(ev -&gt; idEvaluacionActual == null || !ev.getId().equals(idEvaluacionActual))</span>
 <span class="fc" id="L160">      .mapToDouble(Evaluacion::getPonderacion)</span>
 <span class="fc" id="L161">      .sum();</span>
 

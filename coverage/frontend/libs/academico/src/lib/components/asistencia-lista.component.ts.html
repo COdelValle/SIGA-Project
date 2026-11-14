@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">48.27% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>14/29</span>
+                <span class='fraction'>29/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.57% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/20</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -112,39 +112,39 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">28x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">28x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">28x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">28x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, Input } from '@angular/core';
@@ -156,34 +156,34 @@ import { AsistenciaResumen } from '../models/academico.model';
   template: `
     &lt;div class="overflow-hidden rounded-xl border border-gold/60"&gt;
       @for (item of items; track item.id) {
-<span class="cstat-no" title="statement not covered" >        &lt;div</span>
+        &lt;div
           class="flex items-center gap-3 px-4 py-3 text-sm text-ink"
-<span class="cstat-no" title="statement not covered" >          [class.bg-surface]="$odd"</span>
+          [class.bg-surface]="$odd"
           [class.bg-panel]="!$odd"
         &gt;
-          &lt;span class="w-40 shrink-0"&gt;<span class="cstat-no" title="statement not covered" >{{ item.asignatura }}<span class="cstat-no" title="statement not covered" >&lt;</span>/span&gt;</span>
-<span class="cstat-no" title="statement not covered" >          &lt;div class="h-3 flex-1 overflow-hidden rounded-full bg-ink/15"&gt;</span>
-<span class="cstat-no" title="statement not covered" >            &lt;div</span>
-<span class="cstat-no" title="statement not covered" >              [class]="'h-full rounded-full ' + barClass(item.porcentaje)"</span>
-<span class="cstat-no" title="statement not covered" >              [style.width.%]="item.porcentaje"</span>
+          &lt;span class="w-40 shrink-0"&gt;{{ item.asignatura }}&lt;/span&gt;
+          &lt;div class="h-3 flex-1 overflow-hidden rounded-full bg-ink/15"&gt;
+            &lt;div
+              [class]="'h-full rounded-full ' + barClass(item.porcentaje)"
+              [style.width.%]="item.porcentaje"
             &gt;&lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >          &lt;span class="w-12 shrink-0 text-right font-semibold"&gt;<span class="cstat-no" title="statement not covered" >{</span>{ item.porcentaje }}%<span class="cstat-no" title="statement not covered" >&lt;</span>/span&gt;</span>
+          &lt;/div&gt;
+          &lt;span class="w-12 shrink-0 text-right font-semibold"&gt;{{ item.porcentaje }}%&lt;/span&gt;
         &lt;/div&gt;
       } @empty {
-<span class="cstat-no" title="statement not covered" >        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;<span class="cstat-no" title="statement not covered" >S</span>in datos de asistencia.<span class="cstat-no" title="statement not covered" >&lt;</span>/p&gt;</span>
+        &lt;p class="bg-panel px-4 py-6 text-center text-sm text-muted"&gt;Sin datos de asistencia.&lt;/p&gt;
       }
     &lt;/div&gt;
   `,
 })
-export class AsistenciaListaComponent<span class="missing-if-branch" title="else path not taken" >E</span> {
+export class AsistenciaListaComponent {
   @Input() items: AsistenciaResumen[] = [];
 &nbsp;
   protected barClass(porcentaje: number): string {
-    <span class="missing-if-branch" title="else path not taken" >E</span>if (porcentaje &gt;= 85) {
+    if (porcentaje &gt;= 85) {
       return 'bg-ok';
     }
-    <span class="missing-if-branch" title="else path not taken" >E</span>if (porcentaje &gt;= 70) {
+    if (porcentaje &gt;= 70) {
       return 'bg-warn';
     }
     return 'bg-bad';
@@ -196,7 +196,7 @@ export class AsistenciaListaComponent<span class="missing-if-branch" title="else
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T03:14:25.528Z
+                at 2026-11-14T16:26:28.525Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

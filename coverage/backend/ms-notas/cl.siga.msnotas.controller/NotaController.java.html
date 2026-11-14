@@ -37,7 +37,7 @@ public class NotaController {
     @GetMapping (&quot;/{id}&quot;)
     @PreAuthorize (&quot;hasAuthority('SCOPE_notas:read')&quot;)
     public ResponseEntity&lt;NotaResponseDTO&gt; getNotaById(@PathVariable Long id) {
-<span class="nc" id="L40">        return ResponseEntity.ok(notaService.getNotaById(id));</span>
+<span class="fc" id="L40">        return ResponseEntity.ok(notaService.getNotaById(id));</span>
     }
 
     @GetMapping (&quot;/search&quot;)
@@ -49,26 +49,26 @@ public class NotaController {
         @RequestParam (required = false) Double greaterThanScore,
         @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
     ){
-<span class="nc" id="L52">        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore, pageable));</span>
+<span class="fc" id="L52">        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore, pageable));</span>
     }
 
     @PostMapping
     @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write')&quot;)
     public ResponseEntity&lt;NotaResponseDTO&gt; registrarNota(@RequestBody @Valid RegistrarNotaRequestDTO request) {
-<span class="nc" id="L58">        return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));</span>
+<span class="fc" id="L58">        return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));</span>
     }
 
     @PutMapping (&quot;/{id}&quot;)
     @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:update')&quot;)
     public ResponseEntity&lt;NotaResponseDTO&gt; updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
-<span class="nc" id="L64">        return ResponseEntity.ok(notaService.updateNota(id, request));</span>
+<span class="fc" id="L64">        return ResponseEntity.ok(notaService.updateNota(id, request));</span>
     }
 
     @DeleteMapping (&quot;/{id}&quot;)
     @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete')&quot;)
     public ResponseEntity&lt;Void&gt; deleteNota(@PathVariable Long id) {
-<span class="nc" id="L70">        notaService.deleteNota(id);</span>
-<span class="nc" id="L71">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L70">        notaService.deleteNota(id);</span>
+<span class="fc" id="L71">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
