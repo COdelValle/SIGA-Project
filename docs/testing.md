@@ -146,8 +146,8 @@ JSON. Aun asi, no adjuntar datos personales ni secretos en nuevos tests.
 
 ## 9. Estado de cobertura actual
 
-- Backend: **69.71% de lineas de negocio** (67.63% global bruto), JaCoCo 13 modulos.
-- Frontend: **50.96% de lineas de negocio** (51.41% global bruto), Vitest v8.
+- Backend: **69.44% de lineas de negocio**, JaCoCo 13 modulos.
+- Frontend: **58.14% de lineas de negocio**, Vitest v8.
 - Objetivo: **80%+ de codigo de negocio**, con umbrales progresivos y gate en CI.
 - El reporte Allure incluye una suite sintetica de cobertura por modulo/lib.
 
@@ -203,4 +203,4 @@ Ejemplos:
 - `[contract] Contratos BFF > ms-notas > GET /api/v1/notas/{id}`
 - `[security] Seguridad > JWT y roles > Ownership`
 - `[e2e] Portal Docente > Notas > Dashboard del docente`
-- `[coverage] Calidad > Cobertura backend > 69.71% de lineas`
+- `[coverage] Calidad > Cobertura backend > 69.44% de lineas`
