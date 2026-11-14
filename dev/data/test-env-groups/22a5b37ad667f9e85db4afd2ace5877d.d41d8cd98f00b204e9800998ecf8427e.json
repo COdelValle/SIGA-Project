@@ -1,0 +1,1 @@
+{"id":"22a5b37ad667f9e85db4afd2ace5877d.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:libs/admin/src/lib/state/admin.service.spec.ts#AdminService (modo real) propaga el error del BFF sin caer a mocks","name":"propaga el error del BFF sin caer a mocks","status":"passed","testResultsByEnv":{"default":"f294044cb4dd229d12c96869bbfbf241"}}

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstudianteRegistrationListener.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-estudiantes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msestudiantes.messaging</a> &gt; <span class="el_source">EstudianteRegistrationListener.java</span></div><h1>EstudianteRegistrationListener.java</h1><pre class="source lang-java linenums">package cl.siga.msestudiantes.messaging;
+
+import com.rabbitmq.client.Channel;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroEstudianteDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.messaging.RegistrationCorrelation;
+import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
+import cl.siga.msestudiantes.repository.EstudianteRepository;
+import cl.siga.msestudiantes.service.EstudianteService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Consumidor de la etapa de dominio para estudiantes. Es idempotente: si el
+ * perfil ya existe (reentrega o reintento posterior a un guardado exitoso) se
+ * responde éxito sin volver a crearlo. Errores de negocio se reportan como
+ * fallo del proceso; errores transitorios se reintentan en memoria y, al
+ * agotarse, el mensaje se rechaza hacia la DLQ (NACK sin requeue).
+ */
+<span class="nc" id="L31">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class EstudianteRegistrationListener {
+
+    private final EstudianteService estudianteService;
+    private final EstudianteRepository estudianteRepository;
+    private final RegistrationStatusPublisher statusPublisher;
+    private final ConfirmadorMensajes confirmador;
+
+    @RabbitListener(queues = RegistrationMessagingConstants.ESTUDIANTES_QUEUE)
+    public void handle(
+            UserRegistrationEventDTO event,
+            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            String correlationId,
+            Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc bnc" id="L48" title="All 4 branches missed.">        String correlacion = (correlationId != null &amp;&amp; !correlationId.isBlank())</span>
+<span class="nc" id="L49">                ? correlationId</span>
+<span class="nc" id="L50">                : event.correlationId();</span>
+<span class="nc" id="L51">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.ESTUDIANTES_QUEUE,</span>
+<span class="nc" id="L52">            () -&gt; RegistrationCorrelation.ejecutar(correlacion, () -&gt; procesar(event)));</span>
+<span class="nc" id="L53">    }</span>
+
+    @RabbitListener(queues = RegistrationMessagingConstants.ESTUDIANTES_DLQ)
+    public void handleDlq(UserRegistrationEventDTO event, Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L58">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.ESTUDIANTES_DLQ,</span>
+<span class="nc" id="L59">            () -&gt; statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,</span>
+                &quot;Se agotaron los reintentos creando el perfil de estudiante.&quot;));
+<span class="nc" id="L61">    }</span>
+
+    private void procesar(UserRegistrationEventDTO event) {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (!event.schemaSoportado()) {</span>
+<span class="nc" id="L65">            fallar(event, &quot;Versión de evento no soportada: &quot; + event.schemaVersion());</span>
+<span class="nc" id="L66">            return;</span>
+        }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (event.requestedRole() != Rol.ESTUDIANTE) {</span>
+<span class="nc" id="L69">            fallar(event, &quot;El evento no corresponde al rol ESTUDIANTE.&quot;);</span>
+<span class="nc" id="L70">            return;</span>
+        }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        DatosRegistroEstudianteDTO datos = event.roleData() == null ? null : event.roleData().estudiante();</span>
+<span class="nc bnc" id="L73" title="All 6 branches missed.">        if (datos == null || event.userId() == null || event.userId().isBlank()) {</span>
+<span class="nc" id="L74">            fallar(event, &quot;El evento de estudiante está incompleto.&quot;);</span>
+<span class="nc" id="L75">            return;</span>
+        }
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (estudianteRepository.existsByIdUsuario(event.userId())) {</span>
+<span class="nc" id="L78">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+                &quot;El perfil del estudiante ya existía (idempotente).&quot;);
+<span class="nc" id="L80">            return;</span>
+        }
+        try {
+<span class="nc" id="L83">            estudianteService.saveEstudiante(new RegistrarEstudianteRequestDTO(</span>
+<span class="nc" id="L84">                event.userId(),</span>
+<span class="nc" id="L85">                datos.firstName(),</span>
+<span class="nc" id="L86">                datos.middleName(),</span>
+<span class="nc" id="L87">                datos.firstSurname(),</span>
+<span class="nc" id="L88">                datos.secondSurname(),</span>
+<span class="nc" id="L89">                datos.rut(),</span>
+<span class="nc" id="L90">                datos.birthDate(),</span>
+<span class="nc" id="L91">                datos.allergies(),</span>
+<span class="nc" id="L92">                datos.idClase()));</span>
+<span class="nc" id="L93">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+                &quot;Perfil de estudiante creado.&quot;);
+<span class="nc" id="L95">        } catch (BusinessException ex) {</span>
+<span class="nc" id="L96">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, ex.getMessage());</span>
+<span class="nc" id="L97">        }</span>
+<span class="nc" id="L98">    }</span>
+
+    private void fallar(UserRegistrationEventDTO event, String mensaje) {
+<span class="nc" id="L101">        log.warn(&quot;Evento de registro {} rechazado: {}&quot;, event.processId(), mensaje);</span>
+<span class="nc" id="L102">        statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, mensaje);</span>
+<span class="nc" id="L103">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

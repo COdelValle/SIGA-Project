@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApoderadoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-apoderados</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msapoderados.controller</a> &gt; <span class="el_source">ApoderadoController.java</span></div><h1>ApoderadoController.java</h1><pre class="source lang-java linenums">package cl.siga.msapoderados.controller;
+
+import cl.siga.coreshare.dto.apoderado.ActualizarApoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
+import cl.siga.msapoderados.service.ApoderadoService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
+@RestController
+@RequestMapping(&quot;/api/v1/apoderados&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Apoderados&quot;, description = &quot;Operaciones CRUD, búsqueda y vinculación de apoderados y sus pupilos&quot;)
+public class ApoderadoController {
+
+  private final ApoderadoService apoderadoService;
+
+  @GetMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_apoderados:read')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; getApoderadoById(@PathVariable Long id) {
+<span class="fc" id="L33">    return ResponseEntity.ok(apoderadoService.getApoderadoById(id));</span>
+  }
+
+  @GetMapping(&quot;/idUsuario/{idUsuario}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_apoderados:read')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; getApoderadoByIdUsuario(@PathVariable String idUsuario) {
+<span class="fc" id="L39">    return ResponseEntity.ok(apoderadoService.getApoderadoByIdUsuario(idUsuario));</span>
+  }
+
+  @GetMapping(&quot;/search&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_apoderados:read')&quot;)
+  public ResponseEntity&lt;Page&lt;ApoderadoResponseDTO&gt;&gt; searchApoderados(
+    @RequestParam(required = false) String rut,
+    @RequestParam(required = false) String firstName,
+    @RequestParam(required = false) String firstSurname,
+    @RequestParam(required = false) Long idEstudiante,
+    @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
+  ) {
+<span class="fc" id="L51">    return ResponseEntity.ok(apoderadoService.searchApoderados(rut, firstName, firstSurname, idEstudiante, pageable));</span>
+  }
+
+  @PostMapping
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:write')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; registrarApoderado(@RequestBody @Valid RegistrarApoderadoRequestDTO request) {
+<span class="fc" id="L57">    return ResponseEntity.status(HttpStatus.CREATED).body(apoderadoService.saveApoderado(request));</span>
+  }
+
+  @PutMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('APODERADO')) and hasAuthority('SCOPE_apoderados:update')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; actualizarApoderado(
+    @PathVariable Long id,
+    @RequestBody @Valid ActualizarApoderadoRequestDTO request) {
+<span class="fc" id="L65">    return ResponseEntity.ok(apoderadoService.updateApoderado(id, request));</span>
+  }
+
+  // --- Endpoints para la gestión aislada de estudiantes ---
+
+  @PostMapping(&quot;/{id}/estudiantes&quot;)
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:update')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; addEstudiante(
+    @PathVariable Long id,
+    @RequestBody @Valid ParentescoEstudianteDTO request) {
+<span class="fc" id="L75">    return ResponseEntity.ok(apoderadoService.addEstudiante(id, request));</span>
+  }
+
+  @DeleteMapping(&quot;/{id}/estudiantes/{idEstudiante}&quot;)
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:update')&quot;)
+  public ResponseEntity&lt;ApoderadoResponseDTO&gt; removeEstudiante(
+    @PathVariable Long id,
+    @PathVariable Long idEstudiante) {
+<span class="fc" id="L83">    return ResponseEntity.ok(apoderadoService.removeEstudiante(id, idEstudiante));</span>
+  }
+
+  // --------------------------------------------------------
+
+  @GetMapping(&quot;/exists/{id}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_apoderados:read')&quot;)
+  public ResponseEntity&lt;Boolean&gt; existsApoderadoById(@PathVariable Long id) {
+<span class="fc" id="L91">    return ResponseEntity.ok(apoderadoService.existsApoderadoById(id));</span>
+  }
+
+  @DeleteMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_apoderados:delete')&quot;)
+  public ResponseEntity&lt;Void&gt; deleteApoderado(@PathVariable Long id) {
+<span class="fc" id="L97">    apoderadoService.deleteApoderado(id);</span>
+<span class="fc" id="L98">    return ResponseEntity.noContent().build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

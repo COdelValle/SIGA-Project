@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitacionUsuario.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.model.entity</a> &gt; <span class="el_source">InvitacionUsuario.java</span></div><h1>InvitacionUsuario.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.model.entity;
+
+import java.time.LocalDateTime;
+
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Invitación de acceso por correo (UPN de Entra ID). Permite pre-registrar a
+ * un usuario sin conocer su {@code oid}: este se vincula en el primer login.
+ */
+@Entity
+@Table(name = &quot;invitaciones_usuarios&quot;)
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class InvitacionUsuario {
+    @Id
+    @Email(message = &quot;El correo electrónico debe tener un formato válido&quot;)
+    @NotBlank(message = &quot;El correo electrónico es obligatorio&quot;)
+    @Size(max = 255, message = &quot;El correo no puede superar los 255 caracteres&quot;)
+    @Column(name = &quot;email&quot;, length = 255, nullable = false, updatable = false)
+    private String email;
+
+    @NotNull(message = &quot;El rol es obligatorio&quot;)
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;rol&quot;, nullable = false, length = 50)
+    private Rol rol;
+
+    @NotNull(message = &quot;El estado de la invitación es obligatorio&quot;)
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;state&quot;, nullable = false, length = 50)
+    private StateInvitacion state;
+
+    @Column(name = &quot;invited_by&quot;, length = 36)
+    private String invitedBy;
+
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = &quot;bound_at&quot;)
+    private LocalDateTime boundAt;
+
+    @PrePersist
+    public void normalizeData() {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (this.email != null) {</span>
+<span class="nc" id="L65">            this.email = this.email.trim().toLowerCase();</span>
+        }
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (this.state == null) {</span>
+<span class="nc" id="L68">            this.state = StateInvitacion.INVITADO;</span>
+        }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (this.createdAt == null) {</span>
+<span class="nc" id="L71">            this.createdAt = LocalDateTime.now();</span>
+        }
+<span class="nc" id="L73">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

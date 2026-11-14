@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrationStatusPublisher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.messaging</a> &gt; <span class="el_source">RegistrationStatusPublisher.java</span></div><h1>RegistrationStatusPublisher.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.messaging;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
+import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
+import cl.siga.coreshare.dto.usuario.enums.RegistrationStepType;
+
+/**
+ * Publica el resultado de la etapa de dominio hacia ms-usuarios-auth con
+ * confirmación del broker. Si la confirmación falla lanza una excepción
+ * transitoria: el listener revierte/retoma y el reintento vuelve a publicar
+ * (los consumidores son idempotentes por {@code idUsuario}).
+ */
+public class RegistrationStatusPublisher {
+
+    private static final int CONFIRM_TIMEOUT_SECONDS = 5;
+
+    private final RabbitTemplate rabbitTemplate;
+
+<span class="nc" id="L27">    public RegistrationStatusPublisher(RabbitTemplate rabbitTemplate) {</span>
+<span class="nc" id="L28">        this.rabbitTemplate = rabbitTemplate;</span>
+<span class="nc" id="L29">    }</span>
+
+    public void publicarResultado(String processId, String correlationId, boolean success, String message) {
+<span class="nc" id="L32">        UserRegistrationStepResultEventDTO evento = new UserRegistrationStepResultEventDTO(</span>
+                processId,
+<span class="nc" id="L34">                UUID.randomUUID().toString(),</span>
+                RegistrationStepType.DOMAIN_SYNC,
+                success,
+<span class="nc" id="L37">                recortar(message),</span>
+<span class="nc" id="L38">                OffsetDateTime.now());</span>
+
+<span class="nc" id="L40">        CorrelationData confirmacion = new CorrelationData(evento.eventId());</span>
+<span class="nc" id="L41">        rabbitTemplate.convertAndSend(</span>
+                RegistrationMessagingConstants.EXCHANGE,
+                RegistrationMessagingConstants.RK_STATUS,
+                evento,
+                mensaje -&gt; {
+<span class="nc" id="L46">                    mensaje.getMessageProperties().setMessageId(evento.eventId());</span>
+<span class="nc" id="L47">                    mensaje.getMessageProperties().setContentType(&quot;application/json&quot;);</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">                    if (correlationId != null &amp;&amp; !correlationId.isBlank()) {</span>
+<span class="nc" id="L49">                        mensaje.getMessageProperties().setCorrelationId(correlationId);</span>
+<span class="nc" id="L50">                        mensaje.getMessageProperties().setHeader(</span>
+                                RegistrationMessagingConstants.HEADER_CORRELATION_ID, correlationId);
+                    }
+<span class="nc" id="L53">                    return mensaje;</span>
+                },
+                confirmacion);
+
+        try {
+<span class="nc" id="L58">            CorrelationData.Confirm confirm = confirmacion.getFuture()</span>
+<span class="nc" id="L59">                    .get(CONFIRM_TIMEOUT_SECONDS, TimeUnit.SECONDS);</span>
+<span class="nc bnc" id="L60" title="All 4 branches missed.">            if (confirm == null || !confirm.isAck()) {</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">                throw new IllegalStateException(confirm == null</span>
+<span class="nc" id="L62">                        ? &quot;El broker no confirmó el resultado del registro.&quot;</span>
+<span class="nc" id="L63">                        : &quot;El broker rechazó el resultado del registro: &quot; + confirm.getReason());</span>
+            }
+<span class="nc" id="L65">        } catch (InterruptedException ex) {</span>
+<span class="nc" id="L66">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L67">            throw new IllegalStateException(&quot;Interrumpido esperando la confirmación del broker.&quot;, ex);</span>
+<span class="nc" id="L68">        } catch (ExecutionException | TimeoutException ex) {</span>
+<span class="nc" id="L69">            throw new IllegalStateException(&quot;Sin confirmación del broker para el resultado del registro.&quot;, ex);</span>
+<span class="nc" id="L70">        }</span>
+<span class="nc" id="L71">    }</span>
+
+    private static String recortar(String mensaje) {
+<span class="nc bnc" id="L74" title="All 4 branches missed.">        if (mensaje == null || mensaje.isBlank()) {</span>
+<span class="nc" id="L75">            return &quot;Sin detalle.&quot;;</span>
+        }
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        return mensaje.length() &gt; 1000 ? mensaje.substring(0, 1000) : mensaje;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InscripcionService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.service</a> &gt; <span class="el_source">InscripcionService.java</span></div><h1>InscripcionService.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.service;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.inscripcion.ActualizarEstadoInscripcionRequestDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.RegistrarInscripcionRequestDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msasignaturas.client.EstudianteClient;
+import cl.siga.msasignaturas.model.InscripcionEstados;
+import cl.siga.msasignaturas.model.entity.Inscripcion;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
+import cl.siga.msasignaturas.model.mapper.InscripcionMapper;
+import cl.siga.msasignaturas.model.specifications.InscripcionSpecifications;
+import cl.siga.msasignaturas.repository.InscripcionRepository;
+import cl.siga.msasignaturas.repository.asignatura.CursoAsignaturaRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InscripcionService {
+
+    private final InscripcionRepository inscripcionRepository;
+    private final CursoAsignaturaRepository cursoAsignaturaRepository;
+    private final InscripcionMapper inscripcionMapper;
+    private final EstudianteClient estudianteClient;
+
+    @Transactional(readOnly = true)
+    public Page&lt;InscripcionResponseDTO&gt; buscarInscripciones(
+            Long idAlumno, Long idCursoAsignatura, List&lt;EstadoInscripcion&gt; estados, Pageable pageable) {
+<span class="nc" id="L43">        Specification&lt;Inscripcion&gt; spec = Specification.where(InscripcionSpecifications.hasIdAlumno(idAlumno))</span>
+<span class="nc" id="L44">                .and(InscripcionSpecifications.hasIdCursoAsignatura(idCursoAsignatura))</span>
+<span class="nc" id="L45">                .and(InscripcionSpecifications.hasEstadoIn(estados));</span>
+
+<span class="nc" id="L47">        return inscripcionRepository.findAll(spec, pageable).map(inscripcionMapper::toDto);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public InscripcionResponseDTO obtenerPorId(Long id) {
+<span class="nc" id="L52">        return inscripcionMapper.toDto(inscripcionRepository.findById(id)</span>
+<span class="nc" id="L53">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Inscripción no encontrada con ID: &quot; + id)));</span>
+    }
+
+    @Transactional
+    public InscripcionResponseDTO registrarInscripcion(RegistrarInscripcionRequestDTO request) {
+        // Un ESTUDIANTE solo puede inscribirse a si mismo; ADMIN puede inscribir a cualquiera.
+<span class="fc" id="L59">        validarAlumnoAutenticado(request.idAlumno());</span>
+
+        // Bloqueo pesimista: serializa las inscripciones concurrentes de la dictación.
+<span class="fc" id="L62">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrueForUpdate(request.idCursoAsignatura())</span>
+<span class="pc" id="L63">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación no encontrada o inactiva&quot;));</span>
+
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (curso.getCaracter() == CaracterAsignatura.OBLIGATORIA) {</span>
+<span class="fc" id="L66">            throw new BusinessException(&quot;Solo se pueden inscribir alumnos en asignaturas optativas o electivas&quot;);</span>
+        }
+
+<span class="fc" id="L69">        Optional&lt;Inscripcion&gt; inscripcionExistente = inscripcionRepository</span>
+<span class="fc" id="L70">                .findByIdAlumnoAndCursoAsignaturaId(request.idAlumno(), request.idCursoAsignatura());</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (inscripcionExistente.isPresent()) {</span>
+<span class="fc" id="L73">            Inscripcion inscripcion = inscripcionExistente.get();</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            if (InscripcionEstados.OCUPAN_CUPO.contains(inscripcion.getEstado())) {</span>
+<span class="nc" id="L75">                throw new BusinessException(&quot;El alumno ya posee una inscripción activa o en proceso para esta asignatura&quot;);</span>
+            }
+
+<span class="fc" id="L78">            validarCuposDisponibles(curso);</span>
+<span class="fc" id="L79">            inscripcion.setEstado(EstadoInscripcion.PRE_INSCRITO);</span>
+<span class="fc" id="L80">            return inscripcionMapper.toDto(inscripcionRepository.save(inscripcion));</span>
+        }
+
+<span class="fc" id="L83">        validarCuposDisponibles(curso);</span>
+<span class="fc" id="L84">        Inscripcion nuevaInscripcion = inscripcionMapper.toEntity(request);</span>
+<span class="fc" id="L85">        nuevaInscripcion.setCursoAsignatura(curso);</span>
+<span class="fc" id="L86">        nuevaInscripcion.setEstado(EstadoInscripcion.PRE_INSCRITO);</span>
+
+<span class="fc" id="L88">        return inscripcionMapper.toDto(inscripcionRepository.save(nuevaInscripcion));</span>
+    }
+
+    @Transactional
+    public InscripcionResponseDTO actualizarEstado(Long idInscripcion, ActualizarEstadoInscripcionRequestDTO request) {
+<span class="nc" id="L93">        Inscripcion inscripcion = inscripcionRepository.findById(idInscripcion)</span>
+<span class="nc" id="L94">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Inscripción no encontrada&quot;));</span>
+
+<span class="nc" id="L96">        boolean ocupabaCupo = InscripcionEstados.OCUPAN_CUPO.contains(inscripcion.getEstado());</span>
+<span class="nc" id="L97">        boolean ocuparaCupo = InscripcionEstados.OCUPAN_CUPO.contains(request.estado());</span>
+
+<span class="nc bnc" id="L99" title="All 4 branches missed.">        if (!ocupabaCupo &amp;&amp; ocuparaCupo) {</span>
+<span class="nc" id="L100">            CursoAsignatura curso = cursoAsignaturaRepository</span>
+<span class="nc" id="L101">                    .findByIdAndActiveTrueForUpdate(inscripcion.getCursoAsignatura().getId())</span>
+<span class="nc" id="L102">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación no encontrada o inactiva&quot;));</span>
+<span class="nc" id="L103">            validarCuposDisponibles(curso);</span>
+        }
+
+<span class="nc" id="L106">        inscripcion.setEstado(request.estado());</span>
+<span class="nc" id="L107">        return inscripcionMapper.toDto(inscripcionRepository.save(inscripcion));</span>
+    }
+
+    private void validarCuposDisponibles(CursoAsignatura curso) {
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (curso.getCupoMaximo() == null) {</span>
+<span class="nc" id="L112">            return;</span>
+        }
+<span class="fc" id="L114">        int inscritosActuales = inscripcionRepository.countByCursoAsignaturaIdAndEstadoIn(</span>
+<span class="fc" id="L115">                curso.getId(), InscripcionEstados.OCUPAN_CUPO);</span>
+
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        if (inscritosActuales &gt;= curso.getCupoMaximo()) {</span>
+<span class="fc" id="L118">            throw new BusinessException(&quot;No hay cupos disponibles para esta asignatura&quot;);</span>
+        }
+<span class="fc" id="L120">    }</span>
+
+    private void validarAlumnoAutenticado(Long idAlumno) {
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if (!estudianteClient.existsById(idAlumno)) {</span>
+<span class="nc" id="L125">                throw new BusinessException(&quot;El estudiante con ID &quot; + idAlumno + &quot; no existe.&quot;);</span>
+            }
+<span class="nc" id="L127">            return;</span>
+        }
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">        if (!SecurityUtils.hasRole(&quot;ESTUDIANTE&quot;)) {</span>
+<span class="fc" id="L130">            return;</span>
+        }
+<span class="nc" id="L132">        String oid = SecurityUtils.getCurrentUserOid()</span>
+<span class="nc" id="L133">                .orElseThrow(() -&gt; new AccessDeniedException(&quot;No se pudo identificar al usuario autenticado.&quot;));</span>
+<span class="nc" id="L134">        Long idAlumnoAutenticado = estudianteClient.getEstudianteByIdUsuario(oid).id();</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (!idAlumnoAutenticado.equals(idAlumno)) {</span>
+<span class="nc" id="L136">            throw new AccessDeniedException(&quot;Solo puedes inscribirte a ti mismo.&quot;);</span>
+        }
+<span class="nc" id="L138">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

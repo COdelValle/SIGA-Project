@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HorarioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.controller</a> &gt; <span class="el_source">HorarioController.java</span></div><h1>HorarioController.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import cl.siga.coreshare.dto.asignatura.horario.HorarioRequestDTO;
+import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
+import cl.siga.msasignaturas.service.HorarioService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController 
+@RequestMapping(&quot;/api/v1/horarios&quot;)
+@RequiredArgsConstructor 
+@Tag (name = &quot;Horarios&quot;, description = &quot;Operaciones exclusivas de registro, modificación y eliminación de horarios vinculados a una dictación&quot;)
+public class HorarioController {
+
+    private final HorarioService horarioService;
+
+    @PostMapping(&quot;/curso-asignatura/{cursoAsignaturaId}&quot;)
+    @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_horarios:write')&quot;)
+    public ResponseEntity&lt;HorarioResponseDTO&gt; registrarHorario(
+            @PathVariable Long cursoAsignaturaId,
+            @RequestBody @Valid HorarioRequestDTO request) {
+<span class="fc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED).body(horarioService.crearHorario(cursoAsignaturaId, request));</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_horarios:update')&quot;)
+    public ResponseEntity&lt;HorarioResponseDTO&gt; updateHorario(
+            @PathVariable Long id,
+            @RequestBody @Valid HorarioRequestDTO request) {
+<span class="fc" id="L36">        return ResponseEntity.ok(horarioService.actualizarHorario(id, request));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_horarios:delete')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteHorario(@PathVariable Long id) {
+<span class="fc" id="L42">        horarioService.eliminarHorario(id);</span>
+<span class="fc" id="L43">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrationOutboxEvent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.model.entity</a> &gt; <span class="el_source">RegistrationOutboxEvent.java</span></div><h1>RegistrationOutboxEvent.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.model.entity;
+
+import java.time.OffsetDateTime;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Outbox transaccional del registro asíncrono: el evento se persiste en la
+ * misma transacción que el cambio de estado y un publicador programado lo
+ * envía a RabbitMQ con confirmación del broker y reintentos con backoff.
+ */
+@Entity
+@Table(name = &quot;user_registration_outbox&quot;)
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegistrationOutboxEvent {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;id&quot;)
+    private Long id;
+
+    @Column(name = &quot;event_id&quot;, length = 36, nullable = false, unique = true, updatable = false)
+    private String eventId;
+
+    @Column(name = &quot;process_id&quot;, length = 36)
+    private String processId;
+
+    @Column(name = &quot;exchange&quot;, length = 120, nullable = false, updatable = false)
+    private String exchange;
+
+    @Column(name = &quot;routing_key&quot;, length = 120, nullable = false, updatable = false)
+    private String routingKey;
+
+    @Column(name = &quot;correlation_id&quot;, length = 100)
+    private String correlationId;
+
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(name = &quot;payload&quot;, nullable = false)
+    private String payload;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;state&quot;, nullable = false, length = 20)
+    private OutboxEventState state;
+
+    @Column(name = &quot;attempts&quot;, nullable = false)
+    private int attempts;
+
+    @Column(name = &quot;next_attempt_at&quot;)
+    private OffsetDateTime nextAttemptAt;
+
+    @Column(name = &quot;last_error&quot;, length = 1000)
+    private String lastError;
+
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = &quot;sent_at&quot;)
+    private OffsetDateTime sentAt;
+
+    @PrePersist
+    public void onCreate() {
+<span class="nc" id="L81">        OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (createdAt == null) {</span>
+<span class="nc" id="L83">            createdAt = now;</span>
+        }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (state == null) {</span>
+<span class="nc" id="L86">            state = OutboxEventState.PENDIENTE;</span>
+        }
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (nextAttemptAt == null) {</span>
+<span class="nc" id="L89">            nextAttemptAt = now;</span>
+        }
+<span class="nc" id="L91">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

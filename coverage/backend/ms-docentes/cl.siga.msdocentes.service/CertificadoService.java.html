@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CertificadoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-docentes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msdocentes.service</a> &gt; <span class="el_source">CertificadoService.java</span></div><h1>CertificadoService.java</h1><pre class="source lang-java linenums">package cl.siga.msdocentes.service;
+
+import cl.siga.coreshare.dto.docente.certificado.CertificadoRequestDTO;
+import cl.siga.coreshare.dto.docente.certificado.CertificadoResponseDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msdocentes.model.entity.Certificado;
+import cl.siga.msdocentes.model.entity.Docente;
+import cl.siga.msdocentes.model.mapper.CertificadoMapper;
+import cl.siga.msdocentes.repository.CertificadoRepository;
+import cl.siga.msdocentes.repository.DocenteRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class CertificadoService {
+  private final CertificadoRepository certificadoRepository;
+  private final DocenteRepository docenteRepository;
+  private final CertificadoMapper mapper;
+
+  @Transactional(readOnly = true)
+  public List&lt;CertificadoResponseDTO&gt; getCertificadosByDocenteId(Long docenteId) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">    if (!docenteRepository.existsByIdAndActivoTrue(docenteId)) {</span>
+<span class="fc" id="L32">      throw new ResourceNotFoundException(&quot;Docente con ID &quot; + docenteId + &quot; no encontrado.&quot;);</span>
+    }
+<span class="fc" id="L34">    return mapper.toResponseDtoList(certificadoRepository.findByDocenteId(docenteId));</span>
+  }
+
+  @Transactional
+  public CertificadoResponseDTO addCertificado(Long docenteId, @Valid CertificadoRequestDTO request) {
+<span class="fc" id="L39">    Docente docente = docenteRepository.findByIdAndActivoTrue(docenteId)</span>
+<span class="fc" id="L40">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Docente con ID &quot; + docenteId + &quot; no encontrado.&quot;));</span>
+
+<span class="fc" id="L42">    SecurityUtils.requireOwnerOrAdmin(</span>
+<span class="fc" id="L43">      docente.getIdUsuario(),</span>
+      &quot;No tienes permiso para modificar los certificados de este docente.&quot;);
+
+<span class="fc" id="L46">    Certificado certificado = mapper.toEntity(request);</span>
+<span class="fc" id="L47">    certificado.setDocente(docente);</span>
+
+<span class="fc" id="L49">    return mapper.toResponseDto(certificadoRepository.save(certificado));</span>
+  }
+
+  @Transactional
+  public void deleteCertificado(Long docenteId, Long certificadoId) {
+<span class="fc" id="L54">    Certificado certificado = certificadoRepository.findById(certificadoId)</span>
+<span class="fc" id="L55">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Certificado con ID &quot; + certificadoId + &quot; no encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L57" title="All 2 branches covered.">    if (!certificado.getDocente().getId().equals(docenteId)) {</span>
+<span class="fc" id="L58">      throw new ResourceNotFoundException(&quot;El certificado no pertenece al docente indicado.&quot;);</span>
+    }
+
+<span class="fc" id="L61">    SecurityUtils.requireOwnerOrAdmin(</span>
+<span class="fc" id="L62">      certificado.getDocente().getIdUsuario(),</span>
+      &quot;No tienes permiso para modificar los certificados de este docente.&quot;);
+
+<span class="fc" id="L65">    long totalCertificados = certificadoRepository.countByDocenteId(docenteId);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (totalCertificados &lt;= 1) {</span>
+<span class="fc" id="L67">      throw new BusinessException(&quot;No se puede eliminar. El docente debe mantener al menos un certificado registrado.&quot;);</span>
+    }
+
+<span class="fc" id="L70">    certificadoRepository.delete(certificado);</span>
+<span class="fc" id="L71">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

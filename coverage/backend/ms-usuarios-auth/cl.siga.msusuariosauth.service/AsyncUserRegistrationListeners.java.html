@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsyncUserRegistrationListeners.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">AsyncUserRegistrationListeners.java</span></div><h1>AsyncUserRegistrationListeners.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import com.rabbitmq.client.Channel;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
+import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.messaging.RegistrationCorrelation;
+import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Consumidores del orquestador: aprovisionamiento en Entra ID, resultado de la
+ * etapa de dominio y sus respectivas DLQ. El correlation id viaja como header
+ * AMQP y se publica en el MDC para que los logs sean trazables end-to-end.
+ *
+ * &lt;p&gt;La confirmación es manual: ACK cuando la etapa termina, NACK hacia la DLQ
+ * cuando el evento es inválido o se agotan los reintentos de la causa
+ * transitoria.&lt;/p&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class AsyncUserRegistrationListeners {
+
+    private final AsyncUserRegistrationService service;
+    private final ConfirmadorMensajes confirmador;
+
+    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_QUEUE)
+    public void handleAzureSync(
+            UserRegistrationEventDTO event,
+            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            String correlationId,
+            Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L40">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_QUEUE,</span>
+<span class="nc" id="L41">            () -&gt; conCorrelacion(correlationId, event.correlationId(), () -&gt; service.processAzureSync(event)));</span>
+<span class="nc" id="L42">    }</span>
+
+    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_DLQ)
+    public void handleAzureDlq(UserRegistrationEventDTO event, Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L47">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_DLQ,</span>
+<span class="nc" id="L48">            () -&gt; conCorrelacion(null, event.correlationId(), () -&gt; service.procesarAzureDlq(event)));</span>
+<span class="nc" id="L49">    }</span>
+
+    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_QUEUE)
+    public void handleDomainStatus(
+            UserRegistrationStepResultEventDTO event,
+            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            String correlationId,
+            Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L58">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_QUEUE,</span>
+<span class="nc" id="L59">            () -&gt; conCorrelacion(correlationId, null, () -&gt; service.processDomainStepStatus(event)));</span>
+<span class="nc" id="L60">    }</span>
+
+    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_DLQ)
+    public void handleStatusDlq(UserRegistrationStepResultEventDTO event, Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L65">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_DLQ,</span>
+<span class="nc" id="L66">            () -&gt; conCorrelacion(null, null, () -&gt; service.procesarStatusDlq(event)));</span>
+<span class="nc" id="L67">    }</span>
+
+    private void conCorrelacion(String header, String fallback, Runnable action) {
+<span class="nc bnc" id="L70" title="All 4 branches missed.">        String correlationId = (header != null &amp;&amp; !header.isBlank()) ? header : fallback;</span>
+<span class="nc" id="L71">        RegistrationCorrelation.ejecutar(correlationId, action);</span>
+<span class="nc" id="L72">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CommonDateFormatConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.config</a> &gt; <span class="el_source">CommonDateFormatConfig.java</span></div><h1>CommonDateFormatConfig.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.config;
+
+import java.time.format.DateTimeFormatter;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.format.FormatterRegistry;
+import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+
+@AutoConfiguration 
+<span class="fc" id="L16">public class CommonDateFormatConfig implements WebMvcConfigurer {</span>
+
+    // ISO 8601 (fecha pura). Estandariza el transporte de LocalDate en JSON y
+    // en parametros de URL de todos los servicios.
+    public static final String DATE_FORMAT = &quot;yyyy-MM-dd&quot;;
+<span class="fc" id="L21">    public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);</span>
+
+    // 1. Aplica el formato a JSON (@RequestBody / @ResponseBody - Jackson)
+    @Bean 
+    public Jackson2ObjectMapperBuilderCustomizer jsonDateCustomizer() {
+<span class="fc" id="L26">        return builder -&gt; {</span>
+<span class="fc" id="L27">            builder.serializers(new LocalDateSerializer(DATE_FORMATTER));</span>
+<span class="fc" id="L28">            builder.deserializers(new LocalDateDeserializer(DATE_FORMATTER));</span>
+<span class="fc" id="L29">        };</span>
+    }
+
+    // 2. Aplica el formato a parámetros de URL (@RequestParam / @PathVariable)
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+<span class="fc" id="L35">        DateTimeFormatterRegistrar registrar = new DateTimeFormatterRegistrar();</span>
+<span class="fc" id="L36">        registrar.setDateFormatter(DATE_FORMATTER);</span>
+<span class="fc" id="L37">        registrar.registerFormatters(registry);</span>
+<span class="fc" id="L38">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

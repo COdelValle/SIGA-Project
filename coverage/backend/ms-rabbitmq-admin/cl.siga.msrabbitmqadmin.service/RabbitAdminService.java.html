@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RabbitAdminService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-rabbitmq-admin</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msrabbitmqadmin.service</a> &gt; <span class="el_source">RabbitAdminService.java</span></div><h1>RabbitAdminService.java</h1><pre class="source lang-java linenums">package cl.siga.msrabbitmqadmin.service;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.core.AmqpAdmin;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.Exchange;
+import org.springframework.amqp.core.ExchangeBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.stereotype.Service;
+
+import cl.siga.coreshare.dto.rabbitmq.EstadoColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudBindingDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudExchangeDTO;
+import cl.siga.coreshare.exception.BadRequestException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Encapsula la administración del broker con {@link AmqpAdmin}: declara y
+ * elimina colas, exchanges y bindings, y expone el estado operativo de una
+ * cola. La topología de negocio sigue declarándose por código (core-share);
+ * esta API permite operar sobre el broker en caliente para pruebas y soporte.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class RabbitAdminService {
+
+    private static final String ARG_DLX = &quot;x-dead-letter-exchange&quot;;
+    private static final String ARG_DLQ_KEY = &quot;x-dead-letter-routing-key&quot;;
+
+    private final AmqpAdmin amqpAdmin;
+
+    /** Declara una cola durable con dead-letter opcional. */
+    public void declararCola(SolicitudColaDTO solicitud) {
+<span class="fc" id="L44">        Map&lt;String, Object&gt; argumentos = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        if (tieneTexto(solicitud.deadLetterExchange())) {</span>
+<span class="fc" id="L46">            argumentos.put(ARG_DLX, solicitud.deadLetterExchange().trim());</span>
+        }
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if (tieneTexto(solicitud.deadLetterRoutingKey())) {</span>
+<span class="fc" id="L49">            argumentos.put(ARG_DLQ_KEY, solicitud.deadLetterRoutingKey().trim());</span>
+        }
+<span class="fc" id="L51">        Queue cola = QueueBuilder.durable(solicitud.nombre().trim()).withArguments(argumentos).build();</span>
+<span class="fc" id="L52">        amqpAdmin.declareQueue(cola);</span>
+<span class="fc" id="L53">        log.info(&quot;Cola declarada nombre={} argumentos={}&quot;, cola.getName(), argumentos);</span>
+<span class="fc" id="L54">    }</span>
+
+    /** Estado operativo de una cola: mensajes encolados y consumidores. */
+    public EstadoColaDTO estadoCola(String nombre) {
+<span class="fc" id="L58">        Properties propiedades = amqpAdmin.getQueueProperties(nombre);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (propiedades == null) {</span>
+<span class="fc" id="L60">            throw new ResourceNotFoundException(&quot;La cola &quot; + nombre + &quot; no existe.&quot;);</span>
+        }
+<span class="fc" id="L62">        return new EstadoColaDTO(</span>
+            nombre,
+<span class="fc" id="L64">            (Integer) propiedades.get(RabbitAdmin.QUEUE_MESSAGE_COUNT),</span>
+<span class="fc" id="L65">            (Integer) propiedades.get(RabbitAdmin.QUEUE_CONSUMER_COUNT));</span>
+    }
+
+    /** Elimina una cola; si no existe responde 404. */
+    public void eliminarCola(String nombre) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (amqpAdmin.getQueueProperties(nombre) == null) {</span>
+<span class="fc" id="L71">            throw new ResourceNotFoundException(&quot;La cola &quot; + nombre + &quot; no existe.&quot;);</span>
+        }
+<span class="fc" id="L73">        amqpAdmin.deleteQueue(nombre);</span>
+<span class="fc" id="L74">        log.info(&quot;Cola eliminada nombre={}&quot;, nombre);</span>
+<span class="fc" id="L75">    }</span>
+
+    /** Declara un exchange durable del tipo solicitado. */
+    public void declararExchange(SolicitudExchangeDTO solicitud) {
+<span class="fc" id="L79">        String nombre = solicitud.nombre().trim();</span>
+<span class="pc bpc" id="L80" title="2 of 4 branches missed.">        Exchange exchange = switch (solicitud.tipo()) {</span>
+<span class="fc" id="L81">            case DIRECT -&gt; ExchangeBuilder.directExchange(nombre).durable(true).build();</span>
+<span class="fc" id="L82">            case TOPIC -&gt; ExchangeBuilder.topicExchange(nombre).durable(true).build();</span>
+<span class="nc" id="L83">            case FANOUT -&gt; ExchangeBuilder.fanoutExchange(nombre).durable(true).build();</span>
+<span class="pc" id="L84">            case HEADERS -&gt; ExchangeBuilder.headersExchange(nombre).durable(true).build();</span>
+        };
+        try {
+<span class="fc" id="L87">            amqpAdmin.declareExchange(exchange);</span>
+<span class="fc" id="L88">        } catch (AmqpException error) {</span>
+<span class="fc" id="L89">            throw new BadRequestException(</span>
+<span class="fc" id="L90">                &quot;No se pudo declarar el exchange &quot; + nombre + &quot;: &quot; + error.getMessage());</span>
+<span class="fc" id="L91">        }</span>
+<span class="fc" id="L92">        log.info(&quot;Exchange declarado nombre={} tipo={}&quot;, nombre, solicitud.tipo());</span>
+<span class="fc" id="L93">    }</span>
+
+    /** Elimina un exchange (idempotente en el broker). */
+    public void eliminarExchange(String nombre) {
+<span class="nc" id="L97">        amqpAdmin.deleteExchange(nombre);</span>
+<span class="nc" id="L98">        log.info(&quot;Exchange eliminado nombre={}&quot;, nombre);</span>
+<span class="nc" id="L99">    }</span>
+
+    /** Declara un binding cola-exchange. */
+    public void declararBinding(SolicitudBindingDTO solicitud) {
+<span class="fc" id="L103">        Binding binding = aBinding(solicitud);</span>
+        try {
+<span class="fc" id="L105">            amqpAdmin.declareBinding(binding);</span>
+<span class="fc" id="L106">        } catch (AmqpException error) {</span>
+<span class="fc" id="L107">            throw new BadRequestException(</span>
+                &quot;No se pudo crear el binding: verifica que la cola y el exchange existan.&quot;);
+<span class="fc" id="L109">        }</span>
+<span class="fc" id="L110">        log.info(&quot;Binding declarado cola={} exchange={} routingKey={}&quot;,</span>
+<span class="fc" id="L111">            solicitud.cola(), solicitud.exchange(), clave(binding));</span>
+<span class="fc" id="L112">    }</span>
+
+    /** Elimina un binding cola-exchange. */
+    public void eliminarBinding(SolicitudBindingDTO solicitud) {
+<span class="fc" id="L116">        Binding binding = aBinding(solicitud);</span>
+        try {
+<span class="fc" id="L118">            amqpAdmin.removeBinding(binding);</span>
+<span class="nc" id="L119">        } catch (AmqpException error) {</span>
+<span class="nc" id="L120">            throw new BadRequestException(</span>
+                &quot;No se pudo eliminar el binding: verifica que la cola y el exchange existan.&quot;);
+<span class="fc" id="L122">        }</span>
+<span class="fc" id="L123">        log.info(&quot;Binding eliminado cola={} exchange={} routingKey={}&quot;,</span>
+<span class="fc" id="L124">            solicitud.cola(), solicitud.exchange(), clave(binding));</span>
+<span class="fc" id="L125">    }</span>
+
+    private Binding aBinding(SolicitudBindingDTO solicitud) {
+<span class="fc" id="L128">        return new Binding(</span>
+<span class="fc" id="L129">            solicitud.cola().trim(),</span>
+            Binding.DestinationType.QUEUE,
+<span class="fc" id="L131">            solicitud.exchange().trim(),</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            solicitud.routingKey() == null ? &quot;&quot; : solicitud.routingKey().trim(),</span>
+            null);
+    }
+
+    private static String clave(Binding binding) {
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        return binding.getRoutingKey() == null ? &quot;&quot; : binding.getRoutingKey();</span>
+    }
+
+    private static boolean tieneTexto(String valor) {
+<span class="pc bpc" id="L141" title="2 of 4 branches missed.">        return valor != null &amp;&amp; !valor.isBlank();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GraphUserDirectory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.integration.graph</a> &gt; <span class="el_source">GraphUserDirectory.java</span></div><h1>GraphUserDirectory.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.integration.graph;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriBuilder;
+
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import cl.siga.coreshare.dto.usuario.CandidatoUsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Cliente de Microsoft Graph (client credentials) usado para:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Resolver el object id (oid) de Entra ID a partir de un correo.&lt;/li&gt;
+ *   &lt;li&gt;Aprovisionar cuentas del registro asíncrono: crear el usuario si no
+ *       existe, fijar clave temporal con cambio obligatorio y asignar el app
+ *       role. La operación es idempotente (reutiliza la cuenta existente).&lt;/li&gt;
+ *   &lt;li&gt;Sincronizar el rol local (tabla {@code usuarios}) con los app roles de la
+ *       API, de modo que el claim {@code roles} del token refleje la BD.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Los errores se clasifican en {@link GraphTransientException} (reintentable)
+ * y {@link GraphPermanentException} (no reintentable).&lt;/p&gt;
+ */
+<span class="fc" id="L43">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class GraphUserDirectory {
+
+    private static final String GRAPH_SCOPE = &quot;https://graph.microsoft.com/.default&quot;;
+    private static final String GRAPH_BASE = &quot;https://graph.microsoft.com/v1.0&quot;;
+
+    private final GraphProperties properties;
+    private final RestClient graphClient = RestClient.builder().baseUrl(GRAPH_BASE).build();
+
+    private ClientSecretCredential credential;
+    private volatile JsonNode apiServicePrincipal;
+
+    public boolean isEnabled() {
+<span class="fc" id="L58">        return properties.isConfigured();</span>
+    }
+
+    public Optional&lt;CandidatoUsuarioResponseDTO&gt; findUserByEmail(String email) {
+<span class="fc" id="L62">        requireEnabled();</span>
+<span class="fc" id="L63">        return buscarUsuario(email, &quot;id,mail,userPrincipalName,displayName&quot;).map(user -&gt; {</span>
+<span class="fc" id="L64">            String mail = user.path(&quot;mail&quot;).asText(null);</span>
+<span class="fc" id="L65">            String upn = user.path(&quot;userPrincipalName&quot;).asText(null);</span>
+<span class="fc" id="L66">            String displayName = user.path(&quot;displayName&quot;).asText(null);</span>
+<span class="pc bpc" id="L67" title="1 of 4 branches missed.">            String resolvedEmail = (mail != null &amp;&amp; !mail.isBlank()) ? mail : upn;</span>
+<span class="fc" id="L68">            return new CandidatoUsuarioResponseDTO(user.path(&quot;id&quot;).asText(), resolvedEmail, displayName);</span>
+        });
+    }
+
+    /**
+     * Indica si el correo ya tiene una cuenta habilitada en Entra ID. Una cuenta
+     * deshabilitada devuelve {@code false} para que el registro la reutilice
+     * (reactivación). Sin Graph configurado devuelve vacío.
+     */
+    public Optional&lt;Boolean&gt; accountEnabledByEmail(String email) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (!isEnabled()) {</span>
+<span class="fc" id="L79">            return Optional.empty();</span>
+        }
+<span class="fc" id="L81">        return buscarUsuario(email, &quot;id,accountEnabled&quot;)</span>
+<span class="fc" id="L82">                .map(user -&gt; user.path(&quot;accountEnabled&quot;).asBoolean(true));</span>
+    }
+
+    private Optional&lt;JsonNode&gt; buscarUsuario(String email, String select) {
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        String normalized = email == null ? &quot;&quot; : email.trim().toLowerCase();</span>
+        // Escapa comillas simples para evitar inyeccion en el $filter de OData.
+<span class="fc" id="L88">        String escaped = normalized.replace(&quot;'&quot;, &quot;''&quot;);</span>
+<span class="fc" id="L89">        String filter = &quot;mail eq '&quot; + escaped + &quot;' or userPrincipalName eq '&quot; + escaped + &quot;'&quot;;</span>
+
+<span class="fc" id="L91">        JsonNode body = get(ub -&gt; ub.path(&quot;/users&quot;)</span>
+<span class="fc" id="L92">                .queryParam(&quot;$filter&quot;, filter)</span>
+<span class="fc" id="L93">                .queryParam(&quot;$select&quot;, select)</span>
+<span class="fc" id="L94">                .build());</span>
+
+<span class="fc" id="L96">        JsonNode value = body.path(&quot;value&quot;);</span>
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (!value.isArray() || value.isEmpty()) {</span>
+<span class="fc" id="L98">            return Optional.empty();</span>
+        }
+<span class="fc" id="L100">        return Optional.of(value.get(0));</span>
+    }
+
+    /**
+     * Aprovisiona la cuenta del registro asíncrono de forma idempotente:
+     * &lt;ol&gt;
+     *   &lt;li&gt;Resuelve el oid por el hint (si viene) o por correo en Entra ID.&lt;/li&gt;
+     *   &lt;li&gt;Si no existe, crea la cuenta; si existe, le fija una clave nueva.&lt;/li&gt;
+     *   &lt;li&gt;En ambos casos deja la clave con cambio obligatorio y asigna el rol.&lt;/li&gt;
+     * &lt;/ol&gt;
+     * Nunca registra la contraseña en logs.
+     */
+    public ProvisionedUser provisionUser(String email, String displayName, Rol rol, String azureUserIdHint) {
+<span class="fc" id="L113">        requireEnabled();</span>
+<span class="pc bpc" id="L114" title="1 of 4 branches missed.">        String oid = (azureUserIdHint != null &amp;&amp; !azureUserIdHint.isBlank())</span>
+<span class="fc" id="L115">                ? azureUserIdHint.trim()</span>
+<span class="fc" id="L116">                : findUserByEmail(email).map(CandidatoUsuarioResponseDTO::oid).orElse(null);</span>
+
+<span class="fc" id="L118">        String temporaryPassword = PasswordGenerator.generar();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (oid == null) {</span>
+<span class="fc" id="L120">            oid = createUser(email, displayName, temporaryPassword);</span>
+<span class="fc" id="L121">            log.info(&quot;Cuenta creada en Entra ID para {} ({})&quot;, email, oid);</span>
+        } else {
+            // Cuenta previamente deshabilitada (soft delete) o existente: se reactiva.
+<span class="fc" id="L124">            setAccountEnabled(oid, true);</span>
+<span class="fc" id="L125">            setTemporaryPassword(oid, temporaryPassword);</span>
+<span class="fc" id="L126">            log.info(&quot;Cuenta existente en Entra ID reutilizada y habilitada para {} ({})&quot;, email, oid);</span>
+        }
+<span class="fc" id="L128">        syncRole(oid, rol);</span>
+<span class="fc" id="L129">        return new ProvisionedUser(oid, temporaryPassword);</span>
+    }
+
+    /** Regenera la clave temporal (cambio obligatorio) de una cuenta existente. */
+    public String resetPassword(String oid) {
+<span class="fc" id="L134">        requireEnabled();</span>
+<span class="fc" id="L135">        String temporaryPassword = PasswordGenerator.generar();</span>
+<span class="fc" id="L136">        setTemporaryPassword(oid, temporaryPassword);</span>
+<span class="fc" id="L137">        return temporaryPassword;</span>
+    }
+
+    /**
+     * Deja al usuario con exactamente el app role correspondiente a {@code rol},
+     * quitando cualquier otro app role de esta API.
+     */
+    public void syncRole(String oid, Rol rol) {
+<span class="fc" id="L145">        requireEnabled();</span>
+<span class="fc" id="L146">        String resourceId = apiServicePrincipalId();</span>
+<span class="fc" id="L147">        String desiredRoleId = appRoleId(rol);</span>
+<span class="fc" id="L148">        Map&lt;String, String&gt; assigned = assignedRoles(oid, resourceId);</span>
+
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (!assigned.containsKey(desiredRoleId)) {</span>
+<span class="fc" id="L151">            assignAppRole(oid, resourceId, desiredRoleId);</span>
+        }
+<span class="fc" id="L153">        assigned.forEach((roleId, assignmentId) -&gt; {</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">            if (!roleId.equals(desiredRoleId)) {</span>
+<span class="fc" id="L155">                removeAppRoleAssignment(oid, assignmentId);</span>
+            }
+<span class="fc" id="L157">        });</span>
+<span class="fc" id="L158">    }</span>
+
+    /** Habilita o deshabilita el inicio de sesión (soft delete / reactivación). */
+    public void setAccountEnabled(String oid, boolean enabled) {
+<span class="fc" id="L162">        requireEnabled();</span>
+<span class="fc" id="L163">        Map&lt;String, Object&gt; payload = Map.of(&quot;accountEnabled&quot;, enabled);</span>
+        try {
+<span class="fc" id="L165">            graphClient.patch()</span>
+<span class="fc" id="L166">                    .uri(ub -&gt; ub.path(&quot;/users/{oid}&quot;).build(oid))</span>
+<span class="fc" id="L167">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L168">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L169">                    .body(payload)</span>
+<span class="fc" id="L170">                    .retrieve()</span>
+<span class="fc" id="L171">                    .toBodilessEntity();</span>
+<span class="fc" id="L172">        } catch (RestClientResponseException ex) {</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">            throw graphError((enabled ? &quot;habilitar&quot; : &quot;deshabilitar&quot;) + &quot; la cuenta &quot; + oid, ex);</span>
+<span class="nc" id="L174">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L175">            throw new GraphTransientException(</span>
+                    &quot;No se pudo contactar a Microsoft Graph para cambiar el estado de la cuenta.&quot;, ex);
+<span class="fc" id="L177">        }</span>
+<span class="fc" id="L178">    }</span>
+
+    /** Invalida los refresh tokens vigentes del usuario (offboarding inmediato). */
+    public void revokeSignInSessions(String oid) {
+<span class="fc" id="L182">        requireEnabled();</span>
+        try {
+<span class="fc" id="L184">            graphClient.post()</span>
+<span class="fc" id="L185">                    .uri(ub -&gt; ub.path(&quot;/users/{oid}/revokeSignInSessions&quot;).build(oid))</span>
+<span class="fc" id="L186">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L187">                    .retrieve()</span>
+<span class="fc" id="L188">                    .toBodilessEntity();</span>
+<span class="fc" id="L189">        } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L190">            throw graphError(&quot;revocar las sesiones del usuario &quot; + oid, ex);</span>
+<span class="nc" id="L191">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L192">            throw new GraphTransientException(</span>
+                    &quot;No se pudo contactar a Microsoft Graph para revocar las sesiones.&quot;, ex);
+<span class="fc" id="L194">        }</span>
+<span class="fc" id="L195">    }</span>
+
+    /** Quita todos los app roles de esta API al usuario (por ejemplo, al desactivarlo). */
+    public void revokeRoles(String oid) {
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (!isEnabled()) {</span>
+<span class="fc" id="L200">            log.warn(&quot;Graph no configurado: no se pudieron revocar los roles del usuario {}&quot;, oid);</span>
+<span class="fc" id="L201">            return;</span>
+        }
+<span class="fc" id="L203">        String resourceId = apiServicePrincipalId();</span>
+<span class="fc" id="L204">        assignedRoles(oid, resourceId).values().forEach(assignmentId -&gt; removeAppRoleAssignment(oid, assignmentId));</span>
+<span class="fc" id="L205">    }</span>
+
+    private String createUser(String email, String displayName, String temporaryPassword) {
+<span class="fc" id="L208">        Map&lt;String, Object&gt; payload = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L209">        payload.put(&quot;accountEnabled&quot;, true);</span>
+<span class="fc" id="L210">        payload.put(&quot;displayName&quot;, displayName);</span>
+<span class="fc" id="L211">        payload.put(&quot;mailNickname&quot;, mailNickname(email));</span>
+<span class="fc" id="L212">        payload.put(&quot;userPrincipalName&quot;, email);</span>
+<span class="fc" id="L213">        payload.put(&quot;passwordProfile&quot;, Map.of(</span>
+                &quot;password&quot;, temporaryPassword,
+<span class="fc" id="L215">                &quot;forceChangePasswordNextSignIn&quot;, true));</span>
+
+        try {
+<span class="fc" id="L218">            JsonNode body = graphClient.post()</span>
+<span class="fc" id="L219">                    .uri(ub -&gt; ub.path(&quot;/users&quot;).build())</span>
+<span class="fc" id="L220">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L221">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L222">                    .body(payload)</span>
+<span class="fc" id="L223">                    .retrieve()</span>
+<span class="fc" id="L224">                    .body(JsonNode.class);</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">            JsonNode id = body == null ? null : body.path(&quot;id&quot;);</span>
+<span class="pc bpc" id="L226" title="2 of 6 branches missed.">            if (id == null || id.isMissingNode() || id.asText().isBlank()) {</span>
+<span class="fc" id="L227">                throw new GraphTransientException(</span>
+                        &quot;Microsoft Graph no devolvió el identificador de la cuenta creada.&quot;);
+            }
+<span class="fc" id="L230">            return id.asText();</span>
+<span class="nc" id="L231">        } catch (RestClientResponseException ex) {</span>
+<span class="nc" id="L232">            throw graphError(&quot;crear la cuenta &quot; + email, ex);</span>
+<span class="nc" id="L233">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L234">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph para crear la cuenta.&quot;, ex);</span>
+        }
+    }
+
+    private void setTemporaryPassword(String oid, String temporaryPassword) {
+<span class="fc" id="L239">        Map&lt;String, Object&gt; payload = Map.of(&quot;passwordProfile&quot;, Map.of(</span>
+                &quot;password&quot;, temporaryPassword,
+<span class="fc" id="L241">                &quot;forceChangePasswordNextSignIn&quot;, true));</span>
+        try {
+<span class="fc" id="L243">            graphClient.patch()</span>
+<span class="fc" id="L244">                    .uri(ub -&gt; ub.path(&quot;/users/{oid}&quot;).build(oid))</span>
+<span class="fc" id="L245">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L246">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L247">                    .body(payload)</span>
+<span class="fc" id="L248">                    .retrieve()</span>
+<span class="fc" id="L249">                    .toBodilessEntity();</span>
+<span class="nc" id="L250">        } catch (RestClientResponseException ex) {</span>
+<span class="nc" id="L251">            throw graphError(&quot;fijar la clave temporal del usuario &quot; + oid, ex);</span>
+<span class="nc" id="L252">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L253">            throw new GraphTransientException(</span>
+                    &quot;No se pudo contactar a Microsoft Graph para fijar la clave temporal.&quot;, ex);
+<span class="fc" id="L255">        }</span>
+<span class="fc" id="L256">    }</span>
+
+    private String mailNickname(String email) {
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        String local = email == null ? &quot;&quot; : email.trim().toLowerCase();</span>
+<span class="fc" id="L260">        int arroba = local.indexOf('@');</span>
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        if (arroba &gt; 0) {</span>
+<span class="fc" id="L262">            local = local.substring(0, arroba);</span>
+        }
+<span class="fc" id="L264">        String limpio = local.replaceAll(&quot;[^a-z0-9._-]&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L265" title="1 of 2 branches missed.">        if (limpio.isBlank()) {</span>
+<span class="nc" id="L266">            limpio = &quot;usuario&quot; + PasswordGenerator.generar().replaceAll(&quot;[^A-Za-z0-9]&quot;, &quot;&quot;);</span>
+        }
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">        return limpio.length() &gt; 64 ? limpio.substring(0, 64) : limpio;</span>
+    }
+
+    private JsonNode apiServicePrincipalNode() {
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        if (apiServicePrincipal == null) {</span>
+<span class="fc" id="L273">            String appId = properties.apiAppIdOrDefault();</span>
+<span class="fc" id="L274">            JsonNode body = get(ub -&gt; ub.path(&quot;/servicePrincipals&quot;)</span>
+<span class="fc" id="L275">                    .queryParam(&quot;$filter&quot;, &quot;appId eq '&quot; + appId + &quot;'&quot;)</span>
+<span class="fc" id="L276">                    .queryParam(&quot;$select&quot;, &quot;id,appRoles&quot;)</span>
+<span class="fc" id="L277">                    .build());</span>
+<span class="fc" id="L278">            JsonNode value = body.path(&quot;value&quot;);</span>
+<span class="pc bpc" id="L279" title="1 of 4 branches missed.">            if (!value.isArray() || value.isEmpty()) {</span>
+<span class="fc" id="L280">                throw new GraphPermanentException(</span>
+                        &quot;No se encontró el service principal de la API en Entra ID (appId &quot; + appId + &quot;).&quot;);
+            }
+<span class="fc" id="L283">            apiServicePrincipal = value.get(0);</span>
+        }
+<span class="fc" id="L285">        return apiServicePrincipal;</span>
+    }
+
+    private String apiServicePrincipalId() {
+<span class="fc" id="L289">        return apiServicePrincipalNode().path(&quot;id&quot;).asText();</span>
+    }
+
+    private String appRoleId(Rol rol) {
+<span class="fc bfc" id="L293" title="All 2 branches covered.">        for (JsonNode appRole : apiServicePrincipalNode().path(&quot;appRoles&quot;)) {</span>
+<span class="fc" id="L294">            boolean enabled = appRole.path(&quot;isEnabled&quot;).asBoolean(true);</span>
+<span class="pc bpc" id="L295" title="1 of 4 branches missed.">            if (enabled &amp;&amp; rol.name().equals(appRole.path(&quot;value&quot;).asText(null))) {</span>
+<span class="fc" id="L296">                return appRole.path(&quot;id&quot;).asText();</span>
+            }
+<span class="fc" id="L298">        }</span>
+<span class="fc" id="L299">        throw new GraphPermanentException(</span>
+<span class="fc" id="L300">                &quot;El app role &quot; + rol.name() + &quot; no está definido en la app de API de Entra ID.&quot;);</span>
+    }
+
+    private Map&lt;String, String&gt; assignedRoles(String oid, String resourceId) {
+<span class="fc" id="L304">        JsonNode body = get(ub -&gt; ub.path(&quot;/users/{oid}/appRoleAssignments&quot;).build(oid));</span>
+<span class="fc" id="L305">        Map&lt;String, String&gt; assignments = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">        for (JsonNode assignment : body.path(&quot;value&quot;)) {</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">            if (resourceId.equals(assignment.path(&quot;resourceId&quot;).asText())) {</span>
+<span class="fc" id="L308">                assignments.put(assignment.path(&quot;appRoleId&quot;).asText(), assignment.path(&quot;id&quot;).asText());</span>
+            }
+<span class="fc" id="L310">        }</span>
+<span class="fc" id="L311">        return assignments;</span>
+    }
+
+    private void assignAppRole(String oid, String resourceId, String appRoleId) {
+<span class="fc" id="L315">        Map&lt;String, Object&gt; payload = Map.of(</span>
+                &quot;principalId&quot;, oid,
+                &quot;resourceId&quot;, resourceId,
+                &quot;appRoleId&quot;, appRoleId);
+        // Una cuenta recien creada puede tardar en ser asignable (eventual
+        // consistency de Entra ID): un 400/404 inmediato se reintenta antes de
+        // considerarlo permanente.
+<span class="fc" id="L322">        int intentosMax = 3;</span>
+<span class="pc bpc" id="L323" title="1 of 2 branches missed.">        for (int intento = 1; intento &lt;= intentosMax; intento++) {</span>
+            try {
+<span class="fc" id="L325">                graphClient.post()</span>
+<span class="fc" id="L326">                        .uri(ub -&gt; ub.path(&quot;/servicePrincipals/{id}/appRoleAssignedTo&quot;).build(resourceId))</span>
+<span class="fc" id="L327">                        .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L328">                        .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L329">                        .body(payload)</span>
+<span class="fc" id="L330">                        .retrieve()</span>
+<span class="fc" id="L331">                        .toBodilessEntity();</span>
+<span class="fc" id="L332">                return;</span>
+<span class="nc" id="L333">            } catch (RestClientResponseException ex) {</span>
+<span class="nc" id="L334">                int status = ex.getStatusCode().value();</span>
+<span class="nc bnc" id="L335" title="All 6 branches missed.">                boolean replicacion = (status == 400 || status == 404) &amp;&amp; intento &lt; intentosMax;</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">                if (replicacion) {</span>
+<span class="nc" id="L337">                    log.warn(&quot;Asignacion de app role para {} devolvio HTTP {}; reintento {}/{} en {} s.&quot;,</span>
+<span class="nc" id="L338">                            oid, status, intento, intentosMax, intento * 2L);</span>
+<span class="nc" id="L339">                    dormir(intento * 2L);</span>
+<span class="nc" id="L340">                    continue;</span>
+                }
+<span class="nc" id="L342">                throw graphError(&quot;asignar el app role &quot; + appRoleId + &quot; al usuario &quot; + oid, ex);</span>
+<span class="nc" id="L343">            } catch (RestClientException ex) {</span>
+<span class="nc" id="L344">                throw new GraphTransientException(</span>
+                        &quot;No se pudo contactar a Microsoft Graph para asignar el app role.&quot;, ex);
+            }
+        }
+<span class="nc" id="L348">    }</span>
+
+    private void dormir(long segundos) {
+        try {
+<span class="nc" id="L352">            Thread.sleep(segundos * 1000L);</span>
+<span class="nc" id="L353">        } catch (InterruptedException ex) {</span>
+<span class="nc" id="L354">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L355">            throw new GraphTransientException(&quot;Interrumpido esperando la replicacion de la cuenta en Entra ID.&quot;, ex);</span>
+<span class="nc" id="L356">        }</span>
+<span class="nc" id="L357">    }</span>
+
+    private void removeAppRoleAssignment(String oid, String assignmentId) {
+        try {
+<span class="fc" id="L361">            graphClient.delete()</span>
+<span class="fc" id="L362">                    .uri(ub -&gt; ub.path(&quot;/users/{oid}/appRoleAssignments/{id}&quot;).build(oid, assignmentId))</span>
+<span class="fc" id="L363">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L364">                    .retrieve()</span>
+<span class="fc" id="L365">                    .toBodilessEntity();</span>
+<span class="nc" id="L366">        } catch (RestClientResponseException ex) {</span>
+<span class="nc" id="L367">            throw graphError(&quot;quitar la asignación &quot; + assignmentId + &quot; del usuario &quot; + oid, ex);</span>
+<span class="nc" id="L368">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L369">            throw new GraphTransientException(</span>
+                    &quot;No se pudo contactar a Microsoft Graph para quitar una asignación de rol.&quot;, ex);
+<span class="fc" id="L371">        }</span>
+<span class="fc" id="L372">    }</span>
+
+    private JsonNode get(Function&lt;UriBuilder, URI&gt; uriFunction) {
+        try {
+<span class="fc" id="L376">            return graphClient.get()</span>
+<span class="fc" id="L377">                    .uri(uriFunction)</span>
+<span class="fc" id="L378">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
+<span class="fc" id="L379">                    .retrieve()</span>
+<span class="fc" id="L380">                    .body(JsonNode.class);</span>
+<span class="fc" id="L381">        } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L382">            throw graphError(&quot;consultar Microsoft Graph&quot;, ex);</span>
+<span class="nc" id="L383">        } catch (RestClientException ex) {</span>
+<span class="nc" id="L384">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph.&quot;, ex);</span>
+        }
+    }
+
+    private synchronized String bearerHeader() {
+        try {
+<span class="pc bpc" id="L390" title="1 of 2 branches missed.">            if (credential == null) {</span>
+<span class="nc" id="L391">                credential = new ClientSecretCredentialBuilder()</span>
+<span class="nc" id="L392">                        .tenantId(properties.getTenantId())</span>
+<span class="nc" id="L393">                        .clientId(properties.getClientId())</span>
+<span class="nc" id="L394">                        .clientSecret(properties.getClientSecret())</span>
+<span class="nc" id="L395">                        .build();</span>
+            }
+<span class="fc" id="L397">            AccessToken token = credential.getTokenSync(new TokenRequestContext().addScopes(GRAPH_SCOPE));</span>
+<span class="fc" id="L398">            return &quot;Bearer &quot; + token.getToken();</span>
+<span class="nc" id="L399">        } catch (RuntimeException ex) {</span>
+<span class="nc" id="L400">            throw new GraphTransientException(&quot;No se pudo obtener un token para Microsoft Graph.&quot;, ex);</span>
+        }
+    }
+
+    private void requireEnabled() {
+<span class="fc bfc" id="L405" title="All 2 branches covered.">        if (!isEnabled()) {</span>
+<span class="fc" id="L406">            throw new GraphPermanentException(</span>
+                    &quot;La integración con Microsoft Graph no está configurada (falta AZURE_CLIENT_SECRET).&quot;);
+        }
+<span class="fc" id="L409">    }</span>
+
+    /**
+     * Clasifica el error HTTP de Graph: 5xx, 408 y 429 son transitorios; el
+     * resto de 4xx son permanentes. El mensaje no expone el cuerpo del error
+     * (puede contener datos personales).
+     */
+    private RuntimeException graphError(String action, RestClientResponseException ex) {
+<span class="fc" id="L417">        int status = ex.getStatusCode().value();</span>
+<span class="fc" id="L418">        log.error(&quot;Error de Microsoft Graph al {}: HTTP {}&quot;, action, status);</span>
+<span class="pc bpc" id="L419" title="1 of 6 branches missed.">        if (status &gt;= 500 || status == 408 || status == 429) {</span>
+<span class="fc" id="L420">            return new GraphTransientException(</span>
+                    &quot;Microsoft Graph no está disponible al &quot; + action + &quot; (HTTP &quot; + status + &quot;).&quot;);
+        }
+<span class="fc" id="L423">        return new GraphPermanentException(</span>
+                &quot;Microsoft Graph rechazó &quot; + action + &quot; (HTTP &quot; + status + &quot;).&quot;);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

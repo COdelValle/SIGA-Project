@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfirmadorMensajes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.mensajeria</a> &gt; <span class="el_source">ConfirmadorMensajes.java</span></div><h1>ConfirmadorMensajes.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.mensajeria;
+
+import com.rabbitmq.client.Channel;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.support.RetryTemplate;
+
+/**
+ * Confirma los mensajes consumidos con ACK/NACK explícitos (acknowledge-mode
+ * manual). El flujo es siempre el mismo:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Si el procesamiento termina, se confirma con {@code basicAck}.&lt;/li&gt;
+ *   &lt;li&gt;Si el mensaje es inválido ({@link EventoInvalidoException}), no se
+ *       reintenta y se rechaza con {@code basicNack(requeue=false)} para que
+ *       el broker lo enrute a la DLQ.&lt;/li&gt;
+ *   &lt;li&gt;Si el procesamiento falla por una causa transitoria, se reintenta con
+ *       backoff; al agotar los intentos se rechaza hacia la DLQ.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Los reintentos ocurren en memoria (no requeue) para evitar ciclos de
+ * redelivery inmediato; el mensaje solo se rechaza definitivamente cuando ya
+ * no hay más intentos.&lt;/p&gt;
+ */
+<span class="fc" id="L26">@Slf4j</span>
+@RequiredArgsConstructor
+public class ConfirmadorMensajes {
+
+    private final RetryTemplate retryTemplate;
+
+    /**
+     * Procesa la operación del consumidor y confirma o rechaza el mensaje.
+     *
+     * @param canal     canal AMQP de la entrega (para ack/nack).
+     * @param etiqueta  delivery tag del mensaje.
+     * @param cola      nombre de la cola de origen (trazabilidad).
+     * @param operacion procesamiento del evento, idempotente.
+     */
+    public void procesar(Channel canal, long etiqueta, String cola, Runnable operacion) {
+        try {
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            if (!reintentar(operacion)) {</span>
+<span class="fc" id="L43">                rechazar(canal, etiqueta, cola, &quot;reintentos agotados&quot;);</span>
+<span class="fc" id="L44">                return;</span>
+            }
+<span class="fc" id="L46">            confirmar(canal, etiqueta, cola);</span>
+<span class="fc" id="L47">        } catch (EventoInvalidoException invalido) {</span>
+<span class="fc" id="L48">            rechazar(canal, etiqueta, cola, invalido.getMessage());</span>
+<span class="fc" id="L49">        }</span>
+<span class="fc" id="L50">    }</span>
+
+    /**
+     * Ejecuta la operación con reintentos acotados. Un {@link EventoInvalidoException}
+     * no se reintenta: la política lo clasifica como no recuperable y se propaga
+     * de inmediato.
+     *
+     * @return {@code true} si la operación terminó correctamente.
+     */
+    private boolean reintentar(Runnable operacion) {
+        try {
+<span class="fc" id="L61">            retryTemplate.execute(context -&gt; {</span>
+<span class="fc" id="L62">                operacion.run();</span>
+<span class="fc" id="L63">                return null;</span>
+            });
+<span class="fc" id="L65">            return true;</span>
+<span class="fc" id="L66">        } catch (EventoInvalidoException invalido) {</span>
+<span class="fc" id="L67">            throw invalido;</span>
+<span class="fc" id="L68">        } catch (RuntimeException transitorio) {</span>
+<span class="fc" id="L69">            log.warn(&quot;Se agotaron los reintentos de mensajería: {}&quot;, transitorio.getMessage());</span>
+<span class="fc" id="L70">            return false;</span>
+        }
+    }
+
+    private void confirmar(Channel canal, long etiqueta, String cola) {
+        try {
+<span class="fc" id="L76">            canal.basicAck(etiqueta, false);</span>
+<span class="fc" id="L77">            log.info(&quot;Mensaje confirmado con ACK en cola={} deliveryTag={}&quot;, cola, etiqueta);</span>
+<span class="nc" id="L78">        } catch (IOException error) {</span>
+<span class="nc" id="L79">            throw new IllegalStateException(</span>
+                &quot;No se pudo confirmar (ACK) el mensaje de la cola &quot; + cola + &quot;.&quot;, error);
+<span class="fc" id="L81">        }</span>
+<span class="fc" id="L82">    }</span>
+
+    private void rechazar(Channel canal, long etiqueta, String cola, String motivo) {
+        try {
+<span class="fc" id="L86">            canal.basicNack(etiqueta, false, false);</span>
+<span class="fc" id="L87">            log.error(&quot;Mensaje rechazado con NACK hacia la DLQ en cola={} deliveryTag={} motivo={}&quot;,</span>
+<span class="fc" id="L88">                cola, etiqueta, motivo);</span>
+<span class="nc" id="L89">        } catch (IOException error) {</span>
+<span class="nc" id="L90">            throw new IllegalStateException(</span>
+                &quot;No se pudo rechazar (NACK) el mensaje de la cola &quot; + cola + &quot;.&quot;, error);
+<span class="fc" id="L92">        }</span>
+<span class="fc" id="L93">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

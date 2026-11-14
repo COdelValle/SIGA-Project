@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrationStateService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">RegistrationStateService.java</span></div><h1>RegistrationStateService.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import cl.siga.coreshare.dto.usuario.UserCredentialsNotificationEventDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
+import cl.siga.coreshare.dto.usuario.enums.RegistrationProcessState;
+import cl.siga.coreshare.dto.usuario.enums.RegistrationStepState;
+import cl.siga.coreshare.dto.usuario.enums.RegistrationStepType;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
+import cl.siga.msusuariosauth.model.entity.OutboxEventState;
+import cl.siga.msusuariosauth.model.entity.ProcessedRegistrationEvent;
+import cl.siga.msusuariosauth.model.entity.RegistrationOutboxEvent;
+import cl.siga.msusuariosauth.model.entity.UserRegistrationAttempt;
+import cl.siga.msusuariosauth.model.entity.UserRegistrationProcess;
+import cl.siga.msusuariosauth.model.entity.Usuario;
+import cl.siga.msusuariosauth.repository.InvitacionUsuarioRepository;
+import cl.siga.msusuariosauth.repository.ProcessedRegistrationEventRepository;
+import cl.siga.msusuariosauth.repository.RegistrationOutboxEventRepository;
+import cl.siga.msusuariosauth.repository.UserRegistrationAttemptRepository;
+import cl.siga.msusuariosauth.repository.UserRegistrationProcessRepository;
+import cl.siga.msusuariosauth.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Persistencia de los cambios de estado del registro asíncrono. Cada método
+ * corre en una transacción independiente ({@code REQUIRES_NEW}) para que el
+ * resultado de un fallo de Graph no se pierda cuando la transacción del
+ * listener se revierte por el reintento.
+ */
+<span class="fc" id="L47">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class RegistrationStateService {
+
+    private final UserRegistrationProcessRepository processRepository;
+    private final UserRegistrationAttemptRepository attemptRepository;
+    private final ProcessedRegistrationEventRepository processedEventRepository;
+    private final RegistrationOutboxEventRepository outboxRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final InvitacionUsuarioRepository invitacionRepository;
+    private final CredentialCipher credentialCipher;
+    private final RegistroAsyncProperties properties;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Éxito del aprovisionamiento: crea/activa el usuario local, vincula la
+     * invitación previa, cifra la credencial temporal, encola el evento de
+     * dominio (y el de notificación si está habilitado) y cierra la etapa.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void completarAzure(String processId, String eventId, String oid, String temporaryPassword) {
+<span class="fc" id="L69">        UserRegistrationProcess process = findProceso(processId);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (process.getAzureState() == RegistrationStepState.COMPLETADO) {</span>
+<span class="fc" id="L71">            return;</span>
+        }
+
+<span class="fc" id="L74">        Usuario usuario = usuarioRepository.findById(oid)</span>
+<span class="fc" id="L75">                .orElseGet(() -&gt; Usuario.builder().id(oid).build());</span>
+<span class="fc" id="L76">        usuario.setEmail(process.getEmail());</span>
+<span class="pc bpc" id="L77" title="1 of 4 branches missed.">        if (process.getFullName() != null &amp;&amp; !process.getFullName().isBlank()) {</span>
+<span class="fc" id="L78">            usuario.setFullName(process.getFullName());</span>
+        }
+<span class="fc" id="L80">        usuario.setRol(process.getRequestedRole());</span>
+<span class="fc" id="L81">        usuario.setState(StateUsuario.ACTIVO);</span>
+<span class="fc" id="L82">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L84">        invitacionRepository.findByEmail(process.getEmail())</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">                .filter(invitacion -&gt; invitacion.getState() == StateInvitacion.INVITADO)</span>
+<span class="fc" id="L86">                .ifPresent(invitacion -&gt; {</span>
+<span class="fc" id="L87">                    invitacion.setState(StateInvitacion.VINCULADA);</span>
+<span class="fc" id="L88">                    invitacion.setBoundAt(OffsetDateTime.now().toLocalDateTime());</span>
+<span class="fc" id="L89">                    invitacionRepository.save(invitacion);</span>
+<span class="fc" id="L90">                });</span>
+
+<span class="fc" id="L92">        CredentialCipher.Cifrado cifrado = credentialCipher.cifrar(temporaryPassword);</span>
+<span class="fc" id="L93">        process.setCredentialCiphertext(cifrado.ciphertext());</span>
+<span class="fc" id="L94">        process.setCredentialIv(cifrado.iv());</span>
+<span class="fc" id="L95">        process.setCredentialExpiresAt(OffsetDateTime.now().plusHours(properties.getCredentialTtlHours()));</span>
+<span class="fc" id="L96">        process.setCredentialRetrievedAt(null);</span>
+<span class="fc" id="L97">        process.setUserId(oid);</span>
+<span class="fc" id="L98">        process.setAzureState(RegistrationStepState.COMPLETADO);</span>
+<span class="fc" id="L99">        process.setErrorMessage(null);</span>
+<span class="fc" id="L100">        recalcularEstado(process);</span>
+<span class="fc" id="L101">        processRepository.save(process);</span>
+
+<span class="fc" id="L103">        registrarIntento(processId, RegistrationStepType.AZURE_SYNC, true,</span>
+                &quot;Cuenta aprovisionada en Entra ID y rol asignado.&quot;);
+<span class="fc" id="L105">        encolarEventoDominio(process, oid);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (properties.isNotifyCredentialsEnabled()) {</span>
+<span class="fc" id="L107">            encolarAvisoCredenciales(process, oid);</span>
+        }
+<span class="fc" id="L109">        marcarEventoProcesado(&quot;AZURE:&quot; + eventId);</span>
+<span class="fc" id="L110">        log.info(&quot;Proceso {} completó la etapa de Entra ID (oid {}).&quot;, processId, oid);</span>
+<span class="fc" id="L111">    }</span>
+
+    /**
+     * Fallo definitivo de la etapa de Entra ID. Persiste el estado aunque la
+     * transacción del listener se revierta.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void fallarAzure(String processId, String eventId, String mensaje, boolean marcarDedupe) {
+<span class="fc" id="L119">        UserRegistrationProcess process = findProceso(processId);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (process.getAzureState() == RegistrationStepState.COMPLETADO) {</span>
+<span class="fc" id="L121">            return;</span>
+        }
+<span class="fc" id="L123">        process.setAzureState(RegistrationStepState.FALLIDO);</span>
+<span class="fc" id="L124">        process.setErrorMessage(recortar(mensaje));</span>
+<span class="fc" id="L125">        recalcularEstado(process);</span>
+<span class="fc" id="L126">        processRepository.save(process);</span>
+<span class="fc" id="L127">        registrarIntento(processId, RegistrationStepType.AZURE_SYNC, false, mensaje);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (marcarDedupe) {</span>
+<span class="fc" id="L129">            marcarEventoProcesado(&quot;AZURE:&quot; + eventId);</span>
+        }
+<span class="fc" id="L131">    }</span>
+
+    /** Registra un intento fallido transitorio sin cerrar el proceso (habrá reintento). */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarIntentoTransitorio(String processId, String mensaje) {
+<span class="fc" id="L136">        registrarIntento(processId, RegistrationStepType.AZURE_SYNC, false, mensaje);</span>
+<span class="fc" id="L137">    }</span>
+
+    /** Resultado de la creación del perfil publicada por el microservicio del rol. */
+    @Transactional
+    public void procesarResultadoDominio(UserRegistrationStepResultEventDTO event) {
+<span class="fc" id="L142">        String dedupeKey = &quot;DOMAIN:&quot; + event.eventId();</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        if (processedEventRepository.existsById(dedupeKey)) {</span>
+<span class="fc" id="L144">            return;</span>
+        }
+<span class="fc" id="L146">        UserRegistrationProcess process = findProceso(event.processId());</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        process.setDomainState(event.success()</span>
+<span class="fc" id="L148">                ? RegistrationStepState.COMPLETADO</span>
+<span class="fc" id="L149">                : RegistrationStepState.FALLIDO);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (event.success()) {</span>
+<span class="fc" id="L151">            process.setErrorMessage(null);</span>
+        } else {
+<span class="fc" id="L153">            process.setErrorMessage(recortar(event.message()));</span>
+        }
+<span class="fc" id="L155">        recalcularEstado(process);</span>
+<span class="fc" id="L156">        processRepository.save(process);</span>
+<span class="fc" id="L157">        registrarIntento(process.getProcessId(),</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">                event.stepType() == null ? RegistrationStepType.DOMAIN_SYNC : event.stepType(),</span>
+<span class="fc" id="L159">                event.success(), event.message());</span>
+<span class="fc" id="L160">        marcarEventoProcesado(dedupeKey);</span>
+<span class="fc" id="L161">    }</span>
+
+    /** La cola de resultados de dominio agotó los reintentos. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void fallarDominio(String processId, String eventId, String mensaje) {
+<span class="fc" id="L166">        UserRegistrationProcess process = findProceso(processId);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (process.getDomainState() == RegistrationStepState.COMPLETADO) {</span>
+<span class="fc" id="L168">            return;</span>
+        }
+<span class="fc" id="L170">        process.setDomainState(RegistrationStepState.FALLIDO);</span>
+<span class="fc" id="L171">        process.setErrorMessage(recortar(mensaje));</span>
+<span class="fc" id="L172">        recalcularEstado(process);</span>
+<span class="fc" id="L173">        processRepository.save(process);</span>
+<span class="fc" id="L174">        registrarIntento(processId, RegistrationStepType.DOMAIN_SYNC, false, mensaje);</span>
+<span class="fc" id="L175">        marcarEventoProcesado(&quot;DOMAIN:&quot; + eventId);</span>
+<span class="fc" id="L176">    }</span>
+
+    /** La publicación de un evento se agotó: si el proceso no terminó, se marca FALLIDO. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void marcarPublicacionFallida(String processId, String routingKey, String error) {
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (processId == null) {</span>
+<span class="fc" id="L182">            return;</span>
+        }
+<span class="fc" id="L184">        processRepository.findById(processId).ifPresent(process -&gt; {</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">            if (process.getState() == RegistrationProcessState.COMPLETADO) {</span>
+<span class="fc" id="L186">                return;</span>
+            }
+<span class="fc" id="L188">            process.setState(RegistrationProcessState.FALLIDO);</span>
+<span class="fc" id="L189">            process.setErrorMessage(recortar(</span>
+                    &quot;No se pudo publicar el evento &quot; + routingKey + &quot;: &quot; + error));
+<span class="fc" id="L191">            processRepository.save(process);</span>
+<span class="fc" id="L192">        });</span>
+<span class="fc" id="L193">    }</span>
+
+    private void encolarEventoDominio(UserRegistrationProcess process, String oid) {
+<span class="fc" id="L196">        DatosRegistroRolDTO roleData = leerRoleData(process);</span>
+<span class="fc" id="L197">        UserRegistrationEventDTO evento = new UserRegistrationEventDTO(</span>
+                UserRegistrationEventDTO.CURRENT_SCHEMA_VERSION,
+<span class="fc" id="L199">                UUID.randomUUID().toString(),</span>
+<span class="fc" id="L200">                process.getProcessId(),</span>
+<span class="fc" id="L201">                process.getCorrelationId(),</span>
+<span class="fc" id="L202">                process.getEmail(),</span>
+<span class="fc" id="L203">                process.getFullName(),</span>
+<span class="fc" id="L204">                process.getRequestedRole(),</span>
+                oid,
+                roleData,
+<span class="fc" id="L207">                OffsetDateTime.now());</span>
+<span class="fc" id="L208">        encolar(evento.eventId(), process.getProcessId(), process.getCorrelationId(),</span>
+<span class="fc" id="L209">                routingKeyPorRol(process.getRequestedRole()), serializar(evento));</span>
+<span class="fc" id="L210">    }</span>
+
+    private void encolarAvisoCredenciales(UserRegistrationProcess process, String oid) {
+<span class="fc" id="L213">        UserCredentialsNotificationEventDTO evento = new UserCredentialsNotificationEventDTO(</span>
+                UserCredentialsNotificationEventDTO.CURRENT_SCHEMA_VERSION,
+<span class="fc" id="L215">                UUID.randomUUID().toString(),</span>
+<span class="fc" id="L216">                process.getProcessId(),</span>
+<span class="fc" id="L217">                process.getCorrelationId(),</span>
+<span class="fc" id="L218">                process.getEmail(),</span>
+<span class="fc" id="L219">                process.getContactEmail(),</span>
+                oid,
+<span class="fc" id="L221">                process.getRequestedRole(),</span>
+<span class="fc" id="L222">                OffsetDateTime.now());</span>
+<span class="fc" id="L223">        encolar(evento.eventId(), process.getProcessId(), process.getCorrelationId(),</span>
+<span class="fc" id="L224">                RegistrationMessagingConstants.RK_CREDENTIALS_NOTIFY, serializar(evento));</span>
+<span class="fc" id="L225">    }</span>
+
+    private void encolar(String eventId, String processId, String correlationId,
+            String routingKey, String payload) {
+<span class="fc" id="L229">        outboxRepository.save(RegistrationOutboxEvent.builder()</span>
+<span class="fc" id="L230">                .eventId(eventId)</span>
+<span class="fc" id="L231">                .processId(processId)</span>
+<span class="fc" id="L232">                .exchange(RegistrationMessagingConstants.EXCHANGE)</span>
+<span class="fc" id="L233">                .routingKey(routingKey)</span>
+<span class="fc" id="L234">                .correlationId(correlationId)</span>
+<span class="fc" id="L235">                .payload(payload)</span>
+<span class="fc" id="L236">                .state(OutboxEventState.PENDIENTE)</span>
+<span class="fc" id="L237">                .attempts(0)</span>
+<span class="fc" id="L238">                .build());</span>
+<span class="fc" id="L239">    }</span>
+
+    private String routingKeyPorRol(Rol rol) {
+<span class="pc bpc" id="L242" title="2 of 4 branches missed.">        return switch (rol) {</span>
+<span class="fc" id="L243">            case ESTUDIANTE -&gt; RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE;</span>
+<span class="nc" id="L244">            case DOCENTE -&gt; RegistrationMessagingConstants.RK_REGISTER_DOCENTE;</span>
+<span class="nc" id="L245">            case APODERADO -&gt; RegistrationMessagingConstants.RK_REGISTER_APODERADO;</span>
+<span class="fc" id="L246">            case ADMIN -&gt; throw new IllegalStateException(&quot;El rol ADMIN no usa el registro asíncrono.&quot;);</span>
+        };
+    }
+
+    private DatosRegistroRolDTO leerRoleData(UserRegistrationProcess process) {
+        try {
+<span class="fc" id="L252">            return objectMapper.readValue(process.getRoleData(), DatosRegistroRolDTO.class);</span>
+<span class="fc" id="L253">        } catch (JsonProcessingException ex) {</span>
+<span class="fc" id="L254">            throw new IllegalStateException(</span>
+<span class="fc" id="L255">                    &quot;No se pudo reconstruir el payload del rol del proceso &quot; + process.getProcessId(), ex);</span>
+        }
+    }
+
+    private String serializar(Object evento) {
+        try {
+<span class="fc" id="L261">            return objectMapper.writeValueAsString(evento);</span>
+<span class="nc" id="L262">        } catch (JsonProcessingException ex) {</span>
+<span class="nc" id="L263">            throw new IllegalStateException(&quot;No se pudo serializar el evento de registro.&quot;, ex);</span>
+        }
+    }
+
+    private void recalcularEstado(UserRegistrationProcess process) {
+<span class="fc bfc" id="L268" title="All 2 branches covered.">        if (process.getAzureState() == RegistrationStepState.FALLIDO</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">                || process.getDomainState() == RegistrationStepState.FALLIDO) {</span>
+<span class="fc" id="L270">            process.setState(RegistrationProcessState.FALLIDO);</span>
+<span class="fc" id="L271">            return;</span>
+        }
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">        if (process.getAzureState() == RegistrationStepState.COMPLETADO</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">                &amp;&amp; process.getDomainState() == RegistrationStepState.COMPLETADO) {</span>
+<span class="fc" id="L275">            process.setState(RegistrationProcessState.COMPLETADO);</span>
+        } else {
+<span class="fc" id="L277">            process.setState(RegistrationProcessState.EN_PROCESO);</span>
+        }
+<span class="fc" id="L279">    }</span>
+
+    private void registrarIntento(String processId, RegistrationStepType tipo, boolean exito, String mensaje) {
+<span class="fc" id="L282">        attemptRepository.save(UserRegistrationAttempt.builder()</span>
+<span class="fc" id="L283">                .processId(processId)</span>
+<span class="fc" id="L284">                .stepType(tipo)</span>
+<span class="fc" id="L285">                .success(exito)</span>
+<span class="fc" id="L286">                .message(recortar(mensaje))</span>
+<span class="fc" id="L287">                .build());</span>
+<span class="fc" id="L288">    }</span>
+
+    private void marcarEventoProcesado(String dedupeKey) {
+<span class="fc" id="L291">        processedEventRepository.save(ProcessedRegistrationEvent.builder().eventId(dedupeKey).build());</span>
+<span class="fc" id="L292">    }</span>
+
+    private UserRegistrationProcess findProceso(String processId) {
+<span class="fc" id="L295">        return processRepository.findById(processId)</span>
+<span class="fc" id="L296">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Proceso de registro &quot; + processId + &quot; no encontrado.&quot;));
+    }
+
+    private static String recortar(String mensaje) {
+<span class="pc bpc" id="L301" title="1 of 4 branches missed.">        if (mensaje == null || mensaje.isBlank()) {</span>
+<span class="fc" id="L302">            return &quot;Sin detalle.&quot;;</span>
+        }
+<span class="fc bfc" id="L304" title="All 2 branches covered.">        return mensaje.length() &gt; 1000 ? mensaje.substring(0, 1000) : mensaje;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EvaluacionMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-evaluaciones</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msevaluaciones.model.mapper</a> &gt; <span class="el_source">EvaluacionMapperImpl.java</span></div><h1>EvaluacionMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.msevaluaciones.model.mapper;
+
+import cl.siga.coreshare.dto.evaluaciones.ActualizarEvaluacionRequestDTO;
+import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
+import cl.siga.coreshare.dto.evaluaciones.RegistrarEvaluacionRequestDTO;
+import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
+import cl.siga.msevaluaciones.model.entity.Evaluacion;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:16:42+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="nc" id="L19">public class EvaluacionMapperImpl implements EvaluacionMapper {</span>
+
+    @Override
+    public Evaluacion toEntity(RegistrarEvaluacionRequestDTO requestDto) {
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        if ( requestDto == null ) {</span>
+<span class="nc" id="L24">            return null;</span>
+        }
+
+<span class="nc" id="L27">        Evaluacion.EvaluacionBuilder evaluacion = Evaluacion.builder();</span>
+
+<span class="nc" id="L29">        evaluacion.nombre( requestDto.nombre() );</span>
+<span class="nc" id="L30">        evaluacion.tipo( requestDto.tipo() );</span>
+<span class="nc" id="L31">        evaluacion.ponderacion( requestDto.ponderacion() );</span>
+<span class="nc" id="L32">        evaluacion.idCursoAsignatura( requestDto.idCursoAsignatura() );</span>
+
+<span class="nc" id="L34">        return evaluacion.build();</span>
+    }
+
+    @Override
+    public void updateEntityFromDto(ActualizarEvaluacionRequestDTO dto, Evaluacion evaluacion) {
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if ( dto == null ) {</span>
+<span class="nc" id="L40">            return;</span>
+        }
+
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if ( dto.nombre() != null ) {</span>
+<span class="nc" id="L44">            evaluacion.setNombre( dto.nombre() );</span>
+        }
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if ( dto.tipo() != null ) {</span>
+<span class="nc" id="L47">            evaluacion.setTipo( dto.tipo() );</span>
+        }
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if ( dto.ponderacion() != null ) {</span>
+<span class="nc" id="L50">            evaluacion.setPonderacion( dto.ponderacion() );</span>
+        }
+<span class="nc" id="L52">    }</span>
+
+    @Override
+    public EvaluacionResponseDTO toResponseDto(Evaluacion evaluacion) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if ( evaluacion == null ) {</span>
+<span class="nc" id="L57">            return null;</span>
+        }
+
+<span class="nc" id="L60">        Long id = null;</span>
+<span class="nc" id="L61">        String nombre = null;</span>
+<span class="nc" id="L62">        TipoEvaluacion tipo = null;</span>
+<span class="nc" id="L63">        Double ponderacion = null;</span>
+<span class="nc" id="L64">        Long idCursoAsignatura = null;</span>
+<span class="nc" id="L65">        boolean active = false;</span>
+
+<span class="nc" id="L67">        id = evaluacion.getId();</span>
+<span class="nc" id="L68">        nombre = evaluacion.getNombre();</span>
+<span class="nc" id="L69">        tipo = evaluacion.getTipo();</span>
+<span class="nc" id="L70">        ponderacion = evaluacion.getPonderacion();</span>
+<span class="nc" id="L71">        idCursoAsignatura = evaluacion.getIdCursoAsignatura();</span>
+<span class="nc" id="L72">        active = evaluacion.isActive();</span>
+
+<span class="nc" id="L74">        EvaluacionResponseDTO evaluacionResponseDTO = new EvaluacionResponseDTO( id, nombre, tipo, ponderacion, idCursoAsignatura, active );</span>
+
+<span class="nc" id="L76">        return evaluacionResponseDTO;</span>
+    }
+
+    @Override
+    public List&lt;EvaluacionResponseDTO&gt; toResponseDtoList(List&lt;Evaluacion&gt; evaluaciones) {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if ( evaluaciones == null ) {</span>
+<span class="nc" id="L82">            return null;</span>
+        }
+
+<span class="nc" id="L85">        List&lt;EvaluacionResponseDTO&gt; list = new ArrayList&lt;EvaluacionResponseDTO&gt;( evaluaciones.size() );</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        for ( Evaluacion evaluacion : evaluaciones ) {</span>
+<span class="nc" id="L87">            list.add( toResponseDto( evaluacion ) );</span>
+<span class="nc" id="L88">        }</span>
+
+<span class="nc" id="L90">        return list;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

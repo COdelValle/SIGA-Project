@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtClaimAuthoritiesConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.security</a> &gt; <span class="el_source">JwtClaimAuthoritiesConverter.java</span></div><h1>JwtClaimAuthoritiesConverter.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.security;
+
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+/** Convierte los claims delegados {@code scp} y de aplicación {@code roles}. */
+<span class="fc" id="L13">public final class JwtClaimAuthoritiesConverter implements Converter&lt;Jwt, Collection&lt;GrantedAuthority&gt;&gt; {</span>
+
+    @Override
+    public Collection&lt;GrantedAuthority&gt; convert(Jwt jwt) {
+<span class="fc" id="L17">        Set&lt;GrantedAuthority&gt; authorities = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L18">        Object scopesClaim = jwt.getClaims().get(&quot;scp&quot;);</span>
+<span class="pc bpc" id="L19" title="1 of 2 branches missed.">        if (scopesClaim instanceof String scopes) {</span>
+<span class="fc bfc" id="L20" title="All 2 branches covered.">            for (String scope : scopes.split(&quot;\\s+&quot;)) {</span>
+<span class="pc bpc" id="L21" title="1 of 2 branches missed.">                if (!scope.isBlank()) {</span>
+<span class="fc" id="L22">                    authorities.add(new SimpleGrantedAuthority(&quot;SCOPE_&quot; + scope));</span>
+                }
+            }
+        }
+
+<span class="fc" id="L27">        Object rolesClaim = jwt.getClaims().get(&quot;roles&quot;);</span>
+<span class="pc bpc" id="L28" title="1 of 2 branches missed.">        if (rolesClaim instanceof Collection&lt;?&gt; roles) {</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">            for (Object role : roles) {</span>
+<span class="pc bpc" id="L30" title="2 of 4 branches missed.">                if (role instanceof String value &amp;&amp; !value.isBlank()) {</span>
+<span class="fc" id="L31">                    authorities.add(new SimpleGrantedAuthority(&quot;ROLE_&quot; + value));</span>
+                }
+<span class="fc" id="L33">            }</span>
+        }
+<span class="fc" id="L35">        return authorities;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

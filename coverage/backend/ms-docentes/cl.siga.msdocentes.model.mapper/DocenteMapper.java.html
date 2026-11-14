@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocenteMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-docentes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msdocentes.model.mapper</a> &gt; <span class="el_source">DocenteMapper.java</span></div><h1>DocenteMapper.java</h1><pre class="source lang-java linenums">package cl.siga.msdocentes.model.mapper;
+
+import cl.siga.coreshare.dto.docente.ActualizarDocenteRequestDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.dto.docente.RegistrarDocenteRequestDTO;
+import cl.siga.msdocentes.model.entity.Docente;
+import org.mapstruct.*;
+
+import java.util.List;
+
+@Mapper(
+  componentModel = &quot;spring&quot;,
+  uses = { CertificadoMapper.class },
+  nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
+public interface DocenteMapper {
+  // Mapea un DTO de solicitud a una entidad de docente.
+  Docente toEntity(RegistrarDocenteRequestDTO requestDto);
+
+  // Mapea un DTO de modificación a una entidad de docente.
+  void updateEntityFromDto(ActualizarDocenteRequestDTO dto, @MappingTarget Docente docente);
+
+  // Mapea una entidad de docente a un DTO de respuesta.
+  DocenteResponseDTO toResponseDto(Docente docente);
+
+  // Mapea una lista de entidades de docente a una lista de DTOs de respuesta.
+  List&lt;DocenteResponseDTO&gt; toResponseDtoList(List&lt;Docente&gt; docentes);
+
+  // Método que se ejecuta después del mapeo para establecer la relación bidireccional entre Docente y Certificado.
+  @AfterMapping
+  default void linkCertificados(@MappingTarget Docente docente) {
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">    if (docente.getCertificados() != null) {</span>
+<span class="fc" id="L33">      docente.getCertificados().forEach(certificado -&gt; certificado.setDocente(docente));</span>
+    }
+<span class="fc" id="L35">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

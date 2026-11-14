@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmailInstitucionalGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">EmailInstitucionalGenerator.java</span></div><h1>EmailInstitucionalGenerator.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import java.text.Normalizer;
+import java.util.Locale;
+import java.util.function.Predicate;
+
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroApoderadoDTO;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroDocenteDTO;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroEstudianteDTO;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.format.NombrePropio;
+import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Genera el correo institucional ({@code nombre.apellido@dominio}) y el nombre
+ * completo a partir de los datos del rol.
+ *
+ * &lt;p&gt;Reglas del correo: se usa la primera palabra del primer nombre y del primer
+ * apellido, sin tildes/ñ ni caracteres inválidos para un UPN de Entra ID. Ante
+ * colisiones se intenta el segundo apellido ({@code nombre.apellido1apellido2})
+ * y luego un sufijo numérico ({@code nombre.apellido2..99}). El local part
+ * nunca supera los 64 caracteres.&lt;/p&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class EmailInstitucionalGenerator {
+
+    private static final int MAX_LOCAL_PART = 64;
+    private static final int MAX_SUFIJO_NUMERICO = 99;
+
+    private final RegistroAsyncProperties properties;
+
+    public String nombreCompleto(DatosRegistroRolDTO roleData, Rol rol) {
+<span class="pc bpc" id="L39" title="3 of 4 branches missed.">        String[] campos = switch (rol) {</span>
+            case ESTUDIANTE -&gt; {
+<span class="fc" id="L41">                DatosRegistroEstudianteDTO datos = roleData.estudiante();</span>
+<span class="fc" id="L42">                yield new String[] {</span>
+<span class="fc" id="L43">                        datos.firstName(), datos.middleName(), datos.firstSurname(), datos.secondSurname() };</span>
+            }
+            case DOCENTE -&gt; {
+<span class="nc" id="L46">                DatosRegistroDocenteDTO datos = roleData.docente();</span>
+<span class="nc" id="L47">                yield new String[] {</span>
+<span class="nc" id="L48">                        datos.firstName(), datos.middleName(), datos.firstSurname(), datos.secondSurname() };</span>
+            }
+            case APODERADO -&gt; {
+<span class="nc" id="L51">                DatosRegistroApoderadoDTO datos = roleData.apoderado();</span>
+<span class="nc" id="L52">                yield new String[] {</span>
+<span class="nc" id="L53">                        datos.firstName(), datos.middleName(), datos.firstSurname(), datos.secondSurname() };</span>
+            }
+<span class="pc" id="L55">            case ADMIN -&gt; throw new BusinessException(&quot;El rol ADMIN no usa el registro asíncrono.&quot;);</span>
+        };
+        // Se normaliza la cadena unida para que las particulas internas queden en
+        // minuscula (p. ej. &quot;Maria del Carmen Ormeno de la Cruz&quot;).
+<span class="fc" id="L59">        String completo = NombrePropio.normalizar(unir(campos));</span>
+<span class="pc bpc" id="L60" title="2 of 4 branches missed.">        if (completo == null || completo.isBlank()) {</span>
+<span class="nc" id="L61">            throw new BusinessException(&quot;El nombre completo no puede estar vacío.&quot;);</span>
+        }
+<span class="fc" id="L63">        return completo;</span>
+    }
+
+    /**
+     * Genera un correo único usando {@code ocupado} para detectar candidatos
+     * tomados por una cuenta activa (las deshabilitadas se reutilizan para
+     * reactivación).
+     */
+    public String generarEmail(DatosRegistroRolDTO roleData, Rol rol, Predicate&lt;String&gt; ocupado) {
+<span class="pc bpc" id="L72" title="3 of 4 branches missed.">        String[] nombres = switch (rol) {</span>
+<span class="fc" id="L73">            case ESTUDIANTE -&gt; new String[] {</span>
+<span class="fc" id="L74">                    roleData.estudiante().firstName(), roleData.estudiante().firstSurname(),</span>
+<span class="fc" id="L75">                    roleData.estudiante().secondSurname() };</span>
+<span class="nc" id="L76">            case DOCENTE -&gt; new String[] {</span>
+<span class="nc" id="L77">                    roleData.docente().firstName(), roleData.docente().firstSurname(),</span>
+<span class="nc" id="L78">                    roleData.docente().secondSurname() };</span>
+<span class="nc" id="L79">            case APODERADO -&gt; new String[] {</span>
+<span class="nc" id="L80">                    roleData.apoderado().firstName(), roleData.apoderado().firstSurname(),</span>
+<span class="nc" id="L81">                    roleData.apoderado().secondSurname() };</span>
+<span class="pc" id="L82">            case ADMIN -&gt; throw new BusinessException(&quot;El rol ADMIN no usa el registro asíncrono.&quot;);</span>
+        };
+
+<span class="fc" id="L85">        String nombre = primeraPalabra(nombres[0]);</span>
+<span class="fc" id="L86">        String apellido = primeraPalabra(nombres[1]);</span>
+<span class="pc bpc" id="L87" title="1 of 4 branches missed.">        if (nombre.isEmpty() || apellido.isEmpty()) {</span>
+<span class="fc" id="L88">            throw new BusinessException(</span>
+                    &quot;No se pudo generar el correo: el nombre y el primer apellido deben contener letras.&quot;);
+        }
+
+<span class="fc" id="L92">        String base = truncar(nombre + &quot;.&quot; + apellido, MAX_LOCAL_PART);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (!ocupado.test(conDominio(base))) {</span>
+<span class="fc" id="L94">            return conDominio(base);</span>
+        }
+
+<span class="fc" id="L97">        String segundoApellido = primeraPalabra(nombres[2]);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (!segundoApellido.isEmpty()) {</span>
+<span class="fc" id="L99">            String conSegundo = truncar(nombre + &quot;.&quot; + apellido + segundoApellido, MAX_LOCAL_PART);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">            if (!ocupado.test(conDominio(conSegundo))) {</span>
+<span class="fc" id="L101">                return conDominio(conSegundo);</span>
+            }
+        }
+
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        for (int numero = 2; numero &lt;= MAX_SUFIJO_NUMERICO; numero++) {</span>
+<span class="fc" id="L106">            String sufijo = String.valueOf(numero);</span>
+<span class="fc" id="L107">            String candidato = truncar(base, MAX_LOCAL_PART - sufijo.length()) + sufijo;</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">            if (!ocupado.test(conDominio(candidato))) {</span>
+<span class="fc" id="L109">                return conDominio(candidato);</span>
+            }
+        }
+<span class="nc" id="L112">        throw new BusinessException(</span>
+                &quot;No se pudo generar un correo único para el nombre indicado (se agotaron los candidatos).&quot;);
+    }
+
+    private String conDominio(String localPart) {
+<span class="fc" id="L117">        return localPart + &quot;@&quot; + properties.getEmailDomain();</span>
+    }
+
+    private static String unir(String[] partes) {
+<span class="fc" id="L121">        StringBuilder resultado = new StringBuilder();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        for (String parte : partes) {</span>
+<span class="pc bpc" id="L123" title="1 of 4 branches missed.">            if (parte == null || parte.isBlank()) {</span>
+<span class="nc" id="L124">                continue;</span>
+            }
+<span class="fc bfc" id="L126" title="All 2 branches covered.">            if (!resultado.isEmpty()) {</span>
+<span class="fc" id="L127">                resultado.append(' ');</span>
+            }
+<span class="fc" id="L129">            resultado.append(parte.trim());</span>
+        }
+<span class="fc" id="L131">        return resultado.toString();</span>
+    }
+
+    private static String primeraPalabra(String texto) {
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">        if (texto == null || texto.isBlank()) {</span>
+<span class="fc" id="L136">            return &quot;&quot;;</span>
+        }
+<span class="fc" id="L138">        return normalizar(texto.trim().split(&quot;\\s+&quot;)[0]);</span>
+    }
+
+    private static String normalizar(String texto) {
+<span class="fc" id="L142">        String sinDiacriticos = Normalizer.normalize(texto, Normalizer.Form.NFD)</span>
+<span class="fc" id="L143">                .replaceAll(&quot;\\p{M}&quot;, &quot;&quot;);</span>
+<span class="fc" id="L144">        return sinDiacriticos.toLowerCase(Locale.ROOT).replaceAll(&quot;[^a-z0-9]&quot;, &quot;&quot;);</span>
+    }
+
+    private static String truncar(String valor, int maximo) {
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        return valor.length() &lt;= maximo ? valor : valor.substring(0, maximo);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

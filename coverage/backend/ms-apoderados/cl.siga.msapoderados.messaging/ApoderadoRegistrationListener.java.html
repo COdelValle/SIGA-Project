@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApoderadoRegistrationListener.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-apoderados</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msapoderados.messaging</a> &gt; <span class="el_source">ApoderadoRegistrationListener.java</span></div><h1>ApoderadoRegistrationListener.java</h1><pre class="source lang-java linenums">package cl.siga.msapoderados.messaging;
+
+import com.rabbitmq.client.Channel;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroApoderadoDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.messaging.RegistrationCorrelation;
+import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
+import cl.siga.msapoderados.repository.ApoderadoRepository;
+import cl.siga.msapoderados.service.ApoderadoService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Consumidor de la etapa de dominio para apoderados, idempotente por idUsuario.
+ * La existencia de los pupilos se validó de forma síncrona al aceptar la
+ * solicitud (con el token del administrador), por lo que este listener no
+ * requiere JWT para el chequeo Feign.
+ *
+ * &lt;p&gt;La confirmación es manual: ACK cuando la etapa termina y NACK hacia la DLQ
+ * cuando el evento es inválido o se agotan los reintentos.&lt;/p&gt;
+ */
+<span class="nc" id="L33">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class ApoderadoRegistrationListener {
+
+    private final ApoderadoService apoderadoService;
+    private final ApoderadoRepository apoderadoRepository;
+    private final RegistrationStatusPublisher statusPublisher;
+    private final ConfirmadorMensajes confirmador;
+
+    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_QUEUE)
+    public void handle(
+            UserRegistrationEventDTO event,
+            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            String correlationId,
+            Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc bnc" id="L50" title="All 4 branches missed.">        String correlacion = (correlationId != null &amp;&amp; !correlationId.isBlank())</span>
+<span class="nc" id="L51">                ? correlationId</span>
+<span class="nc" id="L52">                : event.correlationId();</span>
+<span class="nc" id="L53">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_QUEUE,</span>
+<span class="nc" id="L54">            () -&gt; RegistrationCorrelation.ejecutar(correlacion, () -&gt; procesar(event)));</span>
+<span class="nc" id="L55">    }</span>
+
+    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_DLQ)
+    public void handleDlq(UserRegistrationEventDTO event, Channel canal,
+            @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L60">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_DLQ,</span>
+<span class="nc" id="L61">            () -&gt; statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,</span>
+                &quot;Se agotaron los reintentos creando el perfil de apoderado.&quot;));
+<span class="nc" id="L63">    }</span>
+
+    private void procesar(UserRegistrationEventDTO event) {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (!event.schemaSoportado()) {</span>
+<span class="nc" id="L67">            fallar(event, &quot;Versión de evento no soportada: &quot; + event.schemaVersion());</span>
+<span class="nc" id="L68">            return;</span>
+        }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (event.requestedRole() != Rol.APODERADO) {</span>
+<span class="nc" id="L71">            fallar(event, &quot;El evento no corresponde al rol APODERADO.&quot;);</span>
+<span class="nc" id="L72">            return;</span>
+        }
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        DatosRegistroApoderadoDTO datos = event.roleData() == null ? null : event.roleData().apoderado();</span>
+<span class="nc bnc" id="L75" title="All 6 branches missed.">        if (datos == null || event.userId() == null || event.userId().isBlank()) {</span>
+<span class="nc" id="L76">            fallar(event, &quot;El evento de apoderado está incompleto.&quot;);</span>
+<span class="nc" id="L77">            return;</span>
+        }
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (apoderadoRepository.existsByIdUsuario(event.userId())) {</span>
+<span class="nc" id="L80">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+                &quot;El perfil del apoderado ya existía (idempotente).&quot;);
+<span class="nc" id="L82">            return;</span>
+        }
+        try {
+<span class="nc" id="L85">            apoderadoService.saveApoderadoDesdeEvento(new RegistrarApoderadoRequestDTO(</span>
+<span class="nc" id="L86">                event.userId(),</span>
+<span class="nc" id="L87">                datos.firstName(),</span>
+<span class="nc" id="L88">                datos.middleName(),</span>
+<span class="nc" id="L89">                datos.firstSurname(),</span>
+<span class="nc" id="L90">                datos.secondSurname(),</span>
+<span class="nc" id="L91">                datos.rut(),</span>
+<span class="nc" id="L92">                datos.telefonos(),</span>
+<span class="nc" id="L93">                datos.estudiantes()));</span>
+<span class="nc" id="L94">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+                &quot;Perfil de apoderado creado.&quot;);
+<span class="nc" id="L96">        } catch (BusinessException ex) {</span>
+<span class="nc" id="L97">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, ex.getMessage());</span>
+<span class="nc" id="L98">        }</span>
+<span class="nc" id="L99">    }</span>
+
+    private void fallar(UserRegistrationEventDTO event, String mensaje) {
+<span class="nc" id="L102">        log.warn(&quot;Evento de registro {} rechazado: {}&quot;, event.processId(), mensaje);</span>
+<span class="nc" id="L103">        statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, mensaje);</span>
+<span class="nc" id="L104">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

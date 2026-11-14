@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CursoAsignaturaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.service.asignatura</a> &gt; <span class="el_source">CursoAsignaturaService.java</span></div><h1>CursoAsignaturaService.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.service.asignatura;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.curso.ActualizarCursoAsignaturaRequestDTO;
+import cl.siga.coreshare.dto.asignatura.curso.RegistrarCursoAsignaturaRequestDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.PlanFormacion;
+import cl.siga.coreshare.dto.asignatura.enums.Semestre;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msasignaturas.client.ClaseClient;
+import cl.siga.msasignaturas.client.DocenteClient;
+import cl.siga.msasignaturas.model.InscripcionEstados;
+import cl.siga.msasignaturas.model.entity.Horario;
+import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
+import cl.siga.msasignaturas.model.mapper.CursoAsignaturaMapper;
+import cl.siga.msasignaturas.model.specifications.CursoAsignaturaSpecifications;
+import cl.siga.msasignaturas.repository.InscripcionRepository;
+import cl.siga.msasignaturas.repository.asignatura.AsignaturaRepository;
+import cl.siga.msasignaturas.repository.asignatura.CursoAsignaturaRepository;
+import cl.siga.msasignaturas.repository.asignatura.MallaCurricularRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CursoAsignaturaService {
+
+    // Agrupación MINEDUC para el plan diferenciada (humanidades, ciencias, artes).
+<span class="fc" id="L42">    private static final Set&lt;AreaAcademica&gt; AREA_A = Set.of(</span>
+            AreaAcademica.LENGUAJE, AreaAcademica.HISTORIA, AreaAcademica.IDIOMAS,
+            AreaAcademica.CIUDADANIA, AreaAcademica.FILOSOFIA);
+<span class="fc" id="L45">    private static final Set&lt;AreaAcademica&gt; AREA_B = Set.of(</span>
+            AreaAcademica.MATEMATICAS, AreaAcademica.CIENCIAS, AreaAcademica.CIENCIAS_CIUDADANIA,
+            AreaAcademica.TECNOLOGIA, AreaAcademica.ECONOMIA);
+<span class="fc" id="L48">    private static final Set&lt;AreaAcademica&gt; AREA_C = Set.of(</span>
+            AreaAcademica.ARTES, AreaAcademica.EDUCACION_FISICA);
+
+    private final CursoAsignaturaRepository cursoAsignaturaRepository;
+    private final AsignaturaRepository asignaturaRepository;
+    private final MallaCurricularRepository mallaCurricularRepository;
+    private final InscripcionRepository inscripcionRepository;
+    private final CursoAsignaturaMapper cursoAsignaturaMapper;
+    private final ClaseClient claseClient;
+    private final DocenteClient docenteClient;
+
+    @Transactional(readOnly = true)
+    public Page&lt;CursoAsignaturaResponseDTO&gt; searchCursoAsignaturas(
+            Long idClase, Long idDocente, Long idAsignatura, CaracterAsignatura caracter,
+            Semestre semestre, AreaAcademica area, String nombre, Boolean conCupoDisponible,
+            Pageable pageable) {
+
+<span class="fc" id="L65">        Specification&lt;CursoAsignatura&gt; spec = Specification.where(CursoAsignaturaSpecifications.isActive())</span>
+<span class="fc" id="L66">                .and(CursoAsignaturaSpecifications.hasIdClase(idClase))</span>
+<span class="fc" id="L67">                .and(CursoAsignaturaSpecifications.hasIdDocente(idDocente))</span>
+<span class="fc" id="L68">                .and(CursoAsignaturaSpecifications.hasIdAsignatura(idAsignatura))</span>
+<span class="fc" id="L69">                .and(CursoAsignaturaSpecifications.hasCaracter(caracter))</span>
+<span class="fc" id="L70">                .and(CursoAsignaturaSpecifications.hasSemestre(semestre))</span>
+<span class="fc" id="L71">                .and(CursoAsignaturaSpecifications.hasArea(area))</span>
+<span class="fc" id="L72">                .and(CursoAsignaturaSpecifications.hasNombre(nombre))</span>
+<span class="fc" id="L73">                .and(CursoAsignaturaSpecifications.hasCuposDisponibles(conCupoDisponible));</span>
+
+<span class="fc" id="L75">        return cursoAsignaturaRepository.findAll(spec, pageable).map(cursoAsignaturaMapper::toDto);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public CursoAsignaturaResponseDTO obtenerPorId(Long id) {
+<span class="fc" id="L80">        return cursoAsignaturaMapper.toDto(cursoAsignaturaRepository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L81">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación con ID &quot; + id + &quot; no encontrada o inactiva.&quot;)));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existCursoAsignatura(Long id) {
+<span class="fc" id="L86">        return cursoAsignaturaRepository.existsByIdAndActiveTrue(id);</span>
+    }
+
+    @Transactional
+    public CursoAsignaturaResponseDTO crear(RegistrarCursoAsignaturaRequestDTO dto) {
+<span class="fc" id="L91">        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(dto.idAsignatura())</span>
+<span class="fc" id="L92">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asignatura no encontrada o inactiva.&quot;));</span>
+
+<span class="fc" id="L94">        ClaseResponseDTO clase = claseClient.getClaseById(dto.idClase());</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (!mallaCurricularRepository.existsByNivelAndAsignaturaIdAndPlanAndActiveTrue(</span>
+<span class="fc" id="L96">                clase.nivel(), dto.idAsignatura(), PlanFormacion.COMUN)) {</span>
+<span class="fc" id="L97">            throw new BusinessException(</span>
+<span class="fc" id="L98">                &quot;La asignatura no está en la malla curricular del nivel &quot; + clase.nivel().getDescripcion() + &quot;.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!docenteClient.existsById(dto.idDocente())) {</span>
+<span class="fc" id="L102">            throw new BusinessException(&quot;El docente con ID &quot; + dto.idDocente() + &quot; no existe o no está activo.&quot;);</span>
+        }
+
+<span class="fc" id="L105">        Integer cupo = normalizarCupo(dto.caracter(), dto.cupoMaximo());</span>
+
+<span class="fc" id="L107">        return cursoAsignaturaRepository</span>
+<span class="fc" id="L108">                .findFirstByAsignaturaIdAndIdClaseAndSemestre(dto.idAsignatura(), dto.idClase(), dto.semestre())</span>
+<span class="fc" id="L109">                .map(existente -&gt; {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">                    if (existente.isActive()) {</span>
+<span class="fc" id="L111">                        throw new BusinessException(&quot;Ya existe una dictación de esa asignatura para el curso y semestre.&quot;);</span>
+                    }
+<span class="fc" id="L113">                    existente.setIdDocente(dto.idDocente());</span>
+<span class="fc" id="L114">                    existente.setCaracter(dto.caracter());</span>
+<span class="fc" id="L115">                    existente.setCupoMaximo(cupo);</span>
+<span class="fc" id="L116">                    existente.setActive(true);</span>
+<span class="fc" id="L117">                    existente.getHorarios().clear();</span>
+<span class="fc" id="L118">                    CursoAsignatura nueva = cursoAsignaturaMapper.toEntity(dto, asignatura);</span>
+<span class="fc" id="L119">                    nueva.getHorarios().forEach(horario -&gt; existente.addHorario(horario));</span>
+<span class="fc" id="L120">                    return cursoAsignaturaMapper.toDto(cursoAsignaturaRepository.save(existente));</span>
+                })
+<span class="fc" id="L122">                .orElseGet(() -&gt; cursoAsignaturaMapper.toDto(</span>
+<span class="fc" id="L123">                    cursoAsignaturaRepository.save(cursoAsignaturaMapper.toEntity(dto, asignatura))));</span>
+    }
+
+    @Transactional
+    public CursoAsignaturaResponseDTO actualizar(Long id, ActualizarCursoAsignaturaRequestDTO dto) {
+<span class="fc" id="L128">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L129">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+
+<span class="fc bfc" id="L131" title="All 4 branches covered.">        if (!dto.idDocente().equals(curso.getIdDocente()) &amp;&amp; !docenteClient.existsById(dto.idDocente())) {</span>
+<span class="fc" id="L132">            throw new BusinessException(&quot;El docente con ID &quot; + dto.idDocente() + &quot; no existe o no está activo.&quot;);</span>
+        }
+
+<span class="fc" id="L135">        Integer cupo = normalizarCupo(dto.caracter(), dto.cupoMaximo());</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (cupo != null) {</span>
+<span class="fc" id="L137">            int inscritos = inscripcionRepository.countByCursoAsignaturaIdAndEstadoIn(</span>
+                    id, InscripcionEstados.OCUPAN_CUPO);
+<span class="fc bfc" id="L139" title="All 2 branches covered.">            if (cupo &lt; inscritos) {</span>
+<span class="fc" id="L140">                throw new BusinessException(&quot;El nuevo cupo máximo (&quot; + cupo +</span>
+                        &quot;) no puede ser menor a la cantidad de alumnos ya inscritos (&quot; + inscritos + &quot;).&quot;);
+            }
+        }
+
+<span class="fc" id="L145">        cursoAsignaturaMapper.updateEntity(dto, curso);</span>
+<span class="fc" id="L146">        curso.setCupoMaximo(cupo);</span>
+<span class="fc" id="L147">        return cursoAsignaturaMapper.toDto(cursoAsignaturaRepository.save(curso));</span>
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+<span class="fc" id="L152">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L153">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+
+<span class="fc" id="L155">        curso.setActive(false);</span>
+<span class="fc" id="L156">        curso.getHorarios().forEach(horario -&gt; horario.setActive(false));</span>
+<span class="fc" id="L157">        cursoAsignaturaRepository.save(curso);</span>
+<span class="fc" id="L158">    }</span>
+
+    /**
+     * Valida si el colegio cumple la normativa MINEDUC para 3° y 4° Medio:
+     * mínimo 6 electivos y presencia en al menos 2 de las 3 áreas.
+     */
+    @Transactional(readOnly = true)
+    public Map&lt;String, Object&gt; validarCumplimientoMineduc() {
+<span class="fc" id="L166">        List&lt;CursoAsignatura&gt; electivos = cursoAsignaturaRepository.findAll(</span>
+<span class="fc" id="L167">                Specification.where(CursoAsignaturaSpecifications.isActive())).stream()</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">            .filter(curso -&gt; curso.getCaracter() != CaracterAsignatura.OBLIGATORIA)</span>
+<span class="fc" id="L169">            .toList();</span>
+
+<span class="fc" id="L171">        long countAreaA = electivos.stream().filter(c -&gt; AREA_A.contains(c.getAsignatura().getArea())).count();</span>
+<span class="fc" id="L172">        long countAreaB = electivos.stream().filter(c -&gt; AREA_B.contains(c.getAsignatura().getArea())).count();</span>
+<span class="fc" id="L173">        long countAreaC = electivos.stream().filter(c -&gt; AREA_C.contains(c.getAsignatura().getArea())).count();</span>
+
+<span class="fc" id="L175">        int areasCubiertas = 0;</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if (countAreaA &gt; 0) areasCubiertas++;</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (countAreaB &gt; 0) areasCubiertas++;</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (countAreaC &gt; 0) areasCubiertas++;</span>
+
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        boolean cumpleTotal = electivos.size() &gt;= 6;</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        boolean cumpleAreas = areasCubiertas &gt;= 2;</span>
+
+<span class="fc" id="L183">        return Map.of(</span>
+<span class="fc" id="L184">                &quot;totalElectivosOfrecidos&quot;, electivos.size(),</span>
+<span class="pc bpc" id="L185" title="1 of 4 branches missed.">                &quot;areasCubiertas&quot;, areasCubiertas,</span>
+<span class="fc" id="L186">                &quot;cumpleNormativaMineduc&quot;, cumpleTotal &amp;&amp; cumpleAreas,</span>
+<span class="fc" id="L187">                &quot;detallePorArea&quot;, Map.of(</span>
+<span class="fc" id="L188">                        &quot;Area_A_Humanidades&quot;, countAreaA,</span>
+<span class="fc" id="L189">                        &quot;Area_B_Ciencias_Matematicas&quot;, countAreaB,</span>
+<span class="fc" id="L190">                        &quot;Area_C_Artes_EducacionFisica&quot;, countAreaC</span>
+                )
+        );
+    }
+
+    private Integer normalizarCupo(CaracterAsignatura caracter, Integer cupo) {
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (caracter == CaracterAsignatura.OBLIGATORIA) {</span>
+<span class="fc" id="L197">            return null;</span>
+        }
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (cupo == null) {</span>
+<span class="fc" id="L200">            throw new BusinessException(&quot;Las asignaturas optativas y electivas requieren cupo máximo.&quot;);</span>
+        }
+<span class="fc" id="L202">        return cupo;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

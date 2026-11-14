@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrationOutboxPublisher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">RegistrationOutboxPublisher.java</span></div><h1>RegistrationOutboxPublisher.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
+import cl.siga.msusuariosauth.model.entity.OutboxEventState;
+import cl.siga.msusuariosauth.model.entity.RegistrationOutboxEvent;
+import cl.siga.msusuariosauth.repository.RegistrationOutboxEventRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Publica el outbox del registro asíncrono con confirmación del broker. Si el
+ * envío falla, reintenta con backoff exponencial; al agotar
+ * {@code outbox-max-attempts} marca el evento FALLIDO y cierra el proceso
+ * asociado para que sea visible en el estado.
+ */
+<span class="fc" id="L29">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class RegistrationOutboxPublisher {
+
+    private final RegistrationOutboxEventRepository outboxRepository;
+    private final RegistrationStateService stateService;
+    private final RabbitTemplate rabbitTemplate;
+    private final RegistroAsyncProperties properties;
+
+    @Scheduled(fixedDelayString = &quot;${siga.registro-async.outbox-poll-ms:2000}&quot;)
+    public void publicarPendientes() {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (!properties.isEnabled()) {</span>
+<span class="fc" id="L42">            return;</span>
+        }
+<span class="fc" id="L44">        List&lt;RegistrationOutboxEvent&gt; pendientes = outboxRepository</span>
+<span class="fc" id="L45">                .findTop20ByStateAndNextAttemptAtLessThanEqualOrderByIdAsc(</span>
+<span class="fc" id="L46">                        OutboxEventState.PENDIENTE, OffsetDateTime.now());</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        for (RegistrationOutboxEvent evento : pendientes) {</span>
+<span class="fc" id="L48">            publicar(evento);</span>
+<span class="fc" id="L49">        }</span>
+<span class="fc" id="L50">    }</span>
+
+    private void publicar(RegistrationOutboxEvent evento) {
+        try {
+<span class="fc" id="L54">            MessageProperties props = new MessageProperties();</span>
+<span class="fc" id="L55">            props.setContentType(MessageProperties.CONTENT_TYPE_JSON);</span>
+<span class="fc" id="L56">            props.setContentEncoding(StandardCharsets.UTF_8.name());</span>
+<span class="fc" id="L57">            props.setMessageId(evento.getEventId());</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            if (evento.getCorrelationId() != null) {</span>
+<span class="fc" id="L59">                props.setCorrelationId(evento.getCorrelationId());</span>
+<span class="fc" id="L60">                props.setHeader(RegistrationMessagingConstants.HEADER_CORRELATION_ID,</span>
+<span class="fc" id="L61">                        evento.getCorrelationId());</span>
+            }
+<span class="fc" id="L63">            Message message = new Message(</span>
+<span class="fc" id="L64">                    evento.getPayload().getBytes(StandardCharsets.UTF_8), props);</span>
+
+<span class="fc" id="L66">            CorrelationData confirmacion = new CorrelationData(evento.getEventId());</span>
+<span class="fc" id="L67">            rabbitTemplate.send(evento.getExchange(), evento.getRoutingKey(), message, confirmacion);</span>
+<span class="fc" id="L68">            CorrelationData.Confirm confirm = confirmacion.getFuture()</span>
+<span class="fc" id="L69">                    .get(properties.getOutboxConfirmTimeoutSeconds(), TimeUnit.SECONDS);</span>
+<span class="fc bfc" id="L70" title="All 4 branches covered.">            if (confirm == null || !confirm.isAck()) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                throw new IllegalStateException(confirm == null</span>
+<span class="fc" id="L72">                        ? &quot;El broker no confirmó el mensaje.&quot;</span>
+<span class="fc" id="L73">                        : &quot;El broker rechazó el mensaje: &quot; + confirm.getReason());</span>
+            }
+
+<span class="fc" id="L76">            evento.setState(OutboxEventState.ENVIADO);</span>
+<span class="fc" id="L77">            evento.setSentAt(OffsetDateTime.now());</span>
+<span class="fc" id="L78">            evento.setLastError(null);</span>
+<span class="fc" id="L79">            outboxRepository.save(evento);</span>
+<span class="fc" id="L80">        } catch (Exception ex) {</span>
+<span class="fc" id="L81">            fallo(evento, ex);</span>
+<span class="fc" id="L82">        }</span>
+<span class="fc" id="L83">    }</span>
+
+    private void fallo(RegistrationOutboxEvent evento, Exception ex) {
+<span class="fc" id="L86">        int intentos = evento.getAttempts() + 1;</span>
+<span class="fc" id="L87">        evento.setAttempts(intentos);</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        String error = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();</span>
+<span class="fc" id="L89">        evento.setLastError(recortar(error));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (intentos &gt;= properties.getOutboxMaxAttempts()) {</span>
+<span class="fc" id="L91">            evento.setState(OutboxEventState.FALLIDO);</span>
+<span class="fc" id="L92">            log.error(&quot;Outbox {} agotó los reintentos publicando en {} ({}): {}&quot;,</span>
+<span class="fc" id="L93">                    evento.getEventId(), evento.getExchange(), evento.getRoutingKey(), error);</span>
+<span class="fc" id="L94">            stateService.marcarPublicacionFallida(evento.getProcessId(), evento.getRoutingKey(), error);</span>
+        } else {
+<span class="fc" id="L96">            long segundos = Math.min(60L, 1L &lt;&lt; Math.min(intentos, 6));</span>
+<span class="fc" id="L97">            evento.setNextAttemptAt(OffsetDateTime.now().plusSeconds(segundos));</span>
+<span class="fc" id="L98">            log.warn(&quot;Outbox {} falló (intento {}): {}. Reintento en {} s.&quot;,</span>
+<span class="fc" id="L99">                    evento.getEventId(), intentos, error, segundos);</span>
+        }
+<span class="fc" id="L101">        outboxRepository.save(evento);</span>
+<span class="fc" id="L102">    }</span>
+
+    private static String recortar(String mensaje) {
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        return mensaje.length() &gt; 1000 ? mensaje.substring(0, 1000) : mensaje;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

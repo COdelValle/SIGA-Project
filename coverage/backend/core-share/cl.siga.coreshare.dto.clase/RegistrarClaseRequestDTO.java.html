@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrarClaseRequestDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.clase</a> &gt; <span class="el_source">RegistrarClaseRequestDTO.java</span></div><h1>RegistrarClaseRequestDTO.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.clase;
+
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import jakarta.validation.constraints.*;
+
+<span class="nc" id="L6">public record RegistrarClaseRequestDTO(</span>
+    @NotNull(message = &quot;El nivel es obligatorio&quot;)
+    Nivel nivel,
+ 
+    @NotBlank (message = &quot;La letra es obligatoria&quot;)
+    @Pattern(regexp = &quot;^[A-ZÑ]$&quot;, message = &quot;La letra debe ser un único carácter alfabético (A-Z)&quot;)
+    String letra,
+ 
+    @NotNull(message = &quot;El año académico es obligatorio&quot;)
+    @Min(value = 2000, message = &quot;El año académico debe ser igual o mayor a 2000&quot;)
+    Integer anioAcademico,
+ 
+    Long idDocenteJefe
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

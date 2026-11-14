@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstudianteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-estudiantes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msestudiantes.service</a> &gt; <span class="el_source">EstudianteService.java</span></div><h1>EstudianteService.java</h1><pre class="source lang-java linenums">package cl.siga.msestudiantes.service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msestudiantes.client.ApoderadoClient;
+import cl.siga.msestudiantes.model.entity.Estudiante;
+import cl.siga.coreshare.dto.estudiante.enums.State;
+import cl.siga.coreshare.format.RutNormalizer;
+import cl.siga.msestudiantes.model.mapper.EstudianteMapper;
+import cl.siga.msestudiantes.model.specifications.EstudianteSpecifications;
+import cl.siga.msestudiantes.repository.EstudianteRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@Validated 
+@RequiredArgsConstructor 
+public class EstudianteService {
+    private final EstudianteRepository repository;
+
+    private final EstudianteMapper mapper;
+
+    private final ApoderadoClient apoderadoClient;
+
+    @Transactional (readOnly = true)
+    public EstudianteResponseDTO getEstudianteById(Long id) {
+<span class="fc" id="L44">        return mapper.toResponseDto(repository.findByIdAndStateNot(id, State.INACTIVO)</span>
+<span class="fc" id="L45">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Estudiante con ID &quot; + id + &quot; no encontrado.&quot;)));</span>
+    }
+
+    @Transactional (readOnly = true)
+    public EstudianteResponseDTO getEstudianteByIdUsuario(String idUsuario) {
+<span class="fc" id="L50">        return mapper.toResponseDto(repository.findByIdUsuarioAndStateNot(idUsuario, State.INACTIVO)</span>
+<span class="fc" id="L51">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Estudiante con ID de usuario &quot; + idUsuario + &quot; no encontrado.&quot;)));</span>
+    }
+
+    @Transactional (readOnly = true)
+    public Page&lt;EstudianteResponseDTO&gt; searchEstudiantes(String q, String rut, String firstName, String middleName, String firstSurname, String secondSurname, LocalDate from, LocalDate to, State state, Long idClase, Pageable pageable) {
+        // Si se pide un estado explicito se respeta (incluye INACTIVO); si no,
+        // se excluyen los inactivos por defecto.
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        Specification&lt;Estudiante&gt; spec = state != null</span>
+<span class="fc" id="L59">                ? EstudianteSpecifications.hasState(state)</span>
+<span class="fc" id="L60">                : EstudianteSpecifications.isActive();</span>
+<span class="fc" id="L61">        spec = spec</span>
+<span class="fc" id="L62">                .and(EstudianteSpecifications.hasTextoLibre(q))</span>
+<span class="fc" id="L63">                .and(EstudianteSpecifications.hasRut(rut))</span>
+<span class="fc" id="L64">                .and(EstudianteSpecifications.hasFirstName(firstName))</span>
+<span class="fc" id="L65">                .and(EstudianteSpecifications.hasMiddleName(middleName))</span>
+<span class="fc" id="L66">                .and(EstudianteSpecifications.hasFirstSurname(firstSurname))</span>
+<span class="fc" id="L67">                .and(EstudianteSpecifications.hasSecondSurname(secondSurname))</span>
+<span class="fc" id="L68">                .and(EstudianteSpecifications.hasBirthDateGreaterThanOrEqual(from))</span>
+<span class="fc" id="L69">                .and(EstudianteSpecifications.hasBirthDateLessThanOrEqual(to))</span>
+<span class="fc" id="L70">                .and(EstudianteSpecifications.hasIdClase(idClase));</span>
+<span class="fc" id="L71">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+    }
+
+    @Transactional 
+    public EstudianteResponseDTO saveEstudiante(@Valid RegistrarEstudianteRequestDTO request) {
+<span class="fc" id="L76">        String normalizedRut = RutNormalizer.normalizar(request.rut());</span>
+
+        // Alumno que vuelve: si el perfil existe inactivo, se reactiva con los
+        // datos recibidos en vez de rechazar el registro.
+<span class="fc" id="L80">        Optional&lt;Estudiante&gt; existente = repository.findByIdUsuario(request.idUsuario());</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (existente.isPresent()) {</span>
+<span class="fc" id="L82">            Estudiante estudiante = existente.get();</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">            if (estudiante.getState() != State.INACTIVO) {</span>
+<span class="fc" id="L84">                throw new BusinessException(&quot;El ID de usuario ya está registrado: &quot; + request.idUsuario());</span>
+            }
+<span class="fc" id="L86">            reactivarPerfil(estudiante, request, normalizedRut);</span>
+<span class="fc" id="L87">            return mapper.toResponseDto(repository.save(estudiante));</span>
+        }
+
+        // Verificar si el RUT ya existe en la base de datos
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (repository.existsByRut(normalizedRut)) {</span>
+<span class="fc" id="L92">            throw new BusinessException(&quot;El RUT ya está registrado: &quot; + request.rut());</span>
+        }
+
+<span class="fc" id="L95">        Estudiante estudiante = mapper.toEntity(request);</span>
+<span class="fc" id="L96">        estudiante.setState(State.REGISTRADO);</span>
+
+<span class="fc" id="L98">        return mapper.toResponseDto(repository.save(estudiante));</span>
+    }
+
+    private void reactivarPerfil(Estudiante estudiante, RegistrarEstudianteRequestDTO request, String normalizedRut) {
+<span class="fc bfc" id="L102" title="All 4 branches covered.">        if (normalizedRut != null &amp;&amp; !normalizedRut.equalsIgnoreCase(estudiante.getRut())</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                &amp;&amp; repository.existsByRut(normalizedRut)) {</span>
+<span class="fc" id="L104">            throw new BusinessException(&quot;El RUT ya está registrado: &quot; + request.rut());</span>
+        }
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (normalizedRut != null) {</span>
+<span class="fc" id="L107">            estudiante.setRut(normalizedRut);</span>
+        }
+<span class="fc" id="L109">        estudiante.setFirstName(request.firstName());</span>
+<span class="fc" id="L110">        estudiante.setMiddleName(request.middleName());</span>
+<span class="fc" id="L111">        estudiante.setFirstSurname(request.firstSurname());</span>
+<span class="fc" id="L112">        estudiante.setSecondSurname(request.secondSurname());</span>
+<span class="fc" id="L113">        estudiante.setBirthDate(request.birthDate());</span>
+<span class="fc" id="L114">        estudiante.setAllergies(request.allergies());</span>
+<span class="fc" id="L115">        estudiante.setIdClase(request.idClase());</span>
+<span class="fc" id="L116">        estudiante.setState(State.REGISTRADO);</span>
+<span class="fc" id="L117">    }</span>
+
+    @Transactional 
+    public EstudianteResponseDTO updateEstudiante(Long id, @Valid ActualizarEstudianteRequestDTO request) {
+        // 1. Buscas la entidad actual en la BD
+<span class="fc" id="L122">        Estudiante estudianteExistente = repository.findByIdAndStateNot(id, State.INACTIVO)</span>
+<span class="fc" id="L123">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Estudiante con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+
+        // 2. ADMIN, el propio estudiante o un apoderado vinculado
+<span class="fc" id="L126">        validarPermisoActualizacion(estudianteExistente);</span>
+
+        // 3. MapStruct sobreescribe firstName, firstSurname, etc., pero el RUT queda INTACTO
+<span class="fc" id="L129">        mapper.updateEntityFromDto(request, estudianteExistente);</span>
+
+        // 4. Guardas los cambios
+<span class="fc" id="L132">        return mapper.toResponseDto(repository.save(estudianteExistente));</span>
+    }
+
+    private void validarPermisoActualizacion(Estudiante estudiante) {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="fc" id="L137">            return;</span>
+        }
+<span class="fc" id="L139">        String oid = SecurityUtils.getCurrentUserOid()</span>
+<span class="fc" id="L140">                .orElseThrow(() -&gt; new AccessDeniedException(&quot;No se pudo identificar al usuario autenticado.&quot;));</span>
+
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (oid.equals(estudiante.getIdUsuario())) {</span>
+<span class="fc" id="L143">            return;</span>
+        }
+
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        if (SecurityUtils.hasRole(&quot;APODERADO&quot;)) {</span>
+<span class="fc" id="L147">            ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid);</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">            boolean vinculado = apoderado.estudiantes() != null &amp;&amp; apoderado.estudiantes().stream()</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">                    .anyMatch(vinculo -&gt; estudiante.getId().equals(vinculo.idEstudiante()));</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            if (vinculado) {</span>
+<span class="fc" id="L151">                return;</span>
+            }
+        }
+
+<span class="fc" id="L155">        throw new AccessDeniedException(&quot;No tienes permiso para modificar este estudiante.&quot;);</span>
+    }
+
+    @Transactional (readOnly = true)
+    public boolean existsEstudianteById(Long id) {
+<span class="fc" id="L160">        return repository.existsByIdAndStateNot(id, State.INACTIVO);</span>
+    }
+
+    @Transactional
+    public void deleteEstudiante(Long id) {
+<span class="fc" id="L165">        Estudiante existing = repository.findById(id)</span>
+<span class="fc" id="L166">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Estudiante con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+<span class="fc" id="L167">        existing.setState(State.INACTIVO);</span>
+<span class="fc" id="L168">        repository.save(existing);</span>
+<span class="fc" id="L169">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

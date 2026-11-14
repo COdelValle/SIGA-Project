@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilEstudianteMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.estudiantes.mapper</a> &gt; <span class="el_source">PerfilEstudianteMapper.java</span></div><h1>PerfilEstudianteMapper.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.estudiantes.mapper;
+
+import java.util.List;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import cl.siga.bffweb.domain.estudiantes.dto.api.PerfilEstudianteResponseDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.AsignaturaDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.ClaseDetalleDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+
+@Mapper (componentModel = &quot;spring&quot;)
+public interface PerfilEstudianteMapper {
+    @Mapping (target = &quot;id&quot;, source = &quot;estudiante.id&quot;)
+    @Mapping (target = &quot;idUsuario&quot;, source = &quot;estudiante.idUsuario&quot;)
+    @Mapping (target = &quot;rut&quot;, source = &quot;estudiante.rut&quot;)
+    @Mapping (target = &quot;firstName&quot;, source = &quot;estudiante.firstName&quot;)
+    @Mapping (target = &quot;middleName&quot;, source = &quot;estudiante.middleName&quot;)
+    @Mapping (target = &quot;firstSurname&quot;, source = &quot;estudiante.firstSurname&quot;)
+    @Mapping (target = &quot;secondSurname&quot;, source = &quot;estudiante.secondSurname&quot;)
+    @Mapping (target = &quot;birthDate&quot;, source = &quot;estudiante.birthDate&quot;)
+    @Mapping (target = &quot;allergies&quot;, source = &quot;estudiante.allergies&quot;)
+    @Mapping (target = &quot;state&quot;, source = &quot;estudiante.state&quot;)
+    @Mapping (target = &quot;idClase&quot;, source = &quot;estudiante.idClase&quot;)
+    @Mapping (target = &quot;clase&quot;, expression = &quot;java(toClaseDetalle(clase))&quot;)
+    @Mapping (target = &quot;asignaturas&quot;, source = &quot;asignaturas&quot;)
+    PerfilEstudianteResponseDTO toResponse(
+            EstudianteResponseDTO estudiante,
+            ClaseResponseDTO clase,
+            List&lt;AsignaturaDetalleDTO&gt; asignaturas);
+
+    default ClaseDetalleDTO toClaseDetalle(ClaseResponseDTO clase) {
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (clase == null) {</span>
+<span class="fc" id="L36">            return null;</span>
+        }
+<span class="fc" id="L38">        return new ClaseDetalleDTO(</span>
+<span class="fc" id="L39">            clase.id(),</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">            clase.nivel() == null ? null : clase.nivel().getDescripcion(),</span>
+<span class="fc" id="L41">            clase.letra(),</span>
+<span class="fc" id="L42">            clase.anioAcademico());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

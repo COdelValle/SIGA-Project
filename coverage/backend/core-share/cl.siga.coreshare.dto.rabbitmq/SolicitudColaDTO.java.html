@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SolicitudColaDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.rabbitmq</a> &gt; <span class="el_source">SolicitudColaDTO.java</span></div><h1>SolicitudColaDTO.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.rabbitmq;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertTrue;
+
+/**
+ * Declaración de una cola durable vía API de administración. Opcionalmente
+ * permite configurar su dead-letter exchange y routing key.
+ */
+<span class="fc" id="L11">public record SolicitudColaDTO(</span>
+
+    @NotBlank(message = &quot;El nombre de la cola es obligatorio.&quot;)
+    @Pattern(
+        regexp = &quot;^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$&quot;,
+        message = &quot;El nombre de la cola solo admite letras, números, punto, guion y guion bajo.&quot;)
+    String nombre,
+
+    @Pattern(
+        regexp = &quot;^$|^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$&quot;,
+        message = &quot;El exchange de dead-letter solo admite letras, números, punto, guion y guion bajo.&quot;)
+    String deadLetterExchange,
+
+    @Pattern(
+        regexp = &quot;^$|^[A-Za-z0-9._*#-]{0,255}$&quot;,
+        message = &quot;La routing key de dead-letter solo admite letras, números, punto, guion, guion bajo, asterisco y numeral.&quot;)
+    String deadLetterRoutingKey) {
+
+    @AssertTrue(message = &quot;El dead-letter exchange y su routing key deben enviarse juntos.&quot;)
+    public boolean isConfiguracionDeadLetterValida() {
+<span class="pc bpc" id="L31" title="1 of 4 branches missed.">        boolean tieneExchange = deadLetterExchange != null &amp;&amp; !deadLetterExchange.isBlank();</span>
+<span class="pc bpc" id="L32" title="1 of 4 branches missed.">        boolean tieneRoutingKey = deadLetterRoutingKey != null &amp;&amp; !deadLetterRoutingKey.isBlank();</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        return tieneExchange == tieneRoutingKey;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

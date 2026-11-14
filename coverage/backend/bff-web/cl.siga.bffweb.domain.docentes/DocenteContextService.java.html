@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocenteContextService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.docentes</a> &gt; <span class="el_source">DocenteContextService.java</span></div><h1>DocenteContextService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.docentes;
+
+import java.util.List;
+import java.util.Objects;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
+import cl.siga.bffweb.integration.docentes.DocenteClient;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Contexto del docente autenticado: resuelve su ficha a partir del oid del token
+ * y valida la pertenencia de una dictación. Reutilizado por los dominios de
+ * docentes, notas, evaluaciones y asistencias.
+ */
+@Service
+@RequiredArgsConstructor
+public class DocenteContextService {
+    private static final int PAGE_SIZE = 100;
+
+    private final DocenteClient docenteClient;
+    private final AsignaturaClient asignaturaClient;
+
+    public DocenteResponseDTO docenteActual() {
+<span class="fc" id="L33">        String oid = SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L34">            .orElseThrow(() -&gt; new BusinessException(&quot;No se pudo determinar el usuario autenticado.&quot;));</span>
+<span class="fc" id="L35">        return docenteClient.getDocenteByIdUsuario(oid);</span>
+    }
+
+    public List&lt;CursoAsignaturaResponseDTO&gt; cursosDelDocente(Long idDocente) {
+<span class="fc" id="L39">        PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; pagina =</span>
+<span class="fc" id="L40">            asignaturaClient.searchCursoAsignaturasByDocente(idDocente, PAGE_SIZE);</span>
+<span class="pc bpc" id="L41" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+
+    /**
+     * Valida que la dictación exista y pertenezca al docente autenticado.
+     * Los administradores quedan exentos del chequeo de pertenencia.
+     */
+    public CursoAsignaturaResponseDTO validarCursoDelDocente(Long idCursoAsignatura) {
+<span class="fc" id="L49">        CursoAsignaturaResponseDTO curso = asignaturaClient.getCursoAsignaturaById(idCursoAsignatura);</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (curso == null) {</span>
+<span class="nc" id="L51">            throw new ResourceNotFoundException(&quot;Dictación con ID &quot; + idCursoAsignatura + &quot; no encontrada.&quot;);</span>
+        }
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="nc" id="L54">            return curso;</span>
+        }
+<span class="fc" id="L56">        DocenteResponseDTO docente = docenteActual();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (!Objects.equals(curso.idDocente(), docente.id())) {</span>
+<span class="fc" id="L58">            throw new AccessDeniedException(</span>
+                &quot;La dictación &quot; + idCursoAsignatura + &quot; no pertenece al docente autenticado.&quot;);
+        }
+<span class="fc" id="L61">        return curso;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

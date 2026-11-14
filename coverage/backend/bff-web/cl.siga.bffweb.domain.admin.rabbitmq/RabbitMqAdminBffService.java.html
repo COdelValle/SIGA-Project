@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RabbitMqAdminBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.admin.rabbitmq</a> &gt; <span class="el_source">RabbitMqAdminBffService.java</span></div><h1>RabbitMqAdminBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.admin.rabbitmq;
+
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.integration.rabbitmq.RabbitMqAdminClient;
+import cl.siga.coreshare.dto.rabbitmq.EstadoColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudBindingDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudExchangeDTO;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Orquesta la administración RabbitMQ del portal admin: el BFF valida el token
+ * y el rol, y delega en ms-rabbitmq-admin (el único que opera el broker).
+ */
+@Service
+@RequiredArgsConstructor
+public class RabbitMqAdminBffService {
+
+    private final RabbitMqAdminClient client;
+
+    public void declararCola(SolicitudColaDTO solicitud) {
+<span class="nc" id="L23">        client.declararCola(solicitud);</span>
+<span class="nc" id="L24">    }</span>
+
+    public EstadoColaDTO estadoCola(String nombre) {
+<span class="nc" id="L27">        return client.estadoCola(nombre);</span>
+    }
+
+    public void eliminarCola(String nombre) {
+<span class="nc" id="L31">        client.eliminarCola(nombre);</span>
+<span class="nc" id="L32">    }</span>
+
+    public void declararExchange(SolicitudExchangeDTO solicitud) {
+<span class="nc" id="L35">        client.declararExchange(solicitud);</span>
+<span class="nc" id="L36">    }</span>
+
+    public void eliminarExchange(String nombre) {
+<span class="nc" id="L39">        client.eliminarExchange(nombre);</span>
+<span class="nc" id="L40">    }</span>
+
+    public void declararBinding(SolicitudBindingDTO solicitud) {
+<span class="nc" id="L43">        client.declararBinding(solicitud);</span>
+<span class="nc" id="L44">    }</span>
+
+    public void eliminarBinding(String cola, String exchange, String routingKey) {
+<span class="nc" id="L47">        client.eliminarBinding(cola, exchange, routingKey);</span>
+<span class="nc" id="L48">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

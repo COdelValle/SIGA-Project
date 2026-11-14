@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfiguracionMensajeriaCompartida.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.mensajeria</a> &gt; <span class="el_source">ConfiguracionMensajeriaCompartida.java</span></div><h1>ConfiguracionMensajeriaCompartida.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.mensajeria;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+
+/**
+ * El Intermediario de tu imagen habla en bytes; este conversor hace que
+ * productor y consumidor hablen en JSON con nuestros records
+ * (EventoEvaluacion y los 2 futuros) sin código repetido.
+ * Registrado en AutoConfiguration.imports como el resto de core-share.
+ *
+ * &lt;p&gt;Además expone el {@link RetryTemplate} y el {@link ConfirmadorMensajes}
+ * que usan los consumidores para confirmar con ACK/NACK explícitos: los
+ * errores transitorios se reintentan en memoria con backoff y los permanentes
+ * (evento inválido o reintentos agotados) se derivan a la DLQ.&lt;/p&gt;
+ */
+@AutoConfiguration
+@ConditionalOnClass(RabbitTemplate.class)
+<span class="fc" id="L30">public class ConfiguracionMensajeriaCompartida {</span>
+
+    private static final int MAX_INTENTOS = 3;
+    private static final long INTERVALO_INICIAL_MS = 1000;
+    private static final double MULTIPLICADOR = 2.0;
+    private static final long INTERVALO_MAXIMO_MS = 5000;
+
+    @Bean
+    @ConditionalOnMissingBean(MessageConverter.class)
+    public MessageConverter conversorMensajesJson() {
+<span class="fc" id="L40">        return new Jackson2JsonMessageConverter();</span>
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = &quot;retryTemplateMensajeria&quot;)
+    public RetryTemplate retryTemplateMensajeria() {
+<span class="fc" id="L46">        Map&lt;Class&lt;? extends Throwable&gt;, Boolean&gt; recuperables = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L47">        recuperables.put(EventoInvalidoException.class, false);</span>
+<span class="fc" id="L48">        SimpleRetryPolicy politica = new SimpleRetryPolicy(MAX_INTENTOS, recuperables, true, true);</span>
+
+<span class="fc" id="L50">        ExponentialBackOffPolicy retroceso = new ExponentialBackOffPolicy();</span>
+<span class="fc" id="L51">        retroceso.setInitialInterval(INTERVALO_INICIAL_MS);</span>
+<span class="fc" id="L52">        retroceso.setMultiplier(MULTIPLICADOR);</span>
+<span class="fc" id="L53">        retroceso.setMaxInterval(INTERVALO_MAXIMO_MS);</span>
+
+<span class="fc" id="L55">        RetryTemplate plantilla = new RetryTemplate();</span>
+<span class="fc" id="L56">        plantilla.setRetryPolicy(politica);</span>
+<span class="fc" id="L57">        plantilla.setBackOffPolicy(retroceso);</span>
+<span class="fc" id="L58">        return plantilla;</span>
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ConfirmadorMensajes confirmadorMensajes(RetryTemplate retryTemplateMensajeria) {
+<span class="fc" id="L64">        return new ConfirmadorMensajes(retryTemplateMensajeria);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

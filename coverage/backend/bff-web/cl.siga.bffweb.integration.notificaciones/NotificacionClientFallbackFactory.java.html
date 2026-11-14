@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionClientFallbackFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.integration.notificaciones</a> &gt; <span class="el_source">NotificacionClientFallbackFactory.java</span></div><h1>NotificacionClientFallbackFactory.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.integration.notificaciones;
+
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.notificaciones.ContadorNotificacionesDTO;
+import cl.siga.coreshare.dto.notificaciones.NotificacionResponseDTO;
+import cl.siga.coreshare.exception.FeignFallbacks;
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="fc" id="L13">@Slf4j</span>
+<span class="fc" id="L14">public class NotificacionClientFallbackFactory implements FallbackFactory&lt;NotificacionClient&gt; {</span>
+
+    @Override
+    public NotificacionClient create(Throwable causa) {
+<span class="nc" id="L18">        return new NotificacionClient() {</span>
+            @Override
+            public PageResponseDTO&lt;NotificacionResponseDTO&gt; obtenerMisNotificaciones(int pagina, int tamano) {
+<span class="nc" id="L21">                throw error(&quot;No se pudieron obtener las notificaciones.&quot;);</span>
+            }
+
+            @Override
+            public ContadorNotificacionesDTO contarNoLeidas() {
+<span class="nc" id="L26">                throw error(&quot;No se pudo obtener el contador de notificaciones.&quot;);</span>
+            }
+
+            @Override
+            public void marcarLeida(Long id) {
+<span class="nc" id="L31">                throw error(&quot;No se pudo actualizar la notificación.&quot;);</span>
+            }
+
+            @Override
+            public void marcarTodasLeidas() {
+<span class="nc" id="L36">                throw error(&quot;No se pudieron marcar las notificaciones como leídas.&quot;);</span>
+            }
+
+            @Override
+            public void limpiarLeidas() {
+<span class="nc" id="L41">                throw error(&quot;No se pudieron limpiar las notificaciones leídas.&quot;);</span>
+            }
+
+            private RuntimeException error(String mensaje) {
+<span class="nc" id="L45">                log.error(&quot;Fallo al llamar a ms-notificaciones (HTTP {}): {}&quot;,</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">                    causa instanceof FeignException feign ? feign.status() : -1, causa.getMessage());</span>
+<span class="nc" id="L47">                return FeignFallbacks.noDisponible(causa, mensaje);</span>
+            }
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">UsuarioService.java</span></div><h1>UsuarioService.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MultipartFile;
+
+import cl.siga.coreshare.dto.usuario.ActualizarUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.CandidatoUsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.InvitacionLoteResponseDTO;
+import cl.siga.coreshare.dto.usuario.InvitacionUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioRequestDTO;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msusuariosauth.integration.graph.GraphUserDirectory;
+import cl.siga.msusuariosauth.model.entity.InvitacionUsuario;
+import cl.siga.msusuariosauth.model.entity.Usuario;
+import cl.siga.msusuariosauth.model.mapper.UsuarioMapper;
+import cl.siga.msusuariosauth.model.specification.UsuarioSpecifications;
+import cl.siga.msusuariosauth.repository.InvitacionUsuarioRepository;
+import cl.siga.msusuariosauth.repository.UsuarioRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+import jakarta.validation.constraints.Email;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+
+<span class="fc" id="L53">@Slf4j</span>
+@Service
+@Validated
+@RequiredArgsConstructor
+public class UsuarioService {
+    private static final int MAX_INVITACIONES_LOTE = 2000;
+    private static final long MAX_CSV_BYTES = 2L * 1024 * 1024;
+
+    private final UsuarioRepository usuarioRepository;
+
+    private final InvitacionUsuarioRepository invitacionRepository;
+
+    private final UsuarioMapper mapper;
+
+    private final GraphUserDirectory graphDirectory;
+
+    private final InvitacionVinculacionService vinculacionService;
+
+    private final Validator validator;
+
+    @Transactional (readOnly = true)
+    public UsuarioResponseDTO getUsuarioById(String id) {
+<span class="pc" id="L75">        return mapper.toResponseDto(usuarioRepository.findById(id)</span>
+<span class="pc bnc" id="L76" title="All 2 branches missed.">                .filter(usuario -&gt; usuario.getState() != StateUsuario.INACTIVO)</span>
+<span class="pc" id="L77">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Usuario con ID &quot; + id + &quot; no encontrado.&quot;)));</span>
+    }
+
+    /**
+     * Usuario autenticado según el JWT (claim {@code oid}). Es la base de
+     * {@code GET /api/v1/usuarios/me} que consume el BFF. Si el oid aún no
+     * tiene fila, se intenta vincular una invitación por el correo del token;
+     * sin invitación se responde 404 (acceso cerrado).
+     */
+    @Transactional (readOnly = true)
+    public UsuarioResponseDTO getCurrentUsuario() {
+<span class="fc" id="L88">        String oid = SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L89">                .orElseThrow(() -&gt; new BusinessException(&quot;No se pudo determinar el usuario autenticado.&quot;));</span>
+<span class="fc" id="L90">        Optional&lt;Usuario&gt; existente = usuarioRepository.findById(oid)</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                .filter(usuario -&gt; usuario.getState() != StateUsuario.INACTIVO);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (existente.isPresent()) {</span>
+<span class="fc" id="L93">            return mapper.toResponseDto(existente.get());</span>
+        }
+<span class="fc" id="L95">        String email = SecurityUtils.getCurrentUserEmail()</span>
+<span class="fc" id="L96">                .map(UsuarioService::normalizarEmail)</span>
+<span class="fc" id="L97">                .orElse(null);</span>
+        try {
+<span class="fc" id="L99">            return vinculacionService.vincular(oid, email)</span>
+<span class="fc" id="L100">                    .map(mapper::toResponseDto)</span>
+<span class="fc" id="L101">                    .orElseThrow(() -&gt; noRegistrado(oid));</span>
+<span class="nc" id="L102">        } catch (DataIntegrityViolationException ex) {</span>
+            // Choque de dos primeros logins simultáneos: otra transacción creó la fila.
+<span class="nc" id="L104">            log.warn(&quot;Vinculación concurrente para {}; se reutiliza la fila existente.&quot;, oid);</span>
+<span class="nc" id="L105">            return usuarioRepository.findById(oid)</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                    .filter(usuario -&gt; usuario.getState() != StateUsuario.INACTIVO)</span>
+<span class="nc" id="L107">                    .map(mapper::toResponseDto)</span>
+<span class="nc" id="L108">                    .orElseThrow(() -&gt; noRegistrado(oid));</span>
+        }
+    }
+
+    @Transactional (readOnly = true)
+    public Page&lt;UsuarioResponseDTO&gt; searchUsuarios(@Valid @Email String email, Rol rol, StateUsuario state, Pageable pageable) {
+<span class="nc" id="L114">        Specification&lt;Usuario&gt; spec = (root, query, cb) -&gt; cb.notEqual(root.get(&quot;state&quot;), StateUsuario.INACTIVO);</span>
+
+<span class="nc bnc" id="L116" title="All 4 branches missed.">        if (email != null &amp;&amp; !email.isBlank()) {</span>
+<span class="nc" id="L117">            spec = spec.and(UsuarioSpecifications.hasEmail(email));</span>
+        }
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (rol != null) {</span>
+<span class="nc" id="L120">            spec = spec.and(UsuarioSpecifications.hasRol(rol));</span>
+        }
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (state != null) {</span>
+<span class="nc" id="L123">            spec = spec.and(UsuarioSpecifications.hasState(state));</span>
+        }
+
+<span class="nc" id="L126">        return usuarioRepository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+    }
+
+    /** Busca una cuenta en Entra ID por correo para pre-registrarla. */
+    @Transactional (readOnly = true)
+    public CandidatoUsuarioResponseDTO lookupCandidato(@Valid @Email String email) {
+<span class="nc" id="L132">        return graphDirectory.findUserByEmail(email)</span>
+<span class="nc" id="L133">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No se encontró en Entra ID una cuenta para el correo &quot; + email + &quot;.&quot;));
+    }
+
+    /**
+     * Alta de un usuario. Si se resuelve el {@code oid} (entregado o vía Graph)
+     * se registra ACTIVO; si no, se crea una invitación por correo que se
+     * vincula sola en el primer inicio de sesión (state INVITADO en la respuesta).
+     */
+    @Transactional
+    public RegistrarUsuarioResponseDTO saveUsuario(@Valid RegistrarUsuarioRequestDTO request) {
+<span class="fc" id="L144">        String emailFormatted = normalizarEmail(request.email());</span>
+<span class="pc bpc" id="L145" title="1 of 4 branches missed.">        String oid = (request.id() != null &amp;&amp; !request.id().isBlank())</span>
+<span class="fc" id="L146">                ? request.id().trim()</span>
+<span class="fc" id="L147">                : resolverOidDesdeGraph(emailFormatted);</span>
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (oid == null) {</span>
+<span class="fc" id="L150">            crearInvitacionIndividual(emailFormatted, request.rol());</span>
+<span class="fc" id="L151">            log.info(&quot;Invitación registrada para {} (rol {}); se vinculará en el primer login.&quot;,</span>
+<span class="fc" id="L152">                    emailFormatted, request.rol());</span>
+<span class="fc" id="L153">            return new RegistrarUsuarioResponseDTO(null, emailFormatted, request.rol(), StateUsuario.INVITADO);</span>
+        }
+
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">        if (usuarioRepository.existsById(oid)) {</span>
+<span class="nc" id="L157">            throw new BusinessException(&quot;El usuario con ID de Azure &quot; + oid + &quot; ya está registrado.&quot;);</span>
+        }
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        if (usuarioRepository.existsByEmail(emailFormatted)) {</span>
+<span class="fc" id="L160">            throw new BusinessException(&quot;El correo electrónico ya está registrado.&quot;);</span>
+        }
+
+<span class="fc" id="L163">        Usuario usuario = mapper.toEntity(request);</span>
+<span class="fc" id="L164">        usuario.setId(oid);</span>
+<span class="fc" id="L165">        usuario.setEmail(emailFormatted);</span>
+<span class="fc" id="L166">        usuario.setState(StateUsuario.ACTIVO);</span>
+
+<span class="fc" id="L168">        Usuario saved = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L169">        marcarInvitacionVinculada(emailFormatted);</span>
+<span class="fc" id="L170">        syncRolesIfEnabledAfterCommit(saved);</span>
+<span class="fc" id="L171">        return new RegistrarUsuarioResponseDTO(saved.getId(), saved.getEmail(), saved.getRol(), saved.getState());</span>
+    }
+
+    /**
+     * Carga masiva de invitaciones. Las filas inválidas o duplicadas no
+     * bloquean al resto del lote y se informan en el resumen.
+     */
+    @Transactional
+    public InvitacionLoteResponseDTO invitarLote(List&lt;InvitacionUsuarioRequestDTO&gt; solicitudes) {
+<span class="pc bpc" id="L180" title="1 of 4 branches missed.">        if (solicitudes == null || solicitudes.isEmpty()) {</span>
+<span class="fc" id="L181">            throw new BusinessException(&quot;El lote no contiene invitaciones.&quot;);</span>
+        }
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (solicitudes.size() &gt; MAX_INVITACIONES_LOTE) {</span>
+<span class="nc" id="L184">            throw new BusinessException(</span>
+                    &quot;El lote supera el máximo de &quot; + MAX_INVITACIONES_LOTE + &quot; invitaciones.&quot;);
+        }
+
+<span class="fc" id="L188">        String invitedBy = SecurityUtils.getCurrentUserOid().orElse(null);</span>
+<span class="fc" id="L189">        int creadas = 0;</span>
+<span class="fc" id="L190">        int duplicadas = 0;</span>
+<span class="fc" id="L191">        List&lt;InvitacionLoteResponseDTO.Invalida&gt; invalidas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L192">        Set&lt;String&gt; emailsDelLote = new HashSet&lt;&gt;();</span>
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (InvitacionUsuarioRequestDTO solicitud : solicitudes) {</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">            String email = solicitud == null ? &quot;&quot; : normalizarEmail(solicitud.email());</span>
+<span class="fc" id="L196">            String motivo = motivoInvalidez(solicitud, email);</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">            if (motivo != null) {</span>
+<span class="fc" id="L198">                invalidas.add(new InvitacionLoteResponseDTO.Invalida(email, motivo));</span>
+<span class="fc" id="L199">                continue;</span>
+            }
+<span class="fc bfc" id="L201" title="All 2 branches covered.">            if (!emailsDelLote.add(email)) {</span>
+<span class="fc" id="L202">                duplicadas++;</span>
+<span class="fc" id="L203">                continue;</span>
+            }
+<span class="pc bpc" id="L205" title="1 of 4 branches missed.">            if (usuarioRepository.existsByEmail(email) || invitacionRepository.existsByEmail(email)) {</span>
+<span class="fc" id="L206">                duplicadas++;</span>
+<span class="fc" id="L207">                continue;</span>
+            }
+<span class="fc" id="L209">            invitacionRepository.save(InvitacionUsuario.builder()</span>
+<span class="fc" id="L210">                    .email(email)</span>
+<span class="fc" id="L211">                    .rol(solicitud.rol())</span>
+<span class="fc" id="L212">                    .state(StateInvitacion.INVITADO)</span>
+<span class="fc" id="L213">                    .invitedBy(invitedBy)</span>
+<span class="fc" id="L214">                    .build());</span>
+<span class="fc" id="L215">            creadas++;</span>
+<span class="fc" id="L216">        }</span>
+
+<span class="fc" id="L218">        log.info(&quot;Lote de invitaciones: {} creadas, {} duplicadas, {} inválidas.&quot;,</span>
+<span class="fc" id="L219">                creadas, duplicadas, invalidas.size());</span>
+<span class="fc" id="L220">        return new InvitacionLoteResponseDTO(creadas, duplicadas, invalidas);</span>
+    }
+
+    /** Carga masiva desde un CSV con encabezado opcional {@code email,rol}. */
+    @Transactional
+    public InvitacionLoteResponseDTO invitarLoteCsv(MultipartFile archivo) {
+<span class="pc bpc" id="L226" title="1 of 4 branches missed.">        if (archivo == null || archivo.isEmpty()) {</span>
+<span class="fc" id="L227">            throw new BusinessException(&quot;El archivo CSV está vacío.&quot;);</span>
+        }
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">        if (archivo.getSize() &gt; MAX_CSV_BYTES) {</span>
+<span class="nc" id="L230">            throw new BusinessException(&quot;El archivo CSV supera el máximo de 2 MB.&quot;);</span>
+        }
+<span class="fc" id="L232">        return invitarLote(leerCsv(archivo));</span>
+    }
+
+    @Transactional
+    public UsuarioResponseDTO updateUsuario(String id, @Valid ActualizarUsuarioRequestDTO request) {
+<span class="fc" id="L237">        Usuario existingUsuario = usuarioRepository.findById(id)</span>
+<span class="pc" id="L238">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Usuario con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">        if (request.state() == StateUsuario.INACTIVO</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                &amp;&amp; SecurityUtils.getCurrentUserOid().map(id::equals).orElse(false)) {</span>
+<span class="nc" id="L242">            throw new BusinessException(&quot;No puedes desactivar tu propia cuenta.&quot;);</span>
+        }
+
+<span class="fc" id="L245">        String newEmailFormatted = request.email().trim().toLowerCase();</span>
+
+        // Validar si cambió el correo y si el nuevo correo pertenece a otro usuario
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">        if (!existingUsuario.getEmail().equalsIgnoreCase(newEmailFormatted)) {</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">            if (usuarioRepository.existsByEmail(newEmailFormatted)) {</span>
+<span class="nc" id="L250">                throw new BusinessException(&quot;El correo electrónico &quot; + request.email() + &quot; ya está en uso.&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L254">        Rol previousRol = existingUsuario.getRol();</span>
+<span class="fc" id="L255">        StateUsuario previousState = existingUsuario.getState();</span>
+<span class="fc" id="L256">        mapper.updateEntityFromDto(request, existingUsuario);</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">        if (request.rol() != null) {</span>
+<span class="fc" id="L258">            existingUsuario.setRol(request.rol());</span>
+        }
+
+<span class="fc" id="L261">        Usuario saved = usuarioRepository.save(existingUsuario);</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">        boolean rolChanged = previousRol != saved.getRol();</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">        boolean stateChanged = previousState != saved.getState();</span>
+<span class="pc bpc" id="L264" title="2 of 4 branches missed.">        if (rolChanged || stateChanged) {</span>
+<span class="pc bpc" id="L265" title="1 of 2 branches missed.">            if (rolChanged) {</span>
+<span class="nc" id="L266">                log.info(&quot;Rol del usuario {} cambió de {} a {}; sincronizando con Entra ID.&quot;,</span>
+<span class="nc" id="L267">                        saved.getId(), previousRol, saved.getRol());</span>
+            }
+<span class="fc" id="L269">            syncRolesIfEnabledAfterCommit(saved);</span>
+        }
+<span class="fc" id="L271">        return mapper.toResponseDto(saved);</span>
+    }
+
+    @Transactional
+    public void deleteUsuario(String id) {
+<span class="fc" id="L276">        Usuario existingUsuario = usuarioRepository.findById(id)</span>
+<span class="pc" id="L277">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Usuario con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+
+<span class="fc bfc" id="L279" title="All 2 branches covered.">        if (SecurityUtils.getCurrentUserOid().map(id::equals).orElse(false)) {</span>
+<span class="fc" id="L280">            throw new BusinessException(&quot;No puedes eliminar tu propia cuenta.&quot;);</span>
+        }
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        if (existingUsuario.getRol() == Rol.ADMIN</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">                &amp;&amp; existingUsuario.getState() == StateUsuario.ACTIVO</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">                &amp;&amp; usuarioRepository.countByRolAndState(Rol.ADMIN, StateUsuario.ACTIVO) &lt;= 1L) {</span>
+<span class="fc" id="L285">            throw new BusinessException(&quot;No puedes eliminar al único administrador activo.&quot;);</span>
+        }
+
+<span class="fc" id="L288">        existingUsuario.setState(StateUsuario.INACTIVO);</span>
+<span class="fc" id="L289">        usuarioRepository.save(existingUsuario);</span>
+
+        // Soft delete en Entra ID: revoca sesiones y roles, y deshabilita el login.
+<span class="fc" id="L292">        syncRolesIfEnabledAfterCommit(existingUsuario);</span>
+<span class="fc" id="L293">    }</span>
+
+    /**
+     * Fuerza la reconciliación del rol local hacia Entra ID. Útil para el
+     * bootstrap del primer admin o si una sincronización previa falló.
+     */
+    @Transactional
+    public void syncUserRoles(String id) {
+<span class="nc" id="L301">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="nc" id="L302">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Usuario con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="nc" id="L304">            throw new BusinessException(</span>
+                    &quot;La integración con Microsoft Graph no está configurada (falta AZURE_CLIENT_SECRET).&quot;);
+        }
+<span class="nc" id="L307">        syncRolesIfEnabled(usuario);</span>
+<span class="nc" id="L308">    }</span>
+
+    private ResourceNotFoundException noRegistrado(String oid) {
+<span class="fc" id="L311">        return new ResourceNotFoundException(&quot;Usuario con ID &quot; + oid + &quot; no encontrado.&quot;);</span>
+    }
+
+    private String resolverOidDesdeGraph(String email) {
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="fc" id="L316">            return null;</span>
+        }
+<span class="nc" id="L318">        return graphDirectory.findUserByEmail(email)</span>
+<span class="nc" id="L319">                .map(CandidatoUsuarioResponseDTO::oid)</span>
+<span class="nc" id="L320">                .orElse(null);</span>
+    }
+
+    private void crearInvitacionIndividual(String email, Rol rol) {
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">        if (usuarioRepository.existsByEmail(email)) {</span>
+<span class="nc" id="L325">            throw new BusinessException(&quot;El correo electrónico ya está registrado.&quot;);</span>
+        }
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if (invitacionRepository.existsByEmail(email)) {</span>
+<span class="fc" id="L328">            throw new BusinessException(&quot;Ya existe una invitación para el correo &quot; + email + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L330">        invitacionRepository.save(InvitacionUsuario.builder()</span>
+<span class="fc" id="L331">                .email(email)</span>
+<span class="fc" id="L332">                .rol(rol)</span>
+<span class="fc" id="L333">                .state(StateInvitacion.INVITADO)</span>
+<span class="fc" id="L334">                .invitedBy(SecurityUtils.getCurrentUserOid().orElse(null))</span>
+<span class="fc" id="L335">                .build());</span>
+<span class="fc" id="L336">    }</span>
+
+    private void marcarInvitacionVinculada(String email) {
+<span class="fc" id="L339">        invitacionRepository.findByEmail(email)</span>
+<span class="pc bnc" id="L340" title="All 2 branches missed.">                .filter(inv -&gt; inv.getState() == StateInvitacion.INVITADO)</span>
+<span class="fc" id="L341">                .ifPresent(inv -&gt; {</span>
+<span class="nc" id="L342">                    inv.setState(StateInvitacion.VINCULADA);</span>
+<span class="nc" id="L343">                    inv.setBoundAt(LocalDateTime.now());</span>
+<span class="nc" id="L344">                    invitacionRepository.save(inv);</span>
+<span class="nc" id="L345">                });</span>
+<span class="fc" id="L346">    }</span>
+
+    private String motivoInvalidez(InvitacionUsuarioRequestDTO solicitud, String email) {
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        if (solicitud == null) {</span>
+<span class="nc" id="L350">            return &quot;Fila vacía o con formato inválido.&quot;;</span>
+        }
+<span class="fc" id="L352">        InvitacionUsuarioRequestDTO normalizada = new InvitacionUsuarioRequestDTO(email, solicitud.rol());</span>
+<span class="fc" id="L353">        Set&lt;ConstraintViolation&lt;InvitacionUsuarioRequestDTO&gt;&gt; violations = validator.validate(normalizada);</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">        if (!violations.isEmpty()) {</span>
+<span class="fc" id="L355">            return violations.iterator().next().getMessage();</span>
+        }
+<span class="pc bpc" id="L357" title="2 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="nc" id="L358">            return &quot;El correo electrónico es obligatorio.&quot;;</span>
+        }
+<span class="fc" id="L360">        return null;</span>
+    }
+
+    private List&lt;InvitacionUsuarioRequestDTO&gt; leerCsv(MultipartFile archivo) {
+<span class="fc" id="L364">        List&lt;InvitacionUsuarioRequestDTO&gt; solicitudes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L365">        try (BufferedReader reader = new BufferedReader(</span>
+<span class="fc" id="L366">                new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {</span>
+            String linea;
+<span class="fc" id="L368">            boolean encabezado = true;</span>
+<span class="fc bfc" id="L369" title="All 2 branches covered.">            while ((linea = reader.readLine()) != null) {</span>
+<span class="fc" id="L370">                String limpia = linea.replace(&quot;\uFEFF&quot;, &quot;&quot;).trim();</span>
+<span class="pc bpc" id="L371" title="1 of 2 branches missed.">                if (limpia.isEmpty()) {</span>
+<span class="nc" id="L372">                    continue;</span>
+                }
+<span class="fc bfc" id="L374" title="All 2 branches covered.">                if (encabezado) {</span>
+<span class="fc" id="L375">                    encabezado = false;</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">                    if (limpia.toLowerCase(Locale.ROOT).contains(&quot;email&quot;)) {</span>
+<span class="fc" id="L377">                        continue;</span>
+                    }
+                }
+<span class="fc" id="L380">                String[] partes = limpia.split(&quot;[;,]&quot;, 2);</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">                String email = partes.length &gt; 0 ? partes[0].trim() : &quot;&quot;;</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">                String rol = partes.length &gt; 1 ? partes[1].trim() : &quot;&quot;;</span>
+<span class="fc" id="L383">                solicitudes.add(new InvitacionUsuarioRequestDTO(email, parseRol(rol)));</span>
+<span class="fc" id="L384">            }</span>
+<span class="nc" id="L385">        } catch (IOException ex) {</span>
+<span class="nc" id="L386">            throw new BusinessException(&quot;No se pudo leer el archivo CSV: &quot; + ex.getMessage());</span>
+<span class="fc" id="L387">        }</span>
+<span class="fc" id="L388">        return solicitudes;</span>
+    }
+
+    private Rol parseRol(String valor) {
+        try {
+<span class="fc" id="L393">            return Rol.valueOf(valor.trim().toUpperCase(Locale.ROOT));</span>
+<span class="fc" id="L394">        } catch (IllegalArgumentException ex) {</span>
+<span class="fc" id="L395">            return null;</span>
+        }
+    }
+
+    private static String normalizarEmail(String email) {
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">        return email == null ? &quot;&quot; : email.trim().toLowerCase(Locale.ROOT);</span>
+    }
+
+    /**
+     * Refleja en Entra ID el rol y el estado local (soft delete / reactivación).
+     * La BD es la fuente autoritativa; si Graph no está configurado (sin
+     * AZURE_CLIENT_SECRET) se omite sin romper el CRUD.
+     */
+    private void syncRolesIfEnabled(Usuario usuario) {
+<span class="pc bpc" id="L409" title="1 of 2 branches missed.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="nc" id="L410">            log.debug(&quot;Graph no configurado: se omite la sincronización con Entra ID para {}&quot;, usuario.getId());</span>
+<span class="nc" id="L411">            return;</span>
+        }
+<span class="fc bfc" id="L413" title="All 2 branches covered.">        if (usuario.getState() == StateUsuario.INACTIVO) {</span>
+<span class="fc" id="L414">            graphDirectory.revokeSignInSessions(usuario.getId());</span>
+<span class="fc" id="L415">            graphDirectory.revokeRoles(usuario.getId());</span>
+<span class="fc" id="L416">            graphDirectory.setAccountEnabled(usuario.getId(), false);</span>
+        } else {
+<span class="fc" id="L418">            graphDirectory.setAccountEnabled(usuario.getId(), true);</span>
+<span class="fc" id="L419">            graphDirectory.syncRole(usuario.getId(), usuario.getRol());</span>
+        }
+<span class="fc" id="L421">    }</span>
+
+    /**
+     * Ejecuta la sincronizacion con Graph **despues** del commit para no hacer
+     * llamadas externas dentro de la transaccion; si Graph falla, se registra y
+     * no se revierte la operacion local.
+     */
+    private void syncRolesIfEnabledAfterCommit(Usuario usuario) {
+<span class="fc bfc" id="L429" title="All 2 branches covered.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="fc" id="L430">            log.debug(&quot;Graph no configurado: se omite la sincronización de roles para {}&quot;, usuario.getId());</span>
+<span class="fc" id="L431">            return;</span>
+        }
+<span class="fc" id="L433">        runAfterCommit(() -&gt; syncRolesIfEnabled(usuario),</span>
+<span class="fc" id="L434">                &quot;sincronizar roles&quot;, usuario.getId());</span>
+<span class="fc" id="L435">    }</span>
+
+    private void runAfterCommit(Runnable action, String operacion, String id) {
+<span class="pc bpc" id="L438" title="1 of 2 branches missed.">        if (TransactionSynchronizationManager.isSynchronizationActive()) {</span>
+<span class="nc" id="L439">            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {</span>
+                @Override
+                public void afterCommit() {
+                    try {
+<span class="nc" id="L443">                        action.run();</span>
+<span class="nc" id="L444">                    } catch (RuntimeException ex) {</span>
+<span class="nc" id="L445">                        log.error(&quot;Fallo al {} en Entra ID para {}: {}&quot;, operacion, id, ex.getMessage());</span>
+<span class="nc" id="L446">                    }</span>
+<span class="nc" id="L447">                }</span>
+            });
+        } else {
+<span class="fc" id="L450">            action.run();</span>
+        }
+<span class="fc" id="L452">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

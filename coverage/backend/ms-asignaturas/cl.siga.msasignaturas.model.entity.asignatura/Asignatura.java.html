@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Asignatura.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.model.entity.asignatura</a> &gt; <span class="el_source">Asignatura.java</span></div><h1>Asignatura.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.model.entity.asignatura;
+
+import cl.siga.coreshare.enums.AreaAcademica;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+
+/**
+ * Asignatura del catálogo general. No pertenece a un curso ni tiene docente,
+ * semestre u horarios propios: eso vive en {@link CursoAsignatura}.
+ */
+@Entity
+@Table(name = &quot;asignaturas&quot;)
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class Asignatura {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = &quot;El nombre es requerido&quot;)
+    @Size(min = 2, max = 80)
+    @Column(name = &quot;nombre&quot;, length = 80, nullable = false)
+    private String nombre;
+
+    @Size(max = 40)
+    @Column(name = &quot;nombre_corto&quot;, length = 40)
+    private String nombreCorto;
+
+    @NotBlank(message = &quot;La descripción es requerida&quot;)
+    @Size(min = 2, max = 150)
+    @Column(name = &quot;descripcion&quot;, length = 150, nullable = false)
+    private String descripcion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;area&quot;, nullable = false)
+    private AreaAcademica area;
+
+    @Builder.Default
+    @Column(name = &quot;calificable&quot;, nullable = false)
+    private boolean calificable = true;
+
+    @Builder.Default
+    @Column(name = &quot;active&quot;, nullable = false)
+    private boolean active = true;
+
+    @PrePersist
+    @PreUpdate
+    protected void normalizar() {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (nombre != null) {</span>
+<span class="nc" id="L56">            nombre = nombre.trim();</span>
+        }
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (nombreCorto != null) {</span>
+<span class="nc" id="L59">            nombreCorto = nombreCorto.trim();</span>
+        }
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (descripcion != null) {</span>
+<span class="nc" id="L62">            descripcion = descripcion.trim();</span>
+        }
+<span class="nc" id="L64">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfiguracionNombresRabbitMQ.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.mensajeria</a> &gt; <span class="el_source">ConfiguracionNombresRabbitMQ.java</span></div><h1>ConfiguracionNombresRabbitMQ.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.mensajeria;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+
+/**
+ * Fuente central de nombres/routing keys de las dos topologías RabbitMQ.
+ * Los aliases históricos viven en NombresMensajeria y
+ * RegistrationMessagingConstants para no acoplar los dominios entre sí, pero
+ * ningún producer, listener ni declaración mantiene literales duplicados.
+ */
+@AutoConfiguration
+<span class="fc" id="L12">public class ConfiguracionNombresRabbitMQ {</span>
+
+    public static final class Academico {
+        private Academico() {}
+
+        public static final String EXCHANGE_NOTIFICACIONES = &quot;intercambio-notificaciones&quot;;
+        public static final String EXCHANGE_DLQ = &quot;siga.dlx.direct&quot;;
+
+        public static final String COLA_EVALUACIONES = &quot;cola-notificaciones-evaluaciones&quot;;
+        public static final String DLQ_EVALUACIONES = &quot;cola-notificaciones-evaluaciones.dlq&quot;;
+        public static final String CLAVE_EVALUACION_CREADA = &quot;evaluacion.creada&quot;;
+        public static final String CLAVE_EVALUACION_ACTUALIZADA = &quot;evaluacion.actualizada&quot;;
+        public static final String CLAVE_EVALUACION_ELIMINADA = &quot;evaluacion.eliminada&quot;;
+        public static final String PATRON_EVALUACION = &quot;evaluacion.*&quot;;
+
+        public static final String COLA_ASISTENCIAS = &quot;cola-notificaciones-asistencias&quot;;
+        public static final String DLQ_ASISTENCIAS = &quot;cola-notificaciones-asistencias.dlq&quot;;
+        public static final String CLAVE_ASISTENCIA_REGISTRADA = &quot;asistencia.registrada&quot;;
+        public static final String PATRON_ASISTENCIA = &quot;asistencia.*&quot;;
+
+        public static final String COLA_NOTAS = &quot;cola-notificaciones-notas&quot;;
+        public static final String DLQ_NOTAS = &quot;cola-notificaciones-notas.dlq&quot;;
+        public static final String CLAVE_NOTA_CREADA = &quot;nota.creada&quot;;
+        public static final String CLAVE_NOTA_ACTUALIZADA = &quot;nota.actualizada&quot;;
+        public static final String PATRON_NOTA = &quot;nota.*&quot;;
+    }
+
+    public static final class Registro {
+        private Registro() {}
+
+        public static final String EXCHANGE = &quot;user.topic.exchange&quot;;
+
+        public static final String AZURE_QUEUE = &quot;user.azure.sync.queue&quot;;
+        public static final String ESTUDIANTES_QUEUE = &quot;ms.estudiantes.queue&quot;;
+        public static final String DOCENTES_QUEUE = &quot;ms.docentes.queue&quot;;
+        public static final String APODERADOS_QUEUE = &quot;ms.apoderados.queue&quot;;
+        public static final String STATUS_QUEUE = &quot;user.registration.status.queue&quot;;
+        public static final String CREDENTIALS_QUEUE = &quot;user.credentials.notify.queue&quot;;
+
+        public static final String AZURE_DLQ = &quot;user.azure.sync.dlq&quot;;
+        public static final String ESTUDIANTES_DLQ = &quot;ms.estudiantes.dlq&quot;;
+        public static final String DOCENTES_DLQ = &quot;ms.docentes.dlq&quot;;
+        public static final String APODERADOS_DLQ = &quot;ms.apoderados.dlq&quot;;
+        public static final String STATUS_DLQ = &quot;user.registration.status.dlq&quot;;
+        public static final String CREDENTIALS_DLQ = &quot;user.credentials.notify.dlq&quot;;
+
+        public static final String RK_AZURE_SYNC = &quot;user.registration.azure&quot;;
+        public static final String RK_REGISTER_ESTUDIANTE = &quot;user.register.estudiante&quot;;
+        public static final String RK_REGISTER_DOCENTE = &quot;user.register.docente&quot;;
+        public static final String RK_REGISTER_APODERADO = &quot;user.register.apoderado&quot;;
+        public static final String RK_STATUS = &quot;user.registration.status&quot;;
+        public static final String RK_CREDENTIALS_NOTIFY = &quot;user.credentials.notify&quot;;
+        public static final String HEADER_CORRELATION_ID = &quot;X-Correlation-Id&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

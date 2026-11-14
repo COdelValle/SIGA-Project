@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilEstudianteMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.estudiantes.mapper</a> &gt; <span class="el_source">PerfilEstudianteMapperImpl.java</span></div><h1>PerfilEstudianteMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.estudiantes.mapper;
+
+import cl.siga.bffweb.domain.estudiantes.dto.api.PerfilEstudianteResponseDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.AsignaturaDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.ClaseDetalleDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:14:29+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="fc" id="L20">public class PerfilEstudianteMapperImpl implements PerfilEstudianteMapper {</span>
+
+    @Override
+    public PerfilEstudianteResponseDTO toResponse(EstudianteResponseDTO estudiante, ClaseResponseDTO clase, List&lt;AsignaturaDetalleDTO&gt; asignaturas) {
+<span class="pc bpc" id="L24" title="5 of 6 branches missed.">        if ( estudiante == null &amp;&amp; clase == null &amp;&amp; asignaturas == null ) {</span>
+<span class="nc" id="L25">            return null;</span>
+        }
+
+<span class="fc" id="L28">        Long id = null;</span>
+<span class="fc" id="L29">        String idUsuario = null;</span>
+<span class="fc" id="L30">        String rut = null;</span>
+<span class="fc" id="L31">        String firstName = null;</span>
+<span class="fc" id="L32">        String middleName = null;</span>
+<span class="fc" id="L33">        String firstSurname = null;</span>
+<span class="fc" id="L34">        String secondSurname = null;</span>
+<span class="fc" id="L35">        LocalDate birthDate = null;</span>
+<span class="fc" id="L36">        List&lt;String&gt; allergies = null;</span>
+<span class="fc" id="L37">        String state = null;</span>
+<span class="fc" id="L38">        Long idClase = null;</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if ( estudiante != null ) {</span>
+<span class="fc" id="L40">            id = estudiante.id();</span>
+<span class="fc" id="L41">            idUsuario = estudiante.idUsuario();</span>
+<span class="fc" id="L42">            rut = estudiante.rut();</span>
+<span class="fc" id="L43">            firstName = estudiante.firstName();</span>
+<span class="fc" id="L44">            middleName = estudiante.middleName();</span>
+<span class="fc" id="L45">            firstSurname = estudiante.firstSurname();</span>
+<span class="fc" id="L46">            secondSurname = estudiante.secondSurname();</span>
+<span class="fc" id="L47">            birthDate = estudiante.birthDate();</span>
+<span class="fc" id="L48">            List&lt;String&gt; list = estudiante.allergies();</span>
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">            if ( list != null ) {</span>
+<span class="fc" id="L50">                allergies = new ArrayList&lt;String&gt;( list );</span>
+            }
+<span class="fc" id="L52">            state = estudiante.state();</span>
+<span class="fc" id="L53">            idClase = estudiante.idClase();</span>
+        }
+<span class="fc" id="L55">        List&lt;AsignaturaDetalleDTO&gt; asignaturas1 = null;</span>
+<span class="fc" id="L56">        List&lt;AsignaturaDetalleDTO&gt; list1 = asignaturas;</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if ( list1 != null ) {</span>
+<span class="fc" id="L58">            asignaturas1 = new ArrayList&lt;AsignaturaDetalleDTO&gt;( list1 );</span>
+        }
+
+<span class="fc" id="L61">        ClaseDetalleDTO clase1 = toClaseDetalle(clase);</span>
+
+<span class="fc" id="L63">        PerfilEstudianteResponseDTO perfilEstudianteResponseDTO = new PerfilEstudianteResponseDTO( id, idUsuario, rut, firstName, middleName, firstSurname, secondSurname, birthDate, allergies, state, idClase, clase1, asignaturas1 );</span>
+
+<span class="fc" id="L65">        return perfilEstudianteResponseDTO;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

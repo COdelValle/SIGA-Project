@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CursoAsignatura.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.model.entity.asignatura</a> &gt; <span class="el_source">CursoAsignatura.java</span></div><h1>CursoAsignatura.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.model.entity.asignatura;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.Semestre;
+import cl.siga.msasignaturas.model.entity.Horario;
+import cl.siga.msasignaturas.model.entity.Inscripcion;
+import jakarta.persistence.*;
+import lombok.*;
+
+/**
+ * Dictación concreta de una asignatura del catálogo en un curso. Aquí viven el
+ * docente, el semestre, los horarios y los cupos; los datos curriculares
+ * (nombre, área, calificable) se resuelven desde {@link Asignatura}.
+ */
+@Entity
+@Table(name = &quot;cursos_asignaturas&quot;, uniqueConstraints = {
+    @UniqueConstraint(columnNames = {&quot;id_asignatura&quot;, &quot;id_clase&quot;, &quot;semestre&quot;})
+})
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class CursoAsignatura {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = &quot;id_asignatura&quot;, nullable = false)
+    private Asignatura asignatura;
+
+    @Column(name = &quot;id_clase&quot;, nullable = false)
+    private Long idClase;
+
+    @Column(name = &quot;id_docente&quot;, nullable = false)
+    private Long idDocente;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Semestre semestre;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;caracter&quot;, nullable = false, length = 20)
+    private CaracterAsignatura caracter;
+
+    @Column(name = &quot;cupo_maximo&quot;)
+    private Integer cupoMaximo;
+
+    @Builder.Default
+    @Column(name = &quot;active&quot;, nullable = false)
+    private boolean active = true;
+
+    @Builder.Default
+    @OneToMany(mappedBy = &quot;cursoAsignatura&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;Horario&gt; horarios = new ArrayList&lt;&gt;();
+
+    @Builder.Default
+    @OneToMany(mappedBy = &quot;cursoAsignatura&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;Inscripcion&gt; inscripciones = new ArrayList&lt;&gt;();
+
+    public void addHorario(Horario horario) {
+<span class="fc" id="L67">        horarios.add(horario);</span>
+<span class="fc" id="L68">        horario.setCursoAsignatura(this);</span>
+<span class="fc" id="L69">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

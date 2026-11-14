@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsignaturaClientFallback.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.integration.asignaturas</a> &gt; <span class="el_source">AsignaturaClientFallback.java</span></div><h1>AsignaturaClientFallback.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.integration.asignaturas;
+
+import java.util.List;
+
+import org.springframework.stereotype.Component;
+
+import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.exception.ServiceUnavailableException;
+
+@Component
+<span class="fc" id="L16">public class AsignaturaClientFallback implements AsignaturaClient {</span>
+    @Override
+    public PageResponseDTO&lt;AsignaturaResponseDTO&gt; searchAsignaturas(int size) {
+<span class="nc" id="L19">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas&quot;);</span>
+    }
+
+    @Override
+    public List&lt;MallaCurricularResponseDTO&gt; getMalla(Nivel nivel) {
+<span class="nc" id="L24">        throw new ServiceUnavailableException(&quot;No se pudo obtener la malla curricular&quot;);</span>
+    }
+
+    @Override
+    public CursoAsignaturaResponseDTO getCursoAsignaturaById(Long id) {
+<span class="nc" id="L29">        throw new ServiceUnavailableException(&quot;No se pudo obtener la dictación &quot; + id);</span>
+    }
+
+    @Override
+    public PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; searchCursoAsignaturasByClase(Long idClase, int size) {
+<span class="nc" id="L34">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas de la clase &quot; + idClase);</span>
+    }
+
+    @Override
+    public PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; searchCursoAsignaturasByDocente(Long idDocente, int size) {
+<span class="nc" id="L39">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas del docente &quot; + idDocente);</span>
+    }
+
+    @Override
+    public PageResponseDTO&lt;InscripcionResponseDTO&gt; searchInscripcionesByAlumno(Long idAlumno, int size) {
+<span class="nc" id="L44">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las inscripciones del alumno &quot; + idAlumno);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

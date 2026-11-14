@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationEventOutbox.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.mensajeria.outbox</a> &gt; <span class="el_source">NotificationEventOutbox.java</span></div><h1>NotificationEventOutbox.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.mensajeria.outbox;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/** Persiste el evento en la misma transacción que el cambio de dominio. */
+@RequiredArgsConstructor
+public class NotificationEventOutbox {
+
+    private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrar(String idEvento, String intercambio, String clave, Object evento) {
+<span class="pc bpc" id="L21" title="2 of 4 branches missed.">        if (idEvento == null || idEvento.isBlank()) {</span>
+<span class="nc" id="L22">            throw new IllegalArgumentException(&quot;El evento de notificación debe tener idEvento.&quot;);</span>
+        }
+        final String payload;
+        try {
+<span class="fc" id="L26">            payload = objectMapper.writeValueAsString(evento);</span>
+<span class="nc" id="L27">        } catch (JsonProcessingException error) {</span>
+<span class="nc" id="L28">            throw new IllegalStateException(&quot;No se pudo serializar el evento de notificación.&quot;, error);</span>
+<span class="fc" id="L29">        }</span>
+<span class="fc" id="L30">        LocalDateTime ahora = LocalDateTime.now();</span>
+
+<span class="fc" id="L32">        jdbcTemplate.update(&quot;&quot;&quot;</span>
+            INSERT INTO notification_event_outbox
+                (id_evento, intercambio, clave, tipo_payload, payload, estado,
+                 intentos, proximo_intento, creado_en)
+            VALUES (?, ?, ?, ?, ?, 'PENDIENTE', 0, ?, ?)
+            &quot;&quot;&quot;,
+            idEvento,
+            intercambio,
+            clave,
+<span class="fc" id="L41">            evento.getClass().getSimpleName(),</span>
+            payload,
+            ahora,
+            ahora);
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

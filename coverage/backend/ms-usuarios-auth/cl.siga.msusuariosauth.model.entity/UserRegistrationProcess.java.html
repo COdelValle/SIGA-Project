@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserRegistrationProcess.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.model.entity</a> &gt; <span class="el_source">UserRegistrationProcess.java</span></div><h1>UserRegistrationProcess.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.model.entity;
+
+import java.time.OffsetDateTime;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import cl.siga.coreshare.dto.usuario.enums.RegistrationProcessState;
+import cl.siga.coreshare.dto.usuario.enums.RegistrationStepState;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = &quot;user_registration_processes&quot;)
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserRegistrationProcess {
+    @Id
+    @Column(name = &quot;process_id&quot;, length = 36, nullable = false, updatable = false)
+    private String processId;
+
+    @Column(name = &quot;event_id&quot;, length = 36, nullable = false, unique = true, updatable = false)
+    private String eventId;
+
+    @Column(name = &quot;correlation_id&quot;, length = 100, nullable = false)
+    private String correlationId;
+
+    @Column(name = &quot;email&quot;, length = 255, nullable = false)
+    private String email;
+
+    @Column(name = &quot;full_name&quot;, length = 255, nullable = false)
+    private String fullName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;requested_role&quot;, nullable = false, length = 50)
+    private Rol requestedRole;
+
+    /** Oid del administrador que inició el proceso (dueño de la credencial). */
+    @Column(name = &quot;created_by&quot;, length = 36)
+    private String createdBy;
+
+    /** Correo alternativo para la futura notificación de credenciales (opción 3). */
+    @Column(name = &quot;contact_email&quot;, length = 255)
+    private String contactEmail;
+
+    @Column(name = &quot;user_id&quot;, length = 36)
+    private String userId;
+
+    /** Payload del rol serializado (JSON) para reconstruir el evento de dominio. */
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(name = &quot;role_data&quot;)
+    private String roleData;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;state&quot;, nullable = false, length = 30)
+    private RegistrationProcessState state;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;azure_state&quot;, nullable = false, length = 30)
+    private RegistrationStepState azureState;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;domain_state&quot;, nullable = false, length = 30)
+    private RegistrationStepState domainState;
+
+    @Column(name = &quot;error_message&quot;, length = 1000)
+    private String errorMessage;
+
+    /** Clave temporal cifrada (AES-GCM); se borra al entregarse. */
+    @Column(name = &quot;credential_ciphertext&quot;, length = 512)
+    private String credentialCiphertext;
+
+    @Column(name = &quot;credential_iv&quot;, length = 64)
+    private String credentialIv;
+
+    @Column(name = &quot;credential_expires_at&quot;)
+    private OffsetDateTime credentialExpiresAt;
+
+    @Column(name = &quot;credential_retrieved_at&quot;)
+    private OffsetDateTime credentialRetrievedAt;
+
+    @Version
+    @Column(name = &quot;version&quot;, nullable = false)
+    private Long version;
+
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+<span class="nc" id="L110">        OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (createdAt == null) {</span>
+<span class="nc" id="L112">            createdAt = now;</span>
+        }
+<span class="nc" id="L114">        updatedAt = now;</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (state == null) {</span>
+<span class="nc" id="L116">            state = RegistrationProcessState.PENDIENTE;</span>
+        }
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (azureState == null) {</span>
+<span class="nc" id="L119">            azureState = RegistrationStepState.PENDIENTE;</span>
+        }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (domainState == null) {</span>
+<span class="nc" id="L122">            domainState = RegistrationStepState.PENDIENTE;</span>
+        }
+<span class="nc" id="L124">    }</span>
+
+    @PreUpdate
+    public void onUpdate() {
+<span class="nc" id="L128">        updatedAt = OffsetDateTime.now();</span>
+<span class="nc" id="L129">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

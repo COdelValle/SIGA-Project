@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocenteController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-docentes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msdocentes.controller</a> &gt; <span class="el_source">DocenteController.java</span></div><h1>DocenteController.java</h1><pre class="source lang-java linenums">package cl.siga.msdocentes.controller;
+
+import cl.siga.coreshare.dto.docente.ActualizarDocenteRequestDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.dto.docente.RegistrarDocenteRequestDTO;
+import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.msdocentes.service.DocenteService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
+@RestController
+@RequestMapping(&quot;/api/v1/docentes&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Docentes&quot;, description = &quot;Operaciones CRUD y busqueda de docentes&quot;)
+public class DocenteController {
+  private final DocenteService docenteService;
+
+  @GetMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_docentes:read')&quot;)
+  public ResponseEntity&lt;DocenteResponseDTO&gt; getDocenteById(@PathVariable Long id) {
+<span class="fc" id="L33">    return ResponseEntity.ok(docenteService.getDocenteById(id));</span>
+  }
+
+  @GetMapping(&quot;/idUsuario/{idUsuario}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_docentes:read')&quot;)
+  public ResponseEntity&lt;DocenteResponseDTO&gt; getDocenteByIdUsuario(@PathVariable String idUsuario) {
+<span class="fc" id="L39">    return ResponseEntity.ok(docenteService.getDocenteByIdUsuario(idUsuario));</span>
+  }
+
+  @GetMapping(&quot;/search&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_docentes:read')&quot;)
+  public ResponseEntity&lt;Page&lt;DocenteResponseDTO&gt;&gt; searchDocentes(
+    @RequestParam(required = false) String rut,
+    @RequestParam(required = false) String firstName,
+    @RequestParam(required = false) String firstSurname,
+    @RequestParam(required = false) LocalDate from,
+    @RequestParam(required = false) LocalDate to,
+    @RequestParam(required = false) AreaAcademica area,
+    @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
+  ) {
+<span class="fc" id="L53">    return ResponseEntity.ok(docenteService.searchDocentes(rut, firstName, firstSurname, from, to, area, pageable));</span>
+  }
+
+  @PostMapping
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_docentes:write')&quot;)
+  public ResponseEntity&lt;DocenteResponseDTO&gt; registrarDocente(@Valid @RequestBody RegistrarDocenteRequestDTO request) {
+<span class="fc" id="L59">    return ResponseEntity.status(HttpStatus.CREATED).body(docenteService.saveDocente(request));</span>
+  }
+
+  @PutMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_docentes:update')&quot;)
+  public ResponseEntity&lt;DocenteResponseDTO&gt; actualizarDocente(@PathVariable Long id, @Valid @RequestBody ActualizarDocenteRequestDTO request) {
+<span class="fc" id="L65">    return ResponseEntity.ok(docenteService.updateDocente(id, request));</span>
+  }
+
+  @GetMapping(&quot;/exists/{id}&quot;)
+  @PreAuthorize(&quot;hasAuthority('SCOPE_docentes:read')&quot;)
+  public ResponseEntity&lt;Boolean&gt; existsDocenteById(@PathVariable Long id) {
+<span class="fc" id="L71">    return ResponseEntity.ok(docenteService.existsDocenteById(id));</span>
+  }
+
+  @DeleteMapping(&quot;/{id}&quot;)
+  @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_docentes:delete')&quot;)
+  public ResponseEntity&lt;Void&gt; deleteDocente(@PathVariable Long id) {
+<span class="fc" id="L77">    docenteService.deleteDocente(id);</span>
+<span class="fc" id="L78">    return ResponseEntity.noContent().build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

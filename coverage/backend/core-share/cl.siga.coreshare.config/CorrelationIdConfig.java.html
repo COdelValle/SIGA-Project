@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CorrelationIdConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.config</a> &gt; <span class="el_source">CorrelationIdConfig.java</span></div><h1>CorrelationIdConfig.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.config;
+
+import java.io.IOException;
+import java.util.UUID;
+
+import org.slf4j.MDC;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.Ordered;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+/**
+ * Correlation ID por peticion: lee o genera {@code X-Correlation-Id}, lo publica
+ * en el MDC (para los logs) y lo devuelve en la respuesta.
+ */
+@AutoConfiguration
+<span class="fc" id="L23">public class CorrelationIdConfig {</span>
+
+    public static final String HEADER = &quot;X-Correlation-Id&quot;;
+    public static final String MDC_KEY = &quot;correlationId&quot;;
+
+    @Bean
+    public FilterRegistrationBean&lt;CorrelationIdFilter&gt; correlationIdFilter() {
+<span class="fc" id="L30">        FilterRegistrationBean&lt;CorrelationIdFilter&gt; registration =</span>
+                new FilterRegistrationBean&lt;&gt;(new CorrelationIdFilter());
+<span class="fc" id="L32">        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);</span>
+<span class="fc" id="L33">        return registration;</span>
+    }
+
+<span class="fc" id="L36">    public static class CorrelationIdFilter extends OncePerRequestFilter {</span>
+
+        @Override
+        protected void doFilterInternal(
+                HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain filterChain) throws ServletException, IOException {
+<span class="fc" id="L43">            String correlationId = request.getHeader(HEADER);</span>
+<span class="pc bpc" id="L44" title="3 of 4 branches missed.">            if (correlationId == null || correlationId.isBlank()) {</span>
+<span class="fc" id="L45">                correlationId = UUID.randomUUID().toString();</span>
+            }
+<span class="fc" id="L47">            MDC.put(MDC_KEY, correlationId);</span>
+<span class="fc" id="L48">            response.setHeader(HEADER, correlationId);</span>
+            try {
+<span class="fc" id="L50">                filterChain.doFilter(request, response);</span>
+            } finally {
+<span class="fc" id="L52">                MDC.remove(MDC_KEY);</span>
+            }
+<span class="fc" id="L54">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

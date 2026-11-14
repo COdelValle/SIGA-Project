@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoAsignaturaFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-notificaciones</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msnotificaciones.cliente.respaldo</a> &gt; <span class="el_source">RespaldoAsignaturaFactory.java</span></div><h1>RespaldoAsignaturaFactory.java</h1><pre class="source lang-java linenums">package cl.siga.msnotificaciones.cliente.respaldo;
+
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.exception.FeignFallbacks;
+import cl.siga.msnotificaciones.cliente.ClienteAsignatura;
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
+
+/** Si ms-asignaturas no responde, avisa con un error claro en vez de fallar a ciegas. */
+@Component
+<span class="nc" id="L12">public class RespaldoAsignaturaFactory implements FallbackFactory&lt;ClienteAsignatura&gt; {</span>
+
+    @Override
+    public ClienteAsignatura create(Throwable causa) {
+<span class="nc" id="L16">        return new ClienteAsignatura() {</span>
+            @Override
+            public CursoAsignaturaResponseDTO obtenerDictacion(Long id) {
+<span class="nc" id="L19">                throw FeignFallbacks.noDisponible(causa,</span>
+                    &quot;No se pudo obtener la dictación &quot; + id);
+            }
+
+            @Override
+            public PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; buscarPorClase(Long idClase, int tamano) {
+<span class="nc" id="L25">                throw FeignFallbacks.noDisponible(causa,</span>
+                    &quot;No se pudieron obtener las dictaciones de la clase &quot; + idClase);
+            }
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

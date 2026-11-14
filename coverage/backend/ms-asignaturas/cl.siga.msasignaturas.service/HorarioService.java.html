@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HorarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.service</a> &gt; <span class="el_source">HorarioService.java</span></div><h1>HorarioService.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cl.siga.coreshare.dto.asignatura.horario.HorarioRequestDTO;
+import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msasignaturas.model.entity.Horario;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
+import cl.siga.msasignaturas.model.mapper.HorarioMapper;
+import cl.siga.msasignaturas.repository.HorarioRepository;
+import cl.siga.msasignaturas.repository.asignatura.CursoAsignaturaRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class HorarioService {
+
+    private final HorarioRepository horarioRepository;
+    private final CursoAsignaturaRepository cursoAsignaturaRepository;
+    private final HorarioMapper horarioMapper;
+
+    @Transactional
+    public HorarioResponseDTO crearHorario(Long cursoAsignaturaId, HorarioRequestDTO request) {
+<span class="fc" id="L27">        validarRangoHorario(request);</span>
+
+<span class="fc" id="L29">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoAsignaturaId)</span>
+<span class="pc" id="L30">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación activa no encontrada con ID: &quot; + cursoAsignaturaId));</span>
+
+<span class="fc" id="L32">        validarSolapamiento(cursoAsignaturaId, request, null);</span>
+
+<span class="fc" id="L34">        Horario horario = horarioMapper.toEntity(request);</span>
+<span class="fc" id="L35">        horario.setCursoAsignatura(curso);</span>
+<span class="fc" id="L36">        horario.setActive(true);</span>
+
+<span class="fc" id="L38">        return horarioMapper.toDto(horarioRepository.save(horario));</span>
+    }
+
+    @Transactional
+    public HorarioResponseDTO actualizarHorario(Long id, HorarioRequestDTO request) {
+<span class="nc" id="L43">        validarRangoHorario(request);</span>
+
+<span class="nc" id="L45">        Horario horario = horarioRepository.findById(id)</span>
+<span class="nc" id="L46">                .filter(Horario::isActive)</span>
+<span class="nc" id="L47">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Horario no encontrado con ID: &quot; + id));</span>
+
+<span class="nc" id="L49">        Long cursoId = horario.getCursoAsignatura().getId();</span>
+<span class="nc" id="L50">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoId)</span>
+<span class="nc" id="L51">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación activa no encontrada con ID: &quot; + cursoId));</span>
+
+<span class="nc" id="L53">        validarSolapamiento(curso.getId(), request, id);</span>
+
+<span class="nc" id="L55">        horarioMapper.updateEntityFromDto(request, horario);</span>
+<span class="nc" id="L56">        horario.setCursoAsignatura(curso);</span>
+
+<span class="nc" id="L58">        return horarioMapper.toDto(horarioRepository.save(horario));</span>
+    }
+
+    @Transactional
+    public void eliminarHorario(Long id) {
+<span class="fc" id="L63">        Horario horario = horarioRepository.findById(id)</span>
+<span class="pc" id="L64">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Horario no encontrado con ID: &quot; + id));</span>
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (!horario.isActive()) {</span>
+<span class="fc" id="L67">            return;</span>
+        }
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (horarioRepository.countByCursoAsignaturaIdAndActiveTrue(horario.getCursoAsignatura().getId()) &lt;= 1) {</span>
+<span class="fc" id="L71">            throw new BusinessException(&quot;La dictación debe mantener al menos un horario.&quot;);</span>
+        }
+
+<span class="fc" id="L74">        horario.setActive(false);</span>
+<span class="fc" id="L75">        horarioRepository.save(horario);</span>
+<span class="fc" id="L76">    }</span>
+
+    private void validarRangoHorario(HorarioRequestDTO request) {
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (!request.horarioEntrada().isBefore(request.horarioSalida())) {</span>
+<span class="nc" id="L80">            throw new BusinessException(&quot;La hora de entrada debe ser anterior a la hora de salida&quot;);</span>
+        }
+<span class="fc" id="L82">    }</span>
+
+    private void validarSolapamiento(Long cursoAsignaturaId, HorarioRequestDTO request, Long idExcluir) {
+<span class="fc" id="L85">        boolean solapaCurso = horarioRepository.findByCursoAsignaturaIdAndActiveTrue(cursoAsignaturaId).stream()</span>
+<span class="pc bpc" id="L86" title="3 of 4 branches missed.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
+<span class="pc bpc" id="L87" title="1 of 4 branches missed.">                .anyMatch(h -&gt; h.getDia() == request.dia() &amp;&amp; solapan(h, request));</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (solapaCurso) {</span>
+<span class="fc" id="L89">            throw new BusinessException(&quot;La dictación ya tiene un horario que se solapa con el indicado.&quot;);</span>
+        }
+
+<span class="fc" id="L92">        boolean solapaUbicacion = horarioRepository</span>
+<span class="fc" id="L93">                .findByUbicacionIgnoreCaseAndDiaAndActiveTrue(request.ubicacion(), request.dia()).stream()</span>
+<span class="pc bpc" id="L94" title="3 of 4 branches missed.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
+<span class="fc" id="L95">                .anyMatch(h -&gt; solapan(h, request));</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (solapaUbicacion) {</span>
+<span class="fc" id="L97">            throw new BusinessException(&quot;La ubicación ya está ocupada en ese horario.&quot;);</span>
+        }
+<span class="fc" id="L99">    }</span>
+
+    private boolean solapan(Horario existente, HorarioRequestDTO request) {
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        return request.horarioEntrada().isBefore(existente.getHorarioSalida())</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                &amp;&amp; existente.getHorarioEntrada().isBefore(request.horarioSalida());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

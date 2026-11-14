@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvitacionVinculacionService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-usuarios-auth</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msusuariosauth.service</a> &gt; <span class="el_source">InvitacionVinculacionService.java</span></div><h1>InvitacionVinculacionService.java</h1><pre class="source lang-java linenums">package cl.siga.msusuariosauth.service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import cl.siga.msusuariosauth.integration.graph.GraphUserDirectory;
+import cl.siga.msusuariosauth.model.entity.InvitacionUsuario;
+import cl.siga.msusuariosauth.model.entity.Usuario;
+import cl.siga.msusuariosauth.repository.InvitacionUsuarioRepository;
+import cl.siga.msusuariosauth.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Vincula una invitación por correo con el {@code oid} del token en el primer
+ * inicio de sesión. Usa una transacción propia ({@code REQUIRES_NEW}) para que
+ * un choque de concurrencia no invalide la transacción que atiende el request.
+ */
+<span class="fc" id="L27">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class InvitacionVinculacionService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final InvitacionUsuarioRepository invitacionRepository;
+    private final GraphUserDirectory graphDirectory;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional&lt;Usuario&gt; vincular(String oid, String email) {
+<span class="pc bpc" id="L38" title="1 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="fc" id="L39">            return Optional.empty();</span>
+        }
+<span class="fc" id="L41">        InvitacionUsuario invitacion = invitacionRepository.findByEmail(email)</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">                .filter(inv -&gt; inv.getState() == StateInvitacion.INVITADO)</span>
+<span class="fc" id="L43">                .orElse(null);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (invitacion == null) {</span>
+<span class="fc" id="L45">            return Optional.empty();</span>
+        }
+        // Protege las referencias cruzadas por oid de otros servicios: si el
+        // correo ya pertenece a otra cuenta, no se reescribe ni se duplica.
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (usuarioRepository.existsByEmail(email)) {</span>
+<span class="fc" id="L50">            log.error(&quot;La invitación {} no se puede vincular: el correo ya pertenece a otro usuario.&quot;, email);</span>
+<span class="fc" id="L51">            return Optional.empty();</span>
+        }
+
+<span class="fc" id="L54">        Usuario usuario = Usuario.builder()</span>
+<span class="fc" id="L55">                .id(oid)</span>
+<span class="fc" id="L56">                .email(email)</span>
+<span class="fc" id="L57">                .rol(invitacion.getRol())</span>
+<span class="fc" id="L58">                .state(StateUsuario.ACTIVO)</span>
+<span class="fc" id="L59">                .build();</span>
+<span class="fc" id="L60">        Usuario saved = usuarioRepository.saveAndFlush(usuario);</span>
+
+<span class="fc" id="L62">        invitacion.setState(StateInvitacion.VINCULADA);</span>
+<span class="fc" id="L63">        invitacion.setBoundAt(LocalDateTime.now());</span>
+<span class="fc" id="L64">        invitacionRepository.save(invitacion);</span>
+
+<span class="fc" id="L66">        syncRoleAfterCommit(saved);</span>
+<span class="fc" id="L67">        log.info(&quot;Usuario {} vinculado desde la invitación {} (rol {}).&quot;, oid, email, saved.getRol());</span>
+<span class="fc" id="L68">        return Optional.of(saved);</span>
+    }
+
+    private void syncRoleAfterCommit(Usuario usuario) {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="fc" id="L73">            log.debug(&quot;Graph no configurado: se omite la sincronización de rol para {}&quot;, usuario.getId());</span>
+<span class="fc" id="L74">            return;</span>
+        }
+<span class="nc" id="L76">        runAfterCommit(() -&gt; graphDirectory.syncRole(usuario.getId(), usuario.getRol()));</span>
+<span class="nc" id="L77">    }</span>
+
+    private void runAfterCommit(Runnable action) {
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (TransactionSynchronizationManager.isSynchronizationActive()) {</span>
+<span class="nc" id="L81">            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {</span>
+                @Override
+                public void afterCommit() {
+                    try {
+<span class="nc" id="L85">                        action.run();</span>
+<span class="nc" id="L86">                    } catch (RuntimeException ex) {</span>
+<span class="nc" id="L87">                        log.error(&quot;Fallo al sincronizar el rol en Entra ID: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L88">                    }</span>
+<span class="nc" id="L89">                }</span>
+            });
+        } else {
+<span class="nc" id="L92">            action.run();</span>
+        }
+<span class="nc" id="L94">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.admin</a> &gt; <span class="el_source">AdminBffService.java</span></div><h1>AdminBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.admin;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.admin.dto.AsignaturaAdminDTO;
+import cl.siga.bffweb.domain.admin.dto.UsuarioAdminDTO;
+import cl.siga.bffweb.domain.admin.dto.api.ClaseOpcionDTO;
+import cl.siga.bffweb.domain.admin.dto.api.EstudianteOpcionDTO;
+import cl.siga.bffweb.domain.admin.dto.api.UsuarioDetalleDTO;
+import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.docentes.DocenteClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.bffweb.integration.usuarios.UsuarioClient;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.asignatura.AsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioCompuestoRequestDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationCredentialResponseDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationStatusResponseDTO;
+import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import lombok.RequiredArgsConstructor;
+
+/** Datos de gestion institucional (usuarios y asignaturas) para el portal admin. */
+@Service
+@RequiredArgsConstructor
+public class AdminBffService {
+    private static final int PAGE_SIZE = 200;
+
+    private final UsuarioClient usuarioClient;
+    private final AsignaturaClient asignaturaClient;
+    private final ClaseClient claseClient;
+    private final EstudianteClient estudianteClient;
+    private final DocenteClient docenteClient;
+    private final ApoderadoClient apoderadoClient;
+
+    public List&lt;UsuarioAdminDTO&gt; getUsuarios(String email, Rol rol, StateUsuario state) {
+<span class="fc" id="L51">        return contentOf(usuarioClient.searchUsuarios(email, rol, state, PAGE_SIZE)).stream()</span>
+<span class="fc" id="L52">            .map(usuario -&gt; new UsuarioAdminDTO(</span>
+<span class="fc" id="L53">                usuario.id(),</span>
+<span class="fc bfc" id="L54" title="All 4 branches covered.">                usuario.fullName() != null &amp;&amp; !usuario.fullName().isBlank()</span>
+<span class="fc" id="L55">                    ? usuario.fullName()</span>
+<span class="fc" id="L56">                    : &quot;Sin nombre&quot;,</span>
+<span class="fc" id="L57">                usuario.email(),</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">                usuario.rol() == null ? null : usuario.rol().name(),</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                usuario.state() == null ? null : usuario.state().name()))</span>
+<span class="fc" id="L60">            .toList();</span>
+    }
+
+    /** Detalle del usuario con un resumen del perfil de su rol. */
+    public UsuarioDetalleDTO getUsuarioDetalle(String idUsuario) {
+<span class="fc" id="L65">        UsuarioResponseDTO usuario = usuarioClient.getUsuarioById(idUsuario);</span>
+<span class="fc" id="L66">        String nombre = nombreDe(usuario);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        String rol = usuario.rol() == null ? null : usuario.rol().name();</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        String estado = usuario.state() == null ? null : usuario.state().name();</span>
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (usuario.rol() == null) {</span>
+<span class="fc" id="L71">            return new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), null, estado,</span>
+<span class="fc" id="L72">                null, null, &quot;Sin rol asignado.&quot;, List.of());</span>
+        }
+        try {
+<span class="fc bfc" id="L75" title="All 4 branches covered.">            return switch (usuario.rol()) {</span>
+<span class="fc" id="L76">                case ESTUDIANTE -&gt; detalleEstudiante(usuario, nombre, rol, estado);</span>
+<span class="fc" id="L77">                case DOCENTE -&gt; detalleDocente(usuario, nombre, rol, estado);</span>
+<span class="fc" id="L78">                case APODERADO -&gt; detalleApoderado(usuario, nombre, rol, estado);</span>
+<span class="fc" id="L79">                case ADMIN -&gt; new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), rol, estado,</span>
+<span class="fc" id="L80">                    null, null, &quot;Cuenta administradora.&quot;, List.of());</span>
+            };
+<span class="fc" id="L82">        } catch (RuntimeException ex) {</span>
+<span class="fc" id="L83">            return new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), rol, estado,</span>
+<span class="fc" id="L84">                null, null, &quot;Sin perfil registrado o servicio no disponible.&quot;, List.of());</span>
+        }
+    }
+
+    private UsuarioDetalleDTO detalleEstudiante(UsuarioResponseDTO usuario, String nombre, String rol, String estado) {
+<span class="fc" id="L89">        EstudianteResponseDTO estudiante = estudianteClient.getEstudianteByIdUsuario(usuario.id());</span>
+<span class="fc" id="L90">        String clase = &quot;Sin clase asignada&quot;;</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (estudiante.idClase() != null) {</span>
+            try {
+<span class="fc" id="L93">                ClaseResponseDTO datos = claseClient.getClaseById(estudiante.idClase());</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                clase = datos.nivel() == null</span>
+<span class="fc" id="L95">                    ? &quot;Clase #&quot; + estudiante.idClase()</span>
+<span class="fc" id="L96">                    : &quot;Clase: &quot; + datos.nivel().getDescripcion() + &quot; &quot; + datos.letra()</span>
+<span class="fc" id="L97">                        + &quot; · &quot; + datos.anioAcademico();</span>
+<span class="fc" id="L98">            } catch (RuntimeException ex) {</span>
+<span class="fc" id="L99">                clase = &quot;Clase #&quot; + estudiante.idClase();</span>
+<span class="fc" id="L100">            }</span>
+        }
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        List&lt;String&gt; etiquetas = estudiante.allergies() == null ? List.of()</span>
+<span class="fc" id="L103">            : estudiante.allergies().stream().map(alergia -&gt; &quot;Alergia: &quot; + alergia).toList();</span>
+<span class="fc" id="L104">        return new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), rol, estado,</span>
+<span class="fc" id="L105">            estudiante.rut(),</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">            estudiante.birthDate() == null ? null : estudiante.birthDate().toString(),</span>
+<span class="fc" id="L107">            clase + &quot; · Perfil: &quot; + estudiante.state(),</span>
+            etiquetas);
+    }
+
+    private UsuarioDetalleDTO detalleDocente(UsuarioResponseDTO usuario, String nombre, String rol, String estado) {
+<span class="fc" id="L112">        DocenteResponseDTO docente = docenteClient.getDocenteByIdUsuario(usuario.id());</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        String area = docente.area() == null ? &quot;-&quot; : docente.area().getNombre();</span>
+<span class="fc" id="L114">        String detalle = &quot;Área: &quot; + area</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">            + &quot; · Contratación: &quot; + (docente.fechaContratacion() == null ? &quot;-&quot; : docente.fechaContratacion())</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            + (Boolean.FALSE.equals(docente.activo()) ? &quot; · PERFIL INACTIVO&quot; : &quot;&quot;);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        List&lt;String&gt; etiquetas = docente.certificados() == null ? List.of()</span>
+<span class="fc" id="L118">            : docente.certificados().stream()</span>
+<span class="fc" id="L119">                .map(certificado -&gt; &quot;Certificado: &quot; + certificado.nombre()</span>
+<span class="fc" id="L120">                    + &quot; (&quot; + certificado.institucionRealizacion() + &quot;, &quot; + certificado.fechaTitulacion() + &quot;)&quot;)</span>
+<span class="fc" id="L121">                .toList();</span>
+<span class="fc" id="L122">        return new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), rol, estado,</span>
+<span class="fc" id="L123">            docente.rut(), null, detalle, etiquetas);</span>
+    }
+
+    private UsuarioDetalleDTO detalleApoderado(UsuarioResponseDTO usuario, String nombre, String rol, String estado) {
+<span class="fc" id="L127">        ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(usuario.id());</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        List&lt;String&gt; telefonos = apoderado.telefonos() == null ? List.of() : apoderado.telefonos();</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        String detalle = &quot;Teléfonos: &quot; + (telefonos.isEmpty() ? &quot;-&quot; : String.join(&quot;, &quot;, telefonos))</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">            + (Boolean.FALSE.equals(apoderado.activo()) ? &quot; · PERFIL INACTIVO&quot; : &quot;&quot;);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        List&lt;String&gt; etiquetas = apoderado.estudiantes() == null ? List.of()</span>
+<span class="fc" id="L132">            : apoderado.estudiantes().stream()</span>
+<span class="fc" id="L133">                .map(vinculo -&gt; &quot;Estudiante #&quot; + vinculo.idEstudiante() + &quot; · &quot;</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">                    + (vinculo.parentesco() == null ? &quot;-&quot; : vinculo.parentesco().getTextoMostrado()))</span>
+<span class="fc" id="L135">                .toList();</span>
+<span class="fc" id="L136">        return new UsuarioDetalleDTO(usuario.id(), nombre, usuario.email(), rol, estado,</span>
+<span class="fc" id="L137">            apoderado.rut(), null, detalle, etiquetas);</span>
+    }
+
+    private static String nombreDe(UsuarioResponseDTO usuario) {
+<span class="pc bpc" id="L141" title="1 of 4 branches missed.">        return usuario.fullName() != null &amp;&amp; !usuario.fullName().isBlank()</span>
+<span class="fc" id="L142">            ? usuario.fullName()</span>
+<span class="fc" id="L143">            : usuario.email();</span>
+    }
+
+    public List&lt;AsignaturaAdminDTO&gt; getAsignaturas() {
+<span class="fc" id="L147">        List&lt;AsignaturaResponseDTO&gt; catalogo = contentOf(asignaturaClient.searchAsignaturas(PAGE_SIZE));</span>
+<span class="fc" id="L148">        Map&lt;Long, List&lt;MallaCurricularResponseDTO&gt;&gt; mallaPorAsignatura = asignaturaClient.getMalla(null).stream()</span>
+<span class="fc" id="L149">            .collect(Collectors.groupingBy(MallaCurricularResponseDTO::idAsignatura));</span>
+
+<span class="fc" id="L151">        return catalogo.stream()</span>
+<span class="fc" id="L152">            .map(asignatura -&gt; new AsignaturaAdminDTO(</span>
+<span class="fc" id="L153">                asignatura.id(),</span>
+<span class="fc" id="L154">                asignatura.nombre(),</span>
+<span class="fc" id="L155">                asignatura.area(),</span>
+<span class="fc" id="L156">                asignatura.calificable(),</span>
+<span class="fc" id="L157">                nivelesDe(mallaPorAsignatura.getOrDefault(asignatura.id(), List.of())),</span>
+<span class="fc" id="L158">                asignatura.activa()))</span>
+<span class="fc" id="L159">            .toList();</span>
+    }
+
+    /** Filas de la malla curricular, opcionalmente acotadas a un nivel. */
+    public List&lt;MallaCurricularResponseDTO&gt; getMalla(Nivel nivel) {
+<span class="fc" id="L164">        return asignaturaClient.getMalla(nivel);</span>
+    }
+
+    // --- Registro asíncrono de usuarios ---
+
+    public UserRegistrationStatusResponseDTO iniciarRegistroCompuesto(
+            RegistrarUsuarioCompuestoRequestDTO request) {
+<span class="fc" id="L171">        return usuarioClient.iniciarRegistroCompuesto(request);</span>
+    }
+
+    public UserRegistrationStatusResponseDTO getRegistroCompuesto(String processId) {
+<span class="fc" id="L175">        return usuarioClient.getRegistroCompuesto(processId);</span>
+    }
+
+    public UserRegistrationCredentialResponseDTO getCredencialTemporal(String processId) {
+<span class="fc" id="L179">        return usuarioClient.getCredencialTemporal(processId);</span>
+    }
+
+    public UserRegistrationCredentialResponseDTO resetPassword(String idUsuario) {
+<span class="fc" id="L183">        return usuarioClient.resetPassword(idUsuario);</span>
+    }
+
+    public void eliminarUsuario(String idUsuario) {
+<span class="fc" id="L187">        usuarioClient.deleteUsuario(idUsuario);</span>
+<span class="fc" id="L188">    }</span>
+
+    /** Clases activas del año indicado (para el selector de clase del estudiante). */
+    public List&lt;ClaseOpcionDTO&gt; getClases(Integer anioAcademico) {
+<span class="fc" id="L192">        return contentOf(claseClient.searchClases(anioAcademico, PAGE_SIZE)).stream()</span>
+<span class="fc" id="L193">            .map(clase -&gt; new ClaseOpcionDTO(</span>
+<span class="fc" id="L194">                clase.id(),</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">                clase.nivel() == null ? null : clase.nivel().getDescripcion(),</span>
+<span class="fc" id="L196">                clase.letra(),</span>
+<span class="fc" id="L197">                clase.anioAcademico()))</span>
+<span class="fc" id="L198">            .toList();</span>
+    }
+
+    /** Busca alumnos por RUT o nombre; requiere al menos 2 caracteres. */
+    public List&lt;EstudianteOpcionDTO&gt; buscarEstudiantes(String q) {
+<span class="fc bfc" id="L203" title="All 4 branches covered.">        if (q == null || q.trim().length() &lt; 2) {</span>
+<span class="fc" id="L204">            return List.of();</span>
+        }
+<span class="fc" id="L206">        return contentOf(estudianteClient.searchEstudiantes(q.trim(), 20)).stream()</span>
+<span class="fc" id="L207">            .map(estudiante -&gt; new EstudianteOpcionDTO(</span>
+<span class="fc" id="L208">                estudiante.id(),</span>
+<span class="fc" id="L209">                estudiante.rut(),</span>
+<span class="fc" id="L210">                estudiante.firstName(),</span>
+<span class="fc" id="L211">                estudiante.firstSurname()))</span>
+<span class="fc" id="L212">            .toList();</span>
+    }
+
+    private static List&lt;String&gt; nivelesDe(List&lt;MallaCurricularResponseDTO&gt; filas) {
+<span class="fc" id="L216">        return filas.stream()</span>
+<span class="fc" id="L217">            .map(MallaCurricularResponseDTO::nivel)</span>
+<span class="fc" id="L218">            .distinct()</span>
+<span class="fc" id="L219">            .sorted(Comparator.comparingInt(Nivel::ordinal))</span>
+<span class="fc" id="L220">            .map(Nivel::getDescripcion)</span>
+<span class="fc" id="L221">            .toList();</span>
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
+<span class="fc bfc" id="L225" title="All 4 branches covered.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

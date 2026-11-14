@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventoAsistencia.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.notificaciones</a> &gt; <span class="el_source">EventoAsistencia.java</span></div><h1>EventoAsistencia.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.notificaciones;
+
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Mensaje que viaja por RabbitMQ cuando se registra una asistencia con
+ * estado AUSENTE o ATRASADO. Lleva además el porcentaje de inasistencia
+ * del estudiante en la dictación durante el mes (faltas AUSENTE / total
+ * de registros del mes) y si alcanza el umbral del 60%.
+ * Lo produce ms-asistencias y lo escucha ms-notificaciones.
+ */
+<span class="nc" id="L15">public record EventoAsistencia(</span>
+    Long idAsistencia,
+    Long idEstudiante,
+    Long idCursoAsignatura,
+    LocalDate fecha,
+    State estado,
+    Justificacion justificacion,
+    AccionAsistencia accion,
+    double porcentajeInasistencia,
+    boolean superaUmbralInasistencia,
+    LocalDateTime fechaHora,
+    String idEvento,
+    String nombreAsignatura
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

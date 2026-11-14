@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.notificaciones</a> &gt; <span class="el_source">NotificacionController.java</span></div><h1>NotificacionController.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.notificaciones;
+
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.notificaciones.ContadorNotificacionesDTO;
+import cl.siga.coreshare.dto.notificaciones.NotificacionResponseDTO;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api/bff/v1/notificaciones&quot;)
+@RequiredArgsConstructor
+@Validated
+@PreAuthorize(&quot;hasAnyRole('ESTUDIANTE', 'APODERADO')&quot;)
+public class NotificacionController {
+
+    private final NotificacionBffService service;
+
+    @GetMapping(&quot;/me&quot;)
+    public ResponseEntity&lt;PageResponseDTO&lt;NotificacionResponseDTO&gt;&gt; obtenerMisNotificaciones(
+            @RequestParam(defaultValue = &quot;0&quot;) @Min(0) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) @Min(1) @Max(50) int size) {
+<span class="nc" id="L33">        return ResponseEntity.ok(service.obtenerMisNotificaciones(page, size));</span>
+    }
+
+    @GetMapping(&quot;/me/no-leidas/count&quot;)
+    public ResponseEntity&lt;ContadorNotificacionesDTO&gt; contarNoLeidas() {
+<span class="nc" id="L38">        return ResponseEntity.ok(service.contarNoLeidas());</span>
+    }
+
+    @PatchMapping(&quot;/me/{id}/leida&quot;)
+    public ResponseEntity&lt;Void&gt; marcarLeida(@PathVariable Long id) {
+<span class="nc" id="L43">        service.marcarLeida(id);</span>
+<span class="nc" id="L44">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @PatchMapping(&quot;/me/leidas&quot;)
+    public ResponseEntity&lt;Void&gt; marcarTodasLeidas() {
+<span class="nc" id="L49">        service.marcarTodasLeidas();</span>
+<span class="nc" id="L50">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @DeleteMapping(&quot;/me/leidas&quot;)
+    public ResponseEntity&lt;Void&gt; limpiarLeidas() {
+<span class="nc" id="L55">        service.limpiarLeidas();</span>
+<span class="nc" id="L56">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

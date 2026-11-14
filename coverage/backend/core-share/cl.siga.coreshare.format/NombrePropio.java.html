@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NombrePropio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.format</a> &gt; <span class="el_source">NombrePropio.java</span></div><h1>NombrePropio.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.format;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Capitalizacion inteligente de nombres propios:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Primera letra de cada palabra en mayuscula y el resto en minuscula
+ *       ({@code CAtAlina} -&gt; {@code Catalina}).&lt;/li&gt;
+ *   &lt;li&gt;Particulas conectoras siempre en minuscula (incluido el inicio del
+ *       campo): {@code JUAN DE LA ROSA} -&gt; {@code Juan de la Rosa} y
+ *       {@code DEL VALLE} -&gt; {@code del Valle}.&lt;/li&gt;
+ *   &lt;li&gt;Prefijos {@code Mc}/{@code Mac} y apostrofes:
+ *       {@code mcdonald} -&gt; {@code McDonald}, {@code o'hara} -&gt; {@code O'Hara}.&lt;/li&gt;
+ *   &lt;li&gt;Guiones: cada segmento capitalizado ({@code perez-gomez} -&gt; {@code Perez-Gomez}).&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Espejo en el frontend (preview y edicion en vivo).
+ */
+public final class NombrePropio {
+
+<span class="fc" id="L23">    private static final Set&lt;String&gt; PARTICULAS = Set.of(&quot;de&quot;, &quot;del&quot;, &quot;la&quot;, &quot;las&quot;, &quot;los&quot;, &quot;y&quot;, &quot;e&quot;);</span>
+    private static final String APOSTROFES = &quot;'\u2019&quot;;
+
+    private NombrePropio() {
+    }
+
+    public static String normalizar(String texto) {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (texto == null) {</span>
+<span class="fc" id="L31">            return null;</span>
+        }
+<span class="fc" id="L33">        String limpio = texto.trim().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (limpio.isEmpty()) {</span>
+<span class="fc" id="L35">            return limpio;</span>
+        }
+<span class="fc" id="L37">        String[] palabras = limpio.toLowerCase(Locale.ROOT).split(&quot; &quot;);</span>
+<span class="fc" id="L38">        StringBuilder resultado = new StringBuilder();</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        for (int i = 0; i &lt; palabras.length; i++) {</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            if (i &gt; 0) {</span>
+<span class="fc" id="L41">                resultado.append(' ');</span>
+            }
+<span class="fc" id="L43">            resultado.append(normalizarPalabra(palabras[i]));</span>
+        }
+<span class="fc" id="L45">        return resultado.toString();</span>
+    }
+
+    private static String normalizarPalabra(String palabra) {
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if (palabra.isEmpty()) {</span>
+<span class="nc" id="L50">            return palabra;</span>
+        }
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (PARTICULAS.contains(palabra)) {</span>
+<span class="fc" id="L53">            return palabra;</span>
+        }
+<span class="fc" id="L55">        StringBuilder sb = new StringBuilder(palabra.length());</span>
+<span class="fc" id="L56">        boolean inicioSegmento = true;</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        for (int i = 0; i &lt; palabra.length(); i++) {</span>
+<span class="fc" id="L58">            char c = palabra.charAt(i);</span>
+<span class="fc bfc" id="L59" title="All 4 branches covered.">            if (c == '-' || APOSTROFES.indexOf(c) &gt;= 0) {</span>
+<span class="fc" id="L60">                sb.append(c);</span>
+<span class="fc" id="L61">                inicioSegmento = true;</span>
+<span class="fc" id="L62">                continue;</span>
+            }
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            sb.append(inicioSegmento ? Character.toUpperCase(c) : c);</span>
+<span class="fc" id="L65">            inicioSegmento = false;</span>
+        }
+<span class="fc" id="L67">        return aplicarPrefijos(sb.toString());</span>
+    }
+
+    private static String aplicarPrefijos(String palabra) {
+<span class="fc" id="L71">        String lower = palabra.toLowerCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        for (String prefijo : List.of(&quot;mc&quot;, &quot;mac&quot;)) {</span>
+<span class="pc bpc" id="L73" title="1 of 4 branches missed.">            if (!lower.startsWith(prefijo) || palabra.length() &lt;= prefijo.length()) {</span>
+<span class="nc" id="L74">                continue;</span>
+            }
+<span class="fc" id="L76">            char siguiente = palabra.charAt(prefijo.length());</span>
+<span class="fc bfc" id="L77" title="All 4 branches covered.">            boolean macConVocal = &quot;mac&quot;.equals(prefijo) &amp;&amp; esVocal(lower.charAt(prefijo.length()));</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (macConVocal) {</span>
+<span class="fc" id="L79">                continue;</span>
+            }
+<span class="fc" id="L81">            return palabra.substring(0, prefijo.length()) + Character.toUpperCase(siguiente)</span>
+<span class="fc" id="L82">                    + palabra.substring(prefijo.length() + 1);</span>
+        }
+<span class="fc" id="L84">        return palabra;</span>
+    }
+
+    private static boolean esVocal(char c) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        return &quot;aeiou&quot;.indexOf(c) &gt;= 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

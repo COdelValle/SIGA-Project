@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-notas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msnotas.controller</a> &gt; <span class="el_source">NotaController.java</span></div><h1>NotaController.java</h1><pre class="source lang-java linenums">package cl.siga.msnotas.controller;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
+import cl.siga.coreshare.dto.notas.NotaResponseDTO;
+import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
+import cl.siga.msnotas.service.NotaService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping (&quot;/api/v1/notas&quot;)
+@RequiredArgsConstructor
+@Tag (name = &quot;Notas&quot;, description = &quot;Operaciones de registro y consulta de notas&quot;)
+public class NotaController {
+    private final NotaService notaService;
+
+    @GetMapping (&quot;/{id}&quot;)
+    @PreAuthorize (&quot;hasAuthority('SCOPE_notas:read')&quot;)
+    public ResponseEntity&lt;NotaResponseDTO&gt; getNotaById(@PathVariable Long id) {
+<span class="nc" id="L40">        return ResponseEntity.ok(notaService.getNotaById(id));</span>
+    }
+
+    @GetMapping (&quot;/search&quot;)
+    @PreAuthorize (&quot;hasAuthority('SCOPE_notas:read')&quot;)
+    public ResponseEntity&lt;Page&lt;NotaResponseDTO&gt;&gt; searchNotas(
+        @RequestParam (required = false) Long idEstudiante,
+        @RequestParam (required = false) Long idEvaluacion,
+        @RequestParam (required = false) Double lessThanScore,
+        @RequestParam (required = false) Double greaterThanScore,
+        @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
+    ){
+<span class="nc" id="L52">        return ResponseEntity.ok(notaService.searchNotas(idEstudiante, idEvaluacion, lessThanScore, greaterThanScore, pageable));</span>
+    }
+
+    @PostMapping
+    @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write')&quot;)
+    public ResponseEntity&lt;NotaResponseDTO&gt; registrarNota(@RequestBody @Valid RegistrarNotaRequestDTO request) {
+<span class="nc" id="L58">        return ResponseEntity.status(HttpStatus.CREATED).body(notaService.saveNota(request));</span>
+    }
+
+    @PutMapping (&quot;/{id}&quot;)
+    @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:update')&quot;)
+    public ResponseEntity&lt;NotaResponseDTO&gt; updateNota(@PathVariable Long id, @RequestBody @Valid ActualizarNotaRequestDTO request) {
+<span class="nc" id="L64">        return ResponseEntity.ok(notaService.updateNota(id, request));</span>
+    }
+
+    @DeleteMapping (&quot;/{id}&quot;)
+    @PreAuthorize (&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteNota(@PathVariable Long id) {
+<span class="nc" id="L70">        notaService.deleteNota(id);</span>
+<span class="nc" id="L71">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

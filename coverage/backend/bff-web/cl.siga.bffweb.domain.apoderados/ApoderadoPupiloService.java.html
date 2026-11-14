@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApoderadoPupiloService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.apoderados</a> &gt; <span class="el_source">ApoderadoPupiloService.java</span></div><h1>ApoderadoPupiloService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.apoderados;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.apoderados.dto.PupiloResumenDTO;
+import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Pupilos de un apoderado: lista el vinculo (ms-apoderados) y enriquece con el
+ * curso del estudiante (ms-clases); tambien orquesta la actualizacion.
+ */
+@Service 
+@RequiredArgsConstructor 
+public class ApoderadoPupiloService {
+
+    private final ApoderadoClient apoderadoClient;
+    private final EstudianteClient estudianteClient;
+    private final ClaseClient claseClient;
+
+    public List&lt;PupiloResumenDTO&gt; getPupilos() {
+<span class="fc" id="L35">        ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid());</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">        if (apoderado.estudiantes() == null) {</span>
+<span class="nc" id="L37">            return List.of();</span>
+        }
+<span class="fc" id="L39">        return apoderado.estudiantes().stream()</span>
+<span class="fc" id="L40">            .map(vinculo -&gt; {</span>
+<span class="fc" id="L41">                EstudianteResponseDTO estudiante = estudianteClient.getEstudianteById(vinculo.idEstudiante());</span>
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">                ClaseResponseDTO clase = estudiante.idClase() == null</span>
+<span class="nc" id="L43">                    ? null</span>
+<span class="fc" id="L44">                    : claseClient.getClaseById(estudiante.idClase());</span>
+<span class="fc" id="L45">                return new PupiloResumenDTO(</span>
+<span class="fc" id="L46">                    estudiante.id(),</span>
+<span class="fc" id="L47">                    nombreCompleto(estudiante),</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">                    vinculo.parentesco() == null ? null : vinculo.parentesco().name(),</span>
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">                    clase == null ? null : clase.nivel().getDescripcion() + &quot; &quot; + clase.letra());</span>
+            })
+<span class="fc" id="L51">            .toList();</span>
+    }
+
+    public EstudianteResponseDTO actualizarPupilo(Long idEstudiante, ActualizarEstudianteRequestDTO request) {
+<span class="fc" id="L55">        ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid());</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        boolean vinculado = apoderado.estudiantes() != null &amp;&amp; apoderado.estudiantes().stream()</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">                .anyMatch(vinculo -&gt; idEstudiante.equals(vinculo.idEstudiante()));</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (!vinculado) {</span>
+<span class="fc" id="L59">            throw new AccessDeniedException(&quot;El estudiante no esta vinculado a tu cuenta de apoderado.&quot;);</span>
+        }
+
+<span class="nc" id="L62">        return estudianteClient.updateEstudiante(idEstudiante, request);</span>
+    }
+
+    private String oid() {
+<span class="fc" id="L66">        return SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L67">            .orElseThrow(() -&gt; new BusinessException(&quot;No se pudo determinar el usuario autenticado.&quot;));</span>
+    }
+
+    private static String nombreCompleto(EstudianteResponseDTO estudiante) {
+<span class="fc" id="L71">        return Stream.of(estudiante.firstName(), estudiante.middleName(),</span>
+<span class="fc" id="L72">                estudiante.firstSurname(), estudiante.secondSurname())</span>
+<span class="pc bpc" id="L73" title="2 of 4 branches missed.">            .filter(parte -&gt; parte != null &amp;&amp; !parte.isBlank())</span>
+<span class="fc" id="L74">            .collect(Collectors.joining(&quot; &quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

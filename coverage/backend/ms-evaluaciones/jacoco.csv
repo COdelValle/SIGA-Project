@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+ms-evaluaciones,cl.siga.msevaluaciones.client,AsignaturaClientFallbackFactory,9,0,0,0,2,0,2,0,2,0
+ms-evaluaciones,cl.siga.msevaluaciones.client,AsignaturaClientFallbackFactory.new AsignaturaClient() {...},12,0,0,0,2,0,2,0,2,0
+ms-evaluaciones,cl.siga.msevaluaciones,MsEvaluacionesApplication,5,3,0,0,2,1,1,1,1,1
+ms-evaluaciones,cl.siga.msevaluaciones.model.specifications,EvaluacionSpecifications,65,0,8,0,16,0,13,0,9,0
+ms-evaluaciones,cl.siga.msevaluaciones.service,EvaluacionService,84,269,8,22,11,55,13,16,6,8
+ms-evaluaciones,cl.siga.msevaluaciones.controller,EvaluacionController,44,0,0,0,7,0,6,0,6,0
+ms-evaluaciones,cl.siga.msevaluaciones.mensajeria,PublicadorEvaluacion,10,88,2,2,3,26,3,5,1,5
+ms-evaluaciones,cl.siga.msevaluaciones.model.entity,Evaluacion,10,0,2,0,3,0,2,0,1,0
+ms-evaluaciones,cl.siga.msevaluaciones.model.mapper,EvaluacionMapperImpl,132,0,16,0,41,0,13,0,5,0

@@ -1,0 +1,19 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+ms-notificaciones,cl.siga.msnotificaciones.service,ResolverDestinatariosNotificacion.EntradaCache,0,14,0,0,0,2,0,2,0,2
+ms-notificaciones,cl.siga.msnotificaciones.service,PurgadorNotificaciones,18,0,0,0,6,0,2,0,2,0
+ms-notificaciones,cl.siga.msnotificaciones.service,NotificacionService,133,560,40,38,26,123,36,25,1,20
+ms-notificaciones,cl.siga.msnotificaciones.service,DestinatariosNotificacion,2,26,2,2,0,3,2,3,0,3
+ms-notificaciones,cl.siga.msnotificaciones.service,ResolverDestinatariosNotificacion,11,228,11,25,1,45,12,20,1,13
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoInscripcionFactory.new ClienteInscripcion() {...},18,0,0,0,3,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoEstudianteFactory.new ClienteEstudiante() {...},17,0,0,0,3,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoEstudianteFactory,9,0,0,0,2,0,2,0,2,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoAsignaturaFactory,9,0,0,0,2,0,2,0,2,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoApoderadoFactory.new ClienteApoderado() {...},17,0,0,0,3,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoInscripcionFactory,9,0,0,0,2,0,2,0,2,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoApoderadoFactory,9,0,0,0,2,0,2,0,2,0
+ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoAsignaturaFactory.new ClienteAsignatura() {...},18,0,0,0,3,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.controller,NotificacionController,33,0,0,0,8,0,5,0,5,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorNota,26,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorEvaluacion,26,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorAsistencia,26,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones,MsNotificacionesApplication,5,3,0,0,2,1,1,1,1,1

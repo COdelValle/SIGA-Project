@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CursoAsignaturaSpecifications.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.model.specifications</a> &gt; <span class="el_source">CursoAsignaturaSpecifications.java</span></div><h1>CursoAsignaturaSpecifications.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.model.specifications;
+
+import org.springframework.data.jpa.domain.Specification;
+
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.enums.Semestre;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.msasignaturas.model.entity.Inscripcion;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+
+<span class="nc" id="L14">public class CursoAsignaturaSpecifications {</span>
+
+    public static Specification&lt;CursoAsignatura&gt; isActive() {
+<span class="fc" id="L17">        return (root, query, cb) -&gt; cb.isTrue(root.get(&quot;active&quot;));</span>
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasIdClase(Long idClase) {
+<span class="fc" id="L21">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L22" title="All 2 branches covered.">            if (idClase == null) {</span>
+<span class="fc" id="L23">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L25">            return cb.equal(root.get(&quot;idClase&quot;), idClase);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasIdDocente(Long idDocente) {
+<span class="fc" id="L30">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if (idDocente == null) {</span>
+<span class="fc" id="L32">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L34">            return cb.equal(root.get(&quot;idDocente&quot;), idDocente);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasIdAsignatura(Long idAsignatura) {
+<span class="fc" id="L39">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">            if (idAsignatura == null) {</span>
+<span class="fc" id="L41">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L43">            return cb.equal(root.get(&quot;asignatura&quot;).get(&quot;id&quot;), idAsignatura);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasCaracter(CaracterAsignatura caracter) {
+<span class="fc" id="L48">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">            if (caracter == null) {</span>
+<span class="fc" id="L50">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L52">            return cb.equal(root.get(&quot;caracter&quot;), caracter);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasSemestre(Semestre semestre) {
+<span class="fc" id="L57">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            if (semestre == null) {</span>
+<span class="fc" id="L59">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L61">            return cb.equal(root.get(&quot;semestre&quot;), semestre);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasNombre(String nombre) {
+<span class="fc" id="L66">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L67" title="All 4 branches covered.">            if (nombre == null || nombre.trim().isEmpty()) {</span>
+<span class="fc" id="L68">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L70">            return cb.like(cb.upper(root.get(&quot;asignatura&quot;).get(&quot;nombre&quot;)), &quot;%&quot; + nombre.trim().toUpperCase() + &quot;%&quot;);</span>
+        };
+    }
+
+    public static Specification&lt;CursoAsignatura&gt; hasArea(AreaAcademica area) {
+<span class="fc" id="L75">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">            if (area == null) {</span>
+<span class="fc" id="L77">                return cb.conjunction();</span>
+            }
+<span class="fc" id="L79">            return cb.equal(root.get(&quot;asignatura&quot;).get(&quot;area&quot;), area);</span>
+        };
+    }
+
+    /**
+     * Dictaciones con cupos disponibles: el cupo máximo supera la cantidad de
+     * inscripciones ACTIVO o PRE_INSCRITO.
+     */
+    public static Specification&lt;CursoAsignatura&gt; hasCuposDisponibles(Boolean conCupoDisponible) {
+<span class="fc" id="L88">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L89" title="All 4 branches covered.">            if (conCupoDisponible == null || !conCupoDisponible) {</span>
+<span class="fc" id="L90">                return cb.conjunction();</span>
+            }
+
+<span class="fc" id="L93">            Subquery&lt;Long&gt; subquery = query.subquery(Long.class);</span>
+<span class="fc" id="L94">            Root&lt;Inscripcion&gt; inscripcionRoot = subquery.from(Inscripcion.class);</span>
+
+<span class="fc" id="L96">            subquery.select(cb.count(inscripcionRoot))</span>
+<span class="fc" id="L97">                    .where(</span>
+<span class="fc" id="L98">                        cb.equal(inscripcionRoot.get(&quot;cursoAsignatura&quot;), root),</span>
+<span class="fc" id="L99">                        inscripcionRoot.get(&quot;estado&quot;).in(</span>
+                            EstadoInscripcion.ACTIVO,
+                            EstadoInscripcion.PRE_INSCRITO
+                        )
+                    );
+
+<span class="fc" id="L105">            return cb.greaterThan(</span>
+<span class="fc" id="L106">                root.get(&quot;cupoMaximo&quot;).as(Long.class),</span>
+                subquery
+            );
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SharedSecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.security</a> &gt; <span class="el_source">SharedSecurityConfig.java</span></div><h1>SharedSecurityConfig.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.security;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@AutoConfiguration 
+@EnableWebSecurity
+@EnableMethodSecurity
+<span class="fc" id="L19">public class SharedSecurityConfig {</span>
+
+    @Bean
+    @ConditionalOnMissingBean(SecurityFilterChain.class)
+    public SecurityFilterChain sharedSecurityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+<span class="fc" id="L26">        http</span>
+<span class="fc" id="L27">            .csrf(csrf -&gt; csrf.disable())</span>
+<span class="fc" id="L28">            .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="fc" id="L29">            .authorizeHttpRequests(auth -&gt; auth</span>
+                // Preflight CORS: OPTIONS es idempotente y no expone datos. Se
+                // permite para que el navegador reciba 2xx en el preflight
+                // (API Gateway reenvia el OPTIONS al BFF por la ruta explicita
+                // sin autorizacion); los metodos reales siguen autenticados.
+<span class="fc" id="L34">                .requestMatchers(HttpMethod.OPTIONS, &quot;/**&quot;).permitAll()</span>
+<span class="fc" id="L35">                .requestMatchers(</span>
+                    &quot;/actuator/health&quot;,
+                    &quot;/actuator/info&quot;,
+                    &quot;/v3/api-docs&quot;,
+                    &quot;/v3/api-docs/**&quot;,
+                    &quot;/v3/api-docs.yaml&quot;,
+                    &quot;/webjars/**&quot;,
+                    &quot;/swagger-ui/**&quot;,
+                    &quot;/swagger-ui.html&quot;,
+                    &quot;/docs/swagger&quot;,
+                    &quot;/docs/swagger/**&quot;,
+                    &quot;/docs/swagger-ui/**&quot;,
+                    &quot;/scalar&quot;,
+                    &quot;/scalar/**&quot;,
+                    &quot;/docs/scalar/**&quot;
+<span class="fc" id="L50">                ).permitAll()</span>
+<span class="fc" id="L51">                .anyRequest().authenticated()</span>
+            )
+<span class="fc" id="L53">            .oauth2ResourceServer(resourceServer -&gt; resourceServer</span>
+<span class="fc" id="L54">                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));</span>
+
+<span class="fc" id="L56">        return http.build();</span>
+    }
+
+    /**
+     * CORS global de Spring MVC para el preflight: API Gateway reenvia el
+     * OPTIONS al servicio (ruta explicita sin autorizacion) y el handler
+     * mapping debe responderlo; sin configuracion global rechaza con 403
+     * &quot;Invalid CORS request&quot;. La allowlist efectiva la impone API Gateway
+     * (ignora los headers CORS del backend); aqui no hay credenciales y los
+     * metodos reales siguen autenticados.
+     */
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+<span class="fc" id="L69">        return new WebMvcConfigurer() {</span>
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+<span class="fc" id="L72">                registry.addMapping(&quot;/**&quot;)</span>
+<span class="fc" id="L73">                    .allowedOriginPatterns(&quot;*&quot;)</span>
+<span class="fc" id="L74">                    .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;)</span>
+<span class="fc" id="L75">                    .allowedHeaders(&quot;Authorization&quot;, &quot;Content-Type&quot;)</span>
+<span class="fc" id="L76">                    .allowCredentials(false)</span>
+<span class="fc" id="L77">                    .maxAge(300);</span>
+<span class="fc" id="L78">            }</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

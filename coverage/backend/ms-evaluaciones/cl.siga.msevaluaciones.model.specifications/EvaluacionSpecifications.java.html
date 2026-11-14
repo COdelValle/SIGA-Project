@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EvaluacionSpecifications.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-evaluaciones</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msevaluaciones.model.specifications</a> &gt; <span class="el_source">EvaluacionSpecifications.java</span></div><h1>EvaluacionSpecifications.java</h1><pre class="source lang-java linenums">package cl.siga.msevaluaciones.model.specifications;
+
+import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
+import cl.siga.msevaluaciones.model.entity.Evaluacion;
+import org.springframework.data.jpa.domain.Specification;
+
+<span class="nc" id="L7">public class EvaluacionSpecifications {</span>
+
+  // Filtro para obtener solo las evaluaciones que no han sido eliminadas lógicamente.
+  public static Specification&lt;Evaluacion&gt; isActive() {
+<span class="nc" id="L11">    return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
+  }
+
+  // Filtro por nombre (búsqueda exacta o parcial dependiendo de tu necesidad, aquí uso coincidencia parcial ignorando mayúsculas/minúsculas).
+  public static Specification&lt;Evaluacion&gt; hasNombre(String nombre) {
+<span class="nc" id="L16">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="nc bnc" id="L17" title="All 4 branches missed.">      if (nombre == null || nombre.trim().isEmpty()) {</span>
+<span class="nc" id="L18">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="nc" id="L20">      return criteriaBuilder.like(</span>
+<span class="nc" id="L21">        criteriaBuilder.upper(root.get(&quot;nombre&quot;)),</span>
+<span class="nc" id="L22">        &quot;%&quot; + nombre.trim().toUpperCase() + &quot;%&quot;</span>
+      );
+    };
+  }
+
+  // Filtro exacto por el tipo de evaluación (FORMATIVA, DIAGNOSTICO, SUMATIVA).
+  public static Specification&lt;Evaluacion&gt; hasTipo(TipoEvaluacion tipo) {
+<span class="nc" id="L29">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">      if (tipo == null) {</span>
+<span class="nc" id="L31">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="nc" id="L33">      return criteriaBuilder.equal(root.get(&quot;tipo&quot;), tipo);</span>
+    };
+  }
+
+  // Filtro para obtener todas las evaluaciones que pertenecen a una dictación en específico.
+  public static Specification&lt;Evaluacion&gt; hasIdCursoAsignatura(Long idCursoAsignatura) {
+<span class="nc" id="L39">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">      if (idCursoAsignatura == null) {</span>
+<span class="nc" id="L41">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="nc" id="L43">      return criteriaBuilder.equal(root.get(&quot;idCursoAsignatura&quot;), idCursoAsignatura);</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

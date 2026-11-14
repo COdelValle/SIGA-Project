@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MallaCurricularService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.service.asignatura</a> &gt; <span class="el_source">MallaCurricularService.java</span></div><h1>MallaCurricularService.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.service.asignatura;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cl.siga.coreshare.dto.asignatura.enums.PlanFormacion;
+import cl.siga.coreshare.dto.asignatura.malla.ActualizarMallaCurricularRequestDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.asignatura.malla.RegistrarMallaCurricularRequestDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
+import cl.siga.msasignaturas.model.entity.asignatura.MallaCurricular;
+import cl.siga.msasignaturas.model.mapper.MallaCurricularMapper;
+import cl.siga.msasignaturas.repository.asignatura.AsignaturaRepository;
+import cl.siga.msasignaturas.repository.asignatura.MallaCurricularRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class MallaCurricularService {
+
+    private final MallaCurricularRepository mallaCurricularRepository;
+    private final AsignaturaRepository asignaturaRepository;
+    private final MallaCurricularMapper mallaCurricularMapper;
+
+    @Transactional(readOnly = true)
+    public List&lt;MallaCurricularResponseDTO&gt; listar(Nivel nivel, PlanFormacion plan) {
+        List&lt;MallaCurricular&gt; filas;
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        if (nivel == null) {</span>
+<span class="fc" id="L34">            filas = mallaCurricularRepository.findByActiveTrueOrderByNivelAscAsignaturaNombreAsc();</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">            if (plan != null) {</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">                filas = filas.stream().filter(fila -&gt; fila.getPlan() == plan).toList();</span>
+            }
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        } else if (plan == null) {</span>
+<span class="fc" id="L39">            filas = mallaCurricularRepository.findByNivelAndActiveTrueOrderByAsignaturaNombreAsc(nivel);</span>
+        } else {
+<span class="fc" id="L41">            filas = mallaCurricularRepository.findByNivelAndPlanAndActiveTrueOrderByAsignaturaNombreAsc(nivel, plan);</span>
+        }
+<span class="fc" id="L43">        return filas.stream().map(mallaCurricularMapper::toDto).toList();</span>
+    }
+
+    @Transactional
+    public MallaCurricularResponseDTO crear(RegistrarMallaCurricularRequestDTO dto) {
+<span class="fc" id="L48">        Asignatura asignatura = asignaturaRepository.findByIdAndActiveTrue(dto.idAsignatura())</span>
+<span class="fc" id="L49">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asignatura no encontrada o inactiva.&quot;));</span>
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (mallaCurricularRepository.existsByNivelAndAsignaturaIdAndPlanAndActiveTrue(</span>
+<span class="fc" id="L52">                dto.nivel(), dto.idAsignatura(), dto.plan())) {</span>
+<span class="fc" id="L53">            throw new BusinessException(&quot;La asignatura ya está en la malla de ese nivel y plan.&quot;);</span>
+        }
+
+        // Si la fila fue eliminada lógicamente, se reactiva en vez de chocar con el UNIQUE.
+<span class="fc" id="L57">        return mallaCurricularRepository</span>
+<span class="fc" id="L58">                .findFirstByNivelAndAsignaturaIdAndPlan(dto.nivel(), dto.idAsignatura(), dto.plan())</span>
+<span class="fc" id="L59">                .map(existente -&gt; {</span>
+<span class="fc" id="L60">                    existente.setAsignatura(asignatura);</span>
+<span class="fc" id="L61">                    existente.setCaracter(dto.caracter());</span>
+<span class="fc" id="L62">                    existente.setHorasSemanales(dto.horasSemanales());</span>
+<span class="fc" id="L63">                    existente.setActive(true);</span>
+<span class="fc" id="L64">                    return mallaCurricularMapper.toDto(mallaCurricularRepository.save(existente));</span>
+                })
+<span class="fc" id="L66">                .orElseGet(() -&gt; mallaCurricularMapper.toDto(mallaCurricularRepository.save(</span>
+<span class="fc" id="L67">                    MallaCurricular.builder()</span>
+<span class="fc" id="L68">                        .nivel(dto.nivel())</span>
+<span class="fc" id="L69">                        .asignatura(asignatura)</span>
+<span class="fc" id="L70">                        .caracter(dto.caracter())</span>
+<span class="fc" id="L71">                        .plan(dto.plan())</span>
+<span class="fc" id="L72">                        .horasSemanales(dto.horasSemanales())</span>
+<span class="fc" id="L73">                        .active(true)</span>
+<span class="fc" id="L74">                        .build())));</span>
+    }
+
+    @Transactional
+    public MallaCurricularResponseDTO actualizar(Long id, ActualizarMallaCurricularRequestDTO dto) {
+<span class="fc" id="L79">        MallaCurricular malla = mallaCurricularRepository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L80">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Fila de malla con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (mallaCurricularRepository.existsByNivelAndAsignaturaIdAndPlanAndActiveTrueAndIdNot(</span>
+<span class="fc" id="L83">                malla.getNivel(), malla.getAsignatura().getId(), dto.plan(), id)) {</span>
+<span class="fc" id="L84">            throw new BusinessException(&quot;Ya existe otra fila para esa asignatura, nivel y plan.&quot;);</span>
+        }
+
+<span class="fc" id="L87">        malla.setCaracter(dto.caracter());</span>
+<span class="fc" id="L88">        malla.setPlan(dto.plan());</span>
+<span class="fc" id="L89">        malla.setHorasSemanales(dto.horasSemanales());</span>
+<span class="fc" id="L90">        return mallaCurricularMapper.toDto(mallaCurricularRepository.save(malla));</span>
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+<span class="fc" id="L95">        MallaCurricular malla = mallaCurricularRepository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L96">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Fila de malla con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L97">        malla.setActive(false);</span>
+<span class="fc" id="L98">        mallaCurricularRepository.save(malla);</span>
+<span class="fc" id="L99">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

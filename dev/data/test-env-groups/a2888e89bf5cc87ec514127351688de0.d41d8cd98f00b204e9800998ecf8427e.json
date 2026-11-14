@@ -1,1 +1,1 @@
-{"id":"a2888e89bf5cc87ec514127351688de0.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.security.JwtResourceServerConfigurationTest.rechazaFirmaAlterada","name":"rechazaFirmaAlterada()","status":"passed","testResultsByEnv":{"default":"6aefea5f7526680d1d839d6fcaddd175"}}
+{"id":"a2888e89bf5cc87ec514127351688de0.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.security.JwtResourceServerConfigurationTest.rechazaFirmaAlterada","name":"Rechaza firma alterada","status":"passed","testResultsByEnv":{"default":"060e3ca045f5e5def00a9417ab618495"}}

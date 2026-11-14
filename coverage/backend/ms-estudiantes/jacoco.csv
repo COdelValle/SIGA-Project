@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+ms-estudiantes,cl.siga.msestudiantes.model.specifications,EstudianteSpecifications,3,334,3,35,1,59,4,38,1,22
+ms-estudiantes,cl.siga.msestudiantes,MsEstudiantesApplication,5,3,0,0,2,1,1,1,1,1
+ms-estudiantes,cl.siga.msestudiantes.controller,EstudianteController,0,57,0,0,0,8,0,7,0,7
+ms-estudiantes,cl.siga.msestudiantes.service,EstudianteService,0,332,3,25,0,69,3,26,0,15
+ms-estudiantes,cl.siga.msestudiantes.model.entity,Estudiante,26,0,0,0,6,0,1,0,1,0
+ms-estudiantes,cl.siga.msestudiantes.client,ApoderadoClientFallbackFactory.new ApoderadoClient() {...},12,0,0,0,2,0,2,0,2,0
+ms-estudiantes,cl.siga.msestudiantes.client,ApoderadoClientFallbackFactory,9,0,0,0,2,0,2,0,2,0
+ms-estudiantes,cl.siga.msestudiantes.messaging,EstudianteRegistrationListener,176,0,18,0,41,0,17,0,8,0
+ms-estudiantes,cl.siga.msestudiantes.model.mapper,EstudianteMapperImpl,0,254,2,32,0,76,2,20,0,5

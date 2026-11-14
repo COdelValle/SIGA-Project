@@ -1,0 +1,12 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+ms-docentes,cl.siga.msdocentes.model.entity,Docente,35,9,0,0,9,3,2,1,2,1
+ms-docentes,cl.siga.msdocentes.model.mapper,CertificadoMapperImpl,0,115,0,16,0,36,0,13,0,5
+ms-docentes,cl.siga.msdocentes.model.mapper,DocenteMapper,0,13,1,1,0,3,1,2,0,2
+ms-docentes,cl.siga.msdocentes.model.mapper,DocenteMapperImpl,2,244,1,25,1,69,1,18,0,6
+ms-docentes,cl.siga.msdocentes.service,DocenteService,0,277,1,15,0,54,1,20,0,13
+ms-docentes,cl.siga.msdocentes.service,CertificadoService,0,105,0,6,0,21,0,8,0,5
+ms-docentes,cl.siga.msdocentes,MsDocentesApplication,5,3,0,0,2,1,1,1,1,1
+ms-docentes,cl.siga.msdocentes.messaging,DocenteRegistrationListener,176,0,18,0,41,0,17,0,8,0
+ms-docentes,cl.siga.msdocentes.model.specifications,DocenteSpecifications,3,121,1,17,1,25,2,22,1,14
+ms-docentes,cl.siga.msdocentes.controller,CertificadoController,0,23,0,0,0,4,0,3,0,3
+ms-docentes,cl.siga.msdocentes.controller,DocenteController,0,53,0,0,0,8,0,7,0,7

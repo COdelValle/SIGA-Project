@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-notificaciones</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msnotificaciones.service</a> &gt; <span class="el_source">NotificacionService.java</span></div><h1>NotificacionService.java</h1><pre class="source lang-java linenums">package cl.siga.msnotificaciones.service;
+
+import cl.siga.coreshare.dto.notificaciones.AccionEvaluacion;
+import cl.siga.coreshare.dto.notificaciones.AccionNota;
+import cl.siga.coreshare.dto.notificaciones.ContadorNotificacionesDTO;
+import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
+import cl.siga.coreshare.dto.notificaciones.EventoNota;
+import cl.siga.coreshare.dto.notificaciones.NotificacionResponseDTO;
+import cl.siga.coreshare.dto.notificaciones.TipoDestinoNotificacion;
+import cl.siga.coreshare.dto.notificaciones.TipoNotificacion;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.mensajeria.EventoInvalidoException;
+import cl.siga.msnotificaciones.model.entity.Notificacion;
+import cl.siga.msnotificaciones.model.entity.NotificacionLectura;
+import cl.siga.msnotificaciones.model.entity.NotificacionLecturaId;
+import cl.siga.msnotificaciones.repository.NotificacionLecturaRepository;
+import cl.siga.msnotificaciones.repository.NotificacionRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L36">@Slf4j</span>
+public class NotificacionService {
+
+<span class="fc" id="L39">    private static final List&lt;Long&gt; SIN_DESTINOS = List.of(-1L);</span>
+    private static final int TAMANO_MAXIMO = 50;
+<span class="fc" id="L41">    private static final DateTimeFormatter FECHA_CORTA = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy&quot;);</span>
+
+    private final NotificacionRepository notificacionRepository;
+    private final NotificacionLecturaRepository lecturaRepository;
+    private final ResolverDestinatariosNotificacion resolverDestinatarios;
+
+    @Transactional
+    public void registrarEvento(EventoEvaluacion evento) {
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if (evento.idCursoAsignatura() == null) {</span>
+<span class="fc" id="L50">            throw new EventoInvalidoException(</span>
+<span class="fc" id="L51">                &quot;Evento de evaluación sin idCursoAsignatura (idEvento=&quot; + evento.idEvento() + &quot;).&quot;);</span>
+        }
+<span class="nc" id="L53">        AccionEvaluacion accion = evento.accion();</span>
+<span class="nc" id="L54">        String nombre = textoSeguro(evento.nombre(), &quot;evaluación&quot;);</span>
+<span class="nc" id="L55">        String asignatura = textoOpcional(evento.nombreAsignatura());</span>
+<span class="nc bnc" id="L56" title="All 3 branches missed.">        String titulo = switch (accion) {</span>
+<span class="nc" id="L57">            case CREADA -&gt; conAsignatura(&quot;Nueva evaluación&quot;, asignatura);</span>
+<span class="nc" id="L58">            case ACTUALIZADA -&gt; conAsignatura(&quot;Evaluación actualizada&quot;, asignatura);</span>
+<span class="nc" id="L59">            case ELIMINADA -&gt; conAsignatura(&quot;Evaluación cancelada&quot;, asignatura);</span>
+        };
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        String enAsignatura = asignatura == null ? &quot; en una de tus asignaturas&quot; : &quot; en &quot; + asignatura;</span>
+<span class="nc bnc" id="L62" title="All 3 branches missed.">        String resumen = switch (accion) {</span>
+<span class="nc" id="L63">            case CREADA -&gt; &quot;Se agregó «&quot; + nombre + &quot;»&quot; + enAsignatura + &quot;.&quot;;</span>
+<span class="nc" id="L64">            case ACTUALIZADA -&gt; &quot;Se actualizaron los datos de «&quot; + nombre + &quot;»&quot; + enAsignatura + &quot;.&quot;;</span>
+<span class="nc" id="L65">            case ELIMINADA -&gt; &quot;Se canceló «&quot; + nombre + &quot;»&quot; + enAsignatura + &quot;.&quot;;</span>
+        };
+<span class="nc" id="L67">        insertar(</span>
+<span class="nc" id="L68">            evento.idEvento(), &quot;EVALUACION|&quot; + evento.idEvaluacion() + &quot;|&quot; + accion + &quot;|&quot; + evento.fechaHora(),</span>
+<span class="nc" id="L69">            TipoNotificacion.EVALUACION, accion.name(), TipoDestinoNotificacion.CURSO_ASIGNATURA,</span>
+<span class="nc" id="L70">            evento.idCursoAsignatura(), titulo, resumen, evento.fechaHora());</span>
+<span class="nc" id="L71">    }</span>
+
+    @Transactional
+    public void registrarEvento(EventoNota evento) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (evento.idEstudiante() == null) {</span>
+<span class="fc" id="L76">            throw new EventoInvalidoException(</span>
+<span class="fc" id="L77">                &quot;Evento de nota sin idEstudiante (idEvento=&quot; + evento.idEvento() + &quot;).&quot;);</span>
+        }
+<span class="fc" id="L79">        AccionNota accion = evento.accion();</span>
+<span class="fc" id="L80">        String evaluacion = textoOpcional(evento.nombreEvaluacion());</span>
+<span class="fc" id="L81">        String asignatura = textoOpcional(evento.nombreAsignatura());</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        String titulo = accion == AccionNota.CREADA</span>
+<span class="fc" id="L83">            ? conAsignatura(&quot;Calificación agregada&quot;, asignatura)</span>
+<span class="pc" id="L84">            : conAsignatura(&quot;Calificación actualizada&quot;, asignatura);</span>
+<span class="fc" id="L85">        String resumen = resumenNota(accion, evaluacion, asignatura);</span>
+<span class="fc" id="L86">        insertar(</span>
+<span class="fc" id="L87">            evento.idEvento(), &quot;NOTA|&quot; + evento.idNota() + &quot;|&quot; + accion + &quot;|&quot; + evento.fechaHora(),</span>
+<span class="fc" id="L88">            TipoNotificacion.NOTA, accion.name(), TipoDestinoNotificacion.ESTUDIANTE,</span>
+<span class="fc" id="L89">            evento.idEstudiante(), titulo, resumen, evento.fechaHora());</span>
+<span class="fc" id="L90">    }</span>
+
+    @Transactional
+    public void registrarEvento(EventoAsistencia evento) {
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (evento.idEstudiante() == null) {</span>
+<span class="nc" id="L95">            throw new EventoInvalidoException(</span>
+<span class="nc" id="L96">                &quot;Evento de asistencia sin idEstudiante (idEvento=&quot; + evento.idEvento() + &quot;).&quot;);</span>
+        }
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        String estado = evento.estado() == null ? &quot;asistencia&quot; : evento.estado().name().toLowerCase();</span>
+<span class="fc" id="L99">        String asignatura = textoOpcional(evento.nombreAsignatura());</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        String titulo = evento.estado() == null</span>
+<span class="nc" id="L101">            ? &quot;Actualización de asistencia&quot;</span>
+<span class="fc" id="L102">            : conAsignatura(&quot;Registro de &quot; + estado, asignatura);</span>
+<span class="fc" id="L103">        StringBuilder resumen = new StringBuilder(&quot;Se registró un estado &quot;)</span>
+<span class="fc" id="L104">            .append(estado);</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (asignatura != null) {</span>
+<span class="fc" id="L106">            resumen.append(&quot; en &quot;).append(asignatura);</span>
+        }
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (evento.fecha() != null) {</span>
+<span class="fc" id="L109">            resumen.append(&quot; el &quot;).append(FECHA_CORTA.format(evento.fecha()));</span>
+        }
+<span class="fc" id="L111">        resumen.append('.');</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        if (evento.superaUmbralInasistencia()) {</span>
+<span class="fc" id="L113">            resumen.append(&quot; Inasistencia mensual: &quot;)</span>
+<span class="fc" id="L114">                .append(Math.round(evento.porcentajeInasistencia())).append(&quot;%.&quot;);</span>
+        }
+<span class="fc" id="L116">        insertar(</span>
+<span class="fc" id="L117">            evento.idEvento(), &quot;ASISTENCIA|&quot; + evento.idAsistencia() + &quot;|&quot; + evento.accion() + &quot;|&quot; + evento.fechaHora(),</span>
+<span class="fc" id="L118">            TipoNotificacion.ASISTENCIA, evento.accion().name(), TipoDestinoNotificacion.ESTUDIANTE,</span>
+<span class="fc" id="L119">            evento.idEstudiante(), titulo, resumen.toString(), evento.fechaHora());</span>
+<span class="fc" id="L120">    }</span>
+
+    @Transactional(readOnly = true)
+    public Page&lt;NotificacionResponseDTO&gt; obtenerMisNotificaciones(int pagina, int tamano) {
+<span class="fc" id="L124">        DestinatariosNotificacion destinatarios = resolverDestinatarios.resolverActual();</span>
+<span class="fc" id="L125">        List&lt;Long&gt; estudiantes = conSentinela(destinatarios.idEstudiantes());</span>
+<span class="fc" id="L126">        List&lt;Long&gt; dictaciones = conSentinela(destinatarios.idDictaciones());</span>
+<span class="fc" id="L127">        Page&lt;Notificacion&gt; resultados = notificacionRepository.buscarVisibles(</span>
+<span class="fc" id="L128">            destinatarios.incluyeEstudiantes(), TipoDestinoNotificacion.ESTUDIANTE, estudiantes,</span>
+<span class="fc" id="L129">            destinatarios.incluyeDictaciones(), TipoDestinoNotificacion.CURSO_ASIGNATURA, dictaciones,</span>
+<span class="fc" id="L130">            destinatarios.idUsuario(),</span>
+<span class="fc" id="L131">            PageRequest.of(pagina, Math.min(tamano, TAMANO_MAXIMO),</span>
+<span class="fc" id="L132">                Sort.by(Sort.Order.desc(&quot;fechaHora&quot;), Sort.Order.desc(&quot;id&quot;))));</span>
+
+<span class="fc" id="L134">        List&lt;Long&gt; ids = resultados.getContent().stream().map(Notificacion::getId).toList();</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        Set&lt;Long&gt; leidas = ids.isEmpty()</span>
+<span class="nc" id="L136">            ? Set.of()</span>
+<span class="fc" id="L137">            : Set.copyOf(lecturaRepository.buscarIdsLeidos(destinatarios.idUsuario(), ids));</span>
+<span class="fc" id="L138">        return resultados.map(notificacion -&gt; toResponse(notificacion, leidas.contains(notificacion.getId())));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public ContadorNotificacionesDTO contarNoLeidas() {
+<span class="fc" id="L143">        DestinatariosNotificacion destinatarios = resolverDestinatarios.resolverActual();</span>
+<span class="fc" id="L144">        long cuenta = notificacionRepository.contarNoLeidas(</span>
+<span class="fc" id="L145">            destinatarios.incluyeEstudiantes(), TipoDestinoNotificacion.ESTUDIANTE,</span>
+<span class="fc" id="L146">            conSentinela(destinatarios.idEstudiantes()),</span>
+<span class="fc" id="L147">            destinatarios.incluyeDictaciones(), TipoDestinoNotificacion.CURSO_ASIGNATURA,</span>
+<span class="fc" id="L148">            conSentinela(destinatarios.idDictaciones()), destinatarios.idUsuario());</span>
+<span class="fc" id="L149">        return new ContadorNotificacionesDTO(cuenta);</span>
+    }
+
+    @Transactional
+    public void marcarLeida(Long id) {
+<span class="fc" id="L154">        Notificacion notificacion = notificacionRepository.findById(id)</span>
+<span class="pc" id="L155">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Notificación no encontrada.&quot;));</span>
+<span class="fc" id="L156">        DestinatariosNotificacion destinatarios = resolverDestinatarios.resolverActual();</span>
+<span class="fc" id="L157">        validarVisible(notificacion, destinatarios);</span>
+<span class="fc" id="L158">        lecturaRepository.marcarLeidaSiNoExiste(id, destinatarios.idUsuario(), LocalDateTime.now());</span>
+<span class="fc" id="L159">    }</span>
+
+    /** &quot;Marcar todas como leídas&quot;: inserta la marca de las visibles que falten. */
+    @Transactional
+    public int marcarTodasLeidas() {
+<span class="fc" id="L164">        DestinatariosNotificacion destinatarios = resolverDestinatarios.resolverActual();</span>
+<span class="fc" id="L165">        List&lt;Long&gt; pendientes = notificacionRepository.idsVisiblesNoLeidas(</span>
+<span class="fc" id="L166">            destinatarios.incluyeEstudiantes(), TipoDestinoNotificacion.ESTUDIANTE,</span>
+<span class="fc" id="L167">            conSentinela(destinatarios.idEstudiantes()),</span>
+<span class="fc" id="L168">            destinatarios.incluyeDictaciones(), TipoDestinoNotificacion.CURSO_ASIGNATURA,</span>
+<span class="fc" id="L169">            conSentinela(destinatarios.idDictaciones()), destinatarios.idUsuario());</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        if (pendientes.isEmpty()) {</span>
+<span class="nc" id="L171">            return 0;</span>
+        }
+<span class="fc" id="L173">        LocalDateTime ahora = LocalDateTime.now();</span>
+<span class="fc" id="L174">        List&lt;NotificacionLectura&gt; lecturas = pendientes.stream()</span>
+<span class="fc" id="L175">            .map(id -&gt; new NotificacionLectura(</span>
+<span class="fc" id="L176">                new NotificacionLecturaId(id, destinatarios.idUsuario()), ahora, null))</span>
+<span class="fc" id="L177">            .toList();</span>
+<span class="fc" id="L178">        lecturaRepository.saveAll(lecturas);</span>
+<span class="fc" id="L179">        log.info(&quot;Marcadas como leídas {} notificaciones del usuario&quot;, lecturas.size());</span>
+<span class="fc" id="L180">        return lecturas.size();</span>
+    }
+
+    /** &quot;Limpiar mis leídas&quot;: oculta de mi bandeja las notificaciones ya leídas. */
+    @Transactional
+    public int limpiarLeidas() {
+<span class="fc" id="L186">        DestinatariosNotificacion destinatarios = resolverDestinatarios.resolverActual();</span>
+<span class="fc" id="L187">        int ocultadas = lecturaRepository.ocultarLeidas(destinatarios.idUsuario(), LocalDateTime.now());</span>
+<span class="fc" id="L188">        log.info(&quot;Ocultadas {} notificaciones leídas del usuario&quot;, ocultadas);</span>
+<span class="fc" id="L189">        return ocultadas;</span>
+    }
+
+    /** Purga global de notificaciones antiguas (las lecturas caen por FK en cascada). */
+    @Transactional
+    public int purgarAntiguas(int diasRetencion) {
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (diasRetencion &lt;= 0) {</span>
+<span class="fc" id="L196">            return 0;</span>
+        }
+<span class="fc" id="L198">        LocalDateTime limite = LocalDateTime.now().minusDays(diasRetencion);</span>
+<span class="fc" id="L199">        int eliminadas = notificacionRepository.eliminarAnterioresA(limite);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">        if (eliminadas &gt; 0) {</span>
+<span class="fc" id="L201">            log.info(&quot;Purga de notificaciones: {} filas anteriores a {}&quot;, eliminadas, limite);</span>
+        }
+<span class="fc" id="L203">        return eliminadas;</span>
+    }
+
+    private void validarVisible(Notificacion notificacion, DestinatariosNotificacion destinatarios) {
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        boolean visible = (notificacion.getTipoDestino() == TipoDestinoNotificacion.ESTUDIANTE</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">                &amp;&amp; destinatarios.idEstudiantes().contains(notificacion.getIdDestino()))</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">            || (notificacion.getTipoDestino() == TipoDestinoNotificacion.CURSO_ASIGNATURA</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">                &amp;&amp; destinatarios.idDictaciones().contains(notificacion.getIdDestino()));</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">        if (!visible) {</span>
+            // 404 evita revelar si existe una notificación ajena.
+<span class="fc" id="L213">            throw new ResourceNotFoundException(&quot;Notificación no encontrada.&quot;);</span>
+        }
+<span class="fc" id="L215">    }</span>
+
+    private static String resumenNota(AccionNota accion, String evaluacion, String asignatura) {
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">        String referencia = evaluacion == null</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            ? (asignatura == null ? null : &quot; de &quot; + asignatura)</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">            : &quot; en «&quot; + evaluacion + &quot;»&quot; + (asignatura == null ? &quot;&quot; : &quot; de &quot; + asignatura);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">        if (referencia == null) {</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">            return accion == AccionNota.CREADA</span>
+<span class="nc" id="L223">                ? &quot;Hay una nueva calificación disponible en SIGA.&quot;</span>
+<span class="nc" id="L224">                : &quot;Se actualizó una calificación disponible en SIGA.&quot;;</span>
+        }
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">        return (accion == AccionNota.CREADA</span>
+<span class="fc" id="L227">            ? &quot;Se agregó una calificación&quot;</span>
+<span class="pc" id="L228">            : &quot;Se actualizó una calificación&quot;) + referencia + &quot;.&quot;;</span>
+    }
+
+    private static String conAsignatura(String base, String asignatura) {
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">        return asignatura == null ? base : base + &quot; en &quot; + asignatura;</span>
+    }
+
+    private void insertar(
+            String idEvento,
+            String claveFallback,
+            TipoNotificacion tipo,
+            String accion,
+            TipoDestinoNotificacion tipoDestino,
+            Long idDestino,
+            String titulo,
+            String resumen,
+            LocalDateTime fechaHora) {
+<span class="pc bpc" id="L245" title="2 of 4 branches missed.">        String clave = idEvento == null || idEvento.isBlank() ? claveFallback : idEvento;</span>
+<span class="fc" id="L246">        String idEstable = UUID.nameUUIDFromBytes(clave.getBytes(StandardCharsets.UTF_8)).toString();</span>
+<span class="fc" id="L247">        int insertados = notificacionRepository.insertarSiNuevo(</span>
+<span class="fc" id="L248">            idEstable, tipo.name(), accion, tipoDestino.name(), idDestino,</span>
+<span class="fc" id="L249">            textoSeguro(titulo, &quot;Notificación&quot;), textoSeguro(resumen, &quot;Hay una actualización académica en SIGA.&quot;),</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">            fechaHora == null ? LocalDateTime.now() : fechaHora);</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">        if (insertados == 1) {</span>
+<span class="fc" id="L252">            log.info(&quot;Notificación persistida: tipo={} destino={} idDestino={} idEvento={}&quot;,</span>
+                tipo, tipoDestino, idDestino, idEstable);
+        }
+<span class="fc" id="L255">    }</span>
+
+    private static NotificacionResponseDTO toResponse(Notificacion notificacion, boolean leida) {
+<span class="fc" id="L258">        return new NotificacionResponseDTO(</span>
+<span class="fc" id="L259">            notificacion.getId(), notificacion.getTipo(), notificacion.getAccion(),</span>
+<span class="fc" id="L260">            notificacion.getTitulo(), notificacion.getResumen(), notificacion.getFechaHora(), leida);</span>
+    }
+
+    private static List&lt;Long&gt; conSentinela(Set&lt;Long&gt; ids) {
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">        return ids.isEmpty() ? SIN_DESTINOS : List.copyOf(ids);</span>
+    }
+
+    private static String textoOpcional(String texto) {
+<span class="pc bpc" id="L268" title="2 of 4 branches missed.">        return texto == null || texto.isBlank() ? null : texto.trim();</span>
+    }
+
+    private static String textoSeguro(String texto, String alternativo) {
+<span class="pc bpc" id="L272" title="2 of 4 branches missed.">        String resultado = texto == null || texto.isBlank() ? alternativo : texto.trim();</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">        return resultado.length() &gt; 500 ? resultado.substring(0, 500) : resultado;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

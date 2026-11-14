@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocenteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-docentes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msdocentes.service</a> &gt; <span class="el_source">DocenteService.java</span></div><h1>DocenteService.java</h1><pre class="source lang-java linenums">package cl.siga.msdocentes.service;
+
+import cl.siga.coreshare.dto.docente.ActualizarDocenteRequestDTO;
+import cl.siga.coreshare.dto.docente.RegistrarDocenteRequestDTO;
+import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.format.RutNormalizer;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.security.SecurityUtils;
+import cl.siga.msdocentes.model.entity.Docente;
+import cl.siga.msdocentes.model.mapper.CertificadoMapper;
+import cl.siga.msdocentes.model.mapper.DocenteMapper;
+import cl.siga.msdocentes.model.specifications.DocenteSpecifications;
+import cl.siga.msdocentes.repository.DocenteRepository;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class DocenteService {
+  private final DocenteRepository repository;
+  private final DocenteMapper mapper;
+  private final CertificadoMapper certificadoMapper;
+
+  @Transactional(readOnly = true)
+  public DocenteResponseDTO getDocenteById(Long id) {
+<span class="fc" id="L39">    return mapper.toResponseDto(repository.findByIdAndActivoTrue(id)</span>
+<span class="fc" id="L40">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Docente con ID &quot; + id + &quot; no encontrado.&quot;)));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public DocenteResponseDTO getDocenteByIdUsuario(String idUsuario) {
+<span class="fc" id="L45">    return mapper.toResponseDto(repository.findByIdUsuarioAndActivoTrue(idUsuario)</span>
+<span class="fc" id="L46">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Docente con ID de usuario &quot; + idUsuario + &quot; no encontrado.&quot;)));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public Page&lt;DocenteResponseDTO&gt; searchDocentes(String rut, String firstName, String firstSurname, LocalDate from, LocalDate to, AreaAcademica area, Pageable pageable) {
+<span class="fc" id="L51">    Specification&lt;Docente&gt; spec = DocenteSpecifications.isActivo()</span>
+<span class="fc" id="L52">      .and(DocenteSpecifications.hasRut(rut))</span>
+<span class="fc" id="L53">      .and(DocenteSpecifications.hasFirstName(firstName))</span>
+<span class="fc" id="L54">      .and(DocenteSpecifications.hasFirstSurname(firstSurname))</span>
+<span class="fc" id="L55">      .and(DocenteSpecifications.hasFechaContratacionGreaterThanOrEqual(from))</span>
+<span class="fc" id="L56">      .and(DocenteSpecifications.hasFechaContratacionLessThanOrEqual(to))</span>
+<span class="fc" id="L57">      .and(DocenteSpecifications.hasArea(area));</span>
+<span class="fc" id="L58">    return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+  }
+
+  @Transactional
+  public DocenteResponseDTO saveDocente(@Valid RegistrarDocenteRequestDTO request) {
+<span class="fc" id="L63">    String normalizedRut = RutNormalizer.normalizar(request.rut());</span>
+
+    // Docente que vuelve: si el perfil existe inactivo, se reactiva con los datos recibidos.
+<span class="fc" id="L66">    Optional&lt;Docente&gt; existente = repository.findByIdUsuario(request.idUsuario());</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (existente.isPresent()) {</span>
+<span class="fc" id="L68">      Docente docente = existente.get();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (Boolean.TRUE.equals(docente.getActivo())) {</span>
+<span class="fc" id="L70">        throw new BusinessException(&quot;El ID de usuario ya está registrado: &quot; + request.idUsuario());</span>
+      }
+<span class="fc" id="L72">      reactivarPerfil(docente, request, normalizedRut);</span>
+<span class="fc" id="L73">      return mapper.toResponseDto(repository.save(docente));</span>
+    }
+
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (repository.existsByRut(normalizedRut)) {</span>
+<span class="fc" id="L77">      throw new BusinessException(&quot;El RUT ya está registrado: &quot; + request.rut());</span>
+    }
+
+<span class="fc" id="L80">    Docente docente = mapper.toEntity(request);</span>
+<span class="fc" id="L81">    docente.setActivo(true);</span>
+
+<span class="fc" id="L83">    return mapper.toResponseDto(repository.save(docente));</span>
+  }
+
+  private void reactivarPerfil(Docente docente, RegistrarDocenteRequestDTO request, String normalizedRut) {
+<span class="fc bfc" id="L87" title="All 4 branches covered.">    if (normalizedRut != null &amp;&amp; !normalizedRut.equalsIgnoreCase(docente.getRut())</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">      &amp;&amp; repository.existsByRut(normalizedRut)) {</span>
+<span class="fc" id="L89">      throw new BusinessException(&quot;El RUT ya está registrado: &quot; + request.rut());</span>
+    }
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (normalizedRut != null) {</span>
+<span class="fc" id="L92">      docente.setRut(normalizedRut);</span>
+    }
+<span class="fc" id="L94">    docente.setFirstName(request.firstName());</span>
+<span class="fc" id="L95">    docente.setMiddleName(request.middleName());</span>
+<span class="fc" id="L96">    docente.setFirstSurname(request.firstSurname());</span>
+<span class="fc" id="L97">    docente.setSecondSurname(request.secondSurname());</span>
+<span class="fc" id="L98">    docente.setFechaContratacion(request.fechaContratacion());</span>
+<span class="fc" id="L99">    docente.setArea(request.area());</span>
+<span class="fc" id="L100">    docente.getCertificados().clear();</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (request.certificados() != null) {</span>
+<span class="fc" id="L102">      request.certificados().forEach(certificado -&gt;</span>
+<span class="fc" id="L103">        docente.addCertificado(certificadoMapper.toEntity(certificado)));</span>
+    }
+<span class="fc" id="L105">    docente.setActivo(true);</span>
+<span class="fc" id="L106">  }</span>
+
+  @Transactional
+  public DocenteResponseDTO updateDocente(Long id, @Valid ActualizarDocenteRequestDTO request) {
+<span class="fc" id="L110">    Docente docenteExistente = repository.findByIdAndActivoTrue(id)</span>
+<span class="fc" id="L111">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Docente con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+
+<span class="fc" id="L113">    SecurityUtils.requireOwnerOrAdmin(</span>
+<span class="fc" id="L114">      docenteExistente.getIdUsuario(),</span>
+      &quot;No tienes permiso para modificar este docente.&quot;);
+
+<span class="fc" id="L117">    mapper.updateEntityFromDto(request, docenteExistente);</span>
+<span class="fc" id="L118">    return mapper.toResponseDto(repository.save(docenteExistente));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public boolean existsDocenteById(Long id) {
+<span class="fc" id="L123">    return repository.existsByIdAndActivoTrue(id);</span>
+  }
+
+  @Transactional
+  public void deleteDocente(Long id) {
+<span class="fc" id="L128">    Docente existing = repository.findById(id)</span>
+<span class="fc" id="L129">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Docente con ID &quot; + id + &quot; no encontrado.&quot;));</span>
+<span class="fc" id="L130">    existing.setActivo(false);</span>
+<span class="fc" id="L131">    repository.save(existing);</span>
+<span class="fc" id="L132">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApoderadoSpecifications.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-apoderados</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msapoderados.model.specifications</a> &gt; <span class="el_source">ApoderadoSpecifications.java</span></div><h1>ApoderadoSpecifications.java</h1><pre class="source lang-java linenums">package cl.siga.msapoderados.model.specifications;
+
+import cl.siga.coreshare.format.RutNormalizer;
+import cl.siga.msapoderados.model.entity.Apoderado;
+import cl.siga.msapoderados.model.entity.ApoderadoEstudiante;
+import jakarta.persistence.criteria.Join;
+import org.springframework.data.jpa.domain.Specification;
+
+<span class="nc" id="L9">public class ApoderadoSpecifications {</span>
+  public static Specification&lt;Apoderado&gt; isActivo() {
+<span class="fc" id="L11">    return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;activo&quot;));</span>
+  }
+
+  public static Specification&lt;Apoderado&gt; hasRut(String rut) {
+<span class="fc" id="L15">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L16" title="All 4 branches covered.">      if (rut == null || rut.trim().isEmpty()) {</span>
+<span class="fc" id="L17">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L19">      return criteriaBuilder.equal(root.get(&quot;rut&quot;), RutNormalizer.normalizar(rut));</span>
+    };
+  }
+
+  public static Specification&lt;Apoderado&gt; hasFirstName(String firstName) {
+<span class="fc" id="L24">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L25" title="All 4 branches covered.">      if (firstName == null || firstName.trim().isEmpty()) {</span>
+<span class="fc" id="L26">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L28">      return criteriaBuilder.like(criteriaBuilder.lower(root.get(&quot;firstName&quot;)), &quot;%&quot; + firstName.trim().toLowerCase() + &quot;%&quot;);</span>
+    };
+  }
+
+  public static Specification&lt;Apoderado&gt; hasFirstSurname(String firstSurname) {
+<span class="fc" id="L33">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="pc bpc" id="L34" title="1 of 4 branches missed.">      if (firstSurname == null || firstSurname.trim().isEmpty()) {</span>
+<span class="fc" id="L35">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L37">      return criteriaBuilder.like(criteriaBuilder.lower(root.get(&quot;firstSurname&quot;)), &quot;%&quot; + firstSurname.trim().toLowerCase() + &quot;%&quot;);</span>
+    };
+  }
+
+  public static Specification&lt;Apoderado&gt; hasIdEstudiante(Long idEstudiante) {
+<span class="fc" id="L42">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">      if (idEstudiante == null) {</span>
+<span class="fc" id="L44">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L46">      Join&lt;Apoderado, ApoderadoEstudiante&gt; estudiantesJoin = root.join(&quot;estudiantes&quot;);</span>
+
+<span class="fc" id="L48">      return criteriaBuilder.equal(estudiantesJoin.get(&quot;idEstudiante&quot;), idEstudiante);</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

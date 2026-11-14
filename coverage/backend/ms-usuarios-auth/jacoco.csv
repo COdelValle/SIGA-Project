@@ -1,0 +1,31 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+ms-usuarios-auth,cl.siga.msusuariosauth.config,RegistroAsyncProperties,0,29,1,3,0,7,1,3,0,2
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.estudiantes,EstudianteDirectory,0,70,0,10,0,18,0,7,0,2
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,Usuario,10,0,2,0,3,0,2,0,1,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,RegistrationOutboxEvent,21,0,6,0,8,0,4,0,1,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,UserRegistrationProcess,34,0,8,0,13,0,6,0,2,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,InvitacionUsuario,22,0,6,0,7,0,4,0,1,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,ProcessedRegistrationEvent,7,0,2,0,3,0,2,0,1,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,UserRegistrationAttempt,7,0,2,0,3,0,2,0,1,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.entity,OutboxEventState,0,21,0,0,0,4,0,1,0,1
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,ProvisionedUser,0,9,0,0,0,1,0,1,0,1
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,GraphProperties,2,36,4,8,0,4,4,6,0,4
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,GraphPermanentException,5,4,0,0,2,2,1,1,1,1
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,GraphTransientException,8,4,0,0,3,2,1,1,1,1
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,GraphUserDirectory,200,870,25,53,44,179,22,55,1,37
+ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,PasswordGenerator,0,90,0,4,0,18,0,6,0,4
+ms-usuarios-auth,cl.siga.msusuariosauth.model.mapper,UsuarioMapperImpl,121,0,16,0,38,0,13,0,5,0
+ms-usuarios-auth,cl.siga.msusuariosauth.model.specification,UsuarioSpecifications,54,0,8,0,9,0,11,0,7,0
+ms-usuarios-auth,cl.siga.msusuariosauth.controller,UsuarioController,106,0,2,0,21,0,15,0,14,0
+ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationListeners,109,0,4,0,15,0,15,0,13,0
+ms-usuarios-auth,cl.siga.msusuariosauth.service,InvitacionVinculacionService,26,107,4,10,6,27,5,8,2,4
+ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationStateService,12,543,6,40,4,151,6,41,0,23
+ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationService,366,408,44,46,79,105,40,33,13,14
+ms-usuarios-auth,cl.siga.msusuariosauth.service,CredentialCipher.Cifrado,0,9,0,0,0,1,0,1,0,1
+ms-usuarios-auth,cl.siga.msusuariosauth.service,UsuarioService,292,703,49,69,47,163,53,43,14,23
+ms-usuarios-auth,cl.siga.msusuariosauth.service,UsuarioService.new TransactionSynchronization() {...},38,0,0,0,6,0,2,0,2,0
+ms-usuarios-auth,cl.siga.msusuariosauth.service,InvitacionVinculacionService.new TransactionSynchronization() {...},17,0,0,0,6,0,2,0,2,0
+ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationOutboxPublisher,0,244,0,18,0,52,0,14,0,5
+ms-usuarios-auth,cl.siga.msusuariosauth.service,CredentialCipher,14,117,1,7,4,27,1,8,0,5
+ms-usuarios-auth,cl.siga.msusuariosauth.service,EmailInstitucionalGenerator,117,245,13,27,15,45,13,16,0,7
+ms-usuarios-auth,cl.siga.msusuariosauth,MsUsuariosAuthApplication,5,3,0,0,2,1,1,1,1,1

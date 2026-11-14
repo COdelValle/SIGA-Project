@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.admin</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.admin;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import cl.siga.bffweb.domain.admin.dto.AsignaturaAdminDTO;
+import cl.siga.bffweb.domain.admin.dto.UsuarioAdminDTO;
+import cl.siga.bffweb.domain.admin.dto.api.ClaseOpcionDTO;
+import cl.siga.bffweb.domain.admin.dto.api.EstudianteOpcionDTO;
+import cl.siga.bffweb.domain.admin.dto.api.UsuarioDetalleDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioCompuestoRequestDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationCredentialResponseDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationStatusResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping(&quot;/api/bff/v1/admin&quot;)
+@RequiredArgsConstructor
+public class AdminController {
+    private final AdminBffService service;
+
+    @GetMapping(&quot;/usuarios&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
+    public ResponseEntity&lt;List&lt;UsuarioAdminDTO&gt;&gt; getUsuarios(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) Rol rol,
+            @RequestParam(required = false) StateUsuario state) {
+<span class="nc" id="L44">        return ResponseEntity.ok(service.getUsuarios(email, rol, state));</span>
+    }
+
+    @GetMapping(&quot;/asignaturas&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')&quot;)
+    public ResponseEntity&lt;List&lt;AsignaturaAdminDTO&gt;&gt; getAsignaturas() {
+<span class="nc" id="L50">        return ResponseEntity.ok(service.getAsignaturas());</span>
+    }
+
+    @GetMapping(&quot;/malla&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')&quot;)
+    public ResponseEntity&lt;List&lt;MallaCurricularResponseDTO&gt;&gt; getMalla(
+            @RequestParam(required = false) Nivel nivel) {
+<span class="nc" id="L57">        return ResponseEntity.ok(service.getMalla(nivel));</span>
+    }
+
+    // --- Registro asíncrono de usuarios (usuario + perfil de rol) ---
+
+    @PostMapping(&quot;/registraciones&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
+    public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; iniciarRegistro(
+            @RequestBody @Valid RegistrarUsuarioCompuestoRequestDTO request) {
+<span class="nc" id="L66">        return ResponseEntity.status(HttpStatus.ACCEPTED)</span>
+<span class="nc" id="L67">                .body(service.iniciarRegistroCompuesto(request));</span>
+    }
+
+    @GetMapping(&quot;/registraciones/{processId}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
+    public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; getRegistro(@PathVariable String processId) {
+<span class="nc" id="L73">        return ResponseEntity.ok(service.getRegistroCompuesto(processId));</span>
+    }
+
+    @GetMapping(&quot;/registraciones/{processId}/credencial&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
+    public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; getCredencial(
+            @PathVariable String processId) {
+<span class="nc" id="L80">        return ResponseEntity.ok(service.getCredencialTemporal(processId));</span>
+    }
+
+    @PostMapping(&quot;/usuarios/{idUsuario}/reset-password&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')&quot;)
+    public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; resetPassword(
+            @PathVariable String idUsuario) {
+<span class="nc" id="L87">        return ResponseEntity.ok(service.resetPassword(idUsuario));</span>
+    }
+
+    @GetMapping(&quot;/usuarios/{idUsuario}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
+    public ResponseEntity&lt;UsuarioDetalleDTO&gt; getUsuarioDetalle(@PathVariable String idUsuario) {
+<span class="nc" id="L93">        return ResponseEntity.ok(service.getUsuarioDetalle(idUsuario));</span>
+    }
+
+    @DeleteMapping(&quot;/usuarios/{idUsuario}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')&quot;)
+    public ResponseEntity&lt;Void&gt; eliminarUsuario(@PathVariable String idUsuario) {
+<span class="nc" id="L99">        service.eliminarUsuario(idUsuario);</span>
+<span class="nc" id="L100">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // --- Selectores del registro de usuarios ---
+
+    @GetMapping(&quot;/clases&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_clases:read')&quot;)
+    public ResponseEntity&lt;List&lt;ClaseOpcionDTO&gt;&gt; getClases(
+            @RequestParam(required = false) Integer anioAcademico) {
+<span class="nc" id="L109">        return ResponseEntity.ok(service.getClases(anioAcademico));</span>
+    }
+
+    @GetMapping(&quot;/estudiantes&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_estudiantes:read')&quot;)
+    public ResponseEntity&lt;List&lt;EstudianteOpcionDTO&gt;&gt; buscarEstudiantes(@RequestParam String q) {
+<span class="nc" id="L115">        return ResponseEntity.ok(service.buscarEstudiantes(q));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

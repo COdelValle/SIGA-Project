@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrarUsuarioCompuestoRequestDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.usuario</a> &gt; <span class="el_source">RegistrarUsuarioCompuestoRequestDTO.java</span></div><h1>RegistrarUsuarioCompuestoRequestDTO.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.usuario;
+
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Solicitud de registro compuesto (usuario + perfil de rol). El alta en Entra
+ * ID y la creación del perfil ocurren de forma asíncrona: la respuesta es un
+ * proceso consultable por {@code processId}.
+ *
+ * &lt;p&gt;El correo y el nombre completo son opcionales: si no se envían, el servicio
+ * los deriva de los nombres del rol (correo {@code nombre.apellido@dominio},
+ * con resolución de colisiones).&lt;/p&gt;
+ */
+<span class="nc" id="L20">public record RegistrarUsuarioCompuestoRequestDTO(</span>
+    @Email(message = &quot;El correo electrónico debe ser válido&quot;)
+    @Size(max = 255, message = &quot;El correo no puede superar los 255 caracteres&quot;)
+    String email,
+
+    @Size(max = 255, message = &quot;El nombre completo no puede superar los 255 caracteres&quot;)
+    String fullName,
+
+    @NotNull(message = &quot;El rol es obligatorio&quot;)
+    Rol requestedRole,
+
+    @Pattern(
+        regexp = &quot;^\\s*$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$&quot;,
+        message = &quot;El ID de Azure debe ser un UUID válido&quot;
+    )
+    String azureUserId,
+
+    @Email(message = &quot;El correo de contacto debe ser válido&quot;)
+    @Size(max = 255, message = &quot;El correo de contacto no puede superar los 255 caracteres&quot;)
+    String contactEmail,
+
+    @NotNull(message = &quot;Los datos específicos del rol son obligatorios&quot;)
+    @Valid
+    DatosRegistroRolDTO roleData
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

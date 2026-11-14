@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublicadorAsistencia.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asistencias</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasistencias.mensajeria</a> &gt; <span class="el_source">PublicadorAsistencia.java</span></div><h1>PublicadorAsistencia.java</h1><pre class="source lang-java linenums">package cl.siga.msasistencias.mensajeria;
+
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
+import cl.siga.coreshare.dto.notificaciones.AccionAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
+import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
+import cl.siga.msasistencias.client.AsignaturaClient;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+/**
+ * El Productor de asistencias vive en ms-asistencias.
+ * Solo se llama al crear (POST) con estado AUSENTE o ATRASADO; el mensaje
+ * lleva el porcentaje de inasistencia del mes, si supera el umbral del 60% y
+ * el nombre de la asignatura cuando el servicio responde.
+ * Persiste el evento en el outbox de la misma transacción del CRUD.
+ */
+@Component
+@RequiredArgsConstructor
+<span class="fc" id="L25">@Slf4j</span>
+public class PublicadorAsistencia {
+
+    private final NotificationEventOutbox outbox;
+    private final AsignaturaClient asignaturaClient;
+
+    /** Se llama al registrar (POST /api/v1/asistencias) si es AUSENTE o ATRASADO. */
+    public void publicarRegistrada(AsistenciaResponseDTO asistencia,
+                                   double porcentajeInasistencia,
+                                   boolean superaUmbral) {
+<span class="fc" id="L35">        EventoAsistencia evento = new EventoAsistencia(</span>
+<span class="fc" id="L36">                asistencia.id(),</span>
+<span class="fc" id="L37">                asistencia.idEstudiante(),</span>
+<span class="fc" id="L38">                asistencia.idCursoAsignatura(),</span>
+<span class="fc" id="L39">                asistencia.fecha(),</span>
+<span class="fc" id="L40">                asistencia.estado(),</span>
+<span class="fc" id="L41">                asistencia.justificacion(),</span>
+                AccionAsistencia.REGISTRADA,
+                porcentajeInasistencia,
+                superaUmbral,
+<span class="fc" id="L45">                LocalDateTime.now(),</span>
+<span class="fc" id="L46">                UUID.randomUUID().toString(),</span>
+<span class="fc" id="L47">                nombreAsignatura(asistencia)</span>
+        );
+<span class="fc" id="L49">        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,</span>
+                NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA, evento);
+<span class="fc" id="L51">        log.info(&quot;Evento de asistencia agregado al outbox: id={} estado={} superaUmbral={}&quot;,</span>
+<span class="fc" id="L52">                asistencia.id(), asistencia.estado(), superaUmbral);</span>
+<span class="fc" id="L53">    }</span>
+
+    private String nombreAsignatura(AsistenciaResponseDTO asistencia) {
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (asistencia.idCursoAsignatura() == null) {</span>
+<span class="nc" id="L57">            return null;</span>
+        }
+        try {
+<span class="fc" id="L60">            CursoAsignaturaResponseDTO dictacion =</span>
+<span class="fc" id="L61">                    asignaturaClient.getCursoAsignaturaById(asistencia.idCursoAsignatura());</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">            return dictacion == null ? null : dictacion.nombre();</span>
+<span class="nc" id="L63">        } catch (Exception error) {</span>
+<span class="nc" id="L64">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
+<span class="nc" id="L65">                    asistencia.idCursoAsignatura(), error.getMessage());</span>
+<span class="nc" id="L66">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

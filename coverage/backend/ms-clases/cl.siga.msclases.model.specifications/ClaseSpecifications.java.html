@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaseSpecifications.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-clases</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msclases.model.specifications</a> &gt; <span class="el_source">ClaseSpecifications.java</span></div><h1>ClaseSpecifications.java</h1><pre class="source lang-java linenums">package cl.siga.msclases.model.specifications;
+
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.msclases.model.entity.Clase;
+import org.springframework.data.jpa.domain.Specification;
+
+<span class="nc" id="L7">public class ClaseSpecifications {</span>
+  public static Specification&lt;Clase&gt; isActive() {
+<span class="fc" id="L9">    return (root, query, criteriaBuilder) -&gt; criteriaBuilder.isTrue(root.get(&quot;active&quot;));</span>
+  }
+
+  public static Specification&lt;Clase&gt; hasNivel(Nivel nivel) {
+<span class="fc" id="L13">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L14" title="All 2 branches covered.">      if (nivel == null) {</span>
+<span class="fc" id="L15">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L17">      return criteriaBuilder.equal(root.get(&quot;nivel&quot;), nivel);</span>
+    };
+  }
+
+  public static Specification&lt;Clase&gt; hasLetra(String letra) {
+<span class="fc" id="L22">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L23" title="All 4 branches covered.">      if (letra == null || letra.trim().isEmpty()) {</span>
+<span class="fc" id="L24">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L26">      return criteriaBuilder.equal(</span>
+<span class="fc" id="L27">        criteriaBuilder.upper(root.get(&quot;letra&quot;)),</span>
+<span class="fc" id="L28">        letra.trim().toUpperCase()</span>
+      );
+    };
+  }
+
+  public static Specification&lt;Clase&gt; hasAnioAcademico(Integer anioAcademico) {
+<span class="fc" id="L34">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">      if (anioAcademico == null) {</span>
+<span class="fc" id="L36">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L38">      return criteriaBuilder.equal(root.get(&quot;anioAcademico&quot;), anioAcademico);</span>
+    };
+  }
+
+  public static Specification&lt;Clase&gt; hasIdDocenteJefe(Long idDocenteJefe) {
+<span class="fc" id="L43">    return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">      if (idDocenteJefe == null) {</span>
+<span class="fc" id="L45">        return criteriaBuilder.conjunction();</span>
+      }
+<span class="fc" id="L47">      return criteriaBuilder.equal(root.get(&quot;idDocenteJefe&quot;), idDocenteJefe);</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

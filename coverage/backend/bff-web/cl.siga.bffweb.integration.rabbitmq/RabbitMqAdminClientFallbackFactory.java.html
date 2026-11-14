@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RabbitMqAdminClientFallbackFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.integration.rabbitmq</a> &gt; <span class="el_source">RabbitMqAdminClientFallbackFactory.java</span></div><h1>RabbitMqAdminClientFallbackFactory.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.integration.rabbitmq;
+
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
+
+import cl.siga.bffweb.integration.FeignErrorTranslator;
+import cl.siga.coreshare.dto.rabbitmq.EstadoColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudBindingDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudColaDTO;
+import cl.siga.coreshare.dto.rabbitmq.SolicitudExchangeDTO;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+<span class="fc" id="L16">@Slf4j</span>
+@RequiredArgsConstructor
+public class RabbitMqAdminClientFallbackFactory implements FallbackFactory&lt;RabbitMqAdminClient&gt; {
+
+    private final FeignErrorTranslator translator;
+
+    @Override
+    public RabbitMqAdminClient create(Throwable causa) {
+<span class="fc" id="L24">        return new RabbitMqAdminClient() {</span>
+            @Override
+            public void declararCola(SolicitudColaDTO solicitud) {
+<span class="nc" id="L27">                throw error(&quot;No se pudo declarar la cola.&quot;);</span>
+            }
+
+            @Override
+            public EstadoColaDTO estadoCola(String nombre) {
+<span class="fc" id="L32">                throw error(&quot;No se pudo obtener el estado de la cola.&quot;);</span>
+            }
+
+            @Override
+            public void eliminarCola(String nombre) {
+<span class="nc" id="L37">                throw error(&quot;No se pudo eliminar la cola.&quot;);</span>
+            }
+
+            @Override
+            public void declararExchange(SolicitudExchangeDTO solicitud) {
+<span class="nc" id="L42">                throw error(&quot;No se pudo declarar el exchange.&quot;);</span>
+            }
+
+            @Override
+            public void eliminarExchange(String nombre) {
+<span class="nc" id="L47">                throw error(&quot;No se pudo eliminar el exchange.&quot;);</span>
+            }
+
+            @Override
+            public void declararBinding(SolicitudBindingDTO solicitud) {
+<span class="nc" id="L52">                throw error(&quot;No se pudo declarar el binding.&quot;);</span>
+            }
+
+            @Override
+            public void eliminarBinding(String cola, String exchange, String routingKey) {
+<span class="nc" id="L57">                throw error(&quot;No se pudo eliminar el binding.&quot;);</span>
+            }
+
+            private RuntimeException error(String mensaje) {
+<span class="fc" id="L61">                log.error(&quot;Fallo al llamar a ms-rabbitmq-admin (HTTP {}): {}&quot;,</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">                    causa instanceof FeignException feign ? feign.status() : -1, causa.getMessage());</span>
+<span class="fc" id="L63">                return translator.traducir(causa, mensaje);</span>
+            }
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

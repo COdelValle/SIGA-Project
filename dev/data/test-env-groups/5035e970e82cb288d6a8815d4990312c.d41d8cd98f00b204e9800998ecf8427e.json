@@ -1,1 +1,1 @@
-{"id":"5035e970e82cb288d6a8815d4990312c.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.exception.GlobalExceptionHandlerTest.accesoDenegadoDevuelve403","name":"accesoDenegadoDevuelve403()","status":"passed","testResultsByEnv":{"default":"bd4a9898c3de093e731ed67e8ff2c6e5"}}
+{"id":"5035e970e82cb288d6a8815d4990312c.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.exception.GlobalExceptionHandlerTest.accesoDenegadoDevuelve403","name":"Acceso denegado devuelve403","status":"passed","testResultsByEnv":{"default":"c890047f99fb6873f2d48bcb826ccb66"}}

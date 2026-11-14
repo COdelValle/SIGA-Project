@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaseService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-clases</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msclases.service</a> &gt; <span class="el_source">ClaseService.java</span></div><h1>ClaseService.java</h1><pre class="source lang-java linenums">package cl.siga.msclases.service;
+
+import cl.siga.coreshare.dto.clase.ActualizarDocenteJefeRequestDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.clase.RegistrarClaseRequestDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msclases.client.DocenteClient;
+import cl.siga.msclases.model.entity.Clase;
+import cl.siga.msclases.model.mapper.ClaseMapper;
+import cl.siga.msclases.model.specifications.ClaseSpecifications;
+import cl.siga.msclases.repository.ClaseRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class ClaseService {
+  private final ClaseRepository repository;
+  private final ClaseMapper mapper;
+  private final DocenteClient docenteClient;
+
+  @Transactional(readOnly = true)
+  public ClaseResponseDTO getClaseById(Long id) {
+<span class="fc" id="L36">    return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L37">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Clase con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public Page&lt;ClaseResponseDTO&gt; searchClases(Nivel nivel, String letra, Integer anioAcademico, Long idDocenteJefe, Pageable pageable) {
+<span class="fc" id="L42">    Specification&lt;Clase&gt; spec = ClaseSpecifications.isActive()</span>
+<span class="fc" id="L43">      .and(ClaseSpecifications.hasNivel(nivel))</span>
+<span class="fc" id="L44">      .and(ClaseSpecifications.hasLetra(letra))</span>
+<span class="fc" id="L45">      .and(ClaseSpecifications.hasAnioAcademico(anioAcademico))</span>
+<span class="fc" id="L46">      .and(ClaseSpecifications.hasIdDocenteJefe(idDocenteJefe));</span>
+
+<span class="fc" id="L48">    return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+  }
+
+  @Transactional
+  public ClaseResponseDTO saveClase(@Valid RegistrarClaseRequestDTO request) {
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">    String letraNormalizada = request.letra() != null ? request.letra().trim().toUpperCase() : null;</span>
+<span class="fc" id="L54">    Optional&lt;Clase&gt; existente = repository.findByNivelAndLetraAndAnioAcademico(</span>
+<span class="fc" id="L55">      request.nivel(), letraNormalizada, request.anioAcademico());</span>
+
+<span class="fc bfc" id="L57" title="All 4 branches covered.">    if (existente.isPresent() &amp;&amp; existente.get().isActive()) {</span>
+<span class="fc" id="L58">      throw new BusinessException(</span>
+<span class="fc" id="L59">        String.format(&quot;Ya existe la clase %s %s para el año académico %d.&quot;,</span>
+<span class="fc" id="L60">          request.nivel(), letraNormalizada, request.anioAcademico())</span>
+      );
+    }
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">    if (request.idDocenteJefe() != null) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">      if (!docenteClient.existsById(request.idDocenteJefe())) {</span>
+<span class="fc" id="L66">        throw new BusinessException(&quot;El docente con ID &quot; + request.idDocenteJefe() + &quot; no existe o no está activo.&quot;);</span>
+      }
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (repository.existsByIdDocenteJefeAndActiveTrue(request.idDocenteJefe())) {</span>
+<span class="fc" id="L70">        throw new BusinessException(&quot;El docente ya es jefe de otra clase activa.&quot;);</span>
+      }
+    }
+
+    // Si la clase fue eliminada logicamente, se reactiva en vez de chocar con el UNIQUE.
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (existente.isPresent()) {</span>
+<span class="fc" id="L76">      Clase clase = existente.get();</span>
+<span class="fc" id="L77">      clase.setIdDocenteJefe(request.idDocenteJefe());</span>
+<span class="fc" id="L78">      clase.setActive(true);</span>
+<span class="fc" id="L79">      return mapper.toResponseDto(repository.save(clase));</span>
+    }
+
+<span class="fc" id="L82">    return mapper.toResponseDto(repository.save(mapper.toEntity(request)));</span>
+  }
+
+  @Transactional
+  public ClaseResponseDTO updateDocenteJefe(Long idClase, @Valid ActualizarDocenteJefeRequestDTO request) {
+<span class="fc" id="L87">    Clase existingClase = repository.findByIdAndActiveTrue(idClase)</span>
+<span class="fc" id="L88">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Clase con ID &quot; + idClase + &quot; no encontrada.&quot;));</span>
+
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (request.idDocenteJefe() != null) {</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      if (!docenteClient.existsById(request.idDocenteJefe())) {</span>
+<span class="fc" id="L92">        throw new BusinessException(&quot;El docente con ID &quot; + request.idDocenteJefe() + &quot; no existe o no está activo.&quot;);</span>
+      }
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">      if (repository.existsByIdDocenteJefeAndActiveTrueAndIdNot(request.idDocenteJefe(), idClase)) {</span>
+<span class="fc" id="L96">        throw new BusinessException(&quot;El docente ya es jefe de otra clase activa.&quot;);</span>
+      }
+    }
+
+    // Se asigna explicitamente para permitir limpiar el docente jefe (null).
+<span class="fc" id="L101">    existingClase.setIdDocenteJefe(request.idDocenteJefe());</span>
+<span class="fc" id="L102">    return mapper.toResponseDto(repository.save(existingClase));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public boolean existsClaseById(Long id) {
+<span class="fc" id="L107">    return repository.existsByIdAndActiveTrue(id);</span>
+  }
+
+  @Transactional
+  public void deleteClase(Long id) {
+<span class="fc" id="L112">    Clase existingClase = repository.findById(id)</span>
+<span class="fc" id="L113">      .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Clase con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L114">    existingClase.setActive(false);</span>
+<span class="fc" id="L115">    repository.save(existingClase);</span>
+<span class="fc" id="L116">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

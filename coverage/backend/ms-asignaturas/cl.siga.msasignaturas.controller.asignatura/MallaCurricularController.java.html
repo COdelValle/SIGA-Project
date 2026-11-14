@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MallaCurricularController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.controller.asignatura</a> &gt; <span class="el_source">MallaCurricularController.java</span></div><h1>MallaCurricularController.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.controller.asignatura;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import cl.siga.coreshare.dto.asignatura.enums.PlanFormacion;
+import cl.siga.coreshare.dto.asignatura.malla.ActualizarMallaCurricularRequestDTO;
+import cl.siga.coreshare.dto.asignatura.malla.MallaCurricularResponseDTO;
+import cl.siga.coreshare.dto.asignatura.malla.RegistrarMallaCurricularRequestDTO;
+import cl.siga.coreshare.dto.clase.enums.Nivel;
+import cl.siga.msasignaturas.service.asignatura.MallaCurricularService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping(&quot;/api/v1/malla&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Malla curricular&quot;, description = &quot;Asignaturas que aplican a cada nivel, con su carácter y horas&quot;)
+public class MallaCurricularController {
+
+    private final MallaCurricularService mallaCurricularService;
+
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('SCOPE_asignaturas:read')&quot;)
+    public ResponseEntity&lt;List&lt;MallaCurricularResponseDTO&gt;&gt; listarMalla(
+            @RequestParam(required = false) Nivel nivel,
+            @RequestParam(required = false) PlanFormacion plan) {
+<span class="fc" id="L33">        return ResponseEntity.ok(mallaCurricularService.listar(nivel, plan));</span>
+    }
+
+    @PostMapping
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:write')&quot;)
+    public ResponseEntity&lt;MallaCurricularResponseDTO&gt; registrarMalla(
+            @RequestBody @Valid RegistrarMallaCurricularRequestDTO request) {
+<span class="fc" id="L40">        return ResponseEntity.status(HttpStatus.CREATED).body(mallaCurricularService.crear(request));</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:update')&quot;)
+    public ResponseEntity&lt;MallaCurricularResponseDTO&gt; actualizarMalla(
+            @PathVariable Long id,
+            @RequestBody @Valid ActualizarMallaCurricularRequestDTO request) {
+<span class="fc" id="L48">        return ResponseEntity.ok(mallaCurricularService.actualizar(id, request));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:delete')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteMalla(@PathVariable Long id) {
+<span class="fc" id="L54">        mallaCurricularService.eliminar(id);</span>
+<span class="fc" id="L55">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

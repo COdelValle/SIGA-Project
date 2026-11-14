@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioClientFallbackFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.integration.usuarios</a> &gt; <span class="el_source">UsuarioClientFallbackFactory.java</span></div><h1>UsuarioClientFallbackFactory.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.integration.usuarios;
+
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
+
+import cl.siga.bffweb.integration.FeignErrorTranslator;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.usuario.RegistrarUsuarioCompuestoRequestDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationCredentialResponseDTO;
+import cl.siga.coreshare.dto.usuario.UserRegistrationStatusResponseDTO;
+import cl.siga.coreshare.dto.usuario.UsuarioResponseDTO;
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.exception.ServiceUnavailableException;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Fallback del cliente de usuarios que conserva el 404 (&quot;usuario no registrado&quot;)
+ * para que el frontend muestre /sin-acceso, traduce los errores de negocio de
+ * los endpoints de registro (400/403/404/409) y usa 503 solo ante fallos reales.
+ */
+<span class="fc" id="L25">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class UsuarioClientFallbackFactory implements FallbackFactory&lt;UsuarioClient&gt; {
+
+    private final FeignErrorTranslator errorTranslator;
+
+    @Override
+    public UsuarioClient create(Throwable cause) {
+<span class="nc" id="L34">        return new UsuarioClient() {</span>
+            @Override
+            public UsuarioResponseDTO getCurrentUsuario() {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">                if (cause instanceof FeignException.NotFound) {</span>
+<span class="nc" id="L38">                    log.warn(&quot;El usuario autenticado no esta registrado en SIGA (404 de ms-usuarios-auth).&quot;);</span>
+<span class="nc" id="L39">                    throw new ResourceNotFoundException(&quot;El usuario autenticado no esta registrado en SIGA.&quot;);</span>
+                }
+<span class="nc" id="L41">                throw noDisponible(cause, &quot;No se pudo obtener el usuario autenticado.&quot;);</span>
+            }
+
+            @Override
+            public UsuarioResponseDTO getUsuarioById(String id) {
+<span class="nc" id="L46">                throw errorTranslator.traducir(cause, &quot;No se pudo obtener el usuario &quot; + id + &quot;.&quot;);</span>
+            }
+
+            @Override
+            public PageResponseDTO&lt;UsuarioResponseDTO&gt; searchUsuarios(
+                    String email, Rol rol, StateUsuario state, int size) {
+<span class="nc" id="L52">                throw noDisponible(cause, &quot;No se pudieron obtener los usuarios.&quot;);</span>
+            }
+
+            @Override
+            public UserRegistrationStatusResponseDTO iniciarRegistroCompuesto(
+                    RegistrarUsuarioCompuestoRequestDTO request) {
+<span class="nc" id="L58">                throw errorTranslator.traducir(cause, &quot;No se pudo iniciar el registro del usuario.&quot;);</span>
+            }
+
+            @Override
+            public UserRegistrationStatusResponseDTO getRegistroCompuesto(String processId) {
+<span class="nc" id="L63">                throw errorTranslator.traducir(cause, &quot;No se pudo obtener el estado del registro.&quot;);</span>
+            }
+
+            @Override
+            public UserRegistrationCredentialResponseDTO getCredencialTemporal(String processId) {
+<span class="nc" id="L68">                throw errorTranslator.traducir(cause, &quot;No se pudo obtener la credencial temporal.&quot;);</span>
+            }
+
+            @Override
+            public UserRegistrationCredentialResponseDTO resetPassword(String id) {
+<span class="nc" id="L73">                throw errorTranslator.traducir(cause, &quot;No se pudo restablecer la contraseña.&quot;);</span>
+            }
+
+            @Override
+            public void deleteUsuario(String id) {
+<span class="nc" id="L78">                throw errorTranslator.traducir(cause, &quot;No se pudo eliminar el usuario.&quot;);</span>
+            }
+        };
+    }
+
+    private ServiceUnavailableException noDisponible(Throwable cause, String mensaje) {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        int status = cause instanceof FeignException feign ? feign.status() : -1;</span>
+<span class="nc" id="L85">        log.error(&quot;Fallo al llamar a ms-usuarios-auth (status={}): {}&quot;, status, cause.getMessage());</span>
+<span class="nc" id="L86">        return new ServiceUnavailableException(mensaje + &quot; (HTTP &quot; + status + &quot;)&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

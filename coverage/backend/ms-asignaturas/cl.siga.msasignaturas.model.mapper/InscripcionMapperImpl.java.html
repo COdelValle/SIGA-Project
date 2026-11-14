@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InscripcionMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asignaturas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasignaturas.model.mapper</a> &gt; <span class="el_source">InscripcionMapperImpl.java</span></div><h1>InscripcionMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.msasignaturas.model.mapper;
+
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.RegistrarInscripcionRequestDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.msasignaturas.model.entity.Inscripcion;
+import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:15:31+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="nc" id="L20">public class InscripcionMapperImpl implements InscripcionMapper {</span>
+
+    @Override
+    public InscripcionResponseDTO toDto(Inscripcion inscripcion) {
+<span class="nc bnc" id="L24" title="All 2 branches missed.">        if ( inscripcion == null ) {</span>
+<span class="nc" id="L25">            return null;</span>
+        }
+
+<span class="nc" id="L28">        Long idCursoAsignatura = null;</span>
+<span class="nc" id="L29">        Long id = null;</span>
+<span class="nc" id="L30">        Long idAlumno = null;</span>
+<span class="nc" id="L31">        EstadoInscripcion estado = null;</span>
+<span class="nc" id="L32">        LocalDateTime fechaInscripcion = null;</span>
+
+<span class="nc" id="L34">        idCursoAsignatura = inscripcionCursoAsignaturaId( inscripcion );</span>
+<span class="nc" id="L35">        id = inscripcion.getId();</span>
+<span class="nc" id="L36">        idAlumno = inscripcion.getIdAlumno();</span>
+<span class="nc" id="L37">        estado = inscripcion.getEstado();</span>
+<span class="nc" id="L38">        fechaInscripcion = inscripcion.getFechaInscripcion();</span>
+
+<span class="nc" id="L40">        InscripcionResponseDTO inscripcionResponseDTO = new InscripcionResponseDTO( id, idAlumno, idCursoAsignatura, estado, fechaInscripcion );</span>
+
+<span class="nc" id="L42">        return inscripcionResponseDTO;</span>
+    }
+
+    @Override
+    public List&lt;InscripcionResponseDTO&gt; toDtoList(List&lt;Inscripcion&gt; inscripciones) {
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if ( inscripciones == null ) {</span>
+<span class="nc" id="L48">            return null;</span>
+        }
+
+<span class="nc" id="L51">        List&lt;InscripcionResponseDTO&gt; list = new ArrayList&lt;InscripcionResponseDTO&gt;( inscripciones.size() );</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        for ( Inscripcion inscripcion : inscripciones ) {</span>
+<span class="nc" id="L53">            list.add( toDto( inscripcion ) );</span>
+<span class="nc" id="L54">        }</span>
+
+<span class="nc" id="L56">        return list;</span>
+    }
+
+    @Override
+    public Inscripcion toEntity(RegistrarInscripcionRequestDTO request) {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if ( request == null ) {</span>
+<span class="nc" id="L62">            return null;</span>
+        }
+
+<span class="nc" id="L65">        Inscripcion.InscripcionBuilder inscripcion = Inscripcion.builder();</span>
+
+<span class="nc" id="L67">        inscripcion.idAlumno( request.idAlumno() );</span>
+
+<span class="nc" id="L69">        return inscripcion.build();</span>
+    }
+
+    private Long inscripcionCursoAsignaturaId(Inscripcion inscripcion) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if ( inscripcion == null ) {</span>
+<span class="nc" id="L74">            return null;</span>
+        }
+<span class="nc" id="L76">        CursoAsignatura cursoAsignatura = inscripcion.getCursoAsignatura();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if ( cursoAsignatura == null ) {</span>
+<span class="nc" id="L78">            return null;</span>
+        }
+<span class="nc" id="L80">        Long id = cursoAsignatura.getId();</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if ( id == null ) {</span>
+<span class="nc" id="L82">            return null;</span>
+        }
+<span class="nc" id="L84">        return id;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

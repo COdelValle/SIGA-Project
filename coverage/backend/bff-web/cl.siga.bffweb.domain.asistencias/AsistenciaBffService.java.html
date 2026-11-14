@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsistenciaBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.asistencias</a> &gt; <span class="el_source">AsistenciaBffService.java</span></div><h1>AsistenciaBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.asistencias;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
+import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import cl.siga.bffweb.integration.asistencias.AsistenciaClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.asistencia.ActualizarAsistenciaRequestDTO;
+import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
+import cl.siga.coreshare.dto.asistencia.RegistrarAsistenciaRequestDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Asistencias por estudiante: resuelve el oid del token, valida el vinculo
+ * (estudiante o apoderado) y orquesta contra ms-asistencias.
+ */
+@Service
+@RequiredArgsConstructor
+public class AsistenciaBffService {
+    private static final int PAGE_SIZE = 100;
+
+    private final AsistenciaClient asistenciaClient;
+    private final EstudianteClient estudianteClient;
+    private final ApoderadoClient apoderadoClient;
+    private final DocenteContextService docenteContext;
+
+    public List&lt;AsistenciaResponseDTO&gt; getAsistenciasMe() {
+<span class="fc" id="L38">        EstudianteResponseDTO estudiante = estudianteClient.getEstudianteByIdUsuario(oid());</span>
+<span class="fc" id="L39">        return asistenciasDe(estudiante.id());</span>
+    }
+
+    public List&lt;AsistenciaResponseDTO&gt; getAsistenciasEstudiante(Long idEstudiante) {
+<span class="fc" id="L43">        EstudianteResponseDTO estudiante = estudianteClient.getEstudianteById(idEstudiante);</span>
+<span class="fc" id="L44">        validarAcceso(estudiante);</span>
+<span class="fc" id="L45">        return asistenciasDe(idEstudiante);</span>
+    }
+
+    /** Asistencias de una dictación en una fecha, solo para el docente dueno. */
+    public List&lt;AsistenciaResponseDTO&gt; getAsistenciasAsignatura(Long idCursoAsignatura, LocalDate fecha) {
+<span class="fc" id="L50">        docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
+<span class="fc" id="L51">        PageResponseDTO&lt;AsistenciaResponseDTO&gt; pagina = asistenciaClient.searchAsistenciasByAsignatura(</span>
+            idCursoAsignatura, fecha, fecha, PAGE_SIZE);
+<span class="pc bpc" id="L53" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+
+    public AsistenciaResponseDTO registrarAsistencia(RegistrarAsistenciaRequestDTO request) {
+<span class="fc" id="L57">        validarCursoParaEscritura(request.idCursoAsignatura());</span>
+<span class="fc" id="L58">        return asistenciaClient.saveAsistencia(request);</span>
+    }
+
+    public AsistenciaResponseDTO actualizarAsistencia(Long id, ActualizarAsistenciaRequestDTO request) {
+<span class="fc" id="L62">        AsistenciaResponseDTO actual = asistenciaClient.getAsistenciaById(id);</span>
+<span class="pc bpc" id="L63" title="2 of 4 branches missed.">        if (actual != null &amp;&amp; actual.idCursoAsignatura() != null) {</span>
+<span class="fc" id="L64">            validarCursoParaEscritura(actual.idCursoAsignatura());</span>
+        }
+<span class="fc" id="L66">        return asistenciaClient.updateAsistencia(id, request);</span>
+    }
+
+    private void validarCursoParaEscritura(Long idCursoAsignatura) {
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="nc" id="L71">            return;</span>
+        }
+<span class="fc" id="L73">        docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
+<span class="fc" id="L74">    }</span>
+
+    private List&lt;AsistenciaResponseDTO&gt; asistenciasDe(Long idEstudiante) {
+<span class="fc" id="L77">        PageResponseDTO&lt;AsistenciaResponseDTO&gt; pagina = asistenciaClient.searchAsistencias(idEstudiante, PAGE_SIZE);</span>
+<span class="pc bpc" id="L78" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+
+    private void validarAcceso(EstudianteResponseDTO estudiante) {
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">        if (SecurityUtils.isAdmin() || SecurityUtils.hasRole(&quot;DOCENTE&quot;)) {</span>
+<span class="fc" id="L83">            return;</span>
+        }
+<span class="fc" id="L85">        String oid = oid();</span>
+<span class="fc bfc" id="L86" title="All 4 branches covered.">        if (SecurityUtils.hasRole(&quot;ESTUDIANTE&quot;) &amp;&amp; oid.equals(estudiante.idUsuario())) {</span>
+<span class="fc" id="L87">            return;</span>
+        }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (SecurityUtils.hasRole(&quot;APODERADO&quot;)) {</span>
+<span class="fc" id="L90">            ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid);</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">            boolean vinculado = apoderado.estudiantes() != null &amp;&amp; apoderado.estudiantes().stream()</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                .anyMatch(vinculo -&gt; estudiante.id().equals(vinculo.idEstudiante()));</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">            if (vinculado) {</span>
+<span class="fc" id="L94">                return;</span>
+            }
+        }
+<span class="fc" id="L97">        throw new AccessDeniedException(&quot;No tienes permiso para ver las asistencias de este estudiante.&quot;);</span>
+    }
+
+    private String oid() {
+<span class="fc" id="L101">        return SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L102">            .orElseThrow(() -&gt; new BusinessException(&quot;No se pudo determinar el usuario autenticado.&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

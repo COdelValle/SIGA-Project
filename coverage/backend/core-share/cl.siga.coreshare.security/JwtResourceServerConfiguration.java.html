@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtResourceServerConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.security</a> &gt; <span class="el_source">JwtResourceServerConfiguration.java</span></div><h1>JwtResourceServerConfiguration.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.security;
+
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+
+/** Configuración explícita del Resource Server Entra ID compartido por los servicios. */
+@AutoConfiguration
+<span class="fc" id="L21">public class JwtResourceServerConfiguration {</span>
+
+    @Bean
+    @ConditionalOnMissingBean(JwtDecoder.class)
+    public JwtDecoder sigaJwtDecoder(Environment environment) {
+<span class="nc" id="L26">        String tenantId = environment.getRequiredProperty(&quot;AZURE_TENANT_ID&quot;);</span>
+<span class="nc" id="L27">        String appIdUri = environment.getRequiredProperty(&quot;AZURE_APP_ID_URI&quot;);</span>
+<span class="nc" id="L28">        String clientId = environment.getRequiredProperty(&quot;AZURE_CLIENT_ID&quot;);</span>
+<span class="nc" id="L29">        String issuer = nonBlank(environment.getProperty(&quot;AZURE_JWT_ISSUER&quot;),</span>
+            &quot;https://sts.windows.net/&quot; + tenantId + &quot;/&quot;);
+<span class="nc" id="L31">        String jwkSetUri = nonBlank(environment.getProperty(&quot;AZURE_JWKS_URI&quot;),</span>
+            &quot;https://login.microsoftonline.com/&quot; + tenantId + &quot;/discovery/keys&quot;);
+<span class="nc" id="L33">        String configuredAudiences = nonBlank(environment.getProperty(&quot;AZURE_JWT_AUDIENCES&quot;),</span>
+            appIdUri + &quot;,&quot; + clientId);
+<span class="nc" id="L35">        Set&lt;String&gt; audiences = Arrays.stream(configuredAudiences.split(&quot;,&quot;))</span>
+<span class="nc" id="L36">            .map(String::trim)</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            .filter(value -&gt; !value.isEmpty())</span>
+<span class="nc" id="L38">            .collect(LinkedHashSet::new, Set::add, Set::addAll);</span>
+
+<span class="nc" id="L40">        return decoder(NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build(), issuer, audiences);</span>
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(JwtAuthenticationConverter.class)
+    public JwtAuthenticationConverter sigaJwtAuthenticationConverter() {
+<span class="fc" id="L46">        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();</span>
+<span class="fc" id="L47">        converter.setJwtGrantedAuthoritiesConverter(new JwtClaimAuthoritiesConverter());</span>
+<span class="fc" id="L48">        return converter;</span>
+    }
+
+    static NimbusJwtDecoder decoder(NimbusJwtDecoder decoder, String issuer, Set&lt;String&gt; audiences) {
+<span class="fc" id="L52">        decoder.setJwtValidator(validators(issuer, audiences));</span>
+<span class="fc" id="L53">        return decoder;</span>
+    }
+
+    static OAuth2TokenValidator&lt;Jwt&gt; validators(String issuer, Set&lt;String&gt; audiences) {
+<span class="fc" id="L57">        return new DelegatingOAuth2TokenValidator&lt;&gt;(</span>
+<span class="fc" id="L58">            JwtValidators.createDefaultWithIssuer(issuer),</span>
+            new JwtAudienceValidator(audiences));
+    }
+
+    private static String nonBlank(String value, String fallback) {
+<span class="nc bnc" id="L63" title="All 4 branches missed.">        return value == null || value.isBlank() ? fallback : value.trim();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

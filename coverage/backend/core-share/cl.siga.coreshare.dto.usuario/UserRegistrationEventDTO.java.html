@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserRegistrationEventDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.usuario</a> &gt; <span class="el_source">UserRegistrationEventDTO.java</span></div><h1>UserRegistrationEventDTO.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.usuario;
+
+import java.time.OffsetDateTime;
+
+import cl.siga.coreshare.dto.usuario.enums.Rol;
+import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
+
+/**
+ * Evento canónico del registro asíncrono.
+ *
+ * &lt;p&gt;Se publica dos veces para un mismo proceso:&lt;/p&gt;
+ * &lt;ol&gt;
+ *   &lt;li&gt;Con {@code userId} nulo hacia la etapa de Entra ID (routing key
+ *       {@code user.registration.azure}).&lt;/li&gt;
+ *   &lt;li&gt;Con {@code userId} ya resuelto hacia la cola del microservicio del rol
+ *       (routing keys {@code user.register.*}).&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * &lt;p&gt;Nunca incluye credenciales ni datos de contacto: la contraseña temporal se
+ * cifra y se entrega una única vez por el endpoint de credencial.&lt;/p&gt;
+ */
+<span class="nc" id="L22">public record UserRegistrationEventDTO(</span>
+    String schemaVersion,
+    String eventId,
+    String processId,
+    String correlationId,
+    String email,
+    String fullName,
+    Rol requestedRole,
+    String userId,
+    DatosRegistroRolDTO roleData,
+    OffsetDateTime occurredAt
+) {
+    public static final String CURRENT_SCHEMA_VERSION = &quot;v1&quot;;
+
+    public boolean schemaSoportado() {
+<span class="nc" id="L37">        return CURRENT_SCHEMA_VERSION.equals(schemaVersion);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

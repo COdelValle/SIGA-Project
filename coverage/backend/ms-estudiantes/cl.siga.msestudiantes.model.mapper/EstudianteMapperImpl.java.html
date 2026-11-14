@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EstudianteMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-estudiantes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msestudiantes.model.mapper</a> &gt; <span class="el_source">EstudianteMapperImpl.java</span></div><h1>EstudianteMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.msestudiantes.model.mapper;
+
+import cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.estudiante.RegistrarEstudianteRequestDTO;
+import cl.siga.msestudiantes.model.entity.Estudiante;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:15:16+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="fc" id="L19">public class EstudianteMapperImpl implements EstudianteMapper {</span>
+
+    @Override
+    public Estudiante toEntity(RegistrarEstudianteRequestDTO requestDto) {
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if ( requestDto == null ) {</span>
+<span class="fc" id="L24">            return null;</span>
+        }
+
+<span class="fc" id="L27">        Estudiante.EstudianteBuilder estudiante = Estudiante.builder();</span>
+
+<span class="fc" id="L29">        estudiante.idUsuario( requestDto.idUsuario() );</span>
+<span class="fc" id="L30">        estudiante.rut( requestDto.rut() );</span>
+<span class="fc" id="L31">        estudiante.idClase( requestDto.idClase() );</span>
+<span class="fc" id="L32">        estudiante.firstName( requestDto.firstName() );</span>
+<span class="fc" id="L33">        estudiante.middleName( requestDto.middleName() );</span>
+<span class="fc" id="L34">        estudiante.firstSurname( requestDto.firstSurname() );</span>
+<span class="fc" id="L35">        estudiante.secondSurname( requestDto.secondSurname() );</span>
+<span class="fc" id="L36">        estudiante.birthDate( requestDto.birthDate() );</span>
+<span class="fc" id="L37">        List&lt;String&gt; list = requestDto.allergies();</span>
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">        if ( list != null ) {</span>
+<span class="fc" id="L39">            estudiante.allergies( new ArrayList&lt;String&gt;( list ) );</span>
+        }
+
+<span class="fc" id="L42">        return estudiante.build();</span>
+    }
+
+    @Override
+    public void updateEntityFromDto(ActualizarEstudianteRequestDTO dto, Estudiante estudiante) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L48">            return;</span>
+        }
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if ( dto.idClase() != null ) {</span>
+<span class="fc" id="L52">            estudiante.setIdClase( dto.idClase() );</span>
+        }
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if ( dto.firstName() != null ) {</span>
+<span class="fc" id="L55">            estudiante.setFirstName( dto.firstName() );</span>
+        }
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if ( dto.middleName() != null ) {</span>
+<span class="fc" id="L58">            estudiante.setMiddleName( dto.middleName() );</span>
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if ( dto.firstSurname() != null ) {</span>
+<span class="fc" id="L61">            estudiante.setFirstSurname( dto.firstSurname() );</span>
+        }
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if ( dto.secondSurname() != null ) {</span>
+<span class="fc" id="L64">            estudiante.setSecondSurname( dto.secondSurname() );</span>
+        }
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if ( dto.birthDate() != null ) {</span>
+<span class="fc" id="L67">            estudiante.setBirthDate( dto.birthDate() );</span>
+        }
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if ( estudiante.getAllergies() != null ) {</span>
+<span class="fc" id="L70">            List&lt;String&gt; list = dto.allergies();</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if ( list != null ) {</span>
+<span class="fc" id="L72">                estudiante.getAllergies().clear();</span>
+<span class="fc" id="L73">                estudiante.getAllergies().addAll( list );</span>
+            }
+<span class="fc" id="L75">        }</span>
+        else {
+<span class="fc" id="L77">            List&lt;String&gt; list = dto.allergies();</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            if ( list != null ) {</span>
+<span class="fc" id="L79">                estudiante.setAllergies( new ArrayList&lt;String&gt;( list ) );</span>
+            }
+        }
+<span class="fc" id="L82">    }</span>
+
+    @Override
+    public EstudianteResponseDTO toResponseDto(Estudiante estudiante) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if ( estudiante == null ) {</span>
+<span class="fc" id="L87">            return null;</span>
+        }
+
+<span class="fc" id="L90">        Long id = null;</span>
+<span class="fc" id="L91">        String idUsuario = null;</span>
+<span class="fc" id="L92">        String rut = null;</span>
+<span class="fc" id="L93">        String firstName = null;</span>
+<span class="fc" id="L94">        String middleName = null;</span>
+<span class="fc" id="L95">        String firstSurname = null;</span>
+<span class="fc" id="L96">        String secondSurname = null;</span>
+<span class="fc" id="L97">        LocalDate birthDate = null;</span>
+<span class="fc" id="L98">        List&lt;String&gt; allergies = null;</span>
+<span class="fc" id="L99">        String state = null;</span>
+<span class="fc" id="L100">        Long idClase = null;</span>
+
+<span class="fc" id="L102">        id = estudiante.getId();</span>
+<span class="fc" id="L103">        idUsuario = estudiante.getIdUsuario();</span>
+<span class="fc" id="L104">        rut = estudiante.getRut();</span>
+<span class="fc" id="L105">        firstName = estudiante.getFirstName();</span>
+<span class="fc" id="L106">        middleName = estudiante.getMiddleName();</span>
+<span class="fc" id="L107">        firstSurname = estudiante.getFirstSurname();</span>
+<span class="fc" id="L108">        secondSurname = estudiante.getSecondSurname();</span>
+<span class="fc" id="L109">        birthDate = estudiante.getBirthDate();</span>
+<span class="fc" id="L110">        List&lt;String&gt; list = estudiante.getAllergies();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if ( list != null ) {</span>
+<span class="fc" id="L112">            allergies = new ArrayList&lt;String&gt;( list );</span>
+        }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if ( estudiante.getState() != null ) {</span>
+<span class="fc" id="L115">            state = estudiante.getState().name();</span>
+        }
+<span class="fc" id="L117">        idClase = estudiante.getIdClase();</span>
+
+<span class="fc" id="L119">        EstudianteResponseDTO estudianteResponseDTO = new EstudianteResponseDTO( id, idUsuario, rut, firstName, middleName, firstSurname, secondSurname, birthDate, allergies, state, idClase );</span>
+
+<span class="fc" id="L121">        return estudianteResponseDTO;</span>
+    }
+
+    @Override
+    public List&lt;EstudianteResponseDTO&gt; toResponseDtoList(List&lt;Estudiante&gt; estudiantes) {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if ( estudiantes == null ) {</span>
+<span class="fc" id="L127">            return null;</span>
+        }
+
+<span class="fc" id="L130">        List&lt;EstudianteResponseDTO&gt; list = new ArrayList&lt;EstudianteResponseDTO&gt;( estudiantes.size() );</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        for ( Estudiante estudiante : estudiantes ) {</span>
+<span class="fc" id="L132">            list.add( toResponseDto( estudiante ) );</span>
+<span class="fc" id="L133">        }</span>
+
+<span class="fc" id="L135">        return list;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

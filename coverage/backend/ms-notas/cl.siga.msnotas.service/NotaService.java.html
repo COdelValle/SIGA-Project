@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-notas</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msnotas.service</a> &gt; <span class="el_source">NotaService.java</span></div><h1>NotaService.java</h1><pre class="source lang-java linenums">package cl.siga.msnotas.service;
+
+import java.util.List;
+import java.util.Optional;
+
+import cl.siga.msnotas.client.EvaluacionClient;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
+import cl.siga.coreshare.dto.notas.NotaResponseDTO;
+import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ConflictException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.msnotas.client.EstudianteClient;
+import cl.siga.msnotas.mensajeria.PublicadorNota;
+import cl.siga.msnotas.model.entity.Nota;
+import cl.siga.msnotas.model.mapper.NotaMapper;
+import cl.siga.msnotas.model.specifications.NotaSpecifications;
+import cl.siga.msnotas.repository.NotaRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class NotaService {
+    private final NotaRepository repository;
+
+    private final NotaMapper mapper;
+
+    private final EstudianteClient estudianteClient;
+
+    private final EvaluacionClient evaluacionClient;
+
+    private final PublicadorNota publicador; // Productor RabbitMQ (misma lógica que las otras colas)
+
+    @Transactional (readOnly = true)
+    public NotaResponseDTO getNotaById(Long id) {
+<span class="nc" id="L45">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="nc" id="L46">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+    }
+
+    @Transactional (readOnly = true)
+    public Page&lt;NotaResponseDTO&gt; searchNotas(Long idEstudiante, Long idEvaluacion, Double lessThanScore, Double greaterThanScore, Pageable pageable) {
+<span class="nc" id="L51">        Specification&lt;Nota&gt; spec = NotaSpecifications.isActive()</span>
+<span class="nc" id="L52">                .and(NotaSpecifications.hasIdEstudiante(idEstudiante))</span>
+<span class="nc" id="L53">                .and(NotaSpecifications.hasIdEvaluacion(idEvaluacion))</span>
+<span class="nc" id="L54">                .and(NotaSpecifications.hasScoreGreaterThanOrEqual(greaterThanScore))</span>
+<span class="nc" id="L55">                .and(NotaSpecifications.hasScoreLessThanOrEqual(lessThanScore));</span>
+<span class="nc" id="L56">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+    }
+
+    @Transactional
+    public NotaResponseDTO saveNota(@Valid RegistrarNotaRequestDTO request) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (!estudianteClient.existsById(request.idEstudiante())) {</span>
+<span class="fc" id="L62">            throw new BusinessException(&quot;El estudiante con ID &quot; + request.idEstudiante() + &quot; no existe.&quot;);</span>
+        }
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (!evaluacionClient.existsById(request.idEvaluacion())) {</span>
+<span class="fc" id="L65">            throw new BusinessException(&quot;La evaluación con ID &quot; + request.idEvaluacion() + &quot; no existe.&quot;);</span>
+        }
+
+<span class="fc" id="L68">        Optional&lt;Nota&gt; existente = repository.findByIdEstudianteAndIdEvaluacion(</span>
+<span class="fc" id="L69">                request.idEstudiante(), request.idEvaluacion());</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (existente.isPresent()) {</span>
+<span class="fc" id="L71">            Nota nota = existente.get();</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">            if (nota.isActive()) {</span>
+<span class="fc" id="L73">                throw new ConflictException(&quot;Ya existe una nota del estudiante &quot; + request.idEstudiante()</span>
+<span class="fc" id="L74">                        + &quot; en la evaluación &quot; + request.idEvaluacion() + &quot;.&quot;);</span>
+            }
+            // Recreacion tras un delete logico: se reactiva la misma fila para
+            // mantener la unicidad (id_estudiante, id_evaluacion). La fila ya
+            // existía, así que se avisa como ACTUALIZADA.
+<span class="fc" id="L79">            nota.setScore(request.score());</span>
+<span class="fc" id="L80">            nota.setActive(true);</span>
+<span class="fc" id="L81">            NotaResponseDTO reactivada = mapper.toResponseDto(repository.save(nota));</span>
+<span class="fc" id="L82">            publicador.publicarActualizada(reactivada);</span>
+<span class="fc" id="L83">            return reactivada;</span>
+        }
+
+<span class="fc" id="L86">        Nota nota = mapper.toEntity(request);</span>
+<span class="fc" id="L87">        NotaResponseDTO creada = mapper.toResponseDto(repository.save(nota));</span>
+<span class="fc" id="L88">        publicador.publicarCreada(creada);</span>
+<span class="fc" id="L89">        return creada;</span>
+    }
+
+    @Transactional
+    public NotaResponseDTO updateNota(Long id, @Valid ActualizarNotaRequestDTO request) {
+<span class="fc" id="L94">        Nota existingNota = repository.findByIdAndActiveTrue(id)</span>
+<span class="pc" id="L95">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+
+<span class="fc" id="L97">        mapper.updateEntityFromDto(request, existingNota);</span>
+
+<span class="fc" id="L99">        NotaResponseDTO actualizada = mapper.toResponseDto(repository.save(existingNota));</span>
+<span class="fc" id="L100">        publicador.publicarActualizada(actualizada);</span>
+<span class="fc" id="L101">        return actualizada;</span>
+    }
+
+    @Transactional
+    public void deleteNota(Long id) {
+<span class="fc" id="L106">        Nota existingNota = repository.findById(id)</span>
+<span class="pc" id="L107">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L108">        existingNota.setActive(false);</span>
+<span class="fc" id="L109">        repository.save(existingNota);</span>
+<span class="fc" id="L110">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

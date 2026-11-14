@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SharedFeignAuthConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.config</a> &gt; <span class="el_source">SharedFeignAuthConfig.java</span></div><h1>SharedFeignAuthConfig.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.config;
+
+import org.slf4j.MDC;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+
+import cl.siga.coreshare.security.SecurityUtils;
+import feign.RequestInterceptor;
+
+/**
+ * Propaga el token JWT entrante y el correlation id en las llamadas Feign de
+ * todos los servicios. Si el servicio define su propio {@link RequestInterceptor}
+ * (por ejemplo el BFF), este se omite para no duplicar el header Authorization.
+ */
+@AutoConfiguration
+@ConditionalOnClass(RequestInterceptor.class)
+<span class="fc" id="L19">public class SharedFeignAuthConfig {</span>
+
+    @Bean
+    @ConditionalOnMissingBean(RequestInterceptor.class)
+    public RequestInterceptor authForwardingInterceptor() {
+<span class="fc" id="L24">        return template -&gt; {</span>
+<span class="nc" id="L25">            SecurityUtils.getCurrentJwt()</span>
+<span class="nc" id="L26">                    .ifPresent(jwt -&gt; template.header(&quot;Authorization&quot;, &quot;Bearer &quot; + jwt.getTokenValue()));</span>
+<span class="nc" id="L27">            String correlationId = MDC.get(CorrelationIdConfig.MDC_KEY);</span>
+<span class="nc bnc" id="L28" title="All 2 branches missed.">            if (correlationId != null) {</span>
+<span class="nc" id="L29">                template.header(CorrelationIdConfig.HEADER, correlationId);</span>
+            }
+<span class="nc" id="L31">        };</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

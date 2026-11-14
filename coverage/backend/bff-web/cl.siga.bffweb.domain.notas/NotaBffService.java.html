@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotaBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.notas</a> &gt; <span class="el_source">NotaBffService.java</span></div><h1>NotaBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.notas;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
+import cl.siga.bffweb.domain.notas.dto.AlumnoNotasDTO;
+import cl.siga.bffweb.domain.notas.dto.CursoNotasDTO;
+import cl.siga.bffweb.domain.notas.dto.EvaluacionNotasDTO;
+import cl.siga.bffweb.domain.notas.dto.NotaCursoDTO;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
+import cl.siga.bffweb.integration.notas.NotaClient;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
+import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
+import cl.siga.coreshare.dto.notas.NotaResponseDTO;
+import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Notas y evaluaciones del curso para el portal docente. Valida que la
+ * asignatura pertenezca al docente autenticado antes de leer o escribir.
+ */
+@Service
+@RequiredArgsConstructor
+public class NotaBffService {
+    private static final int PAGE_SIZE = 100;
+
+    private final NotaClient notaClient;
+    private final EvaluacionClient evaluacionClient;
+    private final ClaseClient claseClient;
+    private final EstudianteClient estudianteClient;
+    private final DocenteContextService docenteContext;
+
+    public CursoNotasDTO getCursoNotas(Long idCursoAsignatura) {
+<span class="fc" id="L49">        CursoAsignaturaResponseDTO curso = docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        ClaseResponseDTO clase = curso.idClase() == null</span>
+<span class="nc" id="L51">            ? null</span>
+<span class="fc" id="L52">            : claseClient.getClaseById(curso.idClase());</span>
+
+<span class="fc" id="L54">        List&lt;EvaluacionResponseDTO&gt; evaluaciones = contentOf(</span>
+<span class="fc" id="L55">            evaluacionClient.searchEvaluacionesByAsignatura(idCursoAsignatura, PAGE_SIZE));</span>
+
+<span class="fc" id="L57">        Map&lt;Long, Map&lt;Long, NotaResponseDTO&gt;&gt; notasPorEvaluacion = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        for (EvaluacionResponseDTO evaluacion : evaluaciones) {</span>
+<span class="fc" id="L59">            Map&lt;Long, NotaResponseDTO&gt; porEstudiante = contentOf(</span>
+<span class="fc" id="L60">                    notaClient.searchNotasByEvaluacion(evaluacion.id(), PAGE_SIZE)).stream()</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">                .filter(nota -&gt; nota.idEstudiante() != null)</span>
+<span class="fc" id="L62">                .collect(Collectors.toMap(</span>
+<span class="pc" id="L63">                    NotaResponseDTO::idEstudiante, Function.identity(), (primera, repetida) -&gt; primera));</span>
+<span class="fc" id="L64">            notasPorEvaluacion.put(evaluacion.id(), porEstudiante);</span>
+<span class="fc" id="L65">        }</span>
+
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        List&lt;AlumnoNotasDTO&gt; alumnos = curso.idClase() == null</span>
+<span class="nc" id="L68">            ? List.of()</span>
+<span class="fc" id="L69">            : contentOf(estudianteClient.searchEstudiantesByClase(curso.idClase(), PAGE_SIZE)).stream()</span>
+<span class="fc" id="L70">                .map(estudiante -&gt; new AlumnoNotasDTO(</span>
+<span class="fc" id="L71">                    estudiante.id(),</span>
+<span class="fc" id="L72">                    nombres(estudiante),</span>
+<span class="fc" id="L73">                    estudiante.firstSurname(),</span>
+<span class="fc" id="L74">                    estudiante.secondSurname(),</span>
+<span class="fc" id="L75">                    notasDeAlumno(estudiante.id(), evaluaciones, notasPorEvaluacion)))</span>
+<span class="fc" id="L76">                .toList();</span>
+
+<span class="fc" id="L78">        return new CursoNotasDTO(</span>
+<span class="fc" id="L79">            curso.id(),</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">            clase == null ? curso.nombre() : nombreClase(clase),</span>
+<span class="fc" id="L81">            curso.nombre(),</span>
+<span class="fc" id="L82">            evaluaciones.stream()</span>
+<span class="fc" id="L83">                .map(evaluacion -&gt; new EvaluacionNotasDTO(</span>
+<span class="fc" id="L84">                    evaluacion.id(),</span>
+<span class="fc" id="L85">                    evaluacion.nombre(),</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                    evaluacion.tipo() == null ? null : evaluacion.tipo().name(),</span>
+<span class="fc" id="L87">                    evaluacion.ponderacion()))</span>
+<span class="fc" id="L88">                .toList(),</span>
+            alumnos);
+    }
+
+    public NotaResponseDTO crearNota(RegistrarNotaRequestDTO request) {
+<span class="fc" id="L93">        validarEvaluacionDelDocente(request.idEvaluacion());</span>
+<span class="fc" id="L94">        return notaClient.saveNota(request);</span>
+    }
+
+    public NotaResponseDTO editarNota(Long id, ActualizarNotaRequestDTO request) {
+<span class="fc" id="L98">        NotaResponseDTO nota = notaDe(id);</span>
+<span class="fc" id="L99">        validarEvaluacionDelDocente(nota.idEvaluacion());</span>
+<span class="fc" id="L100">        return notaClient.updateNota(id, request);</span>
+    }
+
+    public void eliminarNota(Long id) {
+<span class="fc" id="L104">        NotaResponseDTO nota = notaDe(id);</span>
+<span class="fc" id="L105">        validarEvaluacionDelDocente(nota.idEvaluacion());</span>
+<span class="fc" id="L106">        notaClient.deleteNota(id);</span>
+<span class="fc" id="L107">    }</span>
+
+    private NotaResponseDTO notaDe(Long id) {
+<span class="fc" id="L110">        NotaResponseDTO nota = notaClient.getNotaById(id);</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (nota == null) {</span>
+<span class="nc" id="L112">            throw new ResourceNotFoundException(&quot;Nota con ID &quot; + id + &quot; no encontrada.&quot;);</span>
+        }
+<span class="fc" id="L114">        return nota;</span>
+    }
+
+    private void validarEvaluacionDelDocente(Long idEvaluacion) {
+<span class="fc" id="L118">        EvaluacionResponseDTO evaluacion = evaluacionDe(idEvaluacion);</span>
+<span class="fc" id="L119">        docenteContext.validarCursoDelDocente(evaluacion.idCursoAsignatura());</span>
+<span class="fc" id="L120">    }</span>
+
+    private EvaluacionResponseDTO evaluacionDe(Long idEvaluacion) {
+<span class="fc" id="L123">        EvaluacionResponseDTO evaluacion = evaluacionClient.getEvaluacionById(idEvaluacion);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (evaluacion == null) {</span>
+<span class="nc" id="L125">            throw new ResourceNotFoundException(</span>
+                &quot;Evaluación con ID &quot; + idEvaluacion + &quot; no encontrada.&quot;);
+        }
+<span class="fc" id="L128">        return evaluacion;</span>
+    }
+
+    private static List&lt;NotaCursoDTO&gt; notasDeAlumno(
+            Long idEstudiante,
+            List&lt;EvaluacionResponseDTO&gt; evaluaciones,
+            Map&lt;Long, Map&lt;Long, NotaResponseDTO&gt;&gt; notasPorEvaluacion) {
+<span class="fc" id="L135">        return evaluaciones.stream()</span>
+<span class="fc" id="L136">            .map(evaluacion -&gt; notasPorEvaluacion</span>
+<span class="fc" id="L137">                .getOrDefault(evaluacion.id(), Collections.emptyMap())</span>
+<span class="fc" id="L138">                .get(idEstudiante))</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">            .filter(nota -&gt; nota != null)</span>
+<span class="fc" id="L140">            .map(nota -&gt; new NotaCursoDTO(nota.id(), nota.idEvaluacion(), nota.score()))</span>
+<span class="fc" id="L141">            .toList();</span>
+    }
+
+    private static String nombres(EstudianteResponseDTO estudiante) {
+<span class="fc" id="L145">        return Stream.of(estudiante.firstName(), estudiante.middleName())</span>
+<span class="pc bpc" id="L146" title="2 of 4 branches missed.">            .filter(parte -&gt; parte != null &amp;&amp; !parte.isBlank())</span>
+<span class="fc" id="L147">            .collect(Collectors.joining(&quot; &quot;));</span>
+    }
+
+    private static String nombreClase(ClaseResponseDTO clase) {
+<span class="fc" id="L151">        return clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
+<span class="pc bpc" id="L155" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

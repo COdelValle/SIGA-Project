@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.exception;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import cl.siga.coreshare.exception.dto.ErrorResponseDTO;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+
+<span class="fc" id="L23">@Slf4j </span>
+@RestControllerAdvice 
+<span class="fc" id="L25">public class GlobalExceptionHandler {</span>
+
+    // 1. Validaciones de DTOs (@Valid)
+    @ExceptionHandler (MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleValidation(MethodArgumentNotValidException ex) {
+<span class="nc" id="L30">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L31">        ex.getBindingResult().getFieldErrors().forEach(error -&gt; </span>
+<span class="nc" id="L32">            errors.put(error.getField(), error.getDefaultMessage())</span>
+        );
+<span class="nc" id="L34">        log.warn(&quot;Datos de entrada invalidos: {}&quot;, errors);</span>
+<span class="nc" id="L35">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Validation Error&quot;, &quot;Datos de entrada inválidos&quot;, errors));
+    }
+
+    // 1b. Validaciones de parámetros (@Validated en servicios/controladores)
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleConstraintViolation(ConstraintViolationException ex) {
+<span class="nc" id="L42">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L43">        ex.getConstraintViolations().forEach(violation -&gt;</span>
+<span class="nc" id="L44">            errors.put(violation.getPropertyPath().toString(), violation.getMessage())</span>
+        );
+<span class="nc" id="L46">        log.warn(&quot;Parametros invalidos: {}&quot;, errors);</span>
+<span class="nc" id="L47">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Validation Error&quot;, &quot;Parámetros inválidos&quot;, errors));
+    }
+
+    // 1c. Cuerpo o formato de dato ilegible (JSON inválido, enum/fecha inválida)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleNotReadable(HttpMessageNotReadableException ex) {
+<span class="fc" id="L54">        String detalle = ex.getMostSpecificCause().getMessage();</span>
+<span class="fc" id="L55">        log.warn(&quot;Cuerpo o formato de datos invalido: {}&quot;, detalle);</span>
+<span class="fc" id="L56">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;,
+            &quot;Cuerpo o formato de datos inválido: &quot; + detalle, null));
+    }
+
+    // 1d. Parametro de URL con tipo invalido (p. ej. enum o fecha mal formada)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+<span class="nc" id="L64">        String detail = &quot;El parametro '&quot; + ex.getName() + &quot;' tiene un formato invalido.&quot;;</span>
+<span class="nc" id="L65">        log.warn(&quot;{} Valor recibido: {}&quot;, detail, ex.getValue());</span>
+<span class="nc" id="L66">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, detail, null));
+    }
+
+    // 1e. Parametro obligatorio ausente
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleMissingParameter(MissingServletRequestParameterException ex) {
+<span class="fc" id="L73">        String detail = &quot;Falta el parametro obligatorio '&quot; + ex.getParameterName() + &quot;'.&quot;;</span>
+<span class="fc" id="L74">        log.warn(detail);</span>
+<span class="fc" id="L75">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, detail, null));
+    }
+
+    // 1f. Sort con un campo que no existe en la entidad
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handlePropertyReference(PropertyReferenceException ex) {
+<span class="nc" id="L82">        String detail = &quot;El parametro 'sort' contiene un campo invalido: '&quot; + ex.getPropertyName() + &quot;'.&quot;;</span>
+<span class="nc" id="L83">        log.warn(detail);</span>
+<span class="nc" id="L84">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+            HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, detail, null));
+    }
+
+    // 2. Recursos no encontrados (404)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleNotFound(ResourceNotFoundException ex) {
+<span class="fc" id="L91">        log.debug(&quot;Recurso no encontrado: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L92">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L93">            HttpStatus.NOT_FOUND, &quot;Not Found&quot;, ex.getMessage(), null));</span>
+    }
+
+    // 2b. Rutas o recursos estáticos inexistentes (404 real, sin enmascarar como 500)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleNoResource(NoResourceFoundException ex) {
+<span class="nc" id="L99">        log.debug(&quot;Ruta no encontrada: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L100">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDTO.of(</span>
+            HttpStatus.NOT_FOUND, &quot;Not Found&quot;, &quot;Recurso no encontrado&quot;, null));
+    }
+
+    // 2c. Metodo HTTP no soportado por el endpoint (405)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+<span class="fc" id="L107">        log.warn(&quot;Metodo HTTP no soportado: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L108">        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ErrorResponseDTO.of(</span>
+            HttpStatus.METHOD_NOT_ALLOWED, &quot;Method Not Allowed&quot;, &quot;Método HTTP no soportado para este recurso&quot;, null));
+    }
+
+    // 3. Errores de Negocio o Solicitud Incorrecta (400)
+    @ExceptionHandler({BadRequestException.class, BusinessException.class})
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleBadRequest(RuntimeException ex) {
+<span class="fc" id="L115">        log.warn(&quot;Solicitud invalida: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L116">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L117">            HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, ex.getMessage(), null));</span>
+    }
+
+    // 3b. Acceso denegado (403) lanzado desde la capa de servicio
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+<span class="fc" id="L123">        log.warn(&quot;Acceso denegado: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L124">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponseDTO.of(</span>
+            HttpStatus.FORBIDDEN, &quot;Forbidden&quot;,
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">            ex.getMessage() != null ? ex.getMessage() : &quot;No tienes permisos para realizar esta acción&quot;, null));</span>
+    }
+
+    // 4. Conflictos de integridad de datos (409)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleDataIntegrity(DataIntegrityViolationException ex) {
+<span class="fc" id="L132">        log.warn(&quot;Conflicto de integridad de datos: {}&quot;, ex.getMostSpecificCause().getMessage());</span>
+<span class="fc" id="L133">        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponseDTO.of(</span>
+            HttpStatus.CONFLICT, &quot;Conflict&quot;, &quot;Conflicto de integridad de datos&quot;, null));
+    }
+
+    // 4b. Conflictos de estado (409) lanzados desde la capa de servicio
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleConflict(ConflictException ex) {
+<span class="fc" id="L140">        log.warn(&quot;Conflicto de estado: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L141">        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L142">            HttpStatus.CONFLICT, &quot;Conflict&quot;, ex.getMessage(), null));</span>
+    }
+
+    // 5. Servicio no disponible (503)
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleServiceUnavailable(ServiceUnavailableException ex) {
+<span class="fc" id="L148">        log.error(&quot;Servicio no disponible: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L149">        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L150">            HttpStatus.SERVICE_UNAVAILABLE, &quot;Service Unavailable&quot;, ex.getMessage(), null));</span>
+    }
+
+    // 6. Errores no controlados (500)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorResponseDTO&gt; handleGeneric(Exception ex) {
+<span class="fc" id="L156">        log.error(&quot;Error inesperado no controlado&quot;, ex);</span>
+<span class="fc" id="L157">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorResponseDTO.of(</span>
+            HttpStatus.INTERNAL_SERVER_ERROR, &quot;Internal Error&quot;, &quot;Ha ocurrido un error inesperado&quot;, null));
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

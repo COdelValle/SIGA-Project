@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApoderadoMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-apoderados</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msapoderados.model.mapper</a> &gt; <span class="el_source">ApoderadoMapperImpl.java</span></div><h1>ApoderadoMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.msapoderados.model.mapper;
+
+import cl.siga.coreshare.dto.apoderado.ActualizarApoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.apoderado.RegistrarApoderadoRequestDTO;
+import cl.siga.coreshare.dto.apoderado.parentesco.ParentescoEstudianteDTO;
+import cl.siga.coreshare.dto.apoderado.parentesco.enums.Parentesco;
+import cl.siga.msapoderados.model.entity.Apoderado;
+import cl.siga.msapoderados.model.entity.ApoderadoEstudiante;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:16:16+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="fc" id="L21">public class ApoderadoMapperImpl implements ApoderadoMapper {</span>
+
+    @Override
+    public Apoderado toEntity(RegistrarApoderadoRequestDTO requestDto) {
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        if ( requestDto == null ) {</span>
+<span class="fc" id="L26">            return null;</span>
+        }
+
+<span class="fc" id="L29">        Apoderado.ApoderadoBuilder apoderado = Apoderado.builder();</span>
+
+<span class="fc" id="L31">        apoderado.idUsuario( requestDto.idUsuario() );</span>
+<span class="fc" id="L32">        apoderado.rut( requestDto.rut() );</span>
+<span class="fc" id="L33">        apoderado.firstName( requestDto.firstName() );</span>
+<span class="fc" id="L34">        apoderado.middleName( requestDto.middleName() );</span>
+<span class="fc" id="L35">        apoderado.firstSurname( requestDto.firstSurname() );</span>
+<span class="fc" id="L36">        apoderado.secondSurname( requestDto.secondSurname() );</span>
+<span class="fc" id="L37">        List&lt;String&gt; list = requestDto.telefonos();</span>
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">        if ( list != null ) {</span>
+<span class="fc" id="L39">            apoderado.telefonos( new ArrayList&lt;String&gt;( list ) );</span>
+        }
+<span class="fc" id="L41">        apoderado.estudiantes( parentescoEstudianteDTOListToApoderadoEstudianteList( requestDto.estudiantes() ) );</span>
+
+<span class="fc" id="L43">        return apoderado.build();</span>
+    }
+
+    @Override
+    public void updateEntityFromDto(ActualizarApoderadoRequestDTO dto, Apoderado apoderado) {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L49">            return;</span>
+        }
+
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if ( dto.firstName() != null ) {</span>
+<span class="fc" id="L53">            apoderado.setFirstName( dto.firstName() );</span>
+        }
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if ( dto.middleName() != null ) {</span>
+<span class="fc" id="L56">            apoderado.setMiddleName( dto.middleName() );</span>
+        }
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if ( dto.firstSurname() != null ) {</span>
+<span class="fc" id="L59">            apoderado.setFirstSurname( dto.firstSurname() );</span>
+        }
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if ( dto.secondSurname() != null ) {</span>
+<span class="fc" id="L62">            apoderado.setSecondSurname( dto.secondSurname() );</span>
+        }
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        if ( apoderado.getTelefonos() != null ) {</span>
+<span class="fc" id="L65">            List&lt;String&gt; list = dto.telefonos();</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            if ( list != null ) {</span>
+<span class="fc" id="L67">                apoderado.getTelefonos().clear();</span>
+<span class="fc" id="L68">                apoderado.getTelefonos().addAll( list );</span>
+            }
+<span class="fc" id="L70">        }</span>
+        else {
+<span class="nc" id="L72">            List&lt;String&gt; list = dto.telefonos();</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">            if ( list != null ) {</span>
+<span class="nc" id="L74">                apoderado.setTelefonos( new ArrayList&lt;String&gt;( list ) );</span>
+            }
+        }
+<span class="fc" id="L77">    }</span>
+
+    @Override
+    public ApoderadoResponseDTO toResponseDto(Apoderado apoderado) {
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if ( apoderado == null ) {</span>
+<span class="fc" id="L82">            return null;</span>
+        }
+
+<span class="fc" id="L85">        Long id = null;</span>
+<span class="fc" id="L86">        String idUsuario = null;</span>
+<span class="fc" id="L87">        String firstName = null;</span>
+<span class="fc" id="L88">        String middleName = null;</span>
+<span class="fc" id="L89">        String firstSurname = null;</span>
+<span class="fc" id="L90">        String secondSurname = null;</span>
+<span class="fc" id="L91">        String rut = null;</span>
+<span class="fc" id="L92">        List&lt;String&gt; telefonos = null;</span>
+<span class="fc" id="L93">        List&lt;ParentescoEstudianteDTO&gt; estudiantes = null;</span>
+<span class="fc" id="L94">        Boolean activo = null;</span>
+
+<span class="fc" id="L96">        id = apoderado.getId();</span>
+<span class="fc" id="L97">        idUsuario = apoderado.getIdUsuario();</span>
+<span class="fc" id="L98">        firstName = apoderado.getFirstName();</span>
+<span class="fc" id="L99">        middleName = apoderado.getMiddleName();</span>
+<span class="fc" id="L100">        firstSurname = apoderado.getFirstSurname();</span>
+<span class="fc" id="L101">        secondSurname = apoderado.getSecondSurname();</span>
+<span class="fc" id="L102">        rut = apoderado.getRut();</span>
+<span class="fc" id="L103">        List&lt;String&gt; list = apoderado.getTelefonos();</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if ( list != null ) {</span>
+<span class="fc" id="L105">            telefonos = new ArrayList&lt;String&gt;( list );</span>
+        }
+<span class="fc" id="L107">        estudiantes = apoderadoEstudianteListToParentescoEstudianteDTOList( apoderado.getEstudiantes() );</span>
+<span class="fc" id="L108">        activo = apoderado.getActivo();</span>
+
+<span class="fc" id="L110">        ApoderadoResponseDTO apoderadoResponseDTO = new ApoderadoResponseDTO( id, idUsuario, firstName, middleName, firstSurname, secondSurname, rut, telefonos, estudiantes, activo );</span>
+
+<span class="fc" id="L112">        return apoderadoResponseDTO;</span>
+    }
+
+    @Override
+    public List&lt;ApoderadoResponseDTO&gt; toResponseDtoList(List&lt;Apoderado&gt; apoderados) {
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        if ( apoderados == null ) {</span>
+<span class="fc" id="L118">            return null;</span>
+        }
+
+<span class="fc" id="L121">        List&lt;ApoderadoResponseDTO&gt; list = new ArrayList&lt;ApoderadoResponseDTO&gt;( apoderados.size() );</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        for ( Apoderado apoderado : apoderados ) {</span>
+<span class="fc" id="L123">            list.add( toResponseDto( apoderado ) );</span>
+<span class="fc" id="L124">        }</span>
+
+<span class="fc" id="L126">        return list;</span>
+    }
+
+    @Override
+    public ApoderadoEstudiante toApoderadoEstudianteEntity(ParentescoEstudianteDTO dto) {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L132">            return null;</span>
+        }
+
+<span class="fc" id="L135">        ApoderadoEstudiante.ApoderadoEstudianteBuilder apoderadoEstudiante = ApoderadoEstudiante.builder();</span>
+
+<span class="fc" id="L137">        apoderadoEstudiante.idEstudiante( dto.idEstudiante() );</span>
+<span class="fc" id="L138">        apoderadoEstudiante.parentesco( dto.parentesco() );</span>
+
+<span class="fc" id="L140">        return apoderadoEstudiante.build();</span>
+    }
+
+    @Override
+    public ParentescoEstudianteDTO toParentescoEstudianteDto(ApoderadoEstudiante entity) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if ( entity == null ) {</span>
+<span class="fc" id="L146">            return null;</span>
+        }
+
+<span class="fc" id="L149">        Long idEstudiante = null;</span>
+<span class="fc" id="L150">        Parentesco parentesco = null;</span>
+
+<span class="fc" id="L152">        idEstudiante = entity.getIdEstudiante();</span>
+<span class="fc" id="L153">        parentesco = entity.getParentesco();</span>
+
+<span class="fc" id="L155">        ParentescoEstudianteDTO parentescoEstudianteDTO = new ParentescoEstudianteDTO( idEstudiante, parentesco );</span>
+
+<span class="fc" id="L157">        return parentescoEstudianteDTO;</span>
+    }
+
+    protected List&lt;ApoderadoEstudiante&gt; parentescoEstudianteDTOListToApoderadoEstudianteList(List&lt;ParentescoEstudianteDTO&gt; list) {
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if ( list == null ) {</span>
+<span class="nc" id="L162">            return null;</span>
+        }
+
+<span class="fc" id="L165">        List&lt;ApoderadoEstudiante&gt; list1 = new ArrayList&lt;ApoderadoEstudiante&gt;( list.size() );</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        for ( ParentescoEstudianteDTO parentescoEstudianteDTO : list ) {</span>
+<span class="fc" id="L167">            list1.add( toApoderadoEstudianteEntity( parentescoEstudianteDTO ) );</span>
+<span class="fc" id="L168">        }</span>
+
+<span class="fc" id="L170">        return list1;</span>
+    }
+
+    protected List&lt;ParentescoEstudianteDTO&gt; apoderadoEstudianteListToParentescoEstudianteDTOList(List&lt;ApoderadoEstudiante&gt; list) {
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if ( list == null ) {</span>
+<span class="nc" id="L175">            return null;</span>
+        }
+
+<span class="fc" id="L178">        List&lt;ParentescoEstudianteDTO&gt; list1 = new ArrayList&lt;ParentescoEstudianteDTO&gt;( list.size() );</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        for ( ApoderadoEstudiante apoderadoEstudiante : list ) {</span>
+<span class="fc" id="L180">            list1.add( toParentescoEstudianteDto( apoderadoEstudiante ) );</span>
+<span class="fc" id="L181">        }</span>
+
+<span class="fc" id="L183">        return list1;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

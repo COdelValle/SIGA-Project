@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsistenciaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-asistencias</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msasistencias.service</a> &gt; <span class="el_source">AsistenciaService.java</span></div><h1>AsistenciaService.java</h1><pre class="source lang-java linenums">package cl.siga.msasistencias.service;
+
+import java.time.LocalDate;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import cl.siga.coreshare.dto.asistencia.ActualizarAsistenciaRequestDTO;
+import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
+import cl.siga.coreshare.dto.asistencia.RegistrarAsistenciaRequestDTO;
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.msasistencias.client.AsignaturaClient;
+import cl.siga.msasistencias.client.EstudianteClient;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
+import cl.siga.msasistencias.model.entity.Asistencia;
+import cl.siga.msasistencias.model.mapper.AsistenciaMapper;
+import cl.siga.msasistencias.model.specifications.AsistenciaSpecifications;
+import cl.siga.msasistencias.repository.AsistenciaRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@Validated
+@RequiredArgsConstructor
+public class AsistenciaService {
+    private final AsistenciaRepository repository;
+    private final AsistenciaMapper mapper;
+    private final EstudianteClient estudianteClient;
+    private final AsignaturaClient asignaturaClient;
+    private final PublicadorAsistencia publicador; // Productor RabbitMQ (misma lógica que evaluaciones)
+
+    @Transactional(readOnly = true)
+    public AsistenciaResponseDTO getAsistenciaById(Long id) {
+<span class="pc" id="L42">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="pc" id="L43">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Page&lt;AsistenciaResponseDTO&gt; searchAsistencias(
+            Long idEstudiante,
+            Long idCursoAsignatura,
+            LocalDate from,
+            LocalDate to,
+            State estado,
+            Pageable pageable) {
+<span class="nc" id="L54">        Specification&lt;Asistencia&gt; spec = AsistenciaSpecifications.isActive()</span>
+<span class="nc" id="L55">            .and(AsistenciaSpecifications.hasIdEstudiante(idEstudiante))</span>
+<span class="nc" id="L56">            .and(AsistenciaSpecifications.hasIdCursoAsignatura(idCursoAsignatura))</span>
+<span class="nc" id="L57">            .and(AsistenciaSpecifications.hasFechaGreaterThanOrEqual(from))</span>
+<span class="nc" id="L58">            .and(AsistenciaSpecifications.hasFechaLessThanOrEqual(to))</span>
+<span class="nc" id="L59">            .and(AsistenciaSpecifications.hasEstado(estado));</span>
+<span class="nc" id="L60">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+    }
+
+    @Transactional
+    public AsistenciaResponseDTO saveAsistencia(@Valid RegistrarAsistenciaRequestDTO request) {
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (!estudianteClient.existsById(request.idEstudiante())) {</span>
+<span class="fc" id="L66">            throw new BusinessException(&quot;El estudiante no existe: &quot; + request.idEstudiante());</span>
+        }
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (!asignaturaClient.existsById(request.idCursoAsignatura())) {</span>
+<span class="nc" id="L69">            throw new BusinessException(&quot;La dictación no existe: &quot; + request.idCursoAsignatura());</span>
+        }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(</span>
+<span class="fc" id="L72">                request.idEstudiante(), request.idCursoAsignatura(), request.fecha())) {</span>
+<span class="fc" id="L73">            throw new BusinessException(&quot;Ya existe asistencia para el estudiante &quot;</span>
+<span class="fc" id="L74">                + request.idEstudiante() + &quot; en la dictación &quot; + request.idCursoAsignatura()</span>
+<span class="fc" id="L75">                + &quot; el &quot; + request.fecha() + &quot;.&quot;);</span>
+        }
+
+<span class="fc" id="L78">        Asistencia asistencia = mapper.toEntity(request);</span>
+        // Presente =&gt; No aplica; ausente/atrasado =&gt; Pendiente (hasta gestionar justificacion).
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        asistencia.setJustificacion(request.estado() == State.PRESENTE</span>
+<span class="fc" id="L81">            ? Justificacion.NO_APLICA</span>
+<span class="fc" id="L82">            : Justificacion.PENDIENTE);</span>
+<span class="fc" id="L83">        asistencia.setActive(true);</span>
+<span class="fc" id="L84">        AsistenciaResponseDTO creada = mapper.toResponseDto(repository.save(asistencia));</span>
+
+        // Productor: solo se avisa si el estado es AUSENTE o ATRASADO (el PUT de justificación no notifica).
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (creada.estado() != State.PRESENTE) {</span>
+<span class="fc" id="L88">            double porcentajeInasistencia = calcularPorcentajeInasistenciaDelMes(</span>
+<span class="fc" id="L89">                creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            publicador.publicarRegistrada(</span>
+                creada,
+                porcentajeInasistencia,
+                porcentajeInasistencia &gt;= NombresMensajeria.UMBRAL_INASISTENCIA);
+        }
+<span class="fc" id="L95">        return creada;</span>
+    }
+
+    @Transactional
+    public AsistenciaResponseDTO updateAsistencia(Long id, @Valid ActualizarAsistenciaRequestDTO request) {
+<span class="fc" id="L100">        Asistencia asistencia = repository.findByIdAndActiveTrue(id)</span>
+<span class="pc" id="L101">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L102">        mapper.updateEntityFromDto(request, asistencia);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (request.estado() != null) {</span>
+            // Correccion de la marcacion por parte del docente: se normaliza la
+            // justificacion asociada al nuevo estado.
+<span class="fc" id="L106">            asistencia.setEstado(request.estado());</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (request.estado() == State.PRESENTE) {</span>
+<span class="fc" id="L108">                asistencia.setJustificacion(Justificacion.NO_APLICA);</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">            } else if (asistencia.getJustificacion() == Justificacion.NO_APLICA) {</span>
+<span class="nc" id="L110">                asistencia.setJustificacion(Justificacion.PENDIENTE);</span>
+            }
+        }
+<span class="fc" id="L113">        return mapper.toResponseDto(repository.save(asistencia));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsAsistenciaById(Long id) {
+<span class="nc" id="L118">        return repository.findByIdAndActiveTrue(id).isPresent();</span>
+    }
+
+    /**
+     * Porcentaje de inasistencia del estudiante en la dictación durante el mes
+     * calendario de la fecha: faltas AUSENTE / total de sus registros del mes, en %.
+     * Solo cuentan los registros activos; si no hay registros, devuelve 0 para
+     * no dividir por cero.
+     */
+    public double calcularPorcentajeInasistenciaDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
+<span class="fc" id="L128">        LocalDate inicioMes = fecha.withDayOfMonth(1);</span>
+<span class="fc" id="L129">        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());</span>
+
+<span class="fc" id="L131">        long faltas = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(</span>
+            idEstudiante, idCursoAsignatura, inicioMes, finMes, State.AUSENTE);
+<span class="fc" id="L133">        long total = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(</span>
+            idEstudiante, idCursoAsignatura, inicioMes, finMes);
+
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        if (total == 0) {</span>
+<span class="nc" id="L137">            return 0.0;</span>
+        }
+<span class="fc" id="L139">        return (faltas * 100.0) / total;</span>
+    }
+
+    @Transactional
+    public void deleteAsistencia(Long id) {
+<span class="fc" id="L144">        Asistencia asistencia = repository.findById(id)</span>
+<span class="pc" id="L145">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L146">        asistencia.setActive(false);</span>
+<span class="fc" id="L147">        repository.save(asistencia);</span>
+<span class="fc" id="L148">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocenteBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.docentes</a> &gt; <span class="el_source">DocenteBffService.java</span></div><h1>DocenteBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.docentes;
+
+import java.time.LocalTime;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.docentes.dto.AlumnoDTO;
+import cl.siga.bffweb.domain.docentes.dto.ClaseDocenteDTO;
+import cl.siga.bffweb.domain.docentes.dto.CursoDocenteDTO;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Cursos y horario del docente autenticado: dictaciones (ms-asignaturas) -&gt;
+ * clases (ms-clases) -&gt; alumnos (ms-estudiantes).
+ */
+@Service
+@RequiredArgsConstructor
+public class DocenteBffService {
+    private static final int PAGE_SIZE = 100;
+<span class="fc" id="L33">    private static final List&lt;String&gt; ORDEN_DIAS =</span>
+<span class="fc" id="L34">        List.of(&quot;Lunes&quot;, &quot;Martes&quot;, &quot;Miércoles&quot;, &quot;Jueves&quot;, &quot;Viernes&quot;);</span>
+
+    private final DocenteContextService docenteContext;
+    private final ClaseClient claseClient;
+    private final EstudianteClient estudianteClient;
+
+    public List&lt;CursoDocenteDTO&gt; getCursos() {
+<span class="fc" id="L41">        DocenteResponseDTO docente = docenteContext.docenteActual();</span>
+<span class="fc" id="L42">        return docenteContext.cursosDelDocente(docente.id()).stream()</span>
+<span class="fc" id="L43">            .map(curso -&gt; toCurso(docente.id(), curso))</span>
+<span class="fc" id="L44">            .toList();</span>
+    }
+
+    public List&lt;ClaseDocenteDTO&gt; getHorario() {
+<span class="fc" id="L48">        DocenteResponseDTO docente = docenteContext.docenteActual();</span>
+<span class="fc" id="L49">        return docenteContext.cursosDelDocente(docente.id()).stream()</span>
+<span class="fc" id="L50">            .flatMap(curso -&gt; toClases(curso).stream())</span>
+<span class="fc" id="L51">            .sorted(Comparator</span>
+<span class="fc" id="L52">                .comparingInt((ClaseDocenteDTO clase) -&gt; ORDEN_DIAS.indexOf(clase.dia()))</span>
+<span class="fc" id="L53">                .thenComparingInt(ClaseDocenteDTO::franja))</span>
+<span class="fc" id="L54">            .toList();</span>
+    }
+
+    private CursoDocenteDTO toCurso(Long docenteId, CursoAsignaturaResponseDTO curso) {
+<span class="fc" id="L58">        ClaseResponseDTO clase = claseClient.getClaseById(curso.idClase());</span>
+<span class="fc" id="L59">        List&lt;AlumnoDTO&gt; alumnos = contentOf(</span>
+<span class="fc" id="L60">                estudianteClient.searchEstudiantesByClase(curso.idClase(), PAGE_SIZE)).stream()</span>
+<span class="fc" id="L61">            .map(estudiante -&gt; new AlumnoDTO(</span>
+<span class="fc" id="L62">                estudiante.id(), nombres(estudiante),</span>
+<span class="fc" id="L63">                estudiante.firstSurname(), estudiante.secondSurname()))</span>
+<span class="fc" id="L64">            .toList();</span>
+<span class="fc" id="L65">        return new CursoDocenteDTO(</span>
+<span class="fc" id="L66">            curso.id(),</span>
+<span class="fc" id="L67">            curso.idAsignatura(),</span>
+<span class="fc" id="L68">            nombreClase(clase),</span>
+<span class="fc" id="L69">            clase.nivel().ordinal() + 1,</span>
+<span class="fc" id="L70">            clase.letra(),</span>
+<span class="fc" id="L71">            curso.nombre(),</span>
+            docenteId,
+<span class="fc" id="L73">            sala(curso, clase),</span>
+<span class="fc" id="L74">            diasClase(curso),</span>
+            alumnos);
+    }
+
+    private List&lt;ClaseDocenteDTO&gt; toClases(CursoAsignaturaResponseDTO curso) {
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        ClaseResponseDTO clase = curso.idClase() == null</span>
+<span class="nc" id="L80">            ? null</span>
+<span class="fc" id="L81">            : claseClient.getClaseById(curso.idClase());</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        String nombreCurso = clase == null ? curso.nombre() : nombreClase(clase);</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        return (curso.horarios() == null ? Collections.&lt;HorarioResponseDTO&gt;emptyList() : curso.horarios())</span>
+<span class="fc" id="L84">            .stream()</span>
+<span class="fc" id="L85">            .map(horario -&gt; new ClaseDocenteDTO(</span>
+<span class="fc" id="L86">                franja(horario.horarioEntrada()),</span>
+<span class="fc" id="L87">                curso.id(),</span>
+                nombreCurso,
+<span class="fc" id="L89">                curso.nombre(),</span>
+<span class="fc" id="L90">                horario.ubicacion(),</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                horario.dia() == null ? null : horario.dia().getNombre(),</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">                horario.horarioSalida() == null ? null : horario.horarioSalida().toString()))</span>
+<span class="fc" id="L94">            .toList();</span>
+    }
+
+    private static String nombres(EstudianteResponseDTO estudiante) {
+<span class="fc" id="L98">        return Stream.of(estudiante.firstName(), estudiante.middleName())</span>
+<span class="pc bpc" id="L99" title="2 of 4 branches missed.">            .filter(parte -&gt; parte != null &amp;&amp; !parte.isBlank())</span>
+<span class="fc" id="L100">            .collect(Collectors.joining(&quot; &quot;));</span>
+    }
+
+    private static String nombreClase(ClaseResponseDTO clase) {
+<span class="fc" id="L104">        return clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
+    }
+
+    private static String sala(CursoAsignaturaResponseDTO curso, ClaseResponseDTO clase) {
+<span class="pc bpc" id="L108" title="2 of 4 branches missed.">        if (curso.horarios() != null &amp;&amp; !curso.horarios().isEmpty()) {</span>
+<span class="fc" id="L109">            return curso.horarios().get(0).ubicacion();</span>
+        }
+<span class="nc" id="L111">        return &quot;Sala &quot; + clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
+    }
+
+    private static List&lt;String&gt; diasClase(CursoAsignaturaResponseDTO curso) {
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (curso.horarios() == null) {</span>
+<span class="nc" id="L116">            return List.of();</span>
+        }
+<span class="fc" id="L118">        return curso.horarios().stream()</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">            .map(horario -&gt; horario.dia() == null ? null : horario.dia().getNombre())</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            .filter(dia -&gt; dia != null)</span>
+<span class="fc" id="L121">            .distinct()</span>
+<span class="fc" id="L122">            .sorted(Comparator.comparingInt(ORDEN_DIAS::indexOf))</span>
+<span class="fc" id="L123">            .toList();</span>
+    }
+
+    /** Franja (bloque doble) a partir de la hora de entrada de 45 minutos. */
+    private static int franja(LocalTime hora) {
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (hora == null) {</span>
+<span class="nc" id="L129">            return 0;</span>
+        }
+<span class="pc bpc" id="L131" title="1 of 4 branches missed.">        return switch (hora.toString()) {</span>
+<span class="fc" id="L132">            case &quot;08:00&quot;, &quot;08:45&quot; -&gt; 1;</span>
+<span class="fc" id="L133">            case &quot;09:50&quot;, &quot;10:35&quot; -&gt; 2;</span>
+<span class="nc" id="L134">            case &quot;12:15&quot;, &quot;13:00&quot; -&gt; 3;</span>
+<span class="fc" id="L135">            default -&gt; 4;</span>
+        };
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
+<span class="pc bpc" id="L140" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

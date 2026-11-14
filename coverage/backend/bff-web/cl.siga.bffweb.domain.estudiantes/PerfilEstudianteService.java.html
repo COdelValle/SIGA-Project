@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilEstudianteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.estudiantes</a> &gt; <span class="el_source">PerfilEstudianteService.java</span></div><h1>PerfilEstudianteService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.estudiantes;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cl.siga.bffweb.domain.estudiantes.dto.api.PerfilEstudianteResponseDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.AsignaturaDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.EvaluacionDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.dto.internal.HorarioDetalleDTO;
+import cl.siga.bffweb.domain.estudiantes.mapper.PerfilEstudianteMapper;
+import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.docentes.DocenteClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.bffweb.integration.evaluaciones.EvaluacionClient;
+import cl.siga.bffweb.integration.notas.NotaClient;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.asignatura.enums.CaracterAsignatura;
+import cl.siga.coreshare.dto.asignatura.inscripcion.InscripcionResponseDTO;
+import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.docente.DocenteResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.notas.NotaResponseDTO;
+import cl.siga.coreshare.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Orquesta el perfil academico siguiendo el flujo
+ * estudiante -&gt; clase -&gt; dictaciones -&gt; evaluaciones -&gt; notas.
+ */
+@Service 
+@RequiredArgsConstructor 
+public class PerfilEstudianteService {
+    private static final int PAGE_SIZE = 200;
+
+    private final EstudianteClient estudianteClient;
+    private final ClaseClient claseClient;
+    private final AsignaturaClient asignaturaClient;
+    private final EvaluacionClient evaluacionClient;
+    private final NotaClient notaClient;
+    private final DocenteClient docenteClient;
+
+    private final PerfilEstudianteMapper mapper;
+
+    @Transactional (readOnly = true)
+    public PerfilEstudianteResponseDTO getPerfil(Long id) {
+<span class="fc" id="L60">        return buildPerfil(estudianteClient.getEstudianteById(id));</span>
+    }
+
+    @Transactional (readOnly = true)
+    public PerfilEstudianteResponseDTO getPerfilMe() {
+<span class="fc" id="L65">        String oid = SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L66">            .orElseThrow(() -&gt; new AccessDeniedException(&quot;No se pudo identificar al usuario autenticado.&quot;));</span>
+<span class="fc" id="L67">        return buildPerfil(estudianteClient.getEstudianteByIdUsuario(oid));</span>
+    }
+
+    private PerfilEstudianteResponseDTO buildPerfil(EstudianteResponseDTO estudiante) {
+        // 1. Estudiante -&gt; clase
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        ClaseResponseDTO clase = estudiante.idClase() == null</span>
+<span class="fc" id="L73">            ? null</span>
+<span class="fc" id="L74">            : claseClient.getClaseById(estudiante.idClase());</span>
+
+        // 2. Clase -&gt; dictaciones + optativas/electivas inscritas por el estudiante
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        List&lt;CursoAsignaturaResponseDTO&gt; delCurso = estudiante.idClase() == null</span>
+<span class="fc" id="L78">            ? Collections.emptyList()</span>
+<span class="fc" id="L79">            : contentOf(asignaturaClient.searchCursoAsignaturasByClase(estudiante.idClase(), PAGE_SIZE));</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        List&lt;InscripcionResponseDTO&gt; inscripciones = estudiante.idClase() == null</span>
+<span class="fc" id="L81">            ? Collections.emptyList()</span>
+<span class="fc" id="L82">            : inscripcionesDelEstudiante(estudiante.id());</span>
+<span class="fc" id="L83">        Set&lt;Long&gt; cursosInscritos = inscripciones.stream()</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">            .filter(inscripcion -&gt; inscripcion.estado() != EstadoInscripcion.CANCELADO)</span>
+<span class="fc" id="L85">            .map(InscripcionResponseDTO::idCursoAsignatura)</span>
+<span class="fc" id="L86">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L87">            .collect(Collectors.toSet());</span>
+        // Las electivas (p. ej. Artes o Musica en 7-8) solo se muestran si el
+        // alumno esta inscrito en esa dictacion; las obligatorias/optativas del
+        // curso siempre van.
+<span class="fc" id="L91">        List&lt;CursoAsignaturaResponseDTO&gt; asignaturas =</span>
+<span class="fc" id="L92">            unirDictaciones(delCurso, electivasDe(inscripciones)).stream()</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                .filter(asignatura -&gt; asignatura.caracter() != CaracterAsignatura.ELECTIVA</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                    || cursosInscritos.contains(asignatura.id()))</span>
+<span class="fc" id="L95">                .toList();</span>
+
+        // 3. Notas del estudiante (se cruzan por evaluacion); solo si hay asignaturas
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        Map&lt;Long, Double&gt; notaPorEvaluacion = asignaturas.isEmpty()</span>
+<span class="fc" id="L99">            ? Collections.emptyMap()</span>
+<span class="fc" id="L100">            : notasPorEvaluacion(estudiante.id());</span>
+
+        // 4. Nombres de los docentes de cada dictación (cache por request)
+<span class="fc" id="L103">        Map&lt;Long, String&gt; docentePorId = docentePorId(asignaturas);</span>
+
+        // 5. Dictaciones -&gt; evaluaciones -&gt; nota
+<span class="fc" id="L106">        List&lt;AsignaturaDetalleDTO&gt; detalle = asignaturas.stream()</span>
+<span class="fc" id="L107">            .map(asignatura -&gt; toDetalle(asignatura, notaPorEvaluacion, docentePorId))</span>
+<span class="fc" id="L108">            .toList();</span>
+
+<span class="fc" id="L110">        return mapper.toResponse(estudiante, clase, detalle);</span>
+    }
+
+    private List&lt;InscripcionResponseDTO&gt; inscripcionesDelEstudiante(Long idEstudiante) {
+<span class="fc" id="L114">        return contentOf(asignaturaClient.searchInscripcionesByAlumno(idEstudiante, PAGE_SIZE));</span>
+    }
+
+    /** Dictaciones de las inscripciones vigentes del alumno. */
+    private List&lt;CursoAsignaturaResponseDTO&gt; electivasDe(List&lt;InscripcionResponseDTO&gt; inscripciones) {
+<span class="fc" id="L119">        return inscripciones.stream()</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            .filter(inscripcion -&gt; inscripcion.estado() != EstadoInscripcion.CANCELADO)</span>
+<span class="fc" id="L121">            .map(InscripcionResponseDTO::idCursoAsignatura)</span>
+<span class="fc" id="L122">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L123">            .distinct()</span>
+<span class="fc" id="L124">            .map(asignaturaClient::getCursoAsignaturaById)</span>
+<span class="fc" id="L125">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L126">            .toList();</span>
+    }
+
+    private static List&lt;CursoAsignaturaResponseDTO&gt; unirDictaciones(
+            List&lt;CursoAsignaturaResponseDTO&gt; delCurso,
+            List&lt;CursoAsignaturaResponseDTO&gt; electivas) {
+<span class="fc" id="L132">        Map&lt;Long, CursoAsignaturaResponseDTO&gt; unicas = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L133">        delCurso.forEach(asignatura -&gt; unicas.putIfAbsent(asignatura.id(), asignatura));</span>
+<span class="fc" id="L134">        electivas.forEach(asignatura -&gt; unicas.putIfAbsent(asignatura.id(), asignatura));</span>
+<span class="fc" id="L135">        return List.copyOf(unicas.values());</span>
+    }
+
+    private Map&lt;Long, String&gt; docentePorId(List&lt;CursoAsignaturaResponseDTO&gt; asignaturas) {
+<span class="fc" id="L139">        Map&lt;Long, String&gt; docentes = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L140">        asignaturas.stream()</span>
+<span class="fc" id="L141">            .map(CursoAsignaturaResponseDTO::idDocente)</span>
+<span class="pc bpc" id="L142" title="2 of 4 branches missed.">            .filter(id -&gt; id != null &amp;&amp; !docentes.containsKey(id))</span>
+<span class="fc" id="L143">            .forEach(id -&gt; {</span>
+<span class="fc" id="L144">                DocenteResponseDTO docente = docenteClient.getDocenteById(id);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                docentes.put(id, docente == null ? null : nombreDocente(docente));</span>
+<span class="fc" id="L146">            });</span>
+<span class="fc" id="L147">        return docentes;</span>
+    }
+
+    private static String nombreDocente(DocenteResponseDTO docente) {
+<span class="fc" id="L151">        return Stream.of(docente.firstName(), docente.middleName(), docente.firstSurname(), docente.secondSurname())</span>
+<span class="pc bpc" id="L152" title="2 of 4 branches missed.">            .filter(parte -&gt; parte != null &amp;&amp; !parte.isBlank())</span>
+<span class="fc" id="L153">            .collect(Collectors.joining(&quot; &quot;));</span>
+    }
+
+    private Map&lt;Long, Double&gt; notasPorEvaluacion(Long idEstudiante) {
+<span class="fc" id="L157">        return contentOf(notaClient.searchNotas(idEstudiante, PAGE_SIZE)).stream()</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">            .filter(nota -&gt; nota.idEvaluacion() != null)</span>
+<span class="pc" id="L159">            .collect(Collectors.toMap(NotaResponseDTO::idEvaluacion, NotaResponseDTO::score, (a, b) -&gt; a));</span>
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
+<span class="pc bpc" id="L163" title="1 of 4 branches missed.">        return pagina == null || pagina.content() == null ? Collections.emptyList() : pagina.content();</span>
+    }
+
+    private AsignaturaDetalleDTO toDetalle(
+            CursoAsignaturaResponseDTO asignatura,
+            Map&lt;Long, Double&gt; notaPorEvaluacion,
+            Map&lt;Long, String&gt; docentePorId) {
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        List&lt;HorarioDetalleDTO&gt; horarios = asignatura.horarios() == null</span>
+<span class="nc" id="L171">            ? Collections.emptyList()</span>
+<span class="fc" id="L172">            : asignatura.horarios().stream()</span>
+<span class="fc" id="L173">                .map(horario -&gt; new HorarioDetalleDTO(</span>
+<span class="fc" id="L174">                    horario.id(),</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">                    horario.dia() == null ? null : horario.dia().getNombre(),</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">                    horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">                    horario.horarioSalida() == null ? null : horario.horarioSalida().toString(),</span>
+<span class="fc" id="L178">                    horario.ubicacion()))</span>
+<span class="fc" id="L179">                .toList();</span>
+
+<span class="fc" id="L181">        List&lt;EvaluacionDetalleDTO&gt; evaluaciones = contentOf(</span>
+<span class="fc" id="L182">                evaluacionClient.searchEvaluacionesByAsignatura(asignatura.id(), PAGE_SIZE)).stream()</span>
+<span class="fc" id="L183">            .map(evaluacion -&gt; new EvaluacionDetalleDTO(</span>
+<span class="fc" id="L184">                evaluacion.id(),</span>
+<span class="fc" id="L185">                evaluacion.nombre(),</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">                evaluacion.tipo() == null ? null : evaluacion.tipo().name(),</span>
+<span class="fc" id="L187">                evaluacion.ponderacion(),</span>
+<span class="fc" id="L188">                notaPorEvaluacion.get(evaluacion.id())))</span>
+<span class="fc" id="L189">            .toList();</span>
+
+<span class="fc" id="L191">        return new AsignaturaDetalleDTO(</span>
+<span class="fc" id="L192">            asignatura.id(),</span>
+<span class="fc" id="L193">            asignatura.idAsignatura(),</span>
+<span class="fc" id="L194">            asignatura.nombre(),</span>
+<span class="fc" id="L195">            asignatura.descripcion(),</span>
+<span class="fc" id="L196">            asignatura.area(),</span>
+<span class="fc" id="L197">            asignatura.caracter(),</span>
+<span class="fc" id="L198">            asignatura.calificable(),</span>
+<span class="fc" id="L199">            asignatura.idDocente(),</span>
+<span class="fc" id="L200">            docentePorId.get(asignatura.idDocente()),</span>
+            horarios,
+            evaluaciones);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

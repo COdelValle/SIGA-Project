@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeignErrorTranslator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.integration</a> &gt; <span class="el_source">FeignErrorTranslator.java</span></div><h1>FeignErrorTranslator.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.integration;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ConflictException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
+import cl.siga.coreshare.exception.ServiceUnavailableException;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Traduce los errores de los microservicios a excepciones del BFF para no
+ * enmascarar 400/403/404/409 como 503. Solo los fallos reales (conexion, 5xx,
+ * 401) se convierten en ServiceUnavailableException. Si el microservicio
+ * devuelve un cuerpo de error con `message`, se conserva.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class FeignErrorTranslator {
+    private final ObjectMapper objectMapper;
+
+    public RuntimeException traducir(Throwable cause, String contexto) {
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">        int status = cause instanceof FeignException feign ? feign.status() : -1;</span>
+<span class="fc" id="L31">        String mensaje = mensajeDe(cause);</span>
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">        if (status == 404) {</span>
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">            return new ResourceNotFoundException(mensaje != null ? mensaje : contexto);</span>
+        }
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (status == 400) {</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">            return new BusinessException(mensaje != null ? mensaje : contexto);</span>
+        }
+<span class="nc bnc" id="L38" title="All 2 branches missed.">        if (status == 409) {</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">            return new ConflictException(mensaje != null ? mensaje : contexto);</span>
+        }
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        if (status == 403) {</span>
+<span class="nc" id="L42">            return new AccessDeniedException(</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                mensaje != null ? mensaje : &quot;No tienes permisos para realizar esta acción.&quot;);</span>
+        }
+<span class="nc" id="L45">        log.error(&quot;Fallo al llamar a un microservicio (status={}): {}&quot;, status, cause.getMessage());</span>
+<span class="nc" id="L46">        return new ServiceUnavailableException(contexto + &quot; (HTTP &quot; + status + &quot;)&quot;);</span>
+    }
+
+    private String mensajeDe(Throwable cause) {
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (!(cause instanceof FeignException feign)) {</span>
+<span class="nc" id="L51">            return null;</span>
+        }
+        try {
+<span class="fc" id="L54">            JsonNode cuerpo = objectMapper.readTree(feign.contentUTF8());</span>
+<span class="fc" id="L55">            JsonNode mensaje = cuerpo.path(&quot;message&quot;);</span>
+<span class="pc bpc" id="L56" title="3 of 6 branches missed.">            if (!mensaje.isMissingNode() &amp;&amp; !mensaje.isNull() &amp;&amp; !mensaje.asText().isBlank()) {</span>
+<span class="fc" id="L57">                return mensaje.asText();</span>
+            }
+<span class="nc" id="L59">        } catch (Exception ignorado) {</span>
+            // El cuerpo no es JSON o no trae el campo message.
+<span class="nc" id="L61">        }</span>
+<span class="nc" id="L62">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

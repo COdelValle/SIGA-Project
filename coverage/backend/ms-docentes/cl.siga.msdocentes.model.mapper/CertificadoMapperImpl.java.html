@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CertificadoMapperImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-docentes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msdocentes.model.mapper</a> &gt; <span class="el_source">CertificadoMapperImpl.java</span></div><h1>CertificadoMapperImpl.java</h1><pre class="source lang-java linenums">package cl.siga.msdocentes.model.mapper;
+
+import cl.siga.coreshare.dto.docente.certificado.CertificadoRequestDTO;
+import cl.siga.coreshare.dto.docente.certificado.CertificadoResponseDTO;
+import cl.siga.msdocentes.model.entity.Certificado;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
+    date = &quot;2026-11-14T03:16:03+0000&quot;,
+    comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
+)
+@Component
+<span class="fc" id="L18">public class CertificadoMapperImpl implements CertificadoMapper {</span>
+
+    @Override
+    public Certificado toEntity(CertificadoRequestDTO dto) {
+<span class="fc bfc" id="L22" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L23">            return null;</span>
+        }
+
+<span class="fc" id="L26">        Certificado.CertificadoBuilder certificado = Certificado.builder();</span>
+
+<span class="fc" id="L28">        certificado.nombre( dto.nombre() );</span>
+<span class="fc" id="L29">        certificado.institucionRealizacion( dto.institucionRealizacion() );</span>
+<span class="fc" id="L30">        certificado.fechaTitulacion( dto.fechaTitulacion() );</span>
+
+<span class="fc" id="L32">        return certificado.build();</span>
+    }
+
+    @Override
+    public void updateEntityFromDto(CertificadoRequestDTO dto, Certificado certificado) {
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L38">            return;</span>
+        }
+
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if ( dto.nombre() != null ) {</span>
+<span class="fc" id="L42">            certificado.setNombre( dto.nombre() );</span>
+        }
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if ( dto.institucionRealizacion() != null ) {</span>
+<span class="fc" id="L45">            certificado.setInstitucionRealizacion( dto.institucionRealizacion() );</span>
+        }
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if ( dto.fechaTitulacion() != null ) {</span>
+<span class="fc" id="L48">            certificado.setFechaTitulacion( dto.fechaTitulacion() );</span>
+        }
+<span class="fc" id="L50">    }</span>
+
+    @Override
+    public CertificadoResponseDTO toResponseDto(Certificado certificado) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if ( certificado == null ) {</span>
+<span class="fc" id="L55">            return null;</span>
+        }
+
+<span class="fc" id="L58">        Long id = null;</span>
+<span class="fc" id="L59">        String nombre = null;</span>
+<span class="fc" id="L60">        String institucionRealizacion = null;</span>
+<span class="fc" id="L61">        LocalDate fechaTitulacion = null;</span>
+
+<span class="fc" id="L63">        id = certificado.getId();</span>
+<span class="fc" id="L64">        nombre = certificado.getNombre();</span>
+<span class="fc" id="L65">        institucionRealizacion = certificado.getInstitucionRealizacion();</span>
+<span class="fc" id="L66">        fechaTitulacion = certificado.getFechaTitulacion();</span>
+
+<span class="fc" id="L68">        CertificadoResponseDTO certificadoResponseDTO = new CertificadoResponseDTO( id, nombre, institucionRealizacion, fechaTitulacion );</span>
+
+<span class="fc" id="L70">        return certificadoResponseDTO;</span>
+    }
+
+    @Override
+    public List&lt;CertificadoResponseDTO&gt; toResponseDtoList(List&lt;Certificado&gt; certificados) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if ( certificados == null ) {</span>
+<span class="fc" id="L76">            return null;</span>
+        }
+
+<span class="fc" id="L79">        List&lt;CertificadoResponseDTO&gt; list = new ArrayList&lt;CertificadoResponseDTO&gt;( certificados.size() );</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        for ( Certificado certificado : certificados ) {</span>
+<span class="fc" id="L81">            list.add( toResponseDto( certificado ) );</span>
+<span class="fc" id="L82">        }</span>
+
+<span class="fc" id="L84">        return list;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
