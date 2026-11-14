@@ -30,9 +30,39 @@ for (const root of roots) {
   }
 }
 
+const coverageResults = resolve('tools/coverage/allure-results');
+try {
+  await stat(coverageResults);
+  resultDirs.push(coverageResults);
+} catch {
+  // Cobertura opcional en ejecuciones locales.
+}
+
 if (resultDirs.length === 0) {
   console.error('No se encontraron directorios de resultados Allure.');
   process.exit(1);
+}
+
+const uniqueResultDirs = [...new Set(resultDirs)];
+resultDirs.length = 0;
+resultDirs.push(...uniqueResultDirs);
+
+const enrich = spawnSync(
+  process.execPath,
+  ['tools/allure/enrich-results.mjs', ...resultDirs],
+  { stdio: 'inherit' },
+);
+if (enrich.status !== 0) {
+  process.exit(enrich.status ?? 1);
+}
+
+const verify = spawnSync(
+  process.execPath,
+  ['tools/allure/verify-taxonomy.mjs', ...resultDirs],
+  { stdio: 'inherit' },
+);
+if (verify.status !== 0) {
+  process.exit(verify.status ?? 1);
 }
 
 const result = spawnSync(

@@ -48,6 +48,11 @@ testem.log
 /apps/frontend/playwright-report
 /apps/frontend/test-results
 /tools/**/allure-results
+/tools/coverage/allure-results
+/tools/coverage/coverage-summary.json
+/coverage-download
+/allure-results-download
+/pages-publish
 
 # System Files
 .DS_Store

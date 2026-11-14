@@ -8,7 +8,17 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [
     ['line'],
-    ['allure-playwright', { resultsDir: 'allure-results-e2e' }],
+    [
+      'allure-playwright',
+      {
+        resultsDir: 'allure-results-e2e',
+        globalLabels: [{ name: 'layer', value: 'e2e' }],
+        environmentInfo: {
+          framework: 'Playwright',
+          baseURL: 'http://localhost:4200',
+        },
+      },
+    ],
   ],
   use: {
     baseURL: 'http://localhost:4200',

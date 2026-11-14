@@ -54,6 +54,7 @@ function thresholdResults(data, scenario) {
           { name: "layer", value: "performance" },
           { name: "epic", value: "Performance" },
           { name: "feature", value: scenario },
+          { name: "story", value: "Thresholds k6" },
           { name: "owner", value: "qa" },
           { name: "tag", value: "performance" },
         ],

@@ -1,8 +1,22 @@
-import { defineConfig } from "allure";
+import { existsSync, readFileSync } from "node:fs";
+import { defaultChartsConfig, defineConfig } from "allure";
 
 const branch = process.env.ALLURE_BRANCH ?? process.env.GITHUB_REF_NAME ?? "local";
 const run = process.env.GITHUB_RUN_NUMBER ?? process.env.ALLURE_RUN ?? "local";
 const commit = process.env.GITHUB_SHA ?? process.env.ALLURE_COMMIT ?? "local";
+
+let coverage = {};
+const coveragePath = "tools/coverage/coverage-summary.json";
+if (existsSync(coveragePath)) {
+  try {
+    coverage = JSON.parse(readFileSync(coveragePath, "utf8"));
+  } catch {
+    coverage = {};
+  }
+}
+
+const backendCoverage = coverage.backend?.business?.lines;
+const frontendCoverage = coverage.frontend?.business?.lines;
 
 export default defineConfig({
   name: "SIGA - Reporte Centralizado",
@@ -17,6 +31,8 @@ export default defineConfig({
     Commit: commit.slice(0, 12),
     Ejecucion: run,
     Entorno: process.env.ALLURE_ENV ?? "ci",
+    "Cobertura backend": backendCoverage === undefined ? "sin datos" : `${backendCoverage}%`,
+    "Cobertura frontend": frontendCoverage === undefined ? "sin datos" : `${frontendCoverage}%`,
   },
   defaultLabels: {
     owner: "SIGA",
@@ -58,6 +74,23 @@ export default defineConfig({
       options: {
         reportName: "SIGA - Pruebas",
         groupBy: ["layer", "epic", "feature", "story"],
+        charts: [
+          ...defaultChartsConfig.filter((chart) => chart.type !== "testingPyramid"),
+          {
+            type: "testingPyramid",
+            title: "Piramide de pruebas",
+            layers: [
+              "unit",
+              "component",
+              "integration",
+              "contract",
+              "e2e",
+              "security",
+              "performance",
+              "infra",
+            ],
+          },
+        ],
       },
     },
   },

@@ -97,7 +97,13 @@
       <groupId>cl.siga</groupId>
       <artifactId>core-share</artifactId>
     </dependency>
-  </dependencies>
+          <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
   <build>
     <plugins>
