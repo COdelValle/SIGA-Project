@@ -1,0 +1,11 @@
+
+spring:
+  application:
+    name: ms-kafka-admin
+  kafka:
+    bootstrap-servers: kafka-1:29092,kafka-2:29092,kafka-3:29092
+    admin:
+      fail-fast: true
+
+server:
+  port: 8095

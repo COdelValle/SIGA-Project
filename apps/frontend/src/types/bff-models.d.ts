@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 3.2.1263 on 2026-10-06 19:12:50.
+// Generated using typescript-generator version 3.2.1263 on 2026-11-05 17:51:14.
 
 export interface ClaseOpcionDTO {
     id: number;
