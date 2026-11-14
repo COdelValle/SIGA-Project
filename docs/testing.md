@@ -146,9 +146,12 @@ JSON. Aun asi, no adjuntar datos personales ni secretos en nuevos tests.
 
 ## 9. Estado de cobertura actual
 
-- Backend: **69.44% de lineas de negocio**, JaCoCo 13 modulos.
-- Frontend: **58.14% de lineas de negocio**, Vitest v8.
-- Objetivo: **80%+ de codigo de negocio**, con umbrales progresivos y gate en CI.
+- Backend: **72.64% de lineas de negocio**, JaCoCo 13 modulos.
+- Frontend: **77.19% de lineas de negocio**, Vitest v8.
+- Fase 2 completada: objetivo **70% backend / 60% frontend** con gate obligatorio.
+- `tools/coverage/baseline.json` implementa ratchet: el CI falla si la cobertura baja del baseline.
+- Para actualizar el baseline: `node tools/coverage/check-coverage.mjs --update-baseline`.
+- Siguiente meta: **80%+ de codigo de negocio** en backend y frontend.
 - El reporte Allure incluye una suite sintetica de cobertura por modulo/lib.
 
 ## 10. Alcance del reporte y detalles
@@ -157,12 +160,12 @@ El reporte unificado debe contener:
 
 | Suite | Resultados esperados |
 |---|---|
-| Backend JUnit | 636 |
-| Frontend Vitest | 107 |
+| Backend JUnit | 715 |
+| Frontend Vitest | 185 |
 | E2E Playwright | 5 |
 | Infraestructura | 3 |
 | Cobertura (sintetica) | 25 |
-| **Total** | **776** |
+| **Total** | **933** |
 
 El job de reporte ejecuta `tools/allure/verify-results.mjs` y falla si falta
 cualquiera de las suites.
@@ -203,4 +206,4 @@ Ejemplos:
 - `[contract] Contratos BFF > ms-notas > GET /api/v1/notas/{id}`
 - `[security] Seguridad > JWT y roles > Ownership`
 - `[e2e] Portal Docente > Notas > Dashboard del docente`
-- `[coverage] Calidad > Cobertura backend > 69.44% de lineas`
+- `[coverage] Calidad > Cobertura backend > 72.64% de lineas`

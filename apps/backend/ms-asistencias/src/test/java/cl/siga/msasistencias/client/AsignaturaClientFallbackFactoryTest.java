@@ -1,0 +1,36 @@
+package cl.siga.msasistencias.client;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.Test;
+
+import cl.siga.coreshare.exception.ServiceUnavailableException;
+import feign.FeignException;
+
+class AsignaturaClientFallbackFactoryTest {
+
+    @Test
+    void respondeNoDisponibleAlVerificarExistencia() {
+        AsignaturaClient client = new AsignaturaClientFallbackFactory()
+            .create(new RuntimeException("sin conexión"));
+
+        assertThatThrownBy(() -> client.existsById(5L))
+            .isInstanceOf(ServiceUnavailableException.class)
+            .hasMessageContaining("No se pudo verificar la existencia de la dictación 5")
+            .hasMessageContaining("HTTP -1");
+    }
+
+    @Test
+    void respondeNoDisponibleAlObtenerLaDictacion() {
+        FeignException causa = mock(FeignException.class);
+        when(causa.status()).thenReturn(504);
+        AsignaturaClient client = new AsignaturaClientFallbackFactory().create(causa);
+
+        assertThatThrownBy(() -> client.getCursoAsignaturaById(5L))
+            .isInstanceOf(ServiceUnavailableException.class)
+            .hasMessageContaining("No se pudo obtener la dictación 5")
+            .hasMessageContaining("HTTP 504");
+    }
+}
