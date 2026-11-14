@@ -1,6 +1,7 @@
 package cl.siga.msnotas.mensajeria;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -60,6 +61,77 @@ class PublicadorNotaTest {
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
         verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
             eq(NombresMensajeria.CLAVE_NOTA_ACTUALIZADA), evento.capture());
+        assertThat(evento.getValue().nombreEvaluacion()).isNull();
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+    }
+
+    @Test
+    void noConsultaServiciosCuandoLaNotaNoTieneEvaluacion() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+
+        publicador.publicarCreada(new NotaResponseDTO(4L, 10L, null, 6.0));
+
+        ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        assertThat(evento.getValue().nombreEvaluacion()).isNull();
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+        verify(evaluacionClient, org.mockito.Mockito.never()).getEvaluacionById(any());
+    }
+
+    @Test
+    void noConsultaLaDictacionCuandoLaEvaluacionNoTieneCursoAsignatura() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        when(evaluacionClient.getEvaluacionById(12L)).thenReturn(
+            new EvaluacionResponseDTO(12L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, null, true));
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+
+        publicador.publicarCreada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
+
+        ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        assertThat(evento.getValue().nombreEvaluacion()).isEqualTo("PRUEBA 1");
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+        verify(asignaturaClient, org.mockito.Mockito.never()).getCursoAsignaturaById(any());
+    }
+
+    @Test
+    void publicaConNombreDeAsignaturaNuloCuandoLaDictacionNoExiste() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        when(evaluacionClient.getEvaluacionById(12L)).thenReturn(
+            new EvaluacionResponseDTO(12L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 8L, true));
+        when(asignaturaClient.getCursoAsignaturaById(8L)).thenReturn(null);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+
+        publicador.publicarActualizada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
+
+        ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_NOTA_ACTUALIZADA), evento.capture());
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+    }
+
+    @Test
+    void publicaSinNombresCuandoLaEvaluacionNoExiste() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        when(evaluacionClient.getEvaluacionById(12L)).thenReturn(null);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+
+        publicador.publicarCreada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
+
+        ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
         assertThat(evento.getValue().nombreEvaluacion()).isNull();
         assertThat(evento.getValue().nombreAsignatura()).isNull();
     }

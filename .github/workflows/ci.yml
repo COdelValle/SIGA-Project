@@ -285,8 +285,8 @@ jobs:
           node tools/coverage/collect-coverage.mjs
           --root coverage-download --output tools/coverage
 
-      - name: Informar cobertura vs objetivo
-        run: node tools/coverage/check-coverage.mjs
+      - name: Verificar cobertura (objetivo + ratchet)
+        run: node tools/coverage/check-coverage.mjs --enforce
 
       - name: Verificar taxonomia Allure
         run: >-
