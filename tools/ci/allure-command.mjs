@@ -53,6 +53,7 @@ const allureResult = {
     { name: 'layer', value: 'infra' },
     { name: 'epic', value: 'Calidad' },
     { name: 'feature', value: 'Infraestructura' },
+    { name: 'story', value: 'Validacion de comandos' },
     { name: 'owner', value: 'qa' },
     { name: 'tag', value: 'infra' },
   ],

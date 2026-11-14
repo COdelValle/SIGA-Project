@@ -180,6 +180,12 @@ jobs:
           pattern: '*allure-${{ github.sha }}'
           path: allure-results-download
 
+      - name: Descargar cobertura
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*coverage-${{ github.sha }}'
+          path: coverage-download
+
       - name: Restaurar historial de Allure
         uses: actions/cache@v4
         with:
@@ -188,17 +194,33 @@ jobs:
           restore-keys: |
             allure-history-deploy-
 
+      - name: Enriquecer etiquetas Allure
+        run: node tools/allure/enrich-results.mjs allure-results-download
+
+      - name: Generar resultados de cobertura
+        run: >-
+          node tools/coverage/collect-coverage.mjs
+          --root coverage-download --output tools/coverage
+
+      - name: Informar cobertura vs objetivo
+        run: node tools/coverage/check-coverage.mjs
+
+      - name: Verificar taxonomia Allure
+        run: >-
+          node tools/allure/verify-taxonomy.mjs
+          allure-results-download tools/coverage/allure-results
+
       - name: Verificar que esten todas las suites
         run: node tools/allure/verify-results.mjs allure-results-download
 
       - name: Sanitizar resultados
         run: |
-          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \))
+          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \); echo tools/coverage/allure-results)
           node tools/allure/sanitize-results.mjs "${RESULT_DIRS[@]}"
 
       - name: Generar reporte Allure
         run: |
-          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \))
+          mapfile -t RESULT_DIRS < <(find allure-results-download -type d \( -name allure-results -o -name allure-results-e2e \); echo tools/coverage/allure-results)
           npx allure generate "${RESULT_DIRS[@]}" --config allurerc.mjs --clean
 
       - name: Guardar reporte Allure
@@ -214,10 +236,17 @@ jobs:
         if: always()
         run: |
           rm -rf pages-publish
-          mkdir -p pages-publish
+          mkdir -p pages-publish/coverage/backend pages-publish/coverage/frontend
           cp -R allure-report pages-publish/deploy
           cp tools/allure/site/index.html pages-publish/index.html
           touch pages-publish/.nojekyll
+          find coverage-download -type d -path '*/target/site/jacoco' | while read -r dir; do
+            module=$(basename "$(dirname "$(dirname "$(dirname "$dir")")")")
+            cp -R "$dir" "pages-publish/coverage/backend/$module"
+          done
+          find coverage-download -type d -name lcov-report | while read -r dir; do
+            cp -R "$dir"/. pages-publish/coverage/frontend/
+          done
 
       - name: Publicar reporte e indice en GitHub Pages
         if: always()

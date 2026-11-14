@@ -21,6 +21,7 @@
 
     <modules>
         <module>libs/core-share</module>
+        <module>libs/test-support</module>
         <module>bff-web</module>
         <module>ms-usuarios-auth</module>
         <module>ms-estudiantes</module>

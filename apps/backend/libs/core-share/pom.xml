@@ -103,6 +103,12 @@
             <artifactId>rabbitmq</artifactId>
             <scope>test</scope>
         </dependency>
+            <dependency>
+            <groupId>cl.siga</groupId>
+            <artifactId>test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

@@ -146,13 +146,10 @@ JSON. Aun asi, no adjuntar datos personales ni secretos en nuevos tests.
 
 ## 9. Estado de cobertura actual
 
-- Backend: 39.0% de lineas y 37.6% de instrucciones (JaCoCo, 13 modulos).
-- Frontend: 27.9% de statements/lines (Vitest v8).
-- Nuevos tests: especificaciones OpenAPI, contratos BFF, E2E y accesibilidad cubiertos al 100% en sus flujos.
-
-La meta de cobertura global del 100% requiere ampliar unit tests de servicios,
-paginas y componentes existentes. El CI publica los reportes de cobertura para
-priorizar los archivos con menor porcentaje.
+- Backend: **69.44% de lineas de negocio**, JaCoCo 13 modulos.
+- Frontend: **58.14% de lineas de negocio**, Vitest v8.
+- Objetivo: **80%+ de codigo de negocio**, con umbrales progresivos y gate en CI.
+- El reporte Allure incluye una suite sintetica de cobertura por modulo/lib.
 
 ## 10. Alcance del reporte y detalles
 
@@ -160,11 +157,12 @@ El reporte unificado debe contener:
 
 | Suite | Resultados esperados |
 |---|---|
-| Backend JUnit | 286 |
-| Frontend Vitest | 55 |
-| E2E Playwright | 2 |
+| Backend JUnit | 636 |
+| Frontend Vitest | 107 |
+| E2E Playwright | 5 |
 | Infraestructura | 3 |
-| **Total** | **346** |
+| Cobertura (sintetica) | 25 |
+| **Total** | **776** |
 
 El job de reporte ejecuta `tools/allure/verify-results.mjs` y falla si falta
 cualquiera de las suites.
@@ -177,3 +175,32 @@ las pruebas**, no la cobertura de codigo.
 - Frontend: Vitest registra los expect como pasos.
 - E2E: Playwright registra navegacion, expectativas y adjuntos; los tests
   agregan pasos y respuestas de API con `allure.step`/`allure.attachment`.
+
+## 11. Taxonomia y nombres de pruebas
+
+| Label | Valores | Uso |
+|---|---|---|
+| `layer` | `unit`, `component`, `integration`, `contract`, `e2e`, `security`, `performance`, `infra`, `coverage` | Tipo de prueba y grafico de piramide |
+| `epic` | Modulo o portal | Agrupacion principal |
+| `feature` | Funcionalidad | Agrupacion secundaria |
+| `story` | Caso de uso o clase | Detalle |
+| `owner` | `backend`, `frontend`, `qa` | Responsable |
+| `severity` | `blocker`, `critical`, `normal`, `minor`, `trivial` | Riesgo |
+| `tag` | `unit`, `smoke`, `a11y`, `regression`, etc. | Filtros |
+
+Reglas:
+
+- Los nombres visibles deben ser frases en espanol, sin `()` ni nombres de metodo.
+- `layer` se agrupa antes de `epic > feature > story` en Allure.
+- Backend: la extension `test-support` completa labels y nombres legibles si no hay anotaciones.
+- Frontend/E2E: `tools/allure/enrich-results.mjs` completa labels por archivo y framework.
+- `tools/allure/verify-taxonomy.mjs` falla el reporte si falta un label o el nombre no es legible.
+
+Ejemplos:
+
+- `[unit] Gestion Academica > Notas > Registrar nota`
+- `[integration] Gestion Academica > Estudiantes > GET /api/v1/estudiantes/{id}`
+- `[contract] Contratos BFF > ms-notas > GET /api/v1/notas/{id}`
+- `[security] Seguridad > JWT y roles > Ownership`
+- `[e2e] Portal Docente > Notas > Dashboard del docente`
+- `[coverage] Calidad > Cobertura backend > 69.44% de lineas`
