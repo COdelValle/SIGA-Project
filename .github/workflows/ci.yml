@@ -42,10 +42,21 @@ jobs:
       - name: Build + tests
         run: >-
           mvn -B -ntp package
-          -Dtest='!*ApplicationTests'
+          -Dtest='!*ApplicationTests,!AdminControllerSecurityTest'
           -DfailIfNoTests=false
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtypescript.generator.skip=true
+
+      # ms-kafka-admin no tiene suite de cobertura propia: si su test de
+      # seguridad corre en el build principal, JaCoCo empieza a contar todo el
+      # modulo y rompe el ratchet global. Se ejecuta aparte sin JaCoCo.
+      - name: Test de seguridad ms-kafka-admin
+        run: >-
+          mvn -B -ntp -pl ms-kafka-admin -am test
+          -Dtest=AdminControllerSecurityTest
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Djacoco.skip=true
+          -DargLine=-Xmx512m
 
       # Los contextLoads de otros MS requieren BD/Azure reales; el de bff-web es
       # autocontenido y se ejecuta aparte para detectar dobles registros Feign.
@@ -225,6 +236,15 @@ jobs:
           node tools/ci/allure-command.mjs --name "docker compose config"
           --dir tools/infra/allure-results --
           docker compose --env-file .env.example config -q
+
+      - name: Docker Compose config - plantilla AWS
+        env:
+          REGISTRY: registry.example.com/siga
+          IMAGE_TAG: ci
+        run: >-
+          node tools/ci/allure-command.mjs --name "docker compose config - AWS"
+          --dir tools/infra/allure-results --
+          docker compose --env-file .env.example -f infra/terraform/templates/docker-compose.yml config -q
 
       - name: Preparar artefacto Allure de infraestructura
         if: always()

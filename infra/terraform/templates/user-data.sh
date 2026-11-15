@@ -24,9 +24,9 @@ unzip -q /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install
 rm -rf /tmp/aws /tmp/awscliv2.zip
 
-# --- Swap 2GB (t3.medium con 9 contenedores) ---
+# --- Swap 4GB (t3.large con todo el stack, Kafka/ZooKeeper incluidos) ---
 if [ ! -f /swapfile ]; then
-  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
@@ -79,6 +79,16 @@ chown -R 999:999 "$DATA_MOUNT/mariadb"
 # revalida el dueno de forma simbolica en cada despliegue.
 mkdir -p "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
 chown -R 100:101 "$DATA_MOUNT/rabbitmq1" "$DATA_MOUNT/rabbitmq2"
+
+# Kafka y ZooKeeper viven en el EBS para no llenar el disco raiz de 20 GB.
+# Las imagenes de Confluent corren como appuser (uid/gid 1000). El CD repite
+# esta preparacion para las instancias existentes.
+mkdir -p "$DATA_MOUNT"/kafka1 "$DATA_MOUNT"/kafka2 "$DATA_MOUNT"/kafka3
+mkdir -p "$DATA_MOUNT"/zookeeper1/data "$DATA_MOUNT"/zookeeper1/log
+mkdir -p "$DATA_MOUNT"/zookeeper2/data "$DATA_MOUNT"/zookeeper2/log
+mkdir -p "$DATA_MOUNT"/zookeeper3/data "$DATA_MOUNT"/zookeeper3/log
+chown -R 1000:1000 "$DATA_MOUNT"/kafka1 "$DATA_MOUNT"/kafka2 "$DATA_MOUNT"/kafka3 \
+  "$DATA_MOUNT"/zookeeper1 "$DATA_MOUNT"/zookeeper2 "$DATA_MOUNT"/zookeeper3
 
 # --- Archivos de la aplicacion ---
 APP_DIR=/home/ubuntu/siga

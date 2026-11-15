@@ -14,5 +14,5 @@ USER siga
 
 COPY --from=builder /app/ms-reportes/target/ms-reportes-*.jar app.jar
 
-EXPOSE 8092
+EXPOSE 8093
 ENTRYPOINT ["java", "-jar", "app.jar"]

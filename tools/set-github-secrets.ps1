@@ -134,6 +134,8 @@ $secrets = [ordered]@{
     'REGISTRO_ASYNC_ENABLED'              = $envVars['REGISTRO_ASYNC_ENABLED']
     'REGISTRO_CRED_KEY'                   = Elegir-Valor 'REGISTRO_CRED_KEY' $dump['REGISTRO_CRED_KEY'] $envVars['REGISTRO_CRED_KEY']
     'REGISTRO_NOTIFY_CREDENTIALS_ENABLED' = $envVars['REGISTRO_NOTIFY_CREDENTIALS_ENABLED']
+    'KAFKA_UI_USER'                       = $envVars['KAFKA_UI_USER']
+    'KAFKA_UI_PASSWORD_HASH'              = $envVars['KAFKA_UI_PASSWORD_HASH']
 }
 
 if ($Ec2KeyPath) {

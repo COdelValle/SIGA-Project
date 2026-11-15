@@ -46,8 +46,7 @@ public class SharedSecurityConfig {
                     "/docs/swagger-ui/**",
                     "/scalar",
                     "/scalar/**",
-                    "/docs/scalar/**",
-                    "/api/kafka/**"
+                    "/docs/scalar/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

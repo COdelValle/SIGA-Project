@@ -7,6 +7,7 @@ import cl.siga.ms_kafka.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
@@ -18,6 +19,7 @@ public class AdminController {
   private final AdminService service;
 
   //TOPICS
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics")
   public ResponseEntity<?> obtenerTopics() {
 
@@ -38,6 +40,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
   @PostMapping("/topics")
   public ResponseEntity<?> crearTopic(
     @RequestBody CreateTopicRequest request
@@ -77,6 +80,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
   @DeleteMapping("/topics/{nombre}")
   public ResponseEntity<?> eliminarTopic(
     @PathVariable String nombre
@@ -117,6 +121,7 @@ public class AdminController {
   }
 
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics/{nombre}")
   public ResponseEntity<?> describirTopic(
     @PathVariable String nombre
@@ -152,6 +157,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics/{nombre}/details")
   public ResponseEntity<?> obtenerDetallesTopic(
     @PathVariable String nombre
@@ -186,6 +192,7 @@ public class AdminController {
       return ResponseEntity.internalServerError().body(respuesta);
     }
   }
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
   @PatchMapping("/topics/{nombre}/retention")
   public ResponseEntity<?> modificarRetencion(
     @PathVariable String nombre,
@@ -238,6 +245,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics/health")
   public ResponseEntity<Map<String, Object>> obtenerEstadoParticiones() {
 
@@ -262,6 +270,7 @@ public class AdminController {
   }
 
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics/{nombre}/config")
   public ResponseEntity<?> obtenerConfiguracionTopic(
     @PathVariable String nombre
@@ -297,6 +306,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
   @PatchMapping("/topics/{nombre}/config")
   public ResponseEntity<?> modificarConfiguracionTopic(
     @PathVariable String nombre,
@@ -338,6 +348,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
   @PatchMapping("/topics/{nombre}/config/reset")
   public ResponseEntity<?> restaurarConfiguracionTopic(
     @PathVariable String nombre,
@@ -381,6 +392,7 @@ public class AdminController {
   //END-TOPICS
 
   //CONSUMER-GROUPS
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/consumer-groups")
   public ResponseEntity<?> obtenerConsumerGroups() {
     try {
@@ -404,6 +416,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/consumer-groups/{groupId}")
   public ResponseEntity<?> describirConsumerGroup(
     @PathVariable String groupId
@@ -441,6 +454,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/consumer-groups/{groupId}/lag")
   public ResponseEntity<?> obtenerConsumerLag(
     @PathVariable String groupId
@@ -478,6 +492,7 @@ public class AdminController {
     }
   }
   //BROKERS
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/brokers")
   public ResponseEntity<?> obtenerBrokers() {
     try {
@@ -498,6 +513,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/brokers/distribution")
   public ResponseEntity<?> obtenerDistribucionBrokers() {
     try {
@@ -520,6 +536,7 @@ public class AdminController {
     }
   }
   //CLUSTER
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/cluster/status")
   public ResponseEntity<Map<String, Object>> obtenerEstadoCluster() {
 
@@ -542,6 +559,7 @@ public class AdminController {
   }
 
   //OFFSETs
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/topics/{nombre}/offsets")
   public ResponseEntity<?> obtenerOffsetsTopic(
     @PathVariable String nombre
@@ -577,6 +595,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
   @GetMapping("/consumer-groups/{groupId}/offsets")
   public ResponseEntity<?> obtenerOffsetsConsumerGroup(
     @PathVariable String groupId
@@ -614,6 +633,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
   @DeleteMapping("/consumer-groups/{groupId}/offsets")
   public ResponseEntity<?> eliminarOffsetsConsumerGroup(
     @PathVariable String groupId,
@@ -665,6 +685,7 @@ public class AdminController {
     }
   }
 
+  @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')")
   @PatchMapping("/consumer-groups/{groupId}/offsets/reset")
   public ResponseEntity<?> reiniciarOffsetsConsumerGroup(
     @PathVariable String groupId,

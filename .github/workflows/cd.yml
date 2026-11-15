@@ -297,9 +297,11 @@ jobs:
           S_RMQ_COOKIE: ${{ secrets.RABBITMQ_ERLANG_COOKIE }}
           S_REGISTRO_FLAG: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
           S_REGISTRO_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
+          S_KAFKA_UI_USER: ${{ secrets.KAFKA_UI_USER }}
+          S_KAFKA_UI_PASSWORD: ${{ secrets.KAFKA_UI_PASSWORD_HASH }}
         run: |
           faltantes=""
-          for nombre in S_ACCESS_KEY S_SECRET_KEY S_SESSION_TOKEN S_REGION S_EC2_USER S_EC2_KEY S_DB_USER S_DB_PASSWORD S_DB_ROOT S_AZ_TENANT S_AZ_CLIENT S_AZ_URI S_AZ_CLIENT_SECRET S_AZ_API_APP S_RMQ_USER S_RMQ_PASSWORD S_RMQ_COOKIE; do
+          for nombre in S_ACCESS_KEY S_SECRET_KEY S_SESSION_TOKEN S_REGION S_EC2_USER S_EC2_KEY S_DB_USER S_DB_PASSWORD S_DB_ROOT S_AZ_TENANT S_AZ_CLIENT S_AZ_URI S_AZ_CLIENT_SECRET S_AZ_API_APP S_RMQ_USER S_RMQ_PASSWORD S_RMQ_COOKIE S_KAFKA_UI_USER S_KAFKA_UI_PASSWORD; do
             if [ -z "${!nombre}" ]; then
               faltantes="${faltantes} ${nombre#S_}"
             fi
@@ -353,6 +355,7 @@ jobs:
           echo "MS_NOTIF_ECR=${REGISTRY}/siga-notificaciones" >> $GITHUB_ENV
           echo "MS_RABBIT_ADMIN_ECR=${REGISTRY}/siga-rabbitmq-admin" >> $GITHUB_ENV
           echo "MS_KAFKA_ADMIN_ECR=${REGISTRY}/siga-kafka-admin" >> $GITHUB_ENV
+          echo "MS_REPORTES_ECR=${REGISTRY}/siga-reportes" >> $GITHUB_ENV
 
       # Descubre el destino en AWS por tag/nombre: evita mantener EC2_HOST y
       # API_GW_INVOKE_URL como secrets (cambian al recrear la infraestructura).
@@ -451,6 +454,11 @@ jobs:
             -t $MS_KAFKA_ADMIN_ECR:${TAG_VERSION} -t $MS_KAFKA_ADMIN_ECR:latest \
             -f ./apps/backend/ms-kafka-admin/Dockerfile ./apps/backend --push
 
+      - name: Build & Push - ms-reportes
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t $MS_REPORTES_ECR:${TAG_VERSION} -t $MS_REPORTES_ECR:latest \
+            -f ./apps/backend/ms-reportes/Dockerfile ./apps/backend --push
 
       - name: Build & Push - bff-web
         run: |
@@ -512,13 +520,15 @@ jobs:
           REGISTRO_ASYNC_ENABLED: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
           REGISTRO_CRED_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
           REGISTRO_NOTIFY_CREDENTIALS_ENABLED: ${{ secrets.REGISTRO_NOTIFY_CREDENTIALS_ENABLED }}
+          KAFKA_UI_USER: ${{ secrets.KAFKA_UI_USER }}
+          KAFKA_UI_PASSWORD_HASH: ${{ secrets.KAFKA_UI_PASSWORD_HASH }}
           API_GW_INVOKE_URL: ${{ env.API_GW_INVOKE_URL }}
           EC2_HOST: ${{ env.EC2_HOST }}
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_JWT_ISSUER,AZURE_JWKS_URI,AZURE_JWT_AUDIENCES,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,API_GW_INVOKE_URL,EC2_HOST
+          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_JWT_ISSUER,AZURE_JWKS_URI,AZURE_JWT_AUDIENCES,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,KAFKA_UI_USER,KAFKA_UI_PASSWORD_HASH,API_GW_INVOKE_URL,EC2_HOST
           command_timeout: 15m
           script: |
             set -e
@@ -530,23 +540,30 @@ jobs:
             # broker. Sin basic auth extra: dos capas HTTP Basic en el mismo
             # origen comparten el header Authorization y provocan un bucle de
             # credenciales en el navegador.
+            #
+            # Kafka UI usa un hostname separado con basic auth de Caddy: asi se
+            # puede mostrar en la demo sin mezclar credenciales con RabbitMQ.
             PANEL_HOST="${EC2_HOST//./-}.sslip.io"
+            KAFKA_UI_HOST="kafka.${EC2_HOST//./-}.sslip.io"
+            getent hosts "$KAFKA_UI_HOST" > /dev/null || {
+              echo "::error::$KAFKA_UI_HOST no resuelve; revisa sslip.io/DNS antes del deploy." >&2
+              exit 1
+            }
             cat > /home/ubuntu/siga/Caddyfile <<CADDY
             $PANEL_HOST {
-              redir /kafka-ui /kafka-ui/ 308
               # Panel de RabbitMQ
-              handle {
-                reverse_proxy rabbitmq1:15672
-              }
+              reverse_proxy rabbitmq1:15672
+            }
 
-              # Panel de Kafka UI
-              handle /kafka-ui/* {
-                reverse_proxy kafka-ui:8080
+            $KAFKA_UI_HOST {
+              basic_auth {
+                $KAFKA_UI_USER $KAFKA_UI_PASSWORD_HASH
               }
+              reverse_proxy kafka-ui:8080
             }
             CADDY
 
-            # Respaldo diario: dump de las 10 bases + definiciones de RabbitMQ en
+            # Respaldo diario: dump de las 11 bases + definiciones de RabbitMQ en
             # el EBS, con rotacion de 7 dias (cron del usuario ubuntu, 06:15 UTC).
             cat > /home/ubuntu/siga/backup-bd.sh <<'BACKUP'
             #!/bin/bash
@@ -557,7 +574,7 @@ jobs:
             FECHA=$(date +%F)
             DEST=/home/ubuntu/siga-data/backups/diario/$FECHA
             mkdir -p "$DEST"
-            for DB in siga_usuarios_db siga_estudiantes_db siga_asignaturas_db siga_notas_db siga_docentes_db siga_apoderados_db siga_clases_db siga_evaluaciones_db siga_asistencias_db siga_notificaciones_db; do
+            for DB in siga_usuarios_db siga_estudiantes_db siga_asignaturas_db siga_notas_db siga_docentes_db siga_apoderados_db siga_clases_db siga_evaluaciones_db siga_asistencias_db siga_notificaciones_db siga_reportes_db; do
               docker exec siga-mariadb mariadb-dump -u"$DBU" -p"$DBP" --single-transaction --skip-lock-tables --routines "$DB" > "$DEST/$DB.sql" 2>/dev/null
             done
             docker exec rabbitmq1 rabbitmqctl export_definitions /tmp/siga-definiciones.json >/dev/null 2>&1 || true
@@ -677,9 +694,32 @@ jobs:
                 -c 'chown -R rabbitmq:rabbitmq /data && chmod 600 /data/.erlang.cookie'
             done
 
+            # EBS: crecer el filesystem si el volumen fue redimensionado y
+            # preparar los directorios de Kafka/ZooKeeper. user-data solo corre
+            # al crear la instancia; en instancias existentes el CD los crea.
+            if mountpoint -q /home/ubuntu/siga-data; then
+              sudo resize2fs "$(findmnt -no SOURCE /home/ubuntu/siga-data)" > /dev/null 2>&1 || true
+            fi
+            mkdir -p /home/ubuntu/siga-data/kafka1 /home/ubuntu/siga-data/kafka2 /home/ubuntu/siga-data/kafka3
+            mkdir -p /home/ubuntu/siga-data/zookeeper1/data /home/ubuntu/siga-data/zookeeper1/log
+            mkdir -p /home/ubuntu/siga-data/zookeeper2/data /home/ubuntu/siga-data/zookeeper2/log
+            mkdir -p /home/ubuntu/siga-data/zookeeper3/data /home/ubuntu/siga-data/zookeeper3/log
+            sudo chown -R 1000:1000 /home/ubuntu/siga-data/kafka1 /home/ubuntu/siga-data/kafka2 /home/ubuntu/siga-data/kafka3 \
+              /home/ubuntu/siga-data/zookeeper1 /home/ubuntu/siga-data/zookeeper2 /home/ubuntu/siga-data/zookeeper3
+
+            # Swap adicional para instancias creadas antes de ampliar a 4 GB.
+            SWAP_KB=$(awk 'NR>1 {sum+=$3} END {print sum+0}' /proc/swaps)
+            if [ "$SWAP_KB" -lt 4194304 ] && [ ! -f /swapfile2 ]; then
+              sudo fallocate -l 2G /swapfile2 || sudo dd if=/dev/zero of=/swapfile2 bs=1M count=2048
+              sudo chmod 600 /swapfile2
+              sudo mkswap /swapfile2 > /dev/null
+              sudo swapon /swapfile2
+              echo '/swapfile2 none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+            fi
+
             # init-db.sh solo corre con el directorio de datos vacio: en volumenes
             # existentes hay que crear las bases y otorgar los permisos de forma
-            # idempotente. Se cubren las 10 bases (no solo las nuevas) porque un
+            # idempotente. Se cubren las 11 bases (no solo las nuevas) porque un
             # volumen antiguo puede no tener grants de estudiantes/notas/usuarios.
             docker compose --env-file .env up -d mariadb rabbitmq1 rabbitmq2
             # MariaDB recien recreado tarda en aceptar conexiones: esperar el
@@ -705,6 +745,7 @@ jobs:
             CREATE DATABASE IF NOT EXISTS siga_evaluaciones_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS siga_asistencias_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS siga_notificaciones_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS siga_reportes_db      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS siga_asignaturas_db  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
             GRANT ALL PRIVILEGES ON siga_usuarios_db.*     TO '$DB_USER'@'%';
@@ -716,6 +757,7 @@ jobs:
             GRANT ALL PRIVILEGES ON siga_evaluaciones_db.* TO '$DB_USER'@'%';
             GRANT ALL PRIVILEGES ON siga_asistencias_db.*  TO '$DB_USER'@'%';
             GRANT ALL PRIVILEGES ON siga_notificaciones_db.* TO '$DB_USER'@'%';
+            GRANT ALL PRIVILEGES ON siga_reportes_db.*     TO '$DB_USER'@'%';
             GRANT ALL PRIVILEGES ON siga_asignaturas_db.*  TO '$DB_USER'@'%';
             FLUSH PRIVILEGES;
             SQL
@@ -756,7 +798,12 @@ jobs:
                 siga_clases_db.clases \
                 siga_evaluaciones_db.evaluaciones \
                 siga_notas_db.notas \
-                siga_asistencias_db.asistencias; do
+                siga_asistencias_db.asistencias \
+                siga_reportes_db.eventos_reportes_procesados \
+                siga_reportes_db.proyecciones_asistencia \
+                siga_reportes_db.proyecciones_rendimiento \
+                siga_reportes_db.alertas_riesgo \
+                siga_reportes_db.notification_event_outbox; do
                 esquema="${especificacion%%.*}"
                 tabla="${especificacion#*.}"
                 existe=$(docker exec siga-mariadb mariadb -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" -e \
@@ -793,8 +840,8 @@ jobs:
             # despliegue deja el sistema degradado (colas en crash loop por un
             # dueno equivocado del volumen, servicios que no arrancaron, etc.).
             # Reintenta hasta ~8 minutos por el boot de los JVM.
-            ESPERADAS="user.azure.sync.queue user.azure.sync.dlq user.registration.status.queue user.registration.status.dlq user.credentials.notify.queue user.credentials.notify.dlq ms.estudiantes.queue ms.estudiantes.dlq ms.docentes.queue ms.docentes.dlq ms.apoderados.queue ms.apoderados.dlq cola-notificaciones-notas cola-notificaciones-notas.dlq cola-notificaciones-evaluaciones cola-notificaciones-evaluaciones.dlq cola-notificaciones-asistencias cola-notificaciones-asistencias.dlq"
-            CON_CONSUMIDOR="user.azure.sync.queue user.azure.sync.dlq user.registration.status.queue user.registration.status.dlq ms.estudiantes.queue ms.estudiantes.dlq ms.docentes.queue ms.docentes.dlq ms.apoderados.queue ms.apoderados.dlq cola-notificaciones-notas cola-notificaciones-evaluaciones cola-notificaciones-asistencias"
+            ESPERADAS="user.azure.sync.queue user.azure.sync.dlq user.registration.status.queue user.registration.status.dlq user.credentials.notify.queue user.credentials.notify.dlq ms.estudiantes.queue ms.estudiantes.dlq ms.docentes.queue ms.docentes.dlq ms.apoderados.queue ms.apoderados.dlq cola-notificaciones-notas cola-notificaciones-notas.dlq cola-notificaciones-evaluaciones cola-notificaciones-evaluaciones.dlq cola-notificaciones-asistencias cola-notificaciones-asistencias.dlq cola-notificaciones-riesgo-inasistencia cola-notificaciones-riesgo-inasistencia.dlq cola-notificaciones-riesgo-rendimiento cola-notificaciones-riesgo-rendimiento.dlq cola-notificaciones-cambio-estado cola-notificaciones-cambio-estado.dlq"
+            CON_CONSUMIDOR="user.azure.sync.queue user.azure.sync.dlq user.registration.status.queue user.registration.status.dlq ms.estudiantes.queue ms.estudiantes.dlq ms.docentes.queue ms.docentes.dlq ms.apoderados.queue ms.apoderados.dlq cola-notificaciones-notas cola-notificaciones-evaluaciones cola-notificaciones-asistencias cola-notificaciones-riesgo-inasistencia cola-notificaciones-riesgo-rendimiento cola-notificaciones-cambio-estado"
             sleep 45
             faltan="pendiente"
             for INTENTO in $(seq 1 45); do
@@ -815,7 +862,7 @@ jobs:
               docker exec rabbitmq1 rabbitmqctl list_queues name messages consumers || true
               exit 1
             fi
-            CONTENEDORES_HEALTHY="siga-mariadb rabbitmq1 rabbitmq2 caddy ms-usuarios-auth ms-estudiantes ms-apoderados ms-docentes ms-asignaturas ms-clases ms-evaluaciones ms-notas ms-asistencias ms-notificaciones ms-rabbitmq-admin ms-kafka-admin bff-web"
+            CONTENEDORES_HEALTHY="siga-mariadb rabbitmq1 rabbitmq2 caddy ms-usuarios-auth ms-estudiantes ms-apoderados ms-docentes ms-asignaturas ms-clases ms-evaluaciones ms-notas ms-asistencias ms-notificaciones ms-reportes ms-rabbitmq-admin ms-kafka-admin bff-web"
             for CONTENEDOR in $CONTENEDORES_HEALTHY; do
               ESTADO=$(docker inspect -f '{{.State.Health.Status}}' "$CONTENEDOR" 2>/dev/null || echo missing)
               if [ "$ESTADO" != "healthy" ]; then
@@ -823,6 +870,25 @@ jobs:
                 exit 1
               fi
             done
+
+            # Los topics son creados por ms-kafka-admin al arrancar. Como Kafka
+            # tiene auto-create deshabilitado, el deploy falla si no existen.
+            TOPICS_ESPERADOS="siga.academico.asistencias siga.academico.rendimiento"
+            faltan_topics="pendiente"
+            for INTENTO in $(seq 1 30); do
+              TOPICS=$(docker exec kafka-1 kafka-topics --bootstrap-server kafka-1:29092 --list 2>/dev/null || true)
+              faltan_topics=""
+              for TOPIC in $TOPICS_ESPERADOS; do
+                echo "$TOPICS" | grep -qx "$TOPIC" || faltan_topics="$faltan_topics $TOPIC"
+              done
+              [ -z "$faltan_topics" ] && break
+              echo "Topics pendientes (intento $INTENTO):$faltan_topics"
+              sleep 10
+            done
+            if [ -n "$faltan_topics" ]; then
+              echo "::error::Faltan topics de Kafka tras el deploy:$faltan_topics"
+              exit 1
+            fi
             CRASHES=$(docker logs rabbitmq1 --since 20m 2>&1 | grep -c "Generic server" || true)
             if [ "$CRASHES" -gt 0 ]; then
               echo "::error::RabbitMQ registro $CRASHES crashes de procesos de cola durante el deploy."
