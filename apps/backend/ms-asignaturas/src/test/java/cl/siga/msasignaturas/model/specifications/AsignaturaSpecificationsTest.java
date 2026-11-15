@@ -52,6 +52,11 @@ class AsignaturaSpecificationsTest {
     }
 
     @Test
+    void laClaseSePuedeInstanciarParaCubrirSuConstructor() {
+        assertNotNull(new AsignaturaSpecifications());
+    }
+
+    @Test
     void hasNombreIgnoraVaciosYBusca() {
         assertNotNull(AsignaturaSpecifications.hasNombre(null).toPredicate(root, query, cb));
         assertNotNull(AsignaturaSpecifications.hasNombre(" ").toPredicate(root, query, cb));

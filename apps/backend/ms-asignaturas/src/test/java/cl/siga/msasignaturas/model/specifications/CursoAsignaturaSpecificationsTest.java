@@ -59,6 +59,11 @@ class CursoAsignaturaSpecificationsTest {
     }
 
     @Test
+    void laClaseSePuedeInstanciarParaCubrirSuConstructor() {
+        assertNotNull(new CursoAsignaturaSpecifications());
+    }
+
+    @Test
     void filtrosSimplesIgnoranNulosYFiltranValores() {
         assertNotNull(CursoAsignaturaSpecifications.hasIdClase(null).toPredicate(root, query, cb));
         assertNotNull(CursoAsignaturaSpecifications.hasIdDocente(null).toPredicate(root, query, cb));

@@ -4,8 +4,8 @@ const path = 'tools/coverage/coverage-summary.json';
 const baselinePath = 'tools/coverage/baseline.json';
 const enforce = process.argv.includes('--enforce');
 const updateBaseline = process.argv.includes('--update-baseline');
-const backendTarget = Number(process.env.COVERAGE_BACKEND_TARGET ?? 70);
-const frontendTarget = Number(process.env.COVERAGE_FRONTEND_TARGET ?? 60);
+const backendTarget = Number(process.env.COVERAGE_BACKEND_TARGET ?? 80);
+const frontendTarget = Number(process.env.COVERAGE_FRONTEND_TARGET ?? 80);
 
 let summary;
 try {

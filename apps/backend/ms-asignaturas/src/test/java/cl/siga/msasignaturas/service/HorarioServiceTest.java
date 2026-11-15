@@ -1,5 +1,6 @@
 package cl.siga.msasignaturas.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -19,8 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import cl.siga.coreshare.dto.asignatura.horario.HorarioRequestDTO;
+import cl.siga.coreshare.dto.asignatura.horario.HorarioResponseDTO;
 import cl.siga.coreshare.dto.asignatura.horario.enums.DiaSemana;
 import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasignaturas.model.entity.Horario;
 import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import cl.siga.msasignaturas.model.mapper.HorarioMapper;
@@ -144,5 +147,88 @@ class HorarioServiceTest {
         service.eliminarHorario(1L);
 
         verify(horarioRepository, never()).save(any());
+    }
+
+    @Test
+    void rechazaCrearHorarioConRangoInvalido() {
+        HorarioRequestDTO request = new HorarioRequestDTO(
+            DiaSemana.LUNES, LocalTime.of(10, 0), LocalTime.of(9, 0), "SALA 101");
+
+        assertThrows(BusinessException.class, () -> service.crearHorario(1L, request));
+        verify(horarioRepository, never()).save(any());
+    }
+
+    @Test
+    void rechazaActualizarHorarioConRangoInvalido() {
+        HorarioRequestDTO request = new HorarioRequestDTO(
+            DiaSemana.LUNES, LocalTime.of(10, 0), LocalTime.of(10, 0), "SALA 101");
+
+        assertThrows(BusinessException.class, () -> service.actualizarHorario(1L, request));
+    }
+
+    @Test
+    void actualizarHorarioExcluyeElMismoHorarioDelSolapamiento() {
+        Horario horario = existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30));
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        horario.setCursoAsignatura(curso);
+        HorarioRequestDTO request = new HorarioRequestDTO(
+            DiaSemana.LUNES, LocalTime.of(8, 30), LocalTime.of(9, 30), "SALA 101");
+        when(horarioRepository.findById(1L)).thenReturn(Optional.of(horario));
+        when(cursoAsignaturaRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(curso));
+        when(horarioRepository.findByCursoAsignaturaIdAndActiveTrue(1L)).thenReturn(List.of(horario));
+        when(horarioRepository.findByUbicacionIgnoreCaseAndDiaAndActiveTrue("SALA 101", DiaSemana.LUNES))
+            .thenReturn(List.of(horario));
+        when(horarioRepository.save(horario)).thenReturn(horario);
+        when(horarioMapper.toDto(horario)).thenReturn(new HorarioResponseDTO(
+            1L, DiaSemana.LUNES, LocalTime.of(8, 30), LocalTime.of(9, 30), "SALA 101"));
+
+        var respuesta = service.actualizarHorario(1L, request);
+
+        assertEquals(DiaSemana.LUNES, respuesta.dia());
+        verify(horarioMapper).updateEntityFromDto(request, horario);
+        verify(horarioRepository).save(horario);
+    }
+
+    @Test
+    void actualizarHorarioFallaCuandoNoExisteOEstaInactivo() {
+        when(horarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+            () -> service.actualizarHorario(99L, new HorarioRequestDTO(
+                DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 0), "SALA 101")));
+    }
+
+    @Test
+    void actualizarHorarioFallaCuandoLaDictacionEstaInactiva() {
+        Horario horario = existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30));
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        horario.setCursoAsignatura(curso);
+        when(horarioRepository.findById(1L)).thenReturn(Optional.of(horario));
+        when(cursoAsignaturaRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+            () -> service.actualizarHorario(1L, new HorarioRequestDTO(
+                DiaSemana.MARTES, LocalTime.of(10, 0), LocalTime.of(11, 0), "SALA 102")));
+    }
+
+    @Test
+    void actualizarHorarioRechazaSolapamientoConOtroHorario() {
+        Horario horario = existente(DiaSemana.LUNES, LocalTime.of(8, 0), LocalTime.of(9, 30));
+        CursoAsignatura curso = new CursoAsignatura();
+        curso.setId(1L);
+        horario.setCursoAsignatura(curso);
+        Horario otro = existente(DiaSemana.LUNES, LocalTime.of(8, 30), LocalTime.of(9, 30));
+        otro.setId(2L);
+        when(horarioRepository.findById(1L)).thenReturn(Optional.of(horario));
+        when(cursoAsignaturaRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(curso));
+        when(horarioRepository.findByCursoAsignaturaIdAndActiveTrue(1L)).thenReturn(List.of(otro));
+        when(horarioRepository.findByUbicacionIgnoreCaseAndDiaAndActiveTrue(anyString(), any()))
+            .thenReturn(List.of());
+
+        assertThrows(BusinessException.class,
+            () -> service.actualizarHorario(1L, new HorarioRequestDTO(
+                DiaSemana.LUNES, LocalTime.of(8, 15), LocalTime.of(9, 0), "SALA 101")));
     }
 }
