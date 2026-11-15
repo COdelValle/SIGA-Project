@@ -14,6 +14,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
@@ -80,7 +81,11 @@ public abstract class AbstractFeignContractTest {
         Allure.step("Validar contrato OpenAPI", () -> validation.assertValidationPassed());
     }
 
+    // @SpringBootConfiguration evita que Spring Boot agregue BffWebApplication
+    // al contexto de los contract tests. @TestConfiguration lo excluye del
+    // component scan que hace BffWebApplicationTests sobre el classpath de test.
     @SpringBootConfiguration
+    @TestConfiguration(proxyBeanMethods = false)
     @EnableFeignClients(clients = {
         ApoderadoClient.class,
         AsignaturaClient.class,

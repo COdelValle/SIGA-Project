@@ -58,6 +58,16 @@ jobs:
           -Djacoco.skip=true
           -DargLine=-Xmx512m
 
+      # Los contextLoads de otros MS requieren BD/Azure reales; el de bff-web es
+      # autocontenido y se ejecuta aparte para detectar dobles registros Feign.
+      - name: Test de contexto bff-web
+        run: >-
+          mvn -B -ntp -pl bff-web -am test
+          -Dtest=BffWebApplicationTests
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Djacoco.skip=true
+          -DargLine=-Xmx512m
+
       - name: Guardar reportes JUnit del backend
         if: always()
         uses: actions/upload-artifact@v4
