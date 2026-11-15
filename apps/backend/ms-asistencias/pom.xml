@@ -15,7 +15,13 @@
   <description>Servicio de gestión de asistencias</description>
 
   <dependencies>
-    <!-- Web y Validación de Entradas -->
+  <!-- Publicación funcional de eventos académicos hacia Kafka -->
+  <dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+  </dependency>
+
+  <!-- Web y Validación de Entradas -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>

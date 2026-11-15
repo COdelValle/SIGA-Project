@@ -4,5 +4,6 @@ package cl.siga.coreshare.dto.notificaciones;
 public enum TipoNotificacion {
     EVALUACION,
     NOTA,
-    ASISTENCIA
+    ASISTENCIA,
+    RIESGO
 }

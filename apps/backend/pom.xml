@@ -35,9 +35,10 @@
         <module>ms-notificaciones</module>
         <module>ms-rabbitmq-admin</module>
         <module>ms-kafka-admin</module>
-      <!--
-      <module>ms-auditoria</module>
-      -->
+        <module>ms-reportes</module>
+        <!--
+        <module>ms-auditoria</module>
+        -->
     </modules>
 
     <properties>
