@@ -54,6 +54,8 @@ jobs:
           mvn -B -ntp -pl bff-web -am test
           -Dtest=BffWebApplicationTests
           -Dsurefire.failIfNoSpecifiedTests=false
+          -Djacoco.skip=true
+          -DargLine=-Xmx512m
 
       - name: Guardar reportes JUnit del backend
         if: always()
