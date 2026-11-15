@@ -72,6 +72,61 @@ class ApoderadoPupiloServiceTest {
             .isInstanceOf(AccessDeniedException.class);
     }
 
+    @Test
+    void getPupilosSinVinculosDevuelveListaVacia() {
+        autenticar("oid-claudia");
+        when(apoderadoClient.getApoderadoByIdUsuario("oid-claudia")).thenReturn(new ApoderadoResponseDTO(
+            1L, "oid-claudia", "CLAUDIA", "ANDREA", "HERNANDEZ", "MORALES", "44444444-4",
+            null, null, true));
+
+        assertThat(service.getPupilos()).isEmpty();
+    }
+
+    @Test
+    void getPupilosConEstudianteSinClaseNoEnriqueceCurso() {
+        autenticar("oid-claudia");
+        when(apoderadoClient.getApoderadoByIdUsuario("oid-claudia")).thenReturn(new ApoderadoResponseDTO(
+            1L, "oid-claudia", "CLAUDIA", "ANDREA", "HERNANDEZ", "MORALES", "44444444-4",
+            List.of("+56911111111"),
+            List.of(new ParentescoEstudianteDTO(2L, null)),
+            true));
+        when(estudianteClient.getEstudianteById(2L)).thenReturn(new EstudianteResponseDTO(
+            2L, "oid-lilith", "23000021-2", "LILITH", null, "SOTO", null,
+            LocalDate.of(2015, 3, 22), List.of(), "REGISTRADO", null));
+
+        var pupilos = service.getPupilos();
+
+        assertThat(pupilos).hasSize(1);
+        assertThat(pupilos.get(0).curso()).isNull();
+        assertThat(pupilos.get(0).relacion()).isNull();
+        assertThat(pupilos.get(0).nombre()).isEqualTo("LILITH SOTO");
+    }
+
+    @Test
+    void getPupilosSinTokenFallaConErrorDeNegocio() {
+        assertThatThrownBy(service::getPupilos)
+            .isInstanceOf(cl.siga.coreshare.exception.BusinessException.class)
+            .hasMessage("No se pudo determinar el usuario autenticado.");
+    }
+
+    @Test
+    void actualizarPupiloVinculadoDelegaEnElCliente() {
+        autenticar("oid-claudia");
+        when(apoderadoClient.getApoderadoByIdUsuario("oid-claudia")).thenReturn(new ApoderadoResponseDTO(
+            1L, "oid-claudia", "CLAUDIA", "ANDREA", "HERNANDEZ", "MORALES", "44444444-4",
+            List.of("+56911111111"),
+            List.of(new ParentescoEstudianteDTO(2L, Parentesco.MADRE_PADRE)),
+            true));
+        var request = new cl.siga.coreshare.dto.estudiante.ActualizarEstudianteRequestDTO(
+            "LILITH", null, "SOTO", null, LocalDate.of(2015, 3, 22), List.of(), null);
+        when(estudianteClient.updateEstudiante(2L, request)).thenReturn(estudiante());
+
+        var actualizado = service.actualizarPupilo(2L, request);
+
+        assertThat(actualizado.id()).isEqualTo(2L);
+        org.mockito.Mockito.verify(estudianteClient).updateEstudiante(2L, request);
+    }
+
     private static void autenticar(String oid) {
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").claim("oid", oid).build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(

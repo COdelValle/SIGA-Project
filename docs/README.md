@@ -18,6 +18,7 @@
 | Documento | Uso |
 |---|---|
 | [`testing-login.md`](testing-login.md) | Runbook para login/Entra, Docker y comprobaciones funcionales actuales. |
+| [`testing.md`](testing.md) | Allure 3, contratos OpenAPI, cobertura, E2E con auth simulada y publicacion en Pages. |
 | [`registro-pruebas.md`](registro-pruebas.md) | Bitácora cronológica de verificaciones ejecutadas; conservar como evidencia histórica. |
 | [`evidencias/README.md`](evidencias/README.md) | Convención para guardar pruebas positivas/negativas y vincular artefactos. |
 | [`auditoria-backend.md`](auditoria-backend.md) | Auditoría histórica y trazabilidad de remediaciones; no usar sus hallazgos antiguos como estado vigente sin cotejar con las fichas actuales. |

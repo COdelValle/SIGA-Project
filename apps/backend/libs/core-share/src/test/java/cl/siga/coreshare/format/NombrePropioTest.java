@@ -52,4 +52,11 @@ class NombrePropioTest {
         assertNull(NombrePropio.normalizar(null));
         assertEquals("", NombrePropio.normalizar("   "));
     }
+
+    @Test
+    void prefijosSinLetraSiguienteNoSeAlteran() {
+        assertEquals("Mc", NombrePropio.normalizar("mc"));
+        assertEquals("Mac", NombrePropio.normalizar("mac"));
+        assertEquals("McD", NombrePropio.normalizar("mcd"));
+    }
 }

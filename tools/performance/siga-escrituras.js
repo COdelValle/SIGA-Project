@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { handleAllureSummary } from './allure-summary.js';
 
 const baseUrl = (__ENV.SIGA_BASE_URL || '').replace(/\/$/, '');
 const bearerToken = __ENV.SIGA_BEARER_TOKEN || '';
@@ -41,6 +42,10 @@ export const options = {
     http_req_failed: ['rate<0.01'],
   },
 };
+
+export function handleSummary(data) {
+  return handleAllureSummary(data, 'siga-escrituras');
+}
 
 export default function () {
   const correlationId = `${runId}-${__VU}-${__ITER}`;

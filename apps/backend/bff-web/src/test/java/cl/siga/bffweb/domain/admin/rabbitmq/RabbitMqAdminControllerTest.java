@@ -11,11 +11,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import cl.siga.coreshare.dto.rabbitmq.EstadoColaDTO;
 import cl.siga.coreshare.exception.GlobalExceptionHandler;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RabbitMqAdminController.class)
@@ -73,5 +77,73 @@ class RabbitMqAdminControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(service).eliminarCola(nombreValido);
+    }
+
+    @Test
+    void declararCola_ConBodyValido_Retorna201EInvocaServicio() throws Exception {
+        String json = "{\"nombre\": \"cola.notificaciones-v1\", \"durable\": true}";
+
+        mockMvc.perform(post("/api/bff/v1/admin/rabbitmq/queues")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isCreated());
+
+        verify(service).declararCola(any());
+    }
+
+    @Test
+    void estadoCola_ConNombreValido_RetornaEstadoDelServicio() throws Exception {
+        when(service.estadoCola("cola.notificaciones-v1"))
+                .thenReturn(new EstadoColaDTO("cola.notificaciones-v1", 5, 2));
+
+        mockMvc.perform(get("/api/bff/v1/admin/rabbitmq/queues/{nombre}", "cola.notificaciones-v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("cola.notificaciones-v1"))
+                .andExpect(jsonPath("$.mensajes").value(5));
+
+        verify(service).estadoCola("cola.notificaciones-v1");
+    }
+
+    @Test
+    void declararExchange_ConBodyValido_Retorna201EInvocaServicio() throws Exception {
+        String json = "{\"nombre\": \"exchange.notificaciones\", \"tipo\": \"DIRECT\"}";
+
+        mockMvc.perform(post("/api/bff/v1/admin/rabbitmq/exchanges")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isCreated());
+
+        verify(service).declararExchange(any());
+    }
+
+    @Test
+    void eliminarExchange_ConNombreValido_Retorna204EInvocaServicio() throws Exception {
+        mockMvc.perform(delete("/api/bff/v1/admin/rabbitmq/exchanges/{nombre}", "exchange.notificaciones"))
+                .andExpect(status().isNoContent());
+
+        verify(service).eliminarExchange("exchange.notificaciones");
+    }
+
+    @Test
+    void declararBinding_ConBodyValido_Retorna201EInvocaServicio() throws Exception {
+        String json = "{\"cola\": \"cola.notificaciones-v1\", \"exchange\": \"exchange.notificaciones\", \"routingKey\": \"notificacion\"}";
+
+        mockMvc.perform(post("/api/bff/v1/admin/rabbitmq/bindings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isCreated());
+
+        verify(service).declararBinding(any());
+    }
+
+    @Test
+    void eliminarBinding_ConParametrosValidos_Retorna204EInvocaServicio() throws Exception {
+        mockMvc.perform(delete("/api/bff/v1/admin/rabbitmq/bindings")
+                .param("cola", "cola.notificaciones-v1")
+                .param("exchange", "exchange.notificaciones")
+                .param("routingKey", "notificacion"))
+                .andExpect(status().isNoContent());
+
+        verify(service).eliminarBinding("cola.notificaciones-v1", "exchange.notificaciones", "notificacion");
     }
 }
