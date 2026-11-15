@@ -2,7 +2,7 @@
 
 ## Propósito y estado
 
-SIGA es un sistema de gestión académica con SPA Angular, BFF Spring Boot y microservicios por dominio. Los servicios REST usan OAuth2/JWT de Microsoft Entra ID; los datos se separan lógicamente por servicio con MariaDB/Flyway. RabbitMQ desacopla registro de perfiles y notificaciones académicas.
+SIGA es un sistema de gestión académica con SPA Angular, BFF Spring Boot y microservicios por dominio. Los servicios REST usan OAuth2/JWT de Microsoft Entra ID; los datos se separan lógicamente por servicio con MariaDB/Flyway. RabbitMQ desacopla registro de perfiles y notificaciones académicas; Kafka distribuye eventos académicos para proyecciones y alertas de riesgo.
 
 El repositorio incluye 11 microservicios, BFF, frontend, biblioteca `core-share` e infraestructura. Las pantallas Angular tienen integración real con el BFF para los recursos con contrato; `useMocks=false` es el default, y los errores HTTP no cambian silenciosamente a mocks. Hay recursos y vistas que aún dependen de demo/constants o no tienen endpoint. Ver el detalle actual en [`frontend.md`](frontend.md) y las fichas de [`microservicios/`](microservicios/README.md).
 
@@ -86,12 +86,16 @@ El JWT Authorizer usa issuer/audience del token efectivo de Entra. `core-share/J
 
 Ambos flujos usan ACK manual, reintentos acotados y logs/correlation ID compartidos, pero sus contratos/consumidores son distintos. El correo externo no forma parte del canal académico actual.
 
+### Carga 2: reportes y riesgos
+
+`ms-asistencias` y `ms-notas` publican eventos a los topics `siga.academico.asistencias` y `siga.academico.rendimiento`. `ms-reportes` consume ambos con grupos propios, persiste proyecciones idempotentes en `siga_reportes_db` y publica alertas de riesgo por RabbitMQ hacia `ms-notificaciones`. `ms-kafka-admin` administra el clúster y provisiona los topics con retención acotada para la demo.
+
 ## Despliegue
 
-- **Local:** `docker-compose.yml` define 10 MariaDB, 11 microservicios, BFF, frontend y dos nodos RabbitMQ. La UI RabbitMQ se publica localmente en 15672 desde `rabbitmq1`.
-- **AWS Academy:** Terraform crea VPC/subnet pública, EC2 `t3.large`, EIP, EBS, ECR y API Gateway HTTP API. Una sola EC2 corre el stack Compose, incluidos ambos nodos RabbitMQ; los dos nodos comparten el mismo host/failure domain y no equivalen a alta disponibilidad multi-AZ.
+- **Local:** `docker-compose.yml` define 11 MariaDB, 13 microservicios, BFF, frontend, dos nodos RabbitMQ y un clúster Kafka de tres brokers con tres ZooKeeper. La UI RabbitMQ se publica localmente en 15672 desde `rabbitmq1`.
+- **AWS Academy:** Terraform crea VPC/subnet pública, EC2 `t3.large`, EIP, EBS, ECR y API Gateway HTTP API. Una sola EC2 corre el stack Compose, incluidos RabbitMQ, Kafka/ZooKeeper y `ms-reportes`; los JVM se acotan por memoria y los brokers comparten host/failure domain, por lo que no equivalen a alta disponibilidad multi-AZ.
 - **TLS:** API Gateway da HTTPS al navegador; integración Gateway→EC2 usa HTTP. Caddy publica el Management UI RabbitMQ por HTTPS con autenticación del propio broker.
-- **Persistencia/respaldo:** datos MariaDB/RabbitMQ montados en EBS; el workflow CD instala respaldo diario de las diez bases y definiciones de RabbitMQ, con retención configurada. El respaldo depende de la instancia/lab; un reset de Academy puede borrar EBS.
+- **Persistencia/respaldo:** datos MariaDB, RabbitMQ, Kafka y ZooKeeper montados en EBS; el workflow CD instala respaldo diario de las once bases y definiciones de RabbitMQ, con retención configurada. El respaldo depende de la instancia/lab; un reset de Academy puede borrar EBS.
 - **CI/CD:** `.github/workflows/ci.yml` ejecuta build/tests backend y typecheck/tests/build frontend en push `dev`, `main`, `deploy` y PR a las tres ramas. `.github/workflows/cd.yml` limita el despliegue a `deploy` y `workflow_dispatch`, y ahora verifica backend/frontend antes del job AWS. Flujo de release: `feature → dev → deploy (AWS + aceptación) → main (mismo SHA)`; para una sincronización documental sin despliegue, CD debe deshabilitarse temporalmente antes del push a `deploy`.
 
 Detalles concretos, variables y operación están en [`../infra/terraform/README.md`](../infra/terraform/README.md), [`testing-login.md`](testing-login.md) y [`backend.md`](backend.md).
@@ -105,7 +109,9 @@ Detalles concretos, variables y operación están en [`../infra/terraform/README
 | Integración frontend-BFF | Disponible para varios flujos; no todos los recursos están conectados | Falla de API se muestra como error/vacío con reintento; no implica fallback automático a mocks. |
 | Registro asíncrono | Outbox, Graph, colas, listeners por rol y estado del proceso | Hay E2E históricos; Graph depende de permisos/secrets del tenant. |
 | Notificaciones in-app | Eventos, outbox, bandeja, lectura por OID, BFF y campana | E2E histórico de ACK/DLQ; correo no incluido. |
+| Carga 2: reportes y riesgos | Productores Kafka, `ms-reportes`, alertas RabbitMQ y API BFF | Despliegue AWS pendiente de validación; el CD verifica topics y colas. |
 | RabbitMQ admin/cluster | API REST admin y configuración de dos nodos | Revalidar cluster/dashboard si se requiere afirmar estado cloud actual. |
+| Kafka admin/cluster | Admin API, provisión de topics y UI de observabilidad | Endpoints requieren autenticación administrativa antes de exponerlos. |
 | Observabilidad avanzada | Health, correlation ID, OpenAPI | Logs estructurados completos, métricas y tracing quedan pendientes. |
 
 ## Documentos canónicos

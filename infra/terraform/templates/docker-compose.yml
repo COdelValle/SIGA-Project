@@ -1,22 +1,19 @@
 name: siga
 
 # Volumenes nombrados del proyecto (certificados y estado de Caddy).
+# Kafka y ZooKeeper usan bind mounts al EBS compartido para no llenar el disco
+# raiz de 20 GB y sobrevivir al reemplazo de la instancia.
 volumes:
   caddy_data:
   caddy_config:
-
-  zookeeper1_data:
-  zookeeper2_data:
-  zookeeper3_data:
-
-  kafka1_data:
-  kafka2_data:
-  kafka3_data:
 
 # Variables comunes a todos los microservicios.
 # AZURE_* alimenta el Resource Server compartido y la integración Microsoft Graph.
 x-ms-common-env: &ms-common-env
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  # La t3.large (8 GB) aloja todo el stack, incluido Kafka/ZooKeeper: se acota
+  # el heap de cada JVM para evitar OOM. Sobrescribir por servicio si necesita mas.
+  JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m
   # Zona horaria institucional: los LocalDateTime.now() de los servicios
   # (notificaciones, outbox, auditoria) quedan en hora de Chile.
   TZ: America/Santiago
@@ -156,6 +153,7 @@ services:
     environment:
       <<: *ms-common-env
       SERVER_PORT: "8081"
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_usuarios_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
@@ -239,6 +237,7 @@ services:
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
     depends_on:
       mariadb:
         condition: service_healthy
@@ -249,6 +248,12 @@ services:
       ms-evaluaciones:
         condition: service_healthy
       ms-asignaturas:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
 
   ms-docentes:
@@ -351,6 +356,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
     depends_on:
       mariadb:
         condition: service_healthy
@@ -359,6 +365,12 @@ services:
       ms-estudiantes:
         condition: service_healthy
       ms-asignaturas:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
 
   ms-notificaciones:
@@ -389,6 +401,33 @@ services:
       ms-apoderados:
         condition: service_healthy
 
+  ms-reportes:
+    image: ${REGISTRY}/siga-reportes:${IMAGE_TAG}
+    container_name: ms-reportes
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8093:8093"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8093"
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/siga_reportes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+
   ms-rabbitmq-admin:
     image: ${REGISTRY}/siga-rabbitmq-admin:${IMAGE_TAG}
     container_name: ms-rabbitmq-admin
@@ -415,8 +454,10 @@ services:
       ZOOKEEPER_INIT_LIMIT: 10
       ZOOKEEPER_SYNC_LIMIT: 5
       ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
     volumes:
-      - zookeeper1_data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper1/data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper1/log:/var/lib/zookeeper/log
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 2181" ]
       interval: 10s
@@ -436,8 +477,10 @@ services:
       ZOOKEEPER_INIT_LIMIT: 10
       ZOOKEEPER_SYNC_LIMIT: 5
       ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
     volumes:
-      - zookeeper2_data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper2/data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper2/log:/var/lib/zookeeper/log
     depends_on:
       zookeeper-1:
         condition: service_healthy
@@ -460,8 +503,10 @@ services:
       ZOOKEEPER_INIT_LIMIT: 10
       ZOOKEEPER_SYNC_LIMIT: 5
       ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
     volumes:
-      - zookeeper3_data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper3/data:/var/lib/zookeeper/data
+      - /home/ubuntu/siga-data/zookeeper3/log:/var/lib/zookeeper/log
     depends_on:
       zookeeper-2:
         condition: service_healthy
@@ -487,6 +532,7 @@ services:
         condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
       KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
 
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092
@@ -503,7 +549,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
     volumes:
-      - kafka1_data:/var/lib/kafka/data
+      - /home/ubuntu/siga-data/kafka1:/var/lib/kafka/data
 
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
@@ -528,6 +574,7 @@ services:
         condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 2
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
       KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
 
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092
@@ -544,7 +591,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
     volumes:
-      - kafka2_data:/var/lib/kafka/data
+      - /home/ubuntu/siga-data/kafka2:/var/lib/kafka/data
 
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
@@ -569,6 +616,7 @@ services:
         condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 3
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
       KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
 
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092
@@ -585,7 +633,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
     volumes:
-      - kafka3_data:/var/lib/kafka/data
+      - /home/ubuntu/siga-data/kafka3:/var/lib/kafka/data
 
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
@@ -608,8 +656,11 @@ services:
       <<: *ms-common-env
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SERVER_PORT: "8095"
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
       SPRING_PROFILES_ACTIVE: aws
       KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
+      SIGA_KAFKA_RETENTION_MS: "604800000"
+      SIGA_KAFKA_RETENTION_BYTES: "134217728"
     depends_on:
       kafka-1:
         condition: service_healthy
@@ -625,6 +676,7 @@ services:
 
     environment:
       DYNAMIC_CONFIG_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m
       KAFKA_CLUSTERS_0_NAME: SIGA
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
 
@@ -646,6 +698,7 @@ services:
     environment:
       <<: *ms-common-env
       SERVER_PORT: "8080"
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
       MS_USUARIOS_URL: http://ms-usuarios-auth:8081
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
@@ -656,6 +709,7 @@ services:
       MS_DOCENTES_URL: http://ms-docentes:8085
       MS_ASISTENCIAS_URL: http://ms-asistencias:8090
       MS_NOTIFICACIONES_URL: http://ms-notificaciones:8091
+      MS_REPORTES_URL: http://ms-reportes:8093
       MS_RABBITMQ_ADMIN_URL: http://ms-rabbitmq-admin:8092
     depends_on:
       ms-usuarios-auth:
@@ -677,6 +731,8 @@ services:
       ms-asistencias:
         condition: service_healthy
       ms-notificaciones:
+        condition: service_healthy
+      ms-reportes:
         condition: service_healthy
       ms-rabbitmq-admin:
         condition: service_healthy

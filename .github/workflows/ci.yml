@@ -227,6 +227,15 @@ jobs:
           --dir tools/infra/allure-results --
           docker compose --env-file .env.example config -q
 
+      - name: Docker Compose config - plantilla AWS
+        env:
+          REGISTRY: registry.example.com/siga
+          IMAGE_TAG: ci
+        run: >-
+          node tools/ci/allure-command.mjs --name "docker compose config - AWS"
+          --dir tools/infra/allure-results --
+          docker compose --env-file .env.example -f infra/terraform/templates/docker-compose.yml config -q
+
       - name: Preparar artefacto Allure de infraestructura
         if: always()
         run: |
