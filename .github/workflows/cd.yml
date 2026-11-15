@@ -297,9 +297,11 @@ jobs:
           S_RMQ_COOKIE: ${{ secrets.RABBITMQ_ERLANG_COOKIE }}
           S_REGISTRO_FLAG: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
           S_REGISTRO_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
+          S_KAFKA_UI_USER: ${{ secrets.KAFKA_UI_USER }}
+          S_KAFKA_UI_PASSWORD: ${{ secrets.KAFKA_UI_PASSWORD_HASH }}
         run: |
           faltantes=""
-          for nombre in S_ACCESS_KEY S_SECRET_KEY S_SESSION_TOKEN S_REGION S_EC2_USER S_EC2_KEY S_DB_USER S_DB_PASSWORD S_DB_ROOT S_AZ_TENANT S_AZ_CLIENT S_AZ_URI S_AZ_CLIENT_SECRET S_AZ_API_APP S_RMQ_USER S_RMQ_PASSWORD S_RMQ_COOKIE; do
+          for nombre in S_ACCESS_KEY S_SECRET_KEY S_SESSION_TOKEN S_REGION S_EC2_USER S_EC2_KEY S_DB_USER S_DB_PASSWORD S_DB_ROOT S_AZ_TENANT S_AZ_CLIENT S_AZ_URI S_AZ_CLIENT_SECRET S_AZ_API_APP S_RMQ_USER S_RMQ_PASSWORD S_RMQ_COOKIE S_KAFKA_UI_USER S_KAFKA_UI_PASSWORD; do
             if [ -z "${!nombre}" ]; then
               faltantes="${faltantes} ${nombre#S_}"
             fi
@@ -518,13 +520,15 @@ jobs:
           REGISTRO_ASYNC_ENABLED: ${{ secrets.REGISTRO_ASYNC_ENABLED }}
           REGISTRO_CRED_KEY: ${{ secrets.REGISTRO_CRED_KEY }}
           REGISTRO_NOTIFY_CREDENTIALS_ENABLED: ${{ secrets.REGISTRO_NOTIFY_CREDENTIALS_ENABLED }}
+          KAFKA_UI_USER: ${{ secrets.KAFKA_UI_USER }}
+          KAFKA_UI_PASSWORD_HASH: ${{ secrets.KAFKA_UI_PASSWORD_HASH }}
           API_GW_INVOKE_URL: ${{ env.API_GW_INVOKE_URL }}
           EC2_HOST: ${{ env.EC2_HOST }}
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_JWT_ISSUER,AZURE_JWKS_URI,AZURE_JWT_AUDIENCES,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,API_GW_INVOKE_URL,EC2_HOST
+          envs: REGISTRY,IMAGE_TAG,AWS_REGION,DB_USER,DB_PASS,MARIADB_ROOT_PASSWORD,AZURE_TENANT_ID,AZURE_CLIENT_ID,AZURE_APP_ID_URI,AZURE_JWT_ISSUER,AZURE_JWKS_URI,AZURE_JWT_AUDIENCES,AZURE_CLIENT_SECRET,AZURE_API_APP_ID,RABBITMQ_USER,RABBITMQ_PASSWORD,RABBITMQ_ERLANG_COOKIE,REGISTRO_ASYNC_ENABLED,REGISTRO_CRED_KEY,REGISTRO_NOTIFY_CREDENTIALS_ENABLED,KAFKA_UI_USER,KAFKA_UI_PASSWORD_HASH,API_GW_INVOKE_URL,EC2_HOST
           command_timeout: 15m
           script: |
             set -e
@@ -536,19 +540,26 @@ jobs:
             # broker. Sin basic auth extra: dos capas HTTP Basic en el mismo
             # origen comparten el header Authorization y provocan un bucle de
             # credenciales en el navegador.
+            #
+            # Kafka UI usa un hostname separado con basic auth de Caddy: asi se
+            # puede mostrar en la demo sin mezclar credenciales con RabbitMQ.
             PANEL_HOST="${EC2_HOST//./-}.sslip.io"
+            KAFKA_UI_HOST="kafka.${EC2_HOST//./-}.sslip.io"
+            getent hosts "$KAFKA_UI_HOST" > /dev/null || {
+              echo "::error::$KAFKA_UI_HOST no resuelve; revisa sslip.io/DNS antes del deploy." >&2
+              exit 1
+            }
             cat > /home/ubuntu/siga/Caddyfile <<CADDY
             $PANEL_HOST {
-              redir /kafka-ui /kafka-ui/ 308
               # Panel de RabbitMQ
-              handle {
-                reverse_proxy rabbitmq1:15672
-              }
+              reverse_proxy rabbitmq1:15672
+            }
 
-              # Panel de Kafka UI
-              handle /kafka-ui/* {
-                reverse_proxy kafka-ui:8080
+            $KAFKA_UI_HOST {
+              basic_auth {
+                $KAFKA_UI_USER $KAFKA_UI_PASSWORD_HASH
               }
+              reverse_proxy kafka-ui:8080
             }
             CADDY
 

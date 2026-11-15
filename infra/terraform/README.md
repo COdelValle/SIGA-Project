@@ -159,10 +159,15 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 `security.tf` abre 80 (SPA), 8080 (BFF para integración Gateway), 443 (panel Caddy)
 y 22 (SSH según `ssh_cidr`). El default de SSH está abierto y debe restringirse
 al CIDR de administración antes de usar el stack fuera del entorno académico.
-Los puertos internos de microservicios, MariaDB y AMQP no se publican mediante
-ese security group; RabbitMQ Management se publica por Caddy en 443. El BFF sigue
-validando JWT porque la integración HTTP_PROXY de Gateway no sustituye la
-seguridad del backend.
+Los puertos internos de microservicios, MariaDB, AMQP y Kafka no se publican
+mediante ese security group; RabbitMQ Management y Kafka UI se publican por Caddy
+en 443. El BFF sigue validando JWT porque la integración HTTP_PROXY de Gateway no
+sustituye la seguridad del backend.
+
+`ms-kafka-admin` no se publica por Caddy ni por el security group. Sus endpoints
+`/api/kafka/**` exigen JWT con rol `ADMIN` y los scopes `usuarios:read`,
+`usuarios:write` o `usuarios:delete` según la operación. El healthcheck usa
+`/actuator/health` para no depender de un endpoint administrativo.
 
 La SPA usa HTTPS del dominio `execute-api`; las integraciones internas API Gateway
 → EC2 son HTTP y TLS termina en Gateway. Caddy ofrece HTTPS al panel RabbitMQ.
@@ -176,6 +181,12 @@ La SPA usa HTTPS del dominio `execute-api`; las integraciones internas API Gatew
   HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
   un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
   la EC2 y el SG abre 443.
+- **Kafka UI** se publica en un hostname separado,
+  `https://kafka.<eip-con-guiones>.sslip.io`, con **basic auth de Caddy**
+  (`KAFKA_UI_USER` / hash bcrypt en `KAFKA_UI_PASSWORD_HASH`). Al estar en otro
+  origen no compite con el login de RabbitMQ. El contenedor `kafka-ui` no
+  publica puertos en el host; solo Caddy lo alcanza por la red de Compose.
+
 La persistencia y los respaldos están descritos en la sección anterior.
 
 ## Notas del laboratorio
@@ -228,6 +239,8 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
 | `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
 | `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |
+| `KAFKA_UI_USER` | usuario de basic auth para Kafka UI |
+| `KAFKA_UI_PASSWORD_HASH` | hash bcrypt de la clave de Kafka UI (`caddy hash-password`) |
 
 `REGISTRO_EMAIL_DOMAIN` usa el default `platformsiga.onmicrosoft.com` del Compose
 si no se define.

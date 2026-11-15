@@ -646,7 +646,7 @@ services:
     image: ${REGISTRY}/siga-kafka-admin:${IMAGE_TAG}
     container_name: ms-kafka-admin
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8095/api/kafka/cluster/status || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8095/actuator/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -679,7 +679,6 @@ services:
       JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m
       KAFKA_CLUSTERS_0_NAME: SIGA
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
-      SERVER_SERVLET_CONTEXT_PATH: /kafka-ui
 
     depends_on:
       kafka-1:
