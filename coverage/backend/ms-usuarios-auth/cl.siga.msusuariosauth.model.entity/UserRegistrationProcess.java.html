@@ -107,25 +107,25 @@ public class UserRegistrationProcess {
 
     @PrePersist
     public void onCreate() {
-<span class="nc" id="L110">        OffsetDateTime now = OffsetDateTime.now();</span>
-<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (createdAt == null) {</span>
-<span class="nc" id="L112">            createdAt = now;</span>
+<span class="fc" id="L110">        OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (createdAt == null) {</span>
+<span class="fc" id="L112">            createdAt = now;</span>
         }
-<span class="nc" id="L114">        updatedAt = now;</span>
-<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (state == null) {</span>
-<span class="nc" id="L116">            state = RegistrationProcessState.PENDIENTE;</span>
+<span class="fc" id="L114">        updatedAt = now;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (state == null) {</span>
+<span class="fc" id="L116">            state = RegistrationProcessState.PENDIENTE;</span>
         }
-<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (azureState == null) {</span>
-<span class="nc" id="L119">            azureState = RegistrationStepState.PENDIENTE;</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (azureState == null) {</span>
+<span class="fc" id="L119">            azureState = RegistrationStepState.PENDIENTE;</span>
         }
-<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (domainState == null) {</span>
-<span class="nc" id="L122">            domainState = RegistrationStepState.PENDIENTE;</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (domainState == null) {</span>
+<span class="fc" id="L122">            domainState = RegistrationStepState.PENDIENTE;</span>
         }
-<span class="nc" id="L124">    }</span>
+<span class="fc" id="L124">    }</span>
 
     @PreUpdate
     public void onUpdate() {
-<span class="nc" id="L128">        updatedAt = OffsetDateTime.now();</span>
-<span class="nc" id="L129">    }</span>
+<span class="fc" id="L128">        updatedAt = OffsetDateTime.now();</span>
+<span class="fc" id="L129">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

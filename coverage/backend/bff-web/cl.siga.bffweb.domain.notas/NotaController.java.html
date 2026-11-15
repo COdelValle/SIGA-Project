@@ -27,7 +27,7 @@ public class NotaController {
     @PostMapping
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:write')&quot;)
     public ResponseEntity&lt;NotaResponseDTO&gt; crearNota(@Valid @RequestBody RegistrarNotaRequestDTO request) {
-<span class="nc" id="L30">        return ResponseEntity.status(HttpStatus.CREATED).body(service.crearNota(request));</span>
+<span class="fc" id="L30">        return ResponseEntity.status(HttpStatus.CREATED).body(service.crearNota(request));</span>
     }
 
     /** Edita el score de una nota validando la pertenencia del docente. */
@@ -36,15 +36,15 @@ public class NotaController {
     public ResponseEntity&lt;NotaResponseDTO&gt; editarNota(
             @PathVariable Long id,
             @Valid @RequestBody ActualizarNotaRequestDTO request) {
-<span class="nc" id="L39">        return ResponseEntity.ok(service.editarNota(id, request));</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(service.editarNota(id, request));</span>
     }
 
     /** Elimina logicamente una nota validando la pertenencia del docente. */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_notas:delete')&quot;)
     public ResponseEntity&lt;Void&gt; eliminarNota(@PathVariable Long id) {
-<span class="nc" id="L46">        service.eliminarNota(id);</span>
-<span class="nc" id="L47">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L46">        service.eliminarNota(id);</span>
+<span class="fc" id="L47">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

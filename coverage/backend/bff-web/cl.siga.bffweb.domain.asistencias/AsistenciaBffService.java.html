@@ -50,7 +50,7 @@ public class AsistenciaBffService {
 <span class="fc" id="L50">        docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
 <span class="fc" id="L51">        PageResponseDTO&lt;AsistenciaResponseDTO&gt; pagina = asistenciaClient.searchAsistenciasByAsignatura(</span>
             idCursoAsignatura, fecha, fecha, PAGE_SIZE);
-<span class="pc bpc" id="L53" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+<span class="pc bpc" id="L53" title="1 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
     }
 
     public AsistenciaResponseDTO registrarAsistencia(RegistrarAsistenciaRequestDTO request) {
@@ -60,15 +60,15 @@ public class AsistenciaBffService {
 
     public AsistenciaResponseDTO actualizarAsistencia(Long id, ActualizarAsistenciaRequestDTO request) {
 <span class="fc" id="L62">        AsistenciaResponseDTO actual = asistenciaClient.getAsistenciaById(id);</span>
-<span class="pc bpc" id="L63" title="2 of 4 branches missed.">        if (actual != null &amp;&amp; actual.idCursoAsignatura() != null) {</span>
+<span class="pc bpc" id="L63" title="1 of 4 branches missed.">        if (actual != null &amp;&amp; actual.idCursoAsignatura() != null) {</span>
 <span class="fc" id="L64">            validarCursoParaEscritura(actual.idCursoAsignatura());</span>
         }
 <span class="fc" id="L66">        return asistenciaClient.updateAsistencia(id, request);</span>
     }
 
     private void validarCursoParaEscritura(Long idCursoAsignatura) {
-<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
-<span class="nc" id="L71">            return;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="fc" id="L71">            return;</span>
         }
 <span class="fc" id="L73">        docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
 <span class="fc" id="L74">    }</span>

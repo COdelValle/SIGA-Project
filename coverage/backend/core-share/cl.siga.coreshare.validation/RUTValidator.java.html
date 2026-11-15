@@ -8,26 +8,26 @@ import jakarta.validation.ConstraintValidatorContext;
     @Override
     public void initialize(RUT constraintAnnotation) {
         // no initialization needed
-<span class="nc" id="L11">    }</span>
+<span class="fc" id="L11">    }</span>
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
 <span class="fc bfc" id="L15" title="All 2 branches covered.">        if (value == null) return false;</span>
 
 <span class="fc" id="L17">        String rut = value.replace(&quot;.&quot;, &quot;&quot;).replace(&quot;-&quot;, &quot;&quot;).toUpperCase().trim();</span>
-<span class="pc bpc" id="L18" title="1 of 2 branches missed.">        if (rut.length() &lt; 8) return false;</span>
+<span class="fc bfc" id="L18" title="All 2 branches covered.">        if (rut.length() &lt; 8) return false;</span>
 
 <span class="fc" id="L20">        String numberPart = rut.substring(0, rut.length() - 1);</span>
 <span class="fc" id="L21">        char dvChar = rut.charAt(rut.length() - 1);</span>
 
-<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        if (!numberPart.chars().allMatch(Character::isDigit)) return false;</span>
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if (!numberPart.chars().allMatch(Character::isDigit)) return false;</span>
 
         try {
 <span class="fc" id="L26">            int rutNum = Integer.parseInt(numberPart);</span>
 <span class="fc" id="L27">            char expectedDv = calculateDV(rutNum);</span>
 <span class="fc bfc" id="L28" title="All 2 branches covered.">            return dvChar == expectedDv;</span>
-<span class="nc" id="L29">        } catch (NumberFormatException ex) {</span>
-<span class="nc" id="L30">            return false;</span>
+<span class="fc" id="L29">        } catch (NumberFormatException ex) {</span>
+<span class="fc" id="L30">            return false;</span>
         }
     }
 

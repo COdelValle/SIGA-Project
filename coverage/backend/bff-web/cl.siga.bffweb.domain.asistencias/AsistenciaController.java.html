@@ -32,14 +32,14 @@ public class AsistenciaController {
     @GetMapping(&quot;/estudiante/me&quot;)
     @PreAuthorize(&quot;hasRole('ESTUDIANTE') and hasAuthority('SCOPE_asistencias:read')&quot;)
     public ResponseEntity&lt;List&lt;AsistenciaResponseDTO&gt;&gt; getAsistenciasMe() {
-<span class="nc" id="L35">        return ResponseEntity.ok(service.getAsistenciasMe());</span>
+<span class="fc" id="L35">        return ResponseEntity.ok(service.getAsistenciasMe());</span>
     }
 
     /** Asistencias de un estudiante (propio, pupilo vinculado o docente/admin). */
     @GetMapping(&quot;/estudiante/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('SCOPE_asistencias:read')&quot;)
     public ResponseEntity&lt;List&lt;AsistenciaResponseDTO&gt;&gt; getAsistenciasEstudiante(@PathVariable Long id) {
-<span class="nc" id="L42">        return ResponseEntity.ok(service.getAsistenciasEstudiante(id));</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(service.getAsistenciasEstudiante(id));</span>
     }
 
     /** Asistencias de una asignatura en una fecha, para el docente dueno. */
@@ -48,14 +48,14 @@ public class AsistenciaController {
     public ResponseEntity&lt;List&lt;AsistenciaResponseDTO&gt;&gt; getAsistenciasAsignatura(
             @PathVariable Long id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-<span class="nc" id="L51">        return ResponseEntity.ok(service.getAsistenciasAsignatura(id, fecha));</span>
+<span class="fc" id="L51">        return ResponseEntity.ok(service.getAsistenciasAsignatura(id, fecha));</span>
     }
 
     @PostMapping
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_asistencias:write')&quot;)
     public ResponseEntity&lt;AsistenciaResponseDTO&gt; registrarAsistencia(
             @Valid @RequestBody RegistrarAsistenciaRequestDTO request) {
-<span class="nc" id="L58">        return ResponseEntity.status(HttpStatus.CREATED).body(service.registrarAsistencia(request));</span>
+<span class="fc" id="L58">        return ResponseEntity.status(HttpStatus.CREATED).body(service.registrarAsistencia(request));</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
@@ -63,7 +63,7 @@ public class AsistenciaController {
     public ResponseEntity&lt;AsistenciaResponseDTO&gt; actualizarAsistencia(
             @PathVariable Long id,
             @Valid @RequestBody ActualizarAsistenciaRequestDTO request) {
-<span class="nc" id="L66">        return ResponseEntity.ok(service.actualizarAsistencia(id, request));</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(service.actualizarAsistencia(id, request));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

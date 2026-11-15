@@ -1,0 +1,1 @@
+{"id":"fd6343e807d4f07b6234b881927f2d3c.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:src/app/msal-url.util.spec.ts#limpiarParametrosMsal quita los parametros de MSAL del query y deja los demás intactos","name":"quita los parametros de MSAL del query y deja los demás intactos","status":"passed","testResultsByEnv":{"default":"eb85e8167311040138566eb58e03ab6a"}}

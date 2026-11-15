@@ -15,36 +15,36 @@ import org.springframework.stereotype.Component;
 
     @Override
     public NotificacionClient create(Throwable causa) {
-<span class="nc" id="L18">        return new NotificacionClient() {</span>
+<span class="fc" id="L18">        return new NotificacionClient() {</span>
             @Override
             public PageResponseDTO&lt;NotificacionResponseDTO&gt; obtenerMisNotificaciones(int pagina, int tamano) {
-<span class="nc" id="L21">                throw error(&quot;No se pudieron obtener las notificaciones.&quot;);</span>
+<span class="fc" id="L21">                throw error(&quot;No se pudieron obtener las notificaciones.&quot;);</span>
             }
 
             @Override
             public ContadorNotificacionesDTO contarNoLeidas() {
-<span class="nc" id="L26">                throw error(&quot;No se pudo obtener el contador de notificaciones.&quot;);</span>
+<span class="fc" id="L26">                throw error(&quot;No se pudo obtener el contador de notificaciones.&quot;);</span>
             }
 
             @Override
             public void marcarLeida(Long id) {
-<span class="nc" id="L31">                throw error(&quot;No se pudo actualizar la notificación.&quot;);</span>
+<span class="fc" id="L31">                throw error(&quot;No se pudo actualizar la notificación.&quot;);</span>
             }
 
             @Override
             public void marcarTodasLeidas() {
-<span class="nc" id="L36">                throw error(&quot;No se pudieron marcar las notificaciones como leídas.&quot;);</span>
+<span class="fc" id="L36">                throw error(&quot;No se pudieron marcar las notificaciones como leídas.&quot;);</span>
             }
 
             @Override
             public void limpiarLeidas() {
-<span class="nc" id="L41">                throw error(&quot;No se pudieron limpiar las notificaciones leídas.&quot;);</span>
+<span class="fc" id="L41">                throw error(&quot;No se pudieron limpiar las notificaciones leídas.&quot;);</span>
             }
 
             private RuntimeException error(String mensaje) {
-<span class="nc" id="L45">                log.error(&quot;Fallo al llamar a ms-notificaciones (HTTP {}): {}&quot;,</span>
-<span class="nc bnc" id="L46" title="All 2 branches missed.">                    causa instanceof FeignException feign ? feign.status() : -1, causa.getMessage());</span>
-<span class="nc" id="L47">                return FeignFallbacks.noDisponible(causa, mensaje);</span>
+<span class="fc" id="L45">                log.error(&quot;Fallo al llamar a ms-notificaciones (HTTP {}): {}&quot;,</span>
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">                    causa instanceof FeignException feign ? feign.status() : -1, causa.getMessage());</span>
+<span class="fc" id="L47">                return FeignFallbacks.noDisponible(causa, mensaje);</span>
             }
         };
     }

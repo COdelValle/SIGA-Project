@@ -24,7 +24,7 @@ public class RabbitMqAdminClientFallbackFactory implements FallbackFactory&lt;Ra
 <span class="fc" id="L24">        return new RabbitMqAdminClient() {</span>
             @Override
             public void declararCola(SolicitudColaDTO solicitud) {
-<span class="nc" id="L27">                throw error(&quot;No se pudo declarar la cola.&quot;);</span>
+<span class="fc" id="L27">                throw error(&quot;No se pudo declarar la cola.&quot;);</span>
             }
 
             @Override
@@ -34,27 +34,27 @@ public class RabbitMqAdminClientFallbackFactory implements FallbackFactory&lt;Ra
 
             @Override
             public void eliminarCola(String nombre) {
-<span class="nc" id="L37">                throw error(&quot;No se pudo eliminar la cola.&quot;);</span>
+<span class="fc" id="L37">                throw error(&quot;No se pudo eliminar la cola.&quot;);</span>
             }
 
             @Override
             public void declararExchange(SolicitudExchangeDTO solicitud) {
-<span class="nc" id="L42">                throw error(&quot;No se pudo declarar el exchange.&quot;);</span>
+<span class="fc" id="L42">                throw error(&quot;No se pudo declarar el exchange.&quot;);</span>
             }
 
             @Override
             public void eliminarExchange(String nombre) {
-<span class="nc" id="L47">                throw error(&quot;No se pudo eliminar el exchange.&quot;);</span>
+<span class="fc" id="L47">                throw error(&quot;No se pudo eliminar el exchange.&quot;);</span>
             }
 
             @Override
             public void declararBinding(SolicitudBindingDTO solicitud) {
-<span class="nc" id="L52">                throw error(&quot;No se pudo declarar el binding.&quot;);</span>
+<span class="fc" id="L52">                throw error(&quot;No se pudo declarar el binding.&quot;);</span>
             }
 
             @Override
             public void eliminarBinding(String cola, String exchange, String routingKey) {
-<span class="nc" id="L57">                throw error(&quot;No se pudo eliminar el binding.&quot;);</span>
+<span class="fc" id="L57">                throw error(&quot;No se pudo eliminar el binding.&quot;);</span>
             }
 
             private RuntimeException error(String mensaje) {

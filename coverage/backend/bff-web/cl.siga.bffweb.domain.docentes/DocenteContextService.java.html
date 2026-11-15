@@ -38,7 +38,7 @@ public class DocenteContextService {
     public List&lt;CursoAsignaturaResponseDTO&gt; cursosDelDocente(Long idDocente) {
 <span class="fc" id="L39">        PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; pagina =</span>
 <span class="fc" id="L40">            asignaturaClient.searchCursoAsignaturasByDocente(idDocente, PAGE_SIZE);</span>
-<span class="pc bpc" id="L41" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
     }
 
     /**
@@ -47,11 +47,11 @@ public class DocenteContextService {
      */
     public CursoAsignaturaResponseDTO validarCursoDelDocente(Long idCursoAsignatura) {
 <span class="fc" id="L49">        CursoAsignaturaResponseDTO curso = asignaturaClient.getCursoAsignaturaById(idCursoAsignatura);</span>
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (curso == null) {</span>
-<span class="nc" id="L51">            throw new ResourceNotFoundException(&quot;Dictación con ID &quot; + idCursoAsignatura + &quot; no encontrada.&quot;);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (curso == null) {</span>
+<span class="fc" id="L51">            throw new ResourceNotFoundException(&quot;Dictación con ID &quot; + idCursoAsignatura + &quot; no encontrada.&quot;);</span>
         }
-<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
-<span class="nc" id="L54">            return curso;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="fc" id="L54">            return curso;</span>
         }
 <span class="fc" id="L56">        DocenteResponseDTO docente = docenteActual();</span>
 <span class="fc bfc" id="L57" title="All 2 branches covered.">        if (!Objects.equals(curso.idDocente(), docente.id())) {</span>

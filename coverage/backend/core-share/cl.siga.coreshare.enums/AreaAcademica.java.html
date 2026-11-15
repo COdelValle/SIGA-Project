@@ -3,61 +3,61 @@
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-<span class="nc" id="L6">public enum AreaAcademica {</span>
-<span class="nc" id="L7">    @JsonProperty(&quot;MATEMATICAS&quot;)</span>
+<span class="fc" id="L6">public enum AreaAcademica {</span>
+<span class="fc" id="L7">    @JsonProperty(&quot;MATEMATICAS&quot;)</span>
     MATEMATICAS (&quot;Matemáticas&quot;),
 
-<span class="nc" id="L10">    @JsonProperty(&quot;CIENCIAS&quot;)</span>
+<span class="fc" id="L10">    @JsonProperty(&quot;CIENCIAS&quot;)</span>
     CIENCIAS (&quot;Ciencias Naturales y Exactas&quot;),
 
-<span class="nc" id="L13">    @JsonProperty(&quot;CIENCIAS_CIUDADANIA&quot;)</span>
+<span class="fc" id="L13">    @JsonProperty(&quot;CIENCIAS_CIUDADANIA&quot;)</span>
     CIENCIAS_CIUDADANIA (&quot;Ciencias para la Ciudadanía&quot;),
 
-<span class="nc" id="L16">    @JsonProperty(&quot;LENGUAJE&quot;)</span>
+<span class="fc" id="L16">    @JsonProperty(&quot;LENGUAJE&quot;)</span>
     LENGUAJE (&quot;Lenguaje y Comunicación&quot;),
 
-<span class="nc" id="L19">    @JsonProperty(&quot;HISTORIA&quot;)</span>
+<span class="fc" id="L19">    @JsonProperty(&quot;HISTORIA&quot;)</span>
     HISTORIA (&quot;Historia y Ciencias Sociales&quot;),
 
-<span class="nc" id="L22">    @JsonProperty(&quot;CIUDADANIA&quot;)</span>
+<span class="fc" id="L22">    @JsonProperty(&quot;CIUDADANIA&quot;)</span>
     CIUDADANIA (&quot;Formación Ciudadana&quot;),
 
-<span class="nc" id="L25">    @JsonProperty(&quot;FILOSOFIA&quot;)</span>
+<span class="fc" id="L25">    @JsonProperty(&quot;FILOSOFIA&quot;)</span>
     FILOSOFIA (&quot;Filosofía&quot;),
 
-<span class="nc" id="L28">    @JsonProperty(&quot;IDIOMAS&quot;)</span>
+<span class="fc" id="L28">    @JsonProperty(&quot;IDIOMAS&quot;)</span>
     IDIOMAS (&quot;Lenguas e Idiomas&quot;),
 
-<span class="nc" id="L31">    @JsonProperty(&quot;ARTES&quot;)</span>
+<span class="fc" id="L31">    @JsonProperty(&quot;ARTES&quot;)</span>
     ARTES (&quot;Artes y Música&quot;),
 
-<span class="nc" id="L34">    @JsonProperty(&quot;EDUCACION_FISICA&quot;)</span>
+<span class="fc" id="L34">    @JsonProperty(&quot;EDUCACION_FISICA&quot;)</span>
     EDUCACION_FISICA (&quot;Educación Física&quot;),
 
-<span class="nc" id="L37">    @JsonProperty(&quot;TECNOLOGIA&quot;)</span>
+<span class="fc" id="L37">    @JsonProperty(&quot;TECNOLOGIA&quot;)</span>
     TECNOLOGIA (&quot;Tecnología e Informática&quot;),
 
-<span class="nc" id="L40">    @JsonProperty(&quot;ORIENTACION&quot;)</span>
+<span class="fc" id="L40">    @JsonProperty(&quot;ORIENTACION&quot;)</span>
     ORIENTACION (&quot;Orientación&quot;),
 
-<span class="nc" id="L43">    @JsonProperty(&quot;RELIGION&quot;)</span>
+<span class="fc" id="L43">    @JsonProperty(&quot;RELIGION&quot;)</span>
     RELIGION (&quot;Religión&quot;),
 
-<span class="nc" id="L46">    @JsonProperty(&quot;ECONOMIA&quot;)</span>
+<span class="fc" id="L46">    @JsonProperty(&quot;ECONOMIA&quot;)</span>
     ECONOMIA (&quot;Economía y Finanzas&quot;),
 
-<span class="nc" id="L49">    @JsonProperty(&quot;OTRA&quot;)</span>
+<span class="fc" id="L49">    @JsonProperty(&quot;OTRA&quot;)</span>
     OTRA (&quot;Otra Área&quot;);
 
     private final String nombre;
 
-<span class="nc" id="L54">    AreaAcademica(String nombre) {</span>
-<span class="nc" id="L55">        this.nombre = nombre;</span>
-<span class="nc" id="L56">    }</span>
+<span class="fc" id="L54">    AreaAcademica(String nombre) {</span>
+<span class="fc" id="L55">        this.nombre = nombre;</span>
+<span class="fc" id="L56">    }</span>
 
     @JsonValue
     public String getNombre() {
-<span class="nc" id="L60">        return nombre;</span>
+<span class="fc" id="L60">        return nombre;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

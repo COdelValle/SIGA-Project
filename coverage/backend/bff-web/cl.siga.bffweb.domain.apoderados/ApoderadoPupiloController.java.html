@@ -29,7 +29,7 @@ public class ApoderadoPupiloController {
     @GetMapping(&quot;/pupilos&quot;)
     @PreAuthorize(&quot;hasRole('APODERADO') and hasAuthority('SCOPE_apoderados:read')&quot;)
     public ResponseEntity&lt;List&lt;PupiloResumenDTO&gt;&gt; getPupilos() {
-<span class="nc" id="L32">        return ResponseEntity.ok(service.getPupilos());</span>
+<span class="fc" id="L32">        return ResponseEntity.ok(service.getPupilos());</span>
     }
 
     @PutMapping(&quot;/pupilos/{idEstudiante}&quot;)
@@ -37,7 +37,7 @@ public class ApoderadoPupiloController {
     public ResponseEntity&lt;EstudianteResponseDTO&gt; actualizarPupilo(
             @PathVariable Long idEstudiante,
             @Valid @RequestBody ActualizarEstudianteRequestDTO request) {
-<span class="nc" id="L40">        return ResponseEntity.ok(service.actualizarPupilo(idEstudiante, request));</span>
+<span class="fc" id="L40">        return ResponseEntity.ok(service.actualizarPupilo(idEstudiante, request));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -18,14 +18,14 @@ public class NotificationEventOutbox {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void registrar(String idEvento, String intercambio, String clave, Object evento) {
-<span class="pc bpc" id="L21" title="2 of 4 branches missed.">        if (idEvento == null || idEvento.isBlank()) {</span>
-<span class="nc" id="L22">            throw new IllegalArgumentException(&quot;El evento de notificación debe tener idEvento.&quot;);</span>
+<span class="fc bfc" id="L21" title="All 4 branches covered.">        if (idEvento == null || idEvento.isBlank()) {</span>
+<span class="fc" id="L22">            throw new IllegalArgumentException(&quot;El evento de notificación debe tener idEvento.&quot;);</span>
         }
         final String payload;
         try {
 <span class="fc" id="L26">            payload = objectMapper.writeValueAsString(evento);</span>
-<span class="nc" id="L27">        } catch (JsonProcessingException error) {</span>
-<span class="nc" id="L28">            throw new IllegalStateException(&quot;No se pudo serializar el evento de notificación.&quot;, error);</span>
+<span class="fc" id="L27">        } catch (JsonProcessingException error) {</span>
+<span class="fc" id="L28">            throw new IllegalStateException(&quot;No se pudo serializar el evento de notificación.&quot;, error);</span>
 <span class="fc" id="L29">        }</span>
 <span class="fc" id="L30">        LocalDateTime ahora = LocalDateTime.now();</span>
 

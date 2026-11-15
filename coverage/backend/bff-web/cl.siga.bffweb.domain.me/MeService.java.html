@@ -23,24 +23,24 @@ public class MeService {
     public MeResponseDTO getMe() {
         UsuarioResponseDTO usuario;
         try {
-<span class="nc" id="L26">            usuario = usuarioClient.getCurrentUsuario();</span>
-<span class="nc" id="L27">        } catch (FeignException.NotFound ex) {</span>
-<span class="nc" id="L28">            throw new ResourceNotFoundException(&quot;El usuario autenticado no está registrado en SIGA.&quot;);</span>
-<span class="nc" id="L29">        } catch (FeignException ex) {</span>
-<span class="nc" id="L30">            throw new ServiceUnavailableException(</span>
-<span class="nc" id="L31">                    &quot;No se pudo obtener el usuario autenticado (HTTP &quot; + ex.status() + &quot;).&quot;);</span>
-<span class="nc" id="L32">        }</span>
+<span class="fc" id="L26">            usuario = usuarioClient.getCurrentUsuario();</span>
+<span class="fc" id="L27">        } catch (FeignException.NotFound ex) {</span>
+<span class="fc" id="L28">            throw new ResourceNotFoundException(&quot;El usuario autenticado no está registrado en SIGA.&quot;);</span>
+<span class="fc" id="L29">        } catch (FeignException ex) {</span>
+<span class="fc" id="L30">            throw new ServiceUnavailableException(</span>
+<span class="fc" id="L31">                    &quot;No se pudo obtener el usuario autenticado (HTTP &quot; + ex.status() + &quot;).&quot;);</span>
+<span class="fc" id="L32">        }</span>
 
         // El nombre estandarizado del registro manda; si no existe (cuenta legacy),
         // se usa el claim del token y, como ultimo recurso, el correo.
-<span class="nc bnc" id="L36" title="All 4 branches missed.">        String displayName = (usuario.fullName() != null &amp;&amp; !usuario.fullName().isBlank())</span>
-<span class="nc" id="L37">                ? usuario.fullName()</span>
-<span class="nc" id="L38">                : SecurityUtils.getCurrentJwt()</span>
-<span class="nc" id="L39">                        .map(jwt -&gt; jwt.getClaimAsString(&quot;name&quot;))</span>
-<span class="nc bnc" id="L40" title="All 4 branches missed.">                        .filter(name -&gt; name != null &amp;&amp; !name.isBlank())</span>
-<span class="nc" id="L41">                        .orElse(usuario.email());</span>
+<span class="fc bfc" id="L36" title="All 4 branches covered.">        String displayName = (usuario.fullName() != null &amp;&amp; !usuario.fullName().isBlank())</span>
+<span class="fc" id="L37">                ? usuario.fullName()</span>
+<span class="fc" id="L38">                : SecurityUtils.getCurrentJwt()</span>
+<span class="fc" id="L39">                        .map(jwt -&gt; jwt.getClaimAsString(&quot;name&quot;))</span>
+<span class="pc bpc" id="L40" title="1 of 4 branches missed.">                        .filter(name -&gt; name != null &amp;&amp; !name.isBlank())</span>
+<span class="fc" id="L41">                        .orElse(usuario.email());</span>
 
-<span class="nc" id="L43">        return new MeResponseDTO(usuario.id(), usuario.email(), displayName, List.of(usuario.rol()));</span>
+<span class="fc" id="L43">        return new MeResponseDTO(usuario.id(), usuario.email(), displayName, List.of(usuario.rol()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

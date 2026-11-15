@@ -40,14 +40,14 @@ public class RabbitMqAdminController {
     @PostMapping(&quot;/queues&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;Void&gt; declararCola(@RequestBody @Valid SolicitudColaDTO solicitud) {
-<span class="nc" id="L43">        service.declararCola(solicitud);</span>
-<span class="nc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
+<span class="fc" id="L43">        service.declararCola(solicitud);</span>
+<span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
     }
 
     @GetMapping(&quot;/queues/{nombre}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;EstadoColaDTO&gt; estadoCola(@PathVariable @NotBlank (message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String nombre) {
-<span class="nc" id="L50">        return ResponseEntity.ok(service.estadoCola(nombre));</span>
+<span class="fc" id="L50">        return ResponseEntity.ok(service.estadoCola(nombre));</span>
     }
 
     @DeleteMapping(&quot;/queues/{nombre}&quot;)
@@ -60,22 +60,22 @@ public class RabbitMqAdminController {
     @PostMapping(&quot;/exchanges&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;Void&gt; declararExchange(@RequestBody @Valid SolicitudExchangeDTO solicitud) {
-<span class="nc" id="L63">        service.declararExchange(solicitud);</span>
-<span class="nc" id="L64">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
+<span class="fc" id="L63">        service.declararExchange(solicitud);</span>
+<span class="fc" id="L64">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
     }
 
     @DeleteMapping(&quot;/exchanges/{nombre}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')&quot;)
     public ResponseEntity&lt;Void&gt; eliminarExchange(@PathVariable @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String nombre) {
-<span class="nc" id="L70">        service.eliminarExchange(nombre);</span>
-<span class="nc" id="L71">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L70">        service.eliminarExchange(nombre);</span>
+<span class="fc" id="L71">        return ResponseEntity.noContent().build();</span>
     }
 
     @PostMapping(&quot;/bindings&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;Void&gt; declararBinding(@RequestBody @Valid SolicitudBindingDTO solicitud) {
-<span class="nc" id="L77">        service.declararBinding(solicitud);</span>
-<span class="nc" id="L78">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
+<span class="fc" id="L77">        service.declararBinding(solicitud);</span>
+<span class="fc" id="L78">        return ResponseEntity.status(HttpStatus.CREATED).build();</span>
     }
 
     @DeleteMapping(&quot;/bindings&quot;)
@@ -84,8 +84,8 @@ public class RabbitMqAdminController {
             @RequestParam @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String cola,
             @RequestParam @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String exchange,
             @RequestParam(required = false) String routingKey) {
-<span class="nc" id="L87">        service.eliminarBinding(cola, exchange, routingKey);</span>
-<span class="nc" id="L88">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L87">        service.eliminarBinding(cola, exchange, routingKey);</span>
+<span class="fc" id="L88">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

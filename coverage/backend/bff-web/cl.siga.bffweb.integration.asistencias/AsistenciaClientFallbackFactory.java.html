@@ -23,33 +23,33 @@ public class AsistenciaClientFallbackFactory implements FallbackFactory&lt;Asist
 
     @Override
     public AsistenciaClient create(Throwable cause) {
-<span class="nc" id="L26">        return new AsistenciaClient() {</span>
+<span class="fc" id="L26">        return new AsistenciaClient() {</span>
             @Override
             public PageResponseDTO&lt;AsistenciaResponseDTO&gt; searchAsistencias(Long idEstudiante, int size) {
-<span class="nc" id="L29">                throw translator.traducir(cause,</span>
+<span class="fc" id="L29">                throw translator.traducir(cause,</span>
                     &quot;No se pudieron obtener las asistencias del estudiante &quot; + idEstudiante);
             }
 
             @Override
             public PageResponseDTO&lt;AsistenciaResponseDTO&gt; searchAsistenciasByAsignatura(
                     Long idCursoAsignatura, LocalDate from, LocalDate to, int size) {
-<span class="nc" id="L36">                throw translator.traducir(cause,</span>
+<span class="fc" id="L36">                throw translator.traducir(cause,</span>
                     &quot;No se pudieron obtener las asistencias de la dictación &quot; + idCursoAsignatura);
             }
 
             @Override
             public AsistenciaResponseDTO getAsistenciaById(Long id) {
-<span class="nc" id="L42">                throw translator.traducir(cause, &quot;No se pudo obtener la asistencia &quot; + id);</span>
+<span class="fc" id="L42">                throw translator.traducir(cause, &quot;No se pudo obtener la asistencia &quot; + id);</span>
             }
 
             @Override
             public AsistenciaResponseDTO saveAsistencia(RegistrarAsistenciaRequestDTO request) {
-<span class="nc" id="L47">                throw translator.traducir(cause, &quot;No se pudo registrar la asistencia&quot;);</span>
+<span class="fc" id="L47">                throw translator.traducir(cause, &quot;No se pudo registrar la asistencia&quot;);</span>
             }
 
             @Override
             public AsistenciaResponseDTO updateAsistencia(Long id, ActualizarAsistenciaRequestDTO request) {
-<span class="nc" id="L52">                throw translator.traducir(cause, &quot;No se pudo actualizar la asistencia &quot; + id);</span>
+<span class="fc" id="L52">                throw translator.traducir(cause, &quot;No se pudo actualizar la asistencia &quot; + id);</span>
             }
         };
     }

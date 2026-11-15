@@ -20,31 +20,31 @@ public class RabbitMqAdminBffService {
     private final RabbitMqAdminClient client;
 
     public void declararCola(SolicitudColaDTO solicitud) {
-<span class="nc" id="L23">        client.declararCola(solicitud);</span>
-<span class="nc" id="L24">    }</span>
+<span class="fc" id="L23">        client.declararCola(solicitud);</span>
+<span class="fc" id="L24">    }</span>
 
     public EstadoColaDTO estadoCola(String nombre) {
-<span class="nc" id="L27">        return client.estadoCola(nombre);</span>
+<span class="fc" id="L27">        return client.estadoCola(nombre);</span>
     }
 
     public void eliminarCola(String nombre) {
-<span class="nc" id="L31">        client.eliminarCola(nombre);</span>
-<span class="nc" id="L32">    }</span>
+<span class="fc" id="L31">        client.eliminarCola(nombre);</span>
+<span class="fc" id="L32">    }</span>
 
     public void declararExchange(SolicitudExchangeDTO solicitud) {
-<span class="nc" id="L35">        client.declararExchange(solicitud);</span>
-<span class="nc" id="L36">    }</span>
+<span class="fc" id="L35">        client.declararExchange(solicitud);</span>
+<span class="fc" id="L36">    }</span>
 
     public void eliminarExchange(String nombre) {
-<span class="nc" id="L39">        client.eliminarExchange(nombre);</span>
-<span class="nc" id="L40">    }</span>
+<span class="fc" id="L39">        client.eliminarExchange(nombre);</span>
+<span class="fc" id="L40">    }</span>
 
     public void declararBinding(SolicitudBindingDTO solicitud) {
-<span class="nc" id="L43">        client.declararBinding(solicitud);</span>
-<span class="nc" id="L44">    }</span>
+<span class="fc" id="L43">        client.declararBinding(solicitud);</span>
+<span class="fc" id="L44">    }</span>
 
     public void eliminarBinding(String cola, String exchange, String routingKey) {
-<span class="nc" id="L47">        client.eliminarBinding(cola, exchange, routingKey);</span>
-<span class="nc" id="L48">    }</span>
+<span class="fc" id="L47">        client.eliminarBinding(cola, exchange, routingKey);</span>
+<span class="fc" id="L48">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

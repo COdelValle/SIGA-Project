@@ -9,12 +9,12 @@ import cl.siga.coreshare.exception.ServiceUnavailableException;
 <span class="fc" id="L9">public class DocenteClientFallback implements DocenteClient {</span>
     @Override
     public DocenteResponseDTO getDocenteById(Long id) {
-<span class="nc" id="L12">        throw new ServiceUnavailableException(&quot;No se pudo obtener el docente &quot; + id);</span>
+<span class="fc" id="L12">        throw new ServiceUnavailableException(&quot;No se pudo obtener el docente &quot; + id);</span>
     }
 
     @Override
     public DocenteResponseDTO getDocenteByIdUsuario(String idUsuario) {
-<span class="nc" id="L17">        throw new ServiceUnavailableException(&quot;No se pudo obtener el docente con idUsuario &quot; + idUsuario);</span>
+<span class="fc" id="L17">        throw new ServiceUnavailableException(&quot;No se pudo obtener el docente con idUsuario &quot; + idUsuario);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

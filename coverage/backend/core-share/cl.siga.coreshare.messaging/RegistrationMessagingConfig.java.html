@@ -52,17 +52,17 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
     @Bean
     @ConditionalOnMissingBean
     public RegistrationStatusPublisher registrationStatusPublisher(RabbitTemplate rabbitTemplate) {
-<span class="nc" id="L55">        return new RegistrationStatusPublisher(rabbitTemplate);</span>
+<span class="fc" id="L55">        return new RegistrationStatusPublisher(rabbitTemplate);</span>
     }
 
     @Bean
     @ConditionalOnMissingBean
     public MessageConverter registrationJsonMessageConverter() {
-<span class="nc" id="L61">        JsonMapper mapper = JsonMapper.builder()</span>
-<span class="nc" id="L62">                .addModule(new JavaTimeModule())</span>
-<span class="nc" id="L63">                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)</span>
-<span class="nc" id="L64">                .build();</span>
-<span class="nc" id="L65">        return new Jackson2JsonMessageConverter(mapper);</span>
+<span class="fc" id="L61">        JsonMapper mapper = JsonMapper.builder()</span>
+<span class="fc" id="L62">                .addModule(new JavaTimeModule())</span>
+<span class="fc" id="L63">                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)</span>
+<span class="fc" id="L64">                .build();</span>
+<span class="fc" id="L65">        return new Jackson2JsonMessageConverter(mapper);</span>
     }
 
     @Bean

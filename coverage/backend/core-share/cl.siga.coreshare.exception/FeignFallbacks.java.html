@@ -9,16 +9,16 @@ import lombok.extern.slf4j.Slf4j;
  * mal resuelta) queda visible en los logs y en el mensaje, en vez de un 503
  * opaco sin diagnostico.
  */
-<span class="nc" id="L12">@Slf4j</span>
+<span class="fc" id="L12">@Slf4j</span>
 public final class FeignFallbacks {
 
     private FeignFallbacks() {
     }
 
     public static ServiceUnavailableException noDisponible(Throwable cause, String mensaje) {
-<span class="nc bnc" id="L19" title="All 2 branches missed.">        int status = cause instanceof FeignException feign ? feign.status() : -1;</span>
-<span class="nc" id="L20">        log.error(&quot;Fallo en llamada Feign (status={}): {}&quot;, status, cause.getMessage());</span>
-<span class="nc" id="L21">        return new ServiceUnavailableException(mensaje + &quot; (HTTP &quot; + status + &quot;)&quot;);</span>
+<span class="fc bfc" id="L19" title="All 2 branches covered.">        int status = cause instanceof FeignException feign ? feign.status() : -1;</span>
+<span class="fc" id="L20">        log.error(&quot;Fallo en llamada Feign (status={}): {}&quot;, status, cause.getMessage());</span>
+<span class="fc" id="L21">        return new ServiceUnavailableException(mensaje + &quot; (HTTP &quot; + status + &quot;)&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

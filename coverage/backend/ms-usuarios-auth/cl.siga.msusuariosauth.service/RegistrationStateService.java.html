@@ -239,10 +239,10 @@ public class RegistrationStateService {
 <span class="fc" id="L239">    }</span>
 
     private String routingKeyPorRol(Rol rol) {
-<span class="pc bpc" id="L242" title="2 of 4 branches missed.">        return switch (rol) {</span>
+<span class="fc bfc" id="L242" title="All 4 branches covered.">        return switch (rol) {</span>
 <span class="fc" id="L243">            case ESTUDIANTE -&gt; RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE;</span>
-<span class="nc" id="L244">            case DOCENTE -&gt; RegistrationMessagingConstants.RK_REGISTER_DOCENTE;</span>
-<span class="nc" id="L245">            case APODERADO -&gt; RegistrationMessagingConstants.RK_REGISTER_APODERADO;</span>
+<span class="fc" id="L244">            case DOCENTE -&gt; RegistrationMessagingConstants.RK_REGISTER_DOCENTE;</span>
+<span class="fc" id="L245">            case APODERADO -&gt; RegistrationMessagingConstants.RK_REGISTER_APODERADO;</span>
 <span class="fc" id="L246">            case ADMIN -&gt; throw new IllegalStateException(&quot;El rol ADMIN no usa el registro asíncrono.&quot;);</span>
         };
     }
@@ -259,8 +259,8 @@ public class RegistrationStateService {
     private String serializar(Object evento) {
         try {
 <span class="fc" id="L261">            return objectMapper.writeValueAsString(evento);</span>
-<span class="nc" id="L262">        } catch (JsonProcessingException ex) {</span>
-<span class="nc" id="L263">            throw new IllegalStateException(&quot;No se pudo serializar el evento de registro.&quot;, ex);</span>
+<span class="fc" id="L262">        } catch (JsonProcessingException ex) {</span>
+<span class="fc" id="L263">            throw new IllegalStateException(&quot;No se pudo serializar el evento de registro.&quot;, ex);</span>
         }
     }
 

@@ -21,32 +21,32 @@ public class EvaluacionClientFallbackFactory implements FallbackFactory&lt;Evalu
 
     @Override
     public EvaluacionClient create(Throwable cause) {
-<span class="nc" id="L24">        return new EvaluacionClient() {</span>
+<span class="fc" id="L24">        return new EvaluacionClient() {</span>
             @Override
             public EvaluacionResponseDTO getEvaluacionById(Long id) {
-<span class="nc" id="L27">                throw translator.traducir(cause, &quot;No se pudo obtener la evaluacion &quot; + id);</span>
+<span class="fc" id="L27">                throw translator.traducir(cause, &quot;No se pudo obtener la evaluacion &quot; + id);</span>
             }
 
             @Override
             public PageResponseDTO&lt;EvaluacionResponseDTO&gt; searchEvaluacionesByAsignatura(
                     Long idCursoAsignatura, int size) {
-<span class="nc" id="L33">                throw translator.traducir(cause,</span>
+<span class="fc" id="L33">                throw translator.traducir(cause,</span>
                     &quot;No se pudieron obtener las evaluaciones de la dictación &quot; + idCursoAsignatura);
             }
 
             @Override
             public EvaluacionResponseDTO saveEvaluacion(RegistrarEvaluacionRequestDTO request) {
-<span class="nc" id="L39">                throw translator.traducir(cause, &quot;No se pudo registrar la evaluacion&quot;);</span>
+<span class="fc" id="L39">                throw translator.traducir(cause, &quot;No se pudo registrar la evaluacion&quot;);</span>
             }
 
             @Override
             public EvaluacionResponseDTO updateEvaluacion(Long id, ActualizarEvaluacionRequestDTO request) {
-<span class="nc" id="L44">                throw translator.traducir(cause, &quot;No se pudo actualizar la evaluacion &quot; + id);</span>
+<span class="fc" id="L44">                throw translator.traducir(cause, &quot;No se pudo actualizar la evaluacion &quot; + id);</span>
             }
 
             @Override
             public void deleteEvaluacion(Long id) {
-<span class="nc" id="L49">                throw translator.traducir(cause, &quot;No se pudo eliminar la evaluacion &quot; + id);</span>
+<span class="fc" id="L49">                throw translator.traducir(cause, &quot;No se pudo eliminar la evaluacion &quot; + id);</span>
             }
         };
     }

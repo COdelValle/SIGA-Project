@@ -41,20 +41,20 @@ public class AdminController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Rol rol,
             @RequestParam(required = false) StateUsuario state) {
-<span class="nc" id="L44">        return ResponseEntity.ok(service.getUsuarios(email, rol, state));</span>
+<span class="fc" id="L44">        return ResponseEntity.ok(service.getUsuarios(email, rol, state));</span>
     }
 
     @GetMapping(&quot;/asignaturas&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')&quot;)
     public ResponseEntity&lt;List&lt;AsignaturaAdminDTO&gt;&gt; getAsignaturas() {
-<span class="nc" id="L50">        return ResponseEntity.ok(service.getAsignaturas());</span>
+<span class="fc" id="L50">        return ResponseEntity.ok(service.getAsignaturas());</span>
     }
 
     @GetMapping(&quot;/malla&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_asignaturas:read')&quot;)
     public ResponseEntity&lt;List&lt;MallaCurricularResponseDTO&gt;&gt; getMalla(
             @RequestParam(required = false) Nivel nivel) {
-<span class="nc" id="L57">        return ResponseEntity.ok(service.getMalla(nivel));</span>
+<span class="fc" id="L57">        return ResponseEntity.ok(service.getMalla(nivel));</span>
     }
 
     // --- Registro asíncrono de usuarios (usuario + perfil de rol) ---
@@ -63,41 +63,41 @@ public class AdminController {
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; iniciarRegistro(
             @RequestBody @Valid RegistrarUsuarioCompuestoRequestDTO request) {
-<span class="nc" id="L66">        return ResponseEntity.status(HttpStatus.ACCEPTED)</span>
-<span class="nc" id="L67">                .body(service.iniciarRegistroCompuesto(request));</span>
+<span class="fc" id="L66">        return ResponseEntity.status(HttpStatus.ACCEPTED)</span>
+<span class="fc" id="L67">                .body(service.iniciarRegistroCompuesto(request));</span>
     }
 
     @GetMapping(&quot;/registraciones/{processId}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; getRegistro(@PathVariable String processId) {
-<span class="nc" id="L73">        return ResponseEntity.ok(service.getRegistroCompuesto(processId));</span>
+<span class="fc" id="L73">        return ResponseEntity.ok(service.getRegistroCompuesto(processId));</span>
     }
 
     @GetMapping(&quot;/registraciones/{processId}/credencial&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; getCredencial(
             @PathVariable String processId) {
-<span class="nc" id="L80">        return ResponseEntity.ok(service.getCredencialTemporal(processId));</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(service.getCredencialTemporal(processId));</span>
     }
 
     @PostMapping(&quot;/usuarios/{idUsuario}/reset-password&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')&quot;)
     public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; resetPassword(
             @PathVariable String idUsuario) {
-<span class="nc" id="L87">        return ResponseEntity.ok(service.resetPassword(idUsuario));</span>
+<span class="fc" id="L87">        return ResponseEntity.ok(service.resetPassword(idUsuario));</span>
     }
 
     @GetMapping(&quot;/usuarios/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UsuarioDetalleDTO&gt; getUsuarioDetalle(@PathVariable String idUsuario) {
-<span class="nc" id="L93">        return ResponseEntity.ok(service.getUsuarioDetalle(idUsuario));</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(service.getUsuarioDetalle(idUsuario));</span>
     }
 
     @DeleteMapping(&quot;/usuarios/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')&quot;)
     public ResponseEntity&lt;Void&gt; eliminarUsuario(@PathVariable String idUsuario) {
-<span class="nc" id="L99">        service.eliminarUsuario(idUsuario);</span>
-<span class="nc" id="L100">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L99">        service.eliminarUsuario(idUsuario);</span>
+<span class="fc" id="L100">        return ResponseEntity.noContent().build();</span>
     }
 
     // --- Selectores del registro de usuarios ---
@@ -106,13 +106,13 @@ public class AdminController {
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_clases:read')&quot;)
     public ResponseEntity&lt;List&lt;ClaseOpcionDTO&gt;&gt; getClases(
             @RequestParam(required = false) Integer anioAcademico) {
-<span class="nc" id="L109">        return ResponseEntity.ok(service.getClases(anioAcademico));</span>
+<span class="fc" id="L109">        return ResponseEntity.ok(service.getClases(anioAcademico));</span>
     }
 
     @GetMapping(&quot;/estudiantes&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN') and hasAuthority('SCOPE_estudiantes:read')&quot;)
     public ResponseEntity&lt;List&lt;EstudianteOpcionDTO&gt;&gt; buscarEstudiantes(@RequestParam String q) {
-<span class="nc" id="L115">        return ResponseEntity.ok(service.buscarEstudiantes(q));</span>
+<span class="fc" id="L115">        return ResponseEntity.ok(service.buscarEstudiantes(q));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

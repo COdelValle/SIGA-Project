@@ -28,7 +28,7 @@ public class EvaluacionController {
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:write')&quot;)
     public ResponseEntity&lt;EvaluacionResponseDTO&gt; crearEvaluacion(
             @Valid @RequestBody RegistrarEvaluacionRequestDTO request) {
-<span class="nc" id="L31">        return ResponseEntity.status(HttpStatus.CREATED).body(service.crearEvaluacion(request));</span>
+<span class="fc" id="L31">        return ResponseEntity.status(HttpStatus.CREATED).body(service.crearEvaluacion(request));</span>
     }
 
     /** Edita una evaluacion validando la pertenencia del docente. */
@@ -37,15 +37,15 @@ public class EvaluacionController {
     public ResponseEntity&lt;EvaluacionResponseDTO&gt; editarEvaluacion(
             @PathVariable Long id,
             @Valid @RequestBody ActualizarEvaluacionRequestDTO request) {
-<span class="nc" id="L40">        return ResponseEntity.ok(service.editarEvaluacion(id, request));</span>
+<span class="fc" id="L40">        return ResponseEntity.ok(service.editarEvaluacion(id, request));</span>
     }
 
     /** Elimina logicamente una evaluacion validando la pertenencia del docente. */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) and hasAuthority('SCOPE_evaluaciones:delete')&quot;)
     public ResponseEntity&lt;Void&gt; eliminarEvaluacion(@PathVariable Long id) {
-<span class="nc" id="L47">        service.eliminarEvaluacion(id);</span>
-<span class="nc" id="L48">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L47">        service.eliminarEvaluacion(id);</span>
+<span class="fc" id="L48">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

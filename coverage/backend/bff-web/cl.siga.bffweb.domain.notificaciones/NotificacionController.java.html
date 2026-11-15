@@ -30,30 +30,30 @@ public class NotificacionController {
     public ResponseEntity&lt;PageResponseDTO&lt;NotificacionResponseDTO&gt;&gt; obtenerMisNotificaciones(
             @RequestParam(defaultValue = &quot;0&quot;) @Min(0) int page,
             @RequestParam(defaultValue = &quot;10&quot;) @Min(1) @Max(50) int size) {
-<span class="nc" id="L33">        return ResponseEntity.ok(service.obtenerMisNotificaciones(page, size));</span>
+<span class="fc" id="L33">        return ResponseEntity.ok(service.obtenerMisNotificaciones(page, size));</span>
     }
 
     @GetMapping(&quot;/me/no-leidas/count&quot;)
     public ResponseEntity&lt;ContadorNotificacionesDTO&gt; contarNoLeidas() {
-<span class="nc" id="L38">        return ResponseEntity.ok(service.contarNoLeidas());</span>
+<span class="fc" id="L38">        return ResponseEntity.ok(service.contarNoLeidas());</span>
     }
 
     @PatchMapping(&quot;/me/{id}/leida&quot;)
     public ResponseEntity&lt;Void&gt; marcarLeida(@PathVariable Long id) {
-<span class="nc" id="L43">        service.marcarLeida(id);</span>
-<span class="nc" id="L44">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L43">        service.marcarLeida(id);</span>
+<span class="fc" id="L44">        return ResponseEntity.noContent().build();</span>
     }
 
     @PatchMapping(&quot;/me/leidas&quot;)
     public ResponseEntity&lt;Void&gt; marcarTodasLeidas() {
-<span class="nc" id="L49">        service.marcarTodasLeidas();</span>
-<span class="nc" id="L50">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L49">        service.marcarTodasLeidas();</span>
+<span class="fc" id="L50">        return ResponseEntity.noContent().build();</span>
     }
 
     @DeleteMapping(&quot;/me/leidas&quot;)
     public ResponseEntity&lt;Void&gt; limpiarLeidas() {
-<span class="nc" id="L55">        service.limpiarLeidas();</span>
-<span class="nc" id="L56">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L55">        service.limpiarLeidas();</span>
+<span class="fc" id="L56">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

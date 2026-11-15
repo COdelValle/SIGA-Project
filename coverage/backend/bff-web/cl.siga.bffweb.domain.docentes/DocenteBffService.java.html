@@ -76,10 +76,10 @@ public class DocenteBffService {
     }
 
     private List&lt;ClaseDocenteDTO&gt; toClases(CursoAsignaturaResponseDTO curso) {
-<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        ClaseResponseDTO clase = curso.idClase() == null</span>
-<span class="nc" id="L80">            ? null</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        ClaseResponseDTO clase = curso.idClase() == null</span>
+<span class="fc" id="L80">            ? null</span>
 <span class="fc" id="L81">            : claseClient.getClaseById(curso.idClase());</span>
-<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        String nombreCurso = clase == null ? curso.nombre() : nombreClase(clase);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        String nombreCurso = clase == null ? curso.nombre() : nombreClase(clase);</span>
 <span class="pc bpc" id="L83" title="1 of 2 branches missed.">        return (curso.horarios() == null ? Collections.&lt;HorarioResponseDTO&gt;emptyList() : curso.horarios())</span>
 <span class="fc" id="L84">            .stream()</span>
 <span class="fc" id="L85">            .map(horario -&gt; new ClaseDocenteDTO(</span>
@@ -89,8 +89,8 @@ public class DocenteBffService {
 <span class="fc" id="L89">                curso.nombre(),</span>
 <span class="fc" id="L90">                horario.ubicacion(),</span>
 <span class="pc bpc" id="L91" title="1 of 2 branches missed.">                horario.dia() == null ? null : horario.dia().getNombre(),</span>
-<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),</span>
-<span class="pc bpc" id="L93" title="1 of 2 branches missed.">                horario.horarioSalida() == null ? null : horario.horarioSalida().toString()))</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">                horario.horarioEntrada() == null ? null : horario.horarioEntrada().toString(),</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                horario.horarioSalida() == null ? null : horario.horarioSalida().toString()))</span>
 <span class="fc" id="L94">            .toList();</span>
     }
 
@@ -105,15 +105,15 @@ public class DocenteBffService {
     }
 
     private static String sala(CursoAsignaturaResponseDTO curso, ClaseResponseDTO clase) {
-<span class="pc bpc" id="L108" title="2 of 4 branches missed.">        if (curso.horarios() != null &amp;&amp; !curso.horarios().isEmpty()) {</span>
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">        if (curso.horarios() != null &amp;&amp; !curso.horarios().isEmpty()) {</span>
 <span class="fc" id="L109">            return curso.horarios().get(0).ubicacion();</span>
         }
-<span class="nc" id="L111">        return &quot;Sala &quot; + clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
+<span class="fc" id="L111">        return &quot;Sala &quot; + clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
     }
 
     private static List&lt;String&gt; diasClase(CursoAsignaturaResponseDTO curso) {
-<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (curso.horarios() == null) {</span>
-<span class="nc" id="L116">            return List.of();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (curso.horarios() == null) {</span>
+<span class="fc" id="L116">            return List.of();</span>
         }
 <span class="fc" id="L118">        return curso.horarios().stream()</span>
 <span class="pc bpc" id="L119" title="1 of 2 branches missed.">            .map(horario -&gt; horario.dia() == null ? null : horario.dia().getNombre())</span>
@@ -125,19 +125,19 @@ public class DocenteBffService {
 
     /** Franja (bloque doble) a partir de la hora de entrada de 45 minutos. */
     private static int franja(LocalTime hora) {
-<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (hora == null) {</span>
-<span class="nc" id="L129">            return 0;</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (hora == null) {</span>
+<span class="fc" id="L129">            return 0;</span>
         }
-<span class="pc bpc" id="L131" title="1 of 4 branches missed.">        return switch (hora.toString()) {</span>
+<span class="fc bfc" id="L131" title="All 4 branches covered.">        return switch (hora.toString()) {</span>
 <span class="fc" id="L132">            case &quot;08:00&quot;, &quot;08:45&quot; -&gt; 1;</span>
 <span class="fc" id="L133">            case &quot;09:50&quot;, &quot;10:35&quot; -&gt; 2;</span>
-<span class="nc" id="L134">            case &quot;12:15&quot;, &quot;13:00&quot; -&gt; 3;</span>
+<span class="fc" id="L134">            case &quot;12:15&quot;, &quot;13:00&quot; -&gt; 3;</span>
 <span class="fc" id="L135">            default -&gt; 4;</span>
         };
     }
 
     private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
-<span class="pc bpc" id="L140" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+<span class="pc bpc" id="L140" title="1 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

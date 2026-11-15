@@ -26,19 +26,19 @@ public class DocenteController {
     /** Cursos del docente autenticado con sus alumnos. */
     @GetMapping(&quot;/cursos&quot;)
     public ResponseEntity&lt;List&lt;CursoDocenteDTO&gt;&gt; getCursos() {
-<span class="nc" id="L29">        return ResponseEntity.ok(service.getCursos());</span>
+<span class="fc" id="L29">        return ResponseEntity.ok(service.getCursos());</span>
     }
 
     /** Horario semanal del docente autenticado. */
     @GetMapping(&quot;/horario&quot;)
     public ResponseEntity&lt;List&lt;ClaseDocenteDTO&gt;&gt; getHorario() {
-<span class="nc" id="L35">        return ResponseEntity.ok(service.getHorario());</span>
+<span class="fc" id="L35">        return ResponseEntity.ok(service.getHorario());</span>
     }
 
     /** Evaluaciones y notas del curso (asignatura) del docente autenticado. */
     @GetMapping(&quot;/cursos/{asignaturaId}/notas&quot;)
     public ResponseEntity&lt;CursoNotasDTO&gt; getCursoNotas(@PathVariable Long asignaturaId) {
-<span class="nc" id="L41">        return ResponseEntity.ok(notaService.getCursoNotas(asignaturaId));</span>
+<span class="fc" id="L41">        return ResponseEntity.ok(notaService.getCursoNotas(asignaturaId));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

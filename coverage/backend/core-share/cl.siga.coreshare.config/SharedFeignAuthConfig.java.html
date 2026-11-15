@@ -22,13 +22,13 @@ import feign.RequestInterceptor;
     @ConditionalOnMissingBean(RequestInterceptor.class)
     public RequestInterceptor authForwardingInterceptor() {
 <span class="fc" id="L24">        return template -&gt; {</span>
-<span class="nc" id="L25">            SecurityUtils.getCurrentJwt()</span>
-<span class="nc" id="L26">                    .ifPresent(jwt -&gt; template.header(&quot;Authorization&quot;, &quot;Bearer &quot; + jwt.getTokenValue()));</span>
-<span class="nc" id="L27">            String correlationId = MDC.get(CorrelationIdConfig.MDC_KEY);</span>
-<span class="nc bnc" id="L28" title="All 2 branches missed.">            if (correlationId != null) {</span>
-<span class="nc" id="L29">                template.header(CorrelationIdConfig.HEADER, correlationId);</span>
+<span class="fc" id="L25">            SecurityUtils.getCurrentJwt()</span>
+<span class="fc" id="L26">                    .ifPresent(jwt -&gt; template.header(&quot;Authorization&quot;, &quot;Bearer &quot; + jwt.getTokenValue()));</span>
+<span class="fc" id="L27">            String correlationId = MDC.get(CorrelationIdConfig.MDC_KEY);</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">            if (correlationId != null) {</span>
+<span class="fc" id="L29">                template.header(CorrelationIdConfig.HEADER, correlationId);</span>
             }
-<span class="nc" id="L31">        };</span>
+<span class="fc" id="L31">        };</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -167,8 +167,8 @@ public class PerfilEstudianteService {
             CursoAsignaturaResponseDTO asignatura,
             Map&lt;Long, Double&gt; notaPorEvaluacion,
             Map&lt;Long, String&gt; docentePorId) {
-<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        List&lt;HorarioDetalleDTO&gt; horarios = asignatura.horarios() == null</span>
-<span class="nc" id="L171">            ? Collections.emptyList()</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        List&lt;HorarioDetalleDTO&gt; horarios = asignatura.horarios() == null</span>
+<span class="fc" id="L171">            ? Collections.emptyList()</span>
 <span class="fc" id="L172">            : asignatura.horarios().stream()</span>
 <span class="fc" id="L173">                .map(horario -&gt; new HorarioDetalleDTO(</span>
 <span class="fc" id="L174">                    horario.id(),</span>

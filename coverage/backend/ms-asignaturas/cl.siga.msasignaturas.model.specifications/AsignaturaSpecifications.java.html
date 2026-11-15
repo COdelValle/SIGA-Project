@@ -5,7 +5,7 @@ import org.springframework.data.jpa.domain.Specification;
 import cl.siga.coreshare.enums.AreaAcademica;
 import cl.siga.msasignaturas.model.entity.asignatura.Asignatura;
 
-<span class="nc" id="L8">public class AsignaturaSpecifications {</span>
+<span class="fc" id="L8">public class AsignaturaSpecifications {</span>
 
     public static Specification&lt;Asignatura&gt; isActive() {
 <span class="fc" id="L11">        return (root, query, cb) -&gt; cb.isTrue(root.get(&quot;active&quot;));</span>

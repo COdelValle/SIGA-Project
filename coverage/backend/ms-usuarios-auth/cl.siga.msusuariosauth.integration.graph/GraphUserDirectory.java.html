@@ -94,7 +94,7 @@ public class GraphUserDirectory {
 <span class="fc" id="L94">                .build());</span>
 
 <span class="fc" id="L96">        JsonNode value = body.path(&quot;value&quot;);</span>
-<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (!value.isArray() || value.isEmpty()) {</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">        if (!value.isArray() || value.isEmpty()) {</span>
 <span class="fc" id="L98">            return Optional.empty();</span>
         }
 <span class="fc" id="L100">        return Optional.of(value.get(0));</span>
@@ -171,8 +171,8 @@ public class GraphUserDirectory {
 <span class="fc" id="L171">                    .toBodilessEntity();</span>
 <span class="fc" id="L172">        } catch (RestClientResponseException ex) {</span>
 <span class="pc bpc" id="L173" title="1 of 2 branches missed.">            throw graphError((enabled ? &quot;habilitar&quot; : &quot;deshabilitar&quot;) + &quot; la cuenta &quot; + oid, ex);</span>
-<span class="nc" id="L174">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L175">            throw new GraphTransientException(</span>
+<span class="fc" id="L174">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L175">            throw new GraphTransientException(</span>
                     &quot;No se pudo contactar a Microsoft Graph para cambiar el estado de la cuenta.&quot;, ex);
 <span class="fc" id="L177">        }</span>
 <span class="fc" id="L178">    }</span>
@@ -188,8 +188,8 @@ public class GraphUserDirectory {
 <span class="fc" id="L188">                    .toBodilessEntity();</span>
 <span class="fc" id="L189">        } catch (RestClientResponseException ex) {</span>
 <span class="fc" id="L190">            throw graphError(&quot;revocar las sesiones del usuario &quot; + oid, ex);</span>
-<span class="nc" id="L191">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L192">            throw new GraphTransientException(</span>
+<span class="fc" id="L191">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L192">            throw new GraphTransientException(</span>
                     &quot;No se pudo contactar a Microsoft Graph para revocar las sesiones.&quot;, ex);
 <span class="fc" id="L194">        }</span>
 <span class="fc" id="L195">    }</span>
@@ -228,10 +228,10 @@ public class GraphUserDirectory {
                         &quot;Microsoft Graph no devolvió el identificador de la cuenta creada.&quot;);
             }
 <span class="fc" id="L230">            return id.asText();</span>
-<span class="nc" id="L231">        } catch (RestClientResponseException ex) {</span>
-<span class="nc" id="L232">            throw graphError(&quot;crear la cuenta &quot; + email, ex);</span>
-<span class="nc" id="L233">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L234">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph para crear la cuenta.&quot;, ex);</span>
+<span class="fc" id="L231">        } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L232">            throw graphError(&quot;crear la cuenta &quot; + email, ex);</span>
+<span class="fc" id="L233">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L234">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph para crear la cuenta.&quot;, ex);</span>
         }
     }
 
@@ -247,10 +247,10 @@ public class GraphUserDirectory {
 <span class="fc" id="L247">                    .body(payload)</span>
 <span class="fc" id="L248">                    .retrieve()</span>
 <span class="fc" id="L249">                    .toBodilessEntity();</span>
-<span class="nc" id="L250">        } catch (RestClientResponseException ex) {</span>
-<span class="nc" id="L251">            throw graphError(&quot;fijar la clave temporal del usuario &quot; + oid, ex);</span>
-<span class="nc" id="L252">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L253">            throw new GraphTransientException(</span>
+<span class="fc" id="L250">        } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L251">            throw graphError(&quot;fijar la clave temporal del usuario &quot; + oid, ex);</span>
+<span class="fc" id="L252">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L253">            throw new GraphTransientException(</span>
                     &quot;No se pudo contactar a Microsoft Graph para fijar la clave temporal.&quot;, ex);
 <span class="fc" id="L255">        }</span>
 <span class="fc" id="L256">    }</span>
@@ -262,8 +262,8 @@ public class GraphUserDirectory {
 <span class="fc" id="L262">            local = local.substring(0, arroba);</span>
         }
 <span class="fc" id="L264">        String limpio = local.replaceAll(&quot;[^a-z0-9._-]&quot;, &quot;&quot;);</span>
-<span class="pc bpc" id="L265" title="1 of 2 branches missed.">        if (limpio.isBlank()) {</span>
-<span class="nc" id="L266">            limpio = &quot;usuario&quot; + PasswordGenerator.generar().replaceAll(&quot;[^A-Za-z0-9]&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        if (limpio.isBlank()) {</span>
+<span class="fc" id="L266">            limpio = &quot;usuario&quot; + PasswordGenerator.generar().replaceAll(&quot;[^A-Za-z0-9]&quot;, &quot;&quot;);</span>
         }
 <span class="pc bpc" id="L268" title="1 of 2 branches missed.">        return limpio.length() &gt; 64 ? limpio.substring(0, 64) : limpio;</span>
     }
@@ -330,18 +330,18 @@ public class GraphUserDirectory {
 <span class="fc" id="L330">                        .retrieve()</span>
 <span class="fc" id="L331">                        .toBodilessEntity();</span>
 <span class="fc" id="L332">                return;</span>
-<span class="nc" id="L333">            } catch (RestClientResponseException ex) {</span>
-<span class="nc" id="L334">                int status = ex.getStatusCode().value();</span>
-<span class="nc bnc" id="L335" title="All 6 branches missed.">                boolean replicacion = (status == 400 || status == 404) &amp;&amp; intento &lt; intentosMax;</span>
-<span class="nc bnc" id="L336" title="All 2 branches missed.">                if (replicacion) {</span>
-<span class="nc" id="L337">                    log.warn(&quot;Asignacion de app role para {} devolvio HTTP {}; reintento {}/{} en {} s.&quot;,</span>
-<span class="nc" id="L338">                            oid, status, intento, intentosMax, intento * 2L);</span>
-<span class="nc" id="L339">                    dormir(intento * 2L);</span>
-<span class="nc" id="L340">                    continue;</span>
+<span class="fc" id="L333">            } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L334">                int status = ex.getStatusCode().value();</span>
+<span class="pc bpc" id="L335" title="1 of 6 branches missed.">                boolean replicacion = (status == 400 || status == 404) &amp;&amp; intento &lt; intentosMax;</span>
+<span class="fc bfc" id="L336" title="All 2 branches covered.">                if (replicacion) {</span>
+<span class="fc" id="L337">                    log.warn(&quot;Asignacion de app role para {} devolvio HTTP {}; reintento {}/{} en {} s.&quot;,</span>
+<span class="fc" id="L338">                            oid, status, intento, intentosMax, intento * 2L);</span>
+<span class="fc" id="L339">                    dormir(intento * 2L);</span>
+<span class="fc" id="L340">                    continue;</span>
                 }
-<span class="nc" id="L342">                throw graphError(&quot;asignar el app role &quot; + appRoleId + &quot; al usuario &quot; + oid, ex);</span>
-<span class="nc" id="L343">            } catch (RestClientException ex) {</span>
-<span class="nc" id="L344">                throw new GraphTransientException(</span>
+<span class="fc" id="L342">                throw graphError(&quot;asignar el app role &quot; + appRoleId + &quot; al usuario &quot; + oid, ex);</span>
+<span class="fc" id="L343">            } catch (RestClientException ex) {</span>
+<span class="fc" id="L344">                throw new GraphTransientException(</span>
                         &quot;No se pudo contactar a Microsoft Graph para asignar el app role.&quot;, ex);
             }
         }
@@ -349,12 +349,12 @@ public class GraphUserDirectory {
 
     private void dormir(long segundos) {
         try {
-<span class="nc" id="L352">            Thread.sleep(segundos * 1000L);</span>
-<span class="nc" id="L353">        } catch (InterruptedException ex) {</span>
-<span class="nc" id="L354">            Thread.currentThread().interrupt();</span>
-<span class="nc" id="L355">            throw new GraphTransientException(&quot;Interrumpido esperando la replicacion de la cuenta en Entra ID.&quot;, ex);</span>
-<span class="nc" id="L356">        }</span>
-<span class="nc" id="L357">    }</span>
+<span class="fc" id="L352">            Thread.sleep(segundos * 1000L);</span>
+<span class="fc" id="L353">        } catch (InterruptedException ex) {</span>
+<span class="fc" id="L354">            Thread.currentThread().interrupt();</span>
+<span class="fc" id="L355">            throw new GraphTransientException(&quot;Interrumpido esperando la replicacion de la cuenta en Entra ID.&quot;, ex);</span>
+<span class="fc" id="L356">        }</span>
+<span class="fc" id="L357">    }</span>
 
     private void removeAppRoleAssignment(String oid, String assignmentId) {
         try {
@@ -363,10 +363,10 @@ public class GraphUserDirectory {
 <span class="fc" id="L363">                    .header(HttpHeaders.AUTHORIZATION, bearerHeader())</span>
 <span class="fc" id="L364">                    .retrieve()</span>
 <span class="fc" id="L365">                    .toBodilessEntity();</span>
-<span class="nc" id="L366">        } catch (RestClientResponseException ex) {</span>
-<span class="nc" id="L367">            throw graphError(&quot;quitar la asignación &quot; + assignmentId + &quot; del usuario &quot; + oid, ex);</span>
-<span class="nc" id="L368">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L369">            throw new GraphTransientException(</span>
+<span class="fc" id="L366">        } catch (RestClientResponseException ex) {</span>
+<span class="fc" id="L367">            throw graphError(&quot;quitar la asignación &quot; + assignmentId + &quot; del usuario &quot; + oid, ex);</span>
+<span class="fc" id="L368">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L369">            throw new GraphTransientException(</span>
                     &quot;No se pudo contactar a Microsoft Graph para quitar una asignación de rol.&quot;, ex);
 <span class="fc" id="L371">        }</span>
 <span class="fc" id="L372">    }</span>
@@ -380,8 +380,8 @@ public class GraphUserDirectory {
 <span class="fc" id="L380">                    .body(JsonNode.class);</span>
 <span class="fc" id="L381">        } catch (RestClientResponseException ex) {</span>
 <span class="fc" id="L382">            throw graphError(&quot;consultar Microsoft Graph&quot;, ex);</span>
-<span class="nc" id="L383">        } catch (RestClientException ex) {</span>
-<span class="nc" id="L384">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph.&quot;, ex);</span>
+<span class="fc" id="L383">        } catch (RestClientException ex) {</span>
+<span class="fc" id="L384">            throw new GraphTransientException(&quot;No se pudo contactar a Microsoft Graph.&quot;, ex);</span>
         }
     }
 
@@ -396,8 +396,8 @@ public class GraphUserDirectory {
             }
 <span class="fc" id="L397">            AccessToken token = credential.getTokenSync(new TokenRequestContext().addScopes(GRAPH_SCOPE));</span>
 <span class="fc" id="L398">            return &quot;Bearer &quot; + token.getToken();</span>
-<span class="nc" id="L399">        } catch (RuntimeException ex) {</span>
-<span class="nc" id="L400">            throw new GraphTransientException(&quot;No se pudo obtener un token para Microsoft Graph.&quot;, ex);</span>
+<span class="fc" id="L399">        } catch (RuntimeException ex) {</span>
+<span class="fc" id="L400">            throw new GraphTransientException(&quot;No se pudo obtener un token para Microsoft Graph.&quot;, ex);</span>
         }
     }
 

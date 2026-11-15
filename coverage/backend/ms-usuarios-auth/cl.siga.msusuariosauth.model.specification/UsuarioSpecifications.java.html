@@ -6,24 +6,24 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import cl.siga.msusuariosauth.model.entity.Usuario;
 
-<span class="nc" id="L9">public class UsuarioSpecifications {</span>
+<span class="fc" id="L9">public class UsuarioSpecifications {</span>
     public static Specification&lt;Usuario&gt; hasEmail(String email) {
-<span class="nc" id="L11">        return (root, query, criteriaBuilder) -&gt; {</span>
-<span class="nc bnc" id="L12" title="All 4 branches missed.">            if (email == null || email.trim().isEmpty()) {</span>
-<span class="nc" id="L13">                return criteriaBuilder.conjunction();</span>
+<span class="fc" id="L11">        return (root, query, criteriaBuilder) -&gt; {</span>
+<span class="fc bfc" id="L12" title="All 4 branches covered.">            if (email == null || email.trim().isEmpty()) {</span>
+<span class="fc" id="L13">                return criteriaBuilder.conjunction();</span>
             }
-<span class="nc" id="L15">            return criteriaBuilder.equal(root.get(&quot;email&quot;), email.trim().toLowerCase());</span>
+<span class="fc" id="L15">            return criteriaBuilder.equal(root.get(&quot;email&quot;), email.trim().toLowerCase());</span>
         };
     }
 
     public static Specification&lt;Usuario&gt; hasRol(Rol rol) {
-<span class="nc" id="L20">        return (root, query, criteriaBuilder) -&gt; </span>
-<span class="nc bnc" id="L21" title="All 2 branches missed.">            rol == null ? criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get(&quot;rol&quot;), rol);</span>
+<span class="fc" id="L20">        return (root, query, criteriaBuilder) -&gt; </span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">            rol == null ? criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get(&quot;rol&quot;), rol);</span>
     }
 
     public static Specification&lt;Usuario&gt; hasState(StateUsuario state) {
-<span class="nc" id="L25">        return (root, query, criteriaBuilder) -&gt; </span>
-<span class="nc bnc" id="L26" title="All 2 branches missed.">            state == null ? criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get(&quot;state&quot;), state);</span>
+<span class="fc" id="L25">        return (root, query, criteriaBuilder) -&gt; </span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">            state == null ? criteriaBuilder.conjunction() : criteriaBuilder.equal(root.get(&quot;state&quot;), state);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -75,8 +75,8 @@ public class ConfirmadorMensajes {
         try {
 <span class="fc" id="L76">            canal.basicAck(etiqueta, false);</span>
 <span class="fc" id="L77">            log.info(&quot;Mensaje confirmado con ACK en cola={} deliveryTag={}&quot;, cola, etiqueta);</span>
-<span class="nc" id="L78">        } catch (IOException error) {</span>
-<span class="nc" id="L79">            throw new IllegalStateException(</span>
+<span class="fc" id="L78">        } catch (IOException error) {</span>
+<span class="fc" id="L79">            throw new IllegalStateException(</span>
                 &quot;No se pudo confirmar (ACK) el mensaje de la cola &quot; + cola + &quot;.&quot;, error);
 <span class="fc" id="L81">        }</span>
 <span class="fc" id="L82">    }</span>
@@ -86,8 +86,8 @@ public class ConfirmadorMensajes {
 <span class="fc" id="L86">            canal.basicNack(etiqueta, false, false);</span>
 <span class="fc" id="L87">            log.error(&quot;Mensaje rechazado con NACK hacia la DLQ en cola={} deliveryTag={} motivo={}&quot;,</span>
 <span class="fc" id="L88">                cola, etiqueta, motivo);</span>
-<span class="nc" id="L89">        } catch (IOException error) {</span>
-<span class="nc" id="L90">            throw new IllegalStateException(</span>
+<span class="fc" id="L89">        } catch (IOException error) {</span>
+<span class="fc" id="L90">            throw new IllegalStateException(</span>
                 &quot;No se pudo rechazar (NACK) el mensaje de la cola &quot; + cola + &quot;.&quot;, error);
 <span class="fc" id="L92">        }</span>
 <span class="fc" id="L93">    }</span>

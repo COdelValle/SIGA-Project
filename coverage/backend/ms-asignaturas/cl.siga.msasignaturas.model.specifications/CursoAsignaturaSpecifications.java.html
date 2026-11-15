@@ -11,7 +11,7 @@ import cl.siga.msasignaturas.model.entity.asignatura.CursoAsignatura;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 
-<span class="nc" id="L14">public class CursoAsignaturaSpecifications {</span>
+<span class="fc" id="L14">public class CursoAsignaturaSpecifications {</span>
 
     public static Specification&lt;CursoAsignatura&gt; isActive() {
 <span class="fc" id="L17">        return (root, query, cb) -&gt; cb.isTrue(root.get(&quot;active&quot;));</span>

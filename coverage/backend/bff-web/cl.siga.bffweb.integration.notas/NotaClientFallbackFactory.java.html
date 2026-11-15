@@ -21,37 +21,37 @@ public class NotaClientFallbackFactory implements FallbackFactory&lt;NotaClient&
 
     @Override
     public NotaClient create(Throwable cause) {
-<span class="nc" id="L24">        return new NotaClient() {</span>
+<span class="fc" id="L24">        return new NotaClient() {</span>
             @Override
             public NotaResponseDTO getNotaById(Long id) {
-<span class="nc" id="L27">                throw translator.traducir(cause, &quot;No se pudo obtener la nota &quot; + id);</span>
+<span class="fc" id="L27">                throw translator.traducir(cause, &quot;No se pudo obtener la nota &quot; + id);</span>
             }
 
             @Override
             public PageResponseDTO&lt;NotaResponseDTO&gt; searchNotas(Long idEstudiante, int size) {
-<span class="nc" id="L32">                throw translator.traducir(cause,</span>
+<span class="fc" id="L32">                throw translator.traducir(cause,</span>
                     &quot;No se pudieron obtener las notas del estudiante &quot; + idEstudiante);
             }
 
             @Override
             public PageResponseDTO&lt;NotaResponseDTO&gt; searchNotasByEvaluacion(Long idEvaluacion, int size) {
-<span class="nc" id="L38">                throw translator.traducir(cause,</span>
+<span class="fc" id="L38">                throw translator.traducir(cause,</span>
                     &quot;No se pudieron obtener las notas de la evaluacion &quot; + idEvaluacion);
             }
 
             @Override
             public NotaResponseDTO saveNota(RegistrarNotaRequestDTO request) {
-<span class="nc" id="L44">                throw translator.traducir(cause, &quot;No se pudo registrar la nota&quot;);</span>
+<span class="fc" id="L44">                throw translator.traducir(cause, &quot;No se pudo registrar la nota&quot;);</span>
             }
 
             @Override
             public NotaResponseDTO updateNota(Long id, ActualizarNotaRequestDTO request) {
-<span class="nc" id="L49">                throw translator.traducir(cause, &quot;No se pudo actualizar la nota &quot; + id);</span>
+<span class="fc" id="L49">                throw translator.traducir(cause, &quot;No se pudo actualizar la nota &quot; + id);</span>
             }
 
             @Override
             public void deleteNota(Long id) {
-<span class="nc" id="L54">                throw translator.traducir(cause, &quot;No se pudo eliminar la nota &quot; + id);</span>
+<span class="fc" id="L54">                throw translator.traducir(cause, &quot;No se pudo eliminar la nota &quot; + id);</span>
             }
         };
     }

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">54.54% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>12/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">9.09% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>1/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">53.84% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>7/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -130,7 +130,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,20 +142,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -193,7 +193,7 @@
 import { RouterOutlet, Routes } from '@angular/router';
 import { DashboardShellComponent, MenuItem } from '@siga/shared-ui';
 &nbsp;
-const MENU: MenuItem[] = <span class="cstat-no" title="statement not covered" >[</span>
+const MENU: MenuItem[] = [
   { label: 'Inicio', route: '/docente/inicio', icon: 'home' },
   { label: 'Mis cursos', route: '/docente/cursos', icon: 'courses' },
   { label: 'Horarios de clases', route: '/docente/horarios', icon: 'clock' },
@@ -205,7 +205,7 @@ const MENU: MenuItem[] = <span class="cstat-no" title="statement not covered" >[
   },
 ];
 &nbsp;
-@<span class="cstat-no" title="statement not covered" >Component({</span>
+@Component({
   selector: 'siga-docente-layout',
   imports: [DashboardShellComponent, RouterOutlet],
   template: `
@@ -214,11 +214,11 @@ const MENU: MenuItem[] = <span class="cstat-no" title="statement not covered" >[
     &lt;/siga-dashboard-shell&gt;
   `,
 })
-export <span class="cstat-no" title="statement not covered" >class DocenteLayoutComponent {</span>
-  protected readonly menu = <span class="cstat-no" title="statement not covered" >MENU;</span>
+export class DocenteLayoutComponent {
+  protected readonly menu = MENU;
 }
 &nbsp;
-export const DOCENTE_ROUTES: Routes = <span class="cstat-no" title="statement not covered" >[</span>
+export const DOCENTE_ROUTES: Routes = [
   {
     path: '',
     component: DocenteLayoutComponent,
@@ -226,27 +226,27 @@ export const DOCENTE_ROUTES: Routes = <span class="cstat-no" title="statement no
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
         path: 'inicio',
-<span class="fstat-no" title="function not covered" >        loadComponent: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('./pages/inicio.component').then((m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >DocenteInicioComponent)</span>,</span></span>
+        loadComponent: <span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('./pages/inicio.component').<span class="fstat-no" title="function not covered" >then((<span class="cstat-no" title="statement not covered" ></span>m) =&gt; m.D</span>ocenteInicioComponent),</span>
       },
       {
         path: 'cursos',
-<span class="fstat-no" title="function not covered" >        loadComponent: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('./pages/cursos.component').then((m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >DocenteCursosComponent)</span>,</span></span>
+        loadComponent: <span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('./pages/cursos.component').<span class="fstat-no" title="function not covered" >then((<span class="cstat-no" title="statement not covered" ></span>m) =&gt; m.D</span>ocenteCursosComponent),</span>
       },
       {
         path: 'horarios',
-<span class="fstat-no" title="function not covered" >        loadComponent: () =&gt;</span>
-<span class="cstat-no" title="statement not covered" >          import('./pages/horarios.component').then((m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >DocenteHorariosComponent)</span></span>,</span>
+        loadComponent: <span class="fstat-no" title="function not covered" >() =&gt;</span>
+<span class="cstat-no" title="statement not covered" >          import('./pages/horarios.component').<span class="fstat-no" title="function not covered" >then((<span class="cstat-no" title="statement not covered" ></span>m) =&gt; m.D</span>ocenteHorariosComponent),</span>
       },
       {
         path: 'registrar-notas',
-<span class="fstat-no" title="function not covered" >        loadComponent: () =&gt;</span>
-<span class="cstat-no" title="statement not covered" >          import('./pages/registrar-notas.component').then((m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >DocenteRegistrarNotasComponent)</span></span>,</span>
+        loadComponent: <span class="fstat-no" title="function not covered" >() =&gt;</span>
+<span class="cstat-no" title="statement not covered" >          import('./pages/registrar-notas.component').<span class="fstat-no" title="function not covered" >then((<span class="cstat-no" title="statement not covered" ></span>m) =&gt; m.D</span>ocenteRegistrarNotasComponent),</span>
       },
       {
         path: 'registrar-asistencias',
-<span class="fstat-no" title="function not covered" >        loadComponent: () =&gt;</span>
-<span class="cstat-no" title="statement not covered" >          import('./pages/registrar-asistencias.component').then(</span>
-            (m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >DocenteRegistrarAsistenciasComponent,</span></span>
+        loadComponent: <span class="fstat-no" title="function not covered" >() =&gt;</span>
+<span class="cstat-no" title="statement not covered" >          import('./pages/registrar-asistencias.component').<span class="fstat-no" title="function not covered" >then(</span></span>
+            (<span class="cstat-no" title="statement not covered" >m) =&gt; m.D</span>ocenteRegistrarAsistenciasComponent,
           ),
       },
     ],
@@ -259,7 +259,7 @@ export const DOCENTE_ROUTES: Routes = <span class="cstat-no" title="statement no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T16:26:28.525Z
+                at 2026-11-15T03:53:40.227Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -27,24 +27,24 @@ import lombok.extern.slf4j.Slf4j;
     // 1. Validaciones de DTOs (@Valid)
     @ExceptionHandler (MethodArgumentNotValidException.class)
     public ResponseEntity&lt;ErrorResponseDTO&gt; handleValidation(MethodArgumentNotValidException ex) {
-<span class="nc" id="L30">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L31">        ex.getBindingResult().getFieldErrors().forEach(error -&gt; </span>
-<span class="nc" id="L32">            errors.put(error.getField(), error.getDefaultMessage())</span>
+<span class="fc" id="L30">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L31">        ex.getBindingResult().getFieldErrors().forEach(error -&gt; </span>
+<span class="fc" id="L32">            errors.put(error.getField(), error.getDefaultMessage())</span>
         );
-<span class="nc" id="L34">        log.warn(&quot;Datos de entrada invalidos: {}&quot;, errors);</span>
-<span class="nc" id="L35">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L34">        log.warn(&quot;Datos de entrada invalidos: {}&quot;, errors);</span>
+<span class="fc" id="L35">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
             HttpStatus.BAD_REQUEST, &quot;Validation Error&quot;, &quot;Datos de entrada inválidos&quot;, errors));
     }
 
     // 1b. Validaciones de parámetros (@Validated en servicios/controladores)
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity&lt;ErrorResponseDTO&gt; handleConstraintViolation(ConstraintViolationException ex) {
-<span class="nc" id="L42">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L43">        ex.getConstraintViolations().forEach(violation -&gt;</span>
-<span class="nc" id="L44">            errors.put(violation.getPropertyPath().toString(), violation.getMessage())</span>
+<span class="fc" id="L42">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L43">        ex.getConstraintViolations().forEach(violation -&gt;</span>
+<span class="fc" id="L44">            errors.put(violation.getPropertyPath().toString(), violation.getMessage())</span>
         );
-<span class="nc" id="L46">        log.warn(&quot;Parametros invalidos: {}&quot;, errors);</span>
-<span class="nc" id="L47">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L46">        log.warn(&quot;Parametros invalidos: {}&quot;, errors);</span>
+<span class="fc" id="L47">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
             HttpStatus.BAD_REQUEST, &quot;Validation Error&quot;, &quot;Parámetros inválidos&quot;, errors));
     }
 
@@ -61,9 +61,9 @@ import lombok.extern.slf4j.Slf4j;
     // 1d. Parametro de URL con tipo invalido (p. ej. enum o fecha mal formada)
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity&lt;ErrorResponseDTO&gt; handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-<span class="nc" id="L64">        String detail = &quot;El parametro '&quot; + ex.getName() + &quot;' tiene un formato invalido.&quot;;</span>
-<span class="nc" id="L65">        log.warn(&quot;{} Valor recibido: {}&quot;, detail, ex.getValue());</span>
-<span class="nc" id="L66">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L64">        String detail = &quot;El parametro '&quot; + ex.getName() + &quot;' tiene un formato invalido.&quot;;</span>
+<span class="fc" id="L65">        log.warn(&quot;{} Valor recibido: {}&quot;, detail, ex.getValue());</span>
+<span class="fc" id="L66">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
             HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, detail, null));
     }
 
@@ -79,9 +79,9 @@ import lombok.extern.slf4j.Slf4j;
     // 1f. Sort con un campo que no existe en la entidad
     @ExceptionHandler(PropertyReferenceException.class)
     public ResponseEntity&lt;ErrorResponseDTO&gt; handlePropertyReference(PropertyReferenceException ex) {
-<span class="nc" id="L82">        String detail = &quot;El parametro 'sort' contiene un campo invalido: '&quot; + ex.getPropertyName() + &quot;'.&quot;;</span>
-<span class="nc" id="L83">        log.warn(detail);</span>
-<span class="nc" id="L84">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L82">        String detail = &quot;El parametro 'sort' contiene un campo invalido: '&quot; + ex.getPropertyName() + &quot;'.&quot;;</span>
+<span class="fc" id="L83">        log.warn(detail);</span>
+<span class="fc" id="L84">        return ResponseEntity.badRequest().body(ErrorResponseDTO.of(</span>
             HttpStatus.BAD_REQUEST, &quot;Bad Request&quot;, detail, null));
     }
 
@@ -96,8 +96,8 @@ import lombok.extern.slf4j.Slf4j;
     // 2b. Rutas o recursos estáticos inexistentes (404 real, sin enmascarar como 500)
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity&lt;ErrorResponseDTO&gt; handleNoResource(NoResourceFoundException ex) {
-<span class="nc" id="L99">        log.debug(&quot;Ruta no encontrada: {}&quot;, ex.getMessage());</span>
-<span class="nc" id="L100">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDTO.of(</span>
+<span class="fc" id="L99">        log.debug(&quot;Ruta no encontrada: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L100">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDTO.of(</span>
             HttpStatus.NOT_FOUND, &quot;Not Found&quot;, &quot;Recurso no encontrado&quot;, null));
     }
 
@@ -123,7 +123,7 @@ import lombok.extern.slf4j.Slf4j;
 <span class="fc" id="L123">        log.warn(&quot;Acceso denegado: {}&quot;, ex.getMessage());</span>
 <span class="fc" id="L124">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponseDTO.of(</span>
             HttpStatus.FORBIDDEN, &quot;Forbidden&quot;,
-<span class="pc bpc" id="L126" title="1 of 2 branches missed.">            ex.getMessage() != null ? ex.getMessage() : &quot;No tienes permisos para realizar esta acción&quot;, null));</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">            ex.getMessage() != null ? ex.getMessage() : &quot;No tienes permisos para realizar esta acción&quot;, null));</span>
     }
 
     // 4. Conflictos de integridad de datos (409)

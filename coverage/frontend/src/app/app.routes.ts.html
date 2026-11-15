@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -113,43 +113,43 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -158,10 +158,10 @@ import { MsalGuard } from '@azure/msal-angular';
 import { roleGuard } from '@siga/core';
 import { AuthRedirectComponent } from './auth-redirect/auth-redirect.component';
 &nbsp;
-export const routes: Routes = <span class="cstat-no" title="statement not covered" >[</span>
+export const routes: Routes = [
   {
     path: '',
-<span class="fstat-no" title="function not covered" >    loadChildren: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/public-portal').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.PUBLIC_ROUTES)</span>,</span>
+    loadChildren: () =&gt; import('@siga/public-portal').then((m) =&gt; m.PUBLIC_ROUTES),
   },
   {
     path: 'auth',
@@ -169,32 +169,32 @@ export const routes: Routes = <span class="cstat-no" title="statement not covere
   },
   {
     path: 'sin-acceso',
-<span class="fstat-no" title="function not covered" >    loadComponent: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/public-portal').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.SinAccesoComponent)</span>,</span>
+    loadComponent: () =&gt; import('@siga/public-portal').then((m) =&gt; m.SinAccesoComponent),
   },
   {
     path: 'error-acceso',
-<span class="fstat-no" title="function not covered" >    loadComponent: () =&gt;</span>
-<span class="cstat-no" title="statement not covered" >      import('./auth-error/auth-error.component').then((m) =&gt; m.<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >AuthErrorComponent)</span></span>,</span>
+    loadComponent: () =&gt;
+      import('./auth-error/auth-error.component').then((m) =&gt; m.AuthErrorComponent),
   },
   {
     path: 'estudiante',
     canActivate: [MsalGuard, roleGuard(['ESTUDIANTE'])],
-<span class="fstat-no" title="function not covered" >    loadChildren: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/estudiante').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.ESTUDIANTE_ROUTES)</span>,</span>
+    loadChildren: () =&gt; import('@siga/estudiante').then((m) =&gt; m.ESTUDIANTE_ROUTES),
   },
   {
     path: 'apoderado',
     canActivate: [MsalGuard, roleGuard(['APODERADO'])],
-<span class="fstat-no" title="function not covered" >    loadChildren: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/apoderado').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.APODERADO_ROUTES)</span>,</span>
+    loadChildren: () =&gt; import('@siga/apoderado').then((m) =&gt; m.APODERADO_ROUTES),
   },
   {
     path: 'docente',
     canActivate: [MsalGuard, roleGuard(['DOCENTE'])],
-<span class="fstat-no" title="function not covered" >    loadChildren: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/docente').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.DOCENTE_ROUTES)</span>,</span>
+    loadChildren: () =&gt; import('@siga/docente').then((m) =&gt; m.DOCENTE_ROUTES),
   },
   {
     path: 'admin',
     canActivate: [MsalGuard, roleGuard(['ADMIN'])],
-<span class="fstat-no" title="function not covered" >    loadChildren: () =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport('@siga/admin').<span class="fstat-no" title="function not covered" >then((m</span>) =&gt; <span class="cstat-no" title="statement not covered" >m.ADMIN_ROUTES)</span>,</span>
+    loadChildren: () =&gt; import('@siga/admin').then((m) =&gt; m.ADMIN_ROUTES),
   },
   { path: '**', redirectTo: '' },
 ];
@@ -205,7 +205,7 @@ export const routes: Routes = <span class="cstat-no" title="statement not covere
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-14T16:26:28.525Z
+                at 2026-11-15T03:53:40.227Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

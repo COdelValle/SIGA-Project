@@ -7,33 +7,33 @@ import org.springframework.data.jpa.domain.Specification;
 import cl.siga.coreshare.dto.asignatura.inscripcion.enums.EstadoInscripcion;
 import cl.siga.msasignaturas.model.entity.Inscripcion;
 
-<span class="nc" id="L10">public class InscripcionSpecifications {</span>
+<span class="fc" id="L10">public class InscripcionSpecifications {</span>
 
     public static Specification&lt;Inscripcion&gt; hasIdAlumno(Long idAlumno) {
-<span class="nc" id="L13">        return (root, query, cb) -&gt; {</span>
-<span class="nc bnc" id="L14" title="All 2 branches missed.">            if (idAlumno == null) return cb.conjunction();</span>
-<span class="nc" id="L15">            return cb.equal(root.get(&quot;idAlumno&quot;), idAlumno);</span>
+<span class="fc" id="L13">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L14" title="All 2 branches covered.">            if (idAlumno == null) return cb.conjunction();</span>
+<span class="fc" id="L15">            return cb.equal(root.get(&quot;idAlumno&quot;), idAlumno);</span>
         };
     }
 
     public static Specification&lt;Inscripcion&gt; hasIdCursoAsignatura(Long idCursoAsignatura) {
-<span class="nc" id="L20">        return (root, query, cb) -&gt; {</span>
-<span class="nc bnc" id="L21" title="All 2 branches missed.">            if (idCursoAsignatura == null) return cb.conjunction();</span>
-<span class="nc" id="L22">            return cb.equal(root.get(&quot;cursoAsignatura&quot;).get(&quot;id&quot;), idCursoAsignatura);</span>
+<span class="fc" id="L20">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">            if (idCursoAsignatura == null) return cb.conjunction();</span>
+<span class="fc" id="L22">            return cb.equal(root.get(&quot;cursoAsignatura&quot;).get(&quot;id&quot;), idCursoAsignatura);</span>
         };
     }
 
     public static Specification&lt;Inscripcion&gt; hasEstado(EstadoInscripcion estado) {
-<span class="nc" id="L27">        return (root, query, cb) -&gt; {</span>
-<span class="nc bnc" id="L28" title="All 2 branches missed.">            if (estado == null) return cb.conjunction();</span>
-<span class="nc" id="L29">            return cb.equal(root.get(&quot;estado&quot;), estado);</span>
+<span class="fc" id="L27">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">            if (estado == null) return cb.conjunction();</span>
+<span class="fc" id="L29">            return cb.equal(root.get(&quot;estado&quot;), estado);</span>
         };
     }
 
     public static Specification&lt;Inscripcion&gt; hasEstadoIn(List&lt;EstadoInscripcion&gt; estados) {
-<span class="nc" id="L34">        return (root, query, cb) -&gt; {</span>
-<span class="nc bnc" id="L35" title="All 4 branches missed.">            if (estados == null || estados.isEmpty()) return cb.conjunction();</span>
-<span class="nc" id="L36">            return root.get(&quot;estado&quot;).in(estados);</span>
+<span class="fc" id="L34">        return (root, query, cb) -&gt; {</span>
+<span class="fc bfc" id="L35" title="All 4 branches covered.">            if (estados == null || estados.isEmpty()) return cb.conjunction();</span>
+<span class="fc" id="L36">            return root.get(&quot;estado&quot;).in(estados);</span>
         };
     }
 }

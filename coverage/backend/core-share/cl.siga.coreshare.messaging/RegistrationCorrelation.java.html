@@ -14,15 +14,15 @@ public final class RegistrationCorrelation {
     }
 
     public static void ejecutar(String correlationId, Runnable action) {
-<span class="nc bnc" id="L17" title="All 4 branches missed.">        boolean enMdc = correlationId != null &amp;&amp; !correlationId.isBlank();</span>
-<span class="nc bnc" id="L18" title="All 2 branches missed.">        if (enMdc) {</span>
-<span class="nc" id="L19">            MDC.put(CorrelationIdConfig.MDC_KEY, correlationId);</span>
+<span class="fc bfc" id="L17" title="All 4 branches covered.">        boolean enMdc = correlationId != null &amp;&amp; !correlationId.isBlank();</span>
+<span class="fc bfc" id="L18" title="All 2 branches covered.">        if (enMdc) {</span>
+<span class="fc" id="L19">            MDC.put(CorrelationIdConfig.MDC_KEY, correlationId);</span>
         }
         try {
-<span class="nc" id="L22">            action.run();</span>
+<span class="fc" id="L22">            action.run();</span>
         } finally {
-<span class="nc" id="L24">            MDC.remove(CorrelationIdConfig.MDC_KEY);</span>
+<span class="fc" id="L24">            MDC.remove(CorrelationIdConfig.MDC_KEY);</span>
         }
-<span class="nc" id="L26">    }</span>
+<span class="fc" id="L26">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

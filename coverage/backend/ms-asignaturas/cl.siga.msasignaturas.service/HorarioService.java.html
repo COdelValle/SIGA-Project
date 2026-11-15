@@ -40,22 +40,22 @@ public class HorarioService {
 
     @Transactional
     public HorarioResponseDTO actualizarHorario(Long id, HorarioRequestDTO request) {
-<span class="nc" id="L43">        validarRangoHorario(request);</span>
+<span class="fc" id="L43">        validarRangoHorario(request);</span>
 
-<span class="nc" id="L45">        Horario horario = horarioRepository.findById(id)</span>
-<span class="nc" id="L46">                .filter(Horario::isActive)</span>
-<span class="nc" id="L47">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Horario no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L45">        Horario horario = horarioRepository.findById(id)</span>
+<span class="fc" id="L46">                .filter(Horario::isActive)</span>
+<span class="fc" id="L47">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Horario no encontrado con ID: &quot; + id));</span>
 
-<span class="nc" id="L49">        Long cursoId = horario.getCursoAsignatura().getId();</span>
-<span class="nc" id="L50">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoId)</span>
-<span class="nc" id="L51">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación activa no encontrada con ID: &quot; + cursoId));</span>
+<span class="fc" id="L49">        Long cursoId = horario.getCursoAsignatura().getId();</span>
+<span class="fc" id="L50">        CursoAsignatura curso = cursoAsignaturaRepository.findByIdAndActiveTrue(cursoId)</span>
+<span class="fc" id="L51">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Dictación activa no encontrada con ID: &quot; + cursoId));</span>
 
-<span class="nc" id="L53">        validarSolapamiento(curso.getId(), request, id);</span>
+<span class="fc" id="L53">        validarSolapamiento(curso.getId(), request, id);</span>
 
-<span class="nc" id="L55">        horarioMapper.updateEntityFromDto(request, horario);</span>
-<span class="nc" id="L56">        horario.setCursoAsignatura(curso);</span>
+<span class="fc" id="L55">        horarioMapper.updateEntityFromDto(request, horario);</span>
+<span class="fc" id="L56">        horario.setCursoAsignatura(curso);</span>
 
-<span class="nc" id="L58">        return horarioMapper.toDto(horarioRepository.save(horario));</span>
+<span class="fc" id="L58">        return horarioMapper.toDto(horarioRepository.save(horario));</span>
     }
 
     @Transactional
@@ -76,14 +76,14 @@ public class HorarioService {
 <span class="fc" id="L76">    }</span>
 
     private void validarRangoHorario(HorarioRequestDTO request) {
-<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (!request.horarioEntrada().isBefore(request.horarioSalida())) {</span>
-<span class="nc" id="L80">            throw new BusinessException(&quot;La hora de entrada debe ser anterior a la hora de salida&quot;);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (!request.horarioEntrada().isBefore(request.horarioSalida())) {</span>
+<span class="fc" id="L80">            throw new BusinessException(&quot;La hora de entrada debe ser anterior a la hora de salida&quot;);</span>
         }
 <span class="fc" id="L82">    }</span>
 
     private void validarSolapamiento(Long cursoAsignaturaId, HorarioRequestDTO request, Long idExcluir) {
 <span class="fc" id="L85">        boolean solapaCurso = horarioRepository.findByCursoAsignaturaIdAndActiveTrue(cursoAsignaturaId).stream()</span>
-<span class="pc bpc" id="L86" title="3 of 4 branches missed.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
+<span class="fc bfc" id="L86" title="All 4 branches covered.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
 <span class="pc bpc" id="L87" title="1 of 4 branches missed.">                .anyMatch(h -&gt; h.getDia() == request.dia() &amp;&amp; solapan(h, request));</span>
 <span class="fc bfc" id="L88" title="All 2 branches covered.">        if (solapaCurso) {</span>
 <span class="fc" id="L89">            throw new BusinessException(&quot;La dictación ya tiene un horario que se solapa con el indicado.&quot;);</span>
@@ -91,7 +91,7 @@ public class HorarioService {
 
 <span class="fc" id="L92">        boolean solapaUbicacion = horarioRepository</span>
 <span class="fc" id="L93">                .findByUbicacionIgnoreCaseAndDiaAndActiveTrue(request.ubicacion(), request.dia()).stream()</span>
-<span class="pc bpc" id="L94" title="3 of 4 branches missed.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
+<span class="pc bpc" id="L94" title="1 of 4 branches missed.">                .filter(h -&gt; idExcluir == null || !h.getId().equals(idExcluir))</span>
 <span class="fc" id="L95">                .anyMatch(h -&gt; solapan(h, request));</span>
 <span class="fc bfc" id="L96" title="All 2 branches covered.">        if (solapaUbicacion) {</span>
 <span class="fc" id="L97">            throw new BusinessException(&quot;La ubicación ya está ocupada en ese horario.&quot;);</span>

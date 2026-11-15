@@ -12,11 +12,11 @@ public final class SecurityUtils {
     private SecurityUtils() {}
 
     public static Optional&lt;Jwt&gt; getCurrentJwt() {
-<span class="nc" id="L15">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="nc bnc" id="L16" title="All 4 branches missed.">        if (authentication != null &amp;&amp; authentication.getPrincipal() instanceof Jwt jwt) {</span>
-<span class="nc" id="L17">            return Optional.of(jwt);</span>
+<span class="fc" id="L15">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L16" title="All 4 branches covered.">        if (authentication != null &amp;&amp; authentication.getPrincipal() instanceof Jwt jwt) {</span>
+<span class="fc" id="L17">            return Optional.of(jwt);</span>
         }
-<span class="nc" id="L19">        return Optional.empty();</span>
+<span class="fc" id="L19">        return Optional.empty();</span>
     }
 
     /**
@@ -24,7 +24,7 @@ public final class SecurityUtils {
      * Este es el identificador global del usuario en Microsoft.
      */
     public static Optional&lt;String&gt; getCurrentUserOid() {
-<span class="nc" id="L27">        return getCurrentJwt().map(jwt -&gt; jwt.getClaimAsString(&quot;oid&quot;));</span>
+<span class="fc" id="L27">        return getCurrentJwt().map(jwt -&gt; jwt.getClaimAsString(&quot;oid&quot;));</span>
     }
 
     /**
@@ -33,32 +33,32 @@ public final class SecurityUtils {
      * {@code upn} para tolerar tenants con formatos distintos.
      */
     public static Optional&lt;String&gt; getCurrentUserEmail() {
-<span class="nc" id="L36">        return getCurrentJwt().map(jwt -&gt; {</span>
-<span class="nc" id="L37">            String[] claims = {&quot;preferred_username&quot;, &quot;email&quot;, &quot;upn&quot;};</span>
-<span class="nc bnc" id="L38" title="All 2 branches missed.">            for (String claim : claims) {</span>
-<span class="nc" id="L39">                String value = jwt.getClaimAsString(claim);</span>
-<span class="nc bnc" id="L40" title="All 4 branches missed.">                if (value != null &amp;&amp; !value.isBlank()) {</span>
-<span class="nc" id="L41">                    return value;</span>
+<span class="fc" id="L36">        return getCurrentJwt().map(jwt -&gt; {</span>
+<span class="fc" id="L37">            String[] claims = {&quot;preferred_username&quot;, &quot;email&quot;, &quot;upn&quot;};</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">            for (String claim : claims) {</span>
+<span class="fc" id="L39">                String value = jwt.getClaimAsString(claim);</span>
+<span class="fc bfc" id="L40" title="All 4 branches covered.">                if (value != null &amp;&amp; !value.isBlank()) {</span>
+<span class="fc" id="L41">                    return value;</span>
                 }
             }
-<span class="nc" id="L44">            return null;</span>
+<span class="fc" id="L44">            return null;</span>
         });
     }
 
     /** Indica si el usuario autenticado tiene el rol indicado (sin el prefijo ROLE_). */
     public static boolean hasRole(String role) {
-<span class="nc" id="L50">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (authentication == null) {</span>
-<span class="nc" id="L52">            return false;</span>
+<span class="fc" id="L50">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (authentication == null) {</span>
+<span class="fc" id="L52">            return false;</span>
         }
-<span class="nc" id="L54">        String authority = &quot;ROLE_&quot; + role;</span>
-<span class="nc" id="L55">        return authentication.getAuthorities().stream()</span>
-<span class="nc" id="L56">                .anyMatch(a -&gt; a.getAuthority().equals(authority));</span>
+<span class="fc" id="L54">        String authority = &quot;ROLE_&quot; + role;</span>
+<span class="fc" id="L55">        return authentication.getAuthorities().stream()</span>
+<span class="fc" id="L56">                .anyMatch(a -&gt; a.getAuthority().equals(authority));</span>
     }
 
     /** Indica si el usuario autenticado es ADMIN. */
     public static boolean isAdmin() {
-<span class="nc" id="L61">        return hasRole(&quot;ADMIN&quot;);</span>
+<span class="fc" id="L61">        return hasRole(&quot;ADMIN&quot;);</span>
     }
 
     /**
@@ -66,14 +66,14 @@ public final class SecurityUtils {
      * (comparando el claim oid con el idUsuario de la entidad).
      */
     public static void requireOwnerOrAdmin(String idUsuario, String mensaje) {
-<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (isAdmin()) {</span>
-<span class="nc" id="L70">            return;</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (isAdmin()) {</span>
+<span class="fc" id="L70">            return;</span>
         }
-<span class="nc" id="L72">        String oid = getCurrentUserOid()</span>
-<span class="nc" id="L73">                .orElseThrow(() -&gt; new AccessDeniedException(&quot;No se pudo identificar al usuario autenticado.&quot;));</span>
-<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (!oid.equals(idUsuario)) {</span>
-<span class="nc" id="L75">            throw new AccessDeniedException(mensaje);</span>
+<span class="fc" id="L72">        String oid = getCurrentUserOid()</span>
+<span class="fc" id="L73">                .orElseThrow(() -&gt; new AccessDeniedException(&quot;No se pudo identificar al usuario autenticado.&quot;));</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (!oid.equals(idUsuario)) {</span>
+<span class="fc" id="L75">            throw new AccessDeniedException(mensaje);</span>
         }
-<span class="nc" id="L77">    }</span>
+<span class="fc" id="L77">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

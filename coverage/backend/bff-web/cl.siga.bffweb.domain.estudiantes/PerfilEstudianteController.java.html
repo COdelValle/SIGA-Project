@@ -22,12 +22,12 @@ public class PerfilEstudianteController {
     @PreAuthorize(&quot;hasRole('ESTUDIANTE') and hasAuthority('SCOPE_estudiantes:read') &quot;
         + &quot;and hasAuthority('SCOPE_asignaturas:read') and hasAuthority('SCOPE_notas:read')&quot;)
     public ResponseEntity&lt;PerfilEstudianteResponseDTO&gt; getPerfilMe() {
-<span class="nc" id="L25">        return ResponseEntity.ok(service.getPerfilMe());</span>
+<span class="fc" id="L25">        return ResponseEntity.ok(service.getPerfilMe());</span>
     }
 
     @GetMapping (&quot;/perfil/{id}&quot;)
     public ResponseEntity&lt;PerfilEstudianteResponseDTO&gt; getPerfil(@PathVariable (&quot;id&quot;) Long id) {
-<span class="nc" id="L30">        return ResponseEntity.ok(service.getPerfil(id));</span>
+<span class="fc" id="L30">        return ResponseEntity.ok(service.getPerfil(id));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -52,19 +52,19 @@ public class UsuarioController {
     @GetMapping(&quot;/me&quot;)
     @PreAuthorize (&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;UsuarioResponseDTO&gt; me() {
-<span class="nc" id="L55">        return ResponseEntity.ok(usuarioService.getCurrentUsuario());</span>
+<span class="fc" id="L55">        return ResponseEntity.ok(usuarioService.getCurrentUsuario());</span>
     }
 
     @GetMapping(&quot;/lookup&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;CandidatoUsuarioResponseDTO&gt; lookup(@RequestParam @Email String email) {
-<span class="nc" id="L61">        return ResponseEntity.ok(usuarioService.lookupCandidato(email));</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(usuarioService.lookupCandidato(email));</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UsuarioResponseDTO&gt; usuarioById(@PathVariable String id) {
-<span class="nc" id="L67">        return ResponseEntity.ok(usuarioService.getUsuarioById(id));</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(usuarioService.getUsuarioById(id));</span>
     }
     
     @GetMapping(&quot;/search&quot;)
@@ -75,51 +75,51 @@ public class UsuarioController {
             @RequestParam(required = false) StateUsuario state,
             @PageableDefault(size = 20, sort = &quot;id&quot;) Pageable pageable
         ) {
-<span class="nc" id="L78">        return ResponseEntity.ok(usuarioService.searchUsuarios(email, rol, state, pageable));</span>
+<span class="fc" id="L78">        return ResponseEntity.ok(usuarioService.searchUsuarios(email, rol, state, pageable));</span>
     }
     
     @PostMapping()
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;RegistrarUsuarioResponseDTO&gt; postUsuario(@RequestBody @Valid RegistrarUsuarioRequestDTO request) {
-<span class="nc" id="L84">        RegistrarUsuarioResponseDTO response = usuarioService.saveUsuario(request);</span>
-<span class="nc bnc" id="L85" title="All 2 branches missed.">        HttpStatus status = response.state() == StateUsuario.INVITADO</span>
-<span class="nc" id="L86">                ? HttpStatus.ACCEPTED</span>
-<span class="nc" id="L87">                : HttpStatus.CREATED;</span>
-<span class="nc" id="L88">        return ResponseEntity.status(status).body(response);</span>
+<span class="fc" id="L84">        RegistrarUsuarioResponseDTO response = usuarioService.saveUsuario(request);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        HttpStatus status = response.state() == StateUsuario.INVITADO</span>
+<span class="fc" id="L86">                ? HttpStatus.ACCEPTED</span>
+<span class="fc" id="L87">                : HttpStatus.CREATED;</span>
+<span class="fc" id="L88">        return ResponseEntity.status(status).body(response);</span>
     }
 
     @PostMapping(&quot;/invitaciones/lote&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;InvitacionLoteResponseDTO&gt; postInvitacionesLote(
             @RequestBody List&lt;InvitacionUsuarioRequestDTO&gt; solicitudes) {
-<span class="nc" id="L95">        return ResponseEntity.ok(usuarioService.invitarLote(solicitudes));</span>
+<span class="fc" id="L95">        return ResponseEntity.ok(usuarioService.invitarLote(solicitudes));</span>
     }
 
     @PostMapping(value = &quot;/invitaciones/lote/csv&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:write')&quot;)
     public ResponseEntity&lt;InvitacionLoteResponseDTO&gt; postInvitacionesLoteCsv(
             @RequestParam(&quot;archivo&quot;) MultipartFile archivo) {
-<span class="nc" id="L102">        return ResponseEntity.ok(usuarioService.invitarLoteCsv(archivo));</span>
+<span class="fc" id="L102">        return ResponseEntity.ok(usuarioService.invitarLoteCsv(archivo));</span>
     }
     
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')&quot;)
     public ResponseEntity&lt;UsuarioResponseDTO&gt; putUsuario(@PathVariable String id, @RequestBody @Valid ActualizarUsuarioRequestDTO request) {
-<span class="nc" id="L108">        return ResponseEntity.ok(usuarioService.updateUsuario(id, request));</span>
+<span class="fc" id="L108">        return ResponseEntity.ok(usuarioService.updateUsuario(id, request));</span>
     }
 
     @DeleteMapping (&quot;/{id}&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')&quot;)
     public ResponseEntity&lt;Void&gt; deleteUsuario(@PathVariable String id) {
-<span class="nc" id="L114">        usuarioService.deleteUsuario(id);</span>
-<span class="nc" id="L115">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L114">        usuarioService.deleteUsuario(id);</span>
+<span class="fc" id="L115">        return ResponseEntity.noContent().build();</span>
     }
 
     @PostMapping (&quot;/{id}/sync-roles&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')&quot;)
     public ResponseEntity&lt;Void&gt; syncRoles(@PathVariable String id) {
-<span class="nc" id="L121">        usuarioService.syncUserRoles(id);</span>
-<span class="nc" id="L122">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L121">        usuarioService.syncUserRoles(id);</span>
+<span class="fc" id="L122">        return ResponseEntity.noContent().build();</span>
     }
 
     @PostMapping(&quot;/registraciones/async&quot;)
@@ -127,26 +127,26 @@ public class UsuarioController {
     public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; postRegistroCompuestoAsync(
             @RequestBody @Valid RegistrarUsuarioCompuestoRequestDTO request,
             @RequestHeader(name = &quot;X-Correlation-Id&quot;, required = false) String correlationId) {
-<span class="nc" id="L130">        UserRegistrationStatusResponseDTO response = asyncUserRegistrationService.startRegistration(request, correlationId);</span>
-<span class="nc" id="L131">        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);</span>
+<span class="fc" id="L130">        UserRegistrationStatusResponseDTO response = asyncUserRegistrationService.startRegistration(request, correlationId);</span>
+<span class="fc" id="L131">        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);</span>
     }
 
     @GetMapping(&quot;/registraciones/{processId}&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UserRegistrationStatusResponseDTO&gt; getRegistroCompuestoStatus(@PathVariable String processId) {
-<span class="nc" id="L137">        return ResponseEntity.ok(asyncUserRegistrationService.getStatus(processId));</span>
+<span class="fc" id="L137">        return ResponseEntity.ok(asyncUserRegistrationService.getStatus(processId));</span>
     }
 
     @GetMapping(&quot;/registraciones/{processId}/credencial&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')&quot;)
     public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; getCredencialTemporal(@PathVariable String processId) {
-<span class="nc" id="L143">        return ResponseEntity.ok(asyncUserRegistrationService.obtenerCredencial(processId));</span>
+<span class="fc" id="L143">        return ResponseEntity.ok(asyncUserRegistrationService.obtenerCredencial(processId));</span>
     }
 
     @PostMapping(&quot;/{id}/reset-password&quot;)
     @PreAuthorize (&quot;hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:update')&quot;)
     public ResponseEntity&lt;UserRegistrationCredentialResponseDTO&gt; resetPassword(@PathVariable String id) {
-<span class="nc" id="L149">        return ResponseEntity.ok(asyncUserRegistrationService.resetPassword(id));</span>
+<span class="fc" id="L149">        return ResponseEntity.ok(asyncUserRegistrationService.resetPassword(id));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

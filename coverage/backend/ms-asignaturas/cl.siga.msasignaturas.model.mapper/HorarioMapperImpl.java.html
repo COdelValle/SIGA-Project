@@ -12,83 +12,83 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = &quot;org.mapstruct.ap.MappingProcessor&quot;,
-    date = &quot;2026-11-14T16:27:52+0000&quot;,
+    date = &quot;2026-11-15T03:55:29+0000&quot;,
     comments = &quot;version: 1.5.5.Final, compiler: javac, environment: Java 21.0.13 (Eclipse Adoptium)&quot;
 )
 @Component
-<span class="nc" id="L19">public class HorarioMapperImpl implements HorarioMapper {</span>
+<span class="fc" id="L19">public class HorarioMapperImpl implements HorarioMapper {</span>
 
     @Override
     public Horario toEntity(HorarioRequestDTO dto) {
-<span class="nc bnc" id="L23" title="All 2 branches missed.">        if ( dto == null ) {</span>
-<span class="nc" id="L24">            return null;</span>
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L24">            return null;</span>
         }
 
-<span class="nc" id="L27">        Horario.HorarioBuilder horario = Horario.builder();</span>
+<span class="fc" id="L27">        Horario.HorarioBuilder horario = Horario.builder();</span>
 
-<span class="nc" id="L29">        horario.dia( dto.dia() );</span>
-<span class="nc" id="L30">        horario.horarioEntrada( dto.horarioEntrada() );</span>
-<span class="nc" id="L31">        horario.horarioSalida( dto.horarioSalida() );</span>
-<span class="nc" id="L32">        horario.ubicacion( dto.ubicacion() );</span>
+<span class="fc" id="L29">        horario.dia( dto.dia() );</span>
+<span class="fc" id="L30">        horario.horarioEntrada( dto.horarioEntrada() );</span>
+<span class="fc" id="L31">        horario.horarioSalida( dto.horarioSalida() );</span>
+<span class="fc" id="L32">        horario.ubicacion( dto.ubicacion() );</span>
 
-<span class="nc" id="L34">        return horario.build();</span>
+<span class="fc" id="L34">        return horario.build();</span>
     }
 
     @Override
     public void updateEntityFromDto(HorarioRequestDTO dto, Horario entity) {
-<span class="nc bnc" id="L39" title="All 2 branches missed.">        if ( dto == null ) {</span>
-<span class="nc" id="L40">            return;</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if ( dto == null ) {</span>
+<span class="fc" id="L40">            return;</span>
         }
 
-<span class="nc bnc" id="L43" title="All 2 branches missed.">        if ( dto.dia() != null ) {</span>
-<span class="nc" id="L44">            entity.setDia( dto.dia() );</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if ( dto.dia() != null ) {</span>
+<span class="fc" id="L44">            entity.setDia( dto.dia() );</span>
         }
-<span class="nc bnc" id="L46" title="All 2 branches missed.">        if ( dto.horarioEntrada() != null ) {</span>
-<span class="nc" id="L47">            entity.setHorarioEntrada( dto.horarioEntrada() );</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if ( dto.horarioEntrada() != null ) {</span>
+<span class="fc" id="L47">            entity.setHorarioEntrada( dto.horarioEntrada() );</span>
         }
-<span class="nc bnc" id="L49" title="All 2 branches missed.">        if ( dto.horarioSalida() != null ) {</span>
-<span class="nc" id="L50">            entity.setHorarioSalida( dto.horarioSalida() );</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if ( dto.horarioSalida() != null ) {</span>
+<span class="fc" id="L50">            entity.setHorarioSalida( dto.horarioSalida() );</span>
         }
-<span class="nc bnc" id="L52" title="All 2 branches missed.">        if ( dto.ubicacion() != null ) {</span>
-<span class="nc" id="L53">            entity.setUbicacion( dto.ubicacion() );</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if ( dto.ubicacion() != null ) {</span>
+<span class="fc" id="L53">            entity.setUbicacion( dto.ubicacion() );</span>
         }
-<span class="nc" id="L55">    }</span>
+<span class="fc" id="L55">    }</span>
 
     @Override
     public HorarioResponseDTO toDto(Horario entity) {
-<span class="nc bnc" id="L59" title="All 2 branches missed.">        if ( entity == null ) {</span>
-<span class="nc" id="L60">            return null;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if ( entity == null ) {</span>
+<span class="fc" id="L60">            return null;</span>
         }
 
-<span class="nc" id="L63">        Long id = null;</span>
-<span class="nc" id="L64">        DiaSemana dia = null;</span>
-<span class="nc" id="L65">        LocalTime horarioEntrada = null;</span>
-<span class="nc" id="L66">        LocalTime horarioSalida = null;</span>
-<span class="nc" id="L67">        String ubicacion = null;</span>
+<span class="fc" id="L63">        Long id = null;</span>
+<span class="fc" id="L64">        DiaSemana dia = null;</span>
+<span class="fc" id="L65">        LocalTime horarioEntrada = null;</span>
+<span class="fc" id="L66">        LocalTime horarioSalida = null;</span>
+<span class="fc" id="L67">        String ubicacion = null;</span>
 
-<span class="nc" id="L69">        id = entity.getId();</span>
-<span class="nc" id="L70">        dia = entity.getDia();</span>
-<span class="nc" id="L71">        horarioEntrada = entity.getHorarioEntrada();</span>
-<span class="nc" id="L72">        horarioSalida = entity.getHorarioSalida();</span>
-<span class="nc" id="L73">        ubicacion = entity.getUbicacion();</span>
+<span class="fc" id="L69">        id = entity.getId();</span>
+<span class="fc" id="L70">        dia = entity.getDia();</span>
+<span class="fc" id="L71">        horarioEntrada = entity.getHorarioEntrada();</span>
+<span class="fc" id="L72">        horarioSalida = entity.getHorarioSalida();</span>
+<span class="fc" id="L73">        ubicacion = entity.getUbicacion();</span>
 
-<span class="nc" id="L75">        HorarioResponseDTO horarioResponseDTO = new HorarioResponseDTO( id, dia, horarioEntrada, horarioSalida, ubicacion );</span>
+<span class="fc" id="L75">        HorarioResponseDTO horarioResponseDTO = new HorarioResponseDTO( id, dia, horarioEntrada, horarioSalida, ubicacion );</span>
 
-<span class="nc" id="L77">        return horarioResponseDTO;</span>
+<span class="fc" id="L77">        return horarioResponseDTO;</span>
     }
 
     @Override
     public List&lt;HorarioResponseDTO&gt; toDtoList(List&lt;Horario&gt; entities) {
-<span class="nc bnc" id="L82" title="All 2 branches missed.">        if ( entities == null ) {</span>
-<span class="nc" id="L83">            return null;</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if ( entities == null ) {</span>
+<span class="fc" id="L83">            return null;</span>
         }
 
-<span class="nc" id="L86">        List&lt;HorarioResponseDTO&gt; list = new ArrayList&lt;HorarioResponseDTO&gt;( entities.size() );</span>
-<span class="nc bnc" id="L87" title="All 2 branches missed.">        for ( Horario horario : entities ) {</span>
-<span class="nc" id="L88">            list.add( toDto( horario ) );</span>
-<span class="nc" id="L89">        }</span>
+<span class="fc" id="L86">        List&lt;HorarioResponseDTO&gt; list = new ArrayList&lt;HorarioResponseDTO&gt;( entities.size() );</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        for ( Horario horario : entities ) {</span>
+<span class="fc" id="L88">            list.add( toDto( horario ) );</span>
+<span class="fc" id="L89">        }</span>
 
-<span class="nc" id="L91">        return list;</span>
+<span class="fc" id="L91">        return list;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

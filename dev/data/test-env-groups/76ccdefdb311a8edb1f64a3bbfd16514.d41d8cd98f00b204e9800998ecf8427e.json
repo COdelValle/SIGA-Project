@@ -1,0 +1,1 @@
+{"id":"76ccdefdb311a8edb1f64a3bbfd16514.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:src/app/app.config.spec.ts#appInitializer de MSAL guarda el error normalizado cuando falla el retorno de Microsoft","name":"guarda el error normalizado cuando falla el retorno de Microsoft","status":"passed","testResultsByEnv":{"default":"30e03def84986dfbad4623c264cb56fb"}}

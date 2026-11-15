@@ -168,7 +168,7 @@ public class AsyncUserRegistrationService {
 
     @Transactional(readOnly = true)
     public UserRegistrationStatusResponseDTO getStatus(String processId) {
-<span class="nc" id="L171">        return toStatus(findProceso(processId));</span>
+<span class="fc" id="L171">        return toStatus(findProceso(processId));</span>
     }
 
     /**
@@ -177,105 +177,105 @@ public class AsyncUserRegistrationService {
      */
     @Transactional
     public UserRegistrationCredentialResponseDTO obtenerCredencial(String processId) {
-<span class="nc" id="L180">        UserRegistrationProcess process = findProceso(processId);</span>
-<span class="nc" id="L181">        String oid = SecurityUtils.getCurrentUserOid().orElse(null);</span>
-<span class="nc bnc" id="L182" title="All 4 branches missed.">        if (process.getCreatedBy() != null &amp;&amp; !process.getCreatedBy().equals(oid)) {</span>
-<span class="nc" id="L183">            throw new AccessDeniedException(</span>
+<span class="fc" id="L180">        UserRegistrationProcess process = findProceso(processId);</span>
+<span class="fc" id="L181">        String oid = SecurityUtils.getCurrentUserOid().orElse(null);</span>
+<span class="fc bfc" id="L182" title="All 4 branches covered.">        if (process.getCreatedBy() != null &amp;&amp; !process.getCreatedBy().equals(oid)) {</span>
+<span class="fc" id="L183">            throw new AccessDeniedException(</span>
                     &quot;Solo el administrador que inició el proceso puede obtener la credencial.&quot;);
         }
-<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (process.getAzureState() != RegistrationStepState.COMPLETADO) {</span>
-<span class="nc" id="L187">            throw new ConflictException(&quot;La cuenta todavía no está aprovisionada en Entra ID.&quot;);</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (process.getAzureState() != RegistrationStepState.COMPLETADO) {</span>
+<span class="fc" id="L187">            throw new ConflictException(&quot;La cuenta todavía no está aprovisionada en Entra ID.&quot;);</span>
         }
-<span class="nc bnc" id="L189" title="All 4 branches missed.">        if (process.getCredentialRetrievedAt() != null || process.getCredentialCiphertext() == null) {</span>
-<span class="nc" id="L190">            throw new ConflictException(</span>
+<span class="fc bfc" id="L189" title="All 4 branches covered.">        if (process.getCredentialRetrievedAt() != null || process.getCredentialCiphertext() == null) {</span>
+<span class="fc" id="L190">            throw new ConflictException(</span>
                     &quot;La credencial ya fue entregada. Usa el restablecimiento de contraseña.&quot;);
         }
-<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (process.getCredentialExpiresAt() != null</span>
-<span class="nc bnc" id="L194" title="All 2 branches missed.">                &amp;&amp; process.getCredentialExpiresAt().isBefore(OffsetDateTime.now())) {</span>
-<span class="nc" id="L195">            limpiarCredencial(process);</span>
-<span class="nc" id="L196">            processRepository.save(process);</span>
-<span class="nc" id="L197">            throw new ConflictException(</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (process.getCredentialExpiresAt() != null</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">                &amp;&amp; process.getCredentialExpiresAt().isBefore(OffsetDateTime.now())) {</span>
+<span class="fc" id="L195">            limpiarCredencial(process);</span>
+<span class="fc" id="L196">            processRepository.save(process);</span>
+<span class="fc" id="L197">            throw new ConflictException(</span>
                     &quot;La credencial temporal expiró. Usa el restablecimiento de contraseña.&quot;);
         }
 
-<span class="nc" id="L201">        String password = credentialCipher.descifrar(</span>
-<span class="nc" id="L202">                process.getCredentialCiphertext(), process.getCredentialIv());</span>
-<span class="nc" id="L203">        process.setCredentialRetrievedAt(OffsetDateTime.now());</span>
-<span class="nc" id="L204">        limpiarCredencial(process);</span>
-<span class="nc" id="L205">        processRepository.save(process);</span>
-<span class="nc" id="L206">        log.info(&quot;Credencial del proceso {} entregada al administrador {}.&quot;, processId, oid);</span>
-<span class="nc" id="L207">        return new UserRegistrationCredentialResponseDTO(</span>
-<span class="nc" id="L208">                process.getProcessId(), process.getEmail(), process.getUserId(), password, null);</span>
+<span class="fc" id="L201">        String password = credentialCipher.descifrar(</span>
+<span class="fc" id="L202">                process.getCredentialCiphertext(), process.getCredentialIv());</span>
+<span class="fc" id="L203">        process.setCredentialRetrievedAt(OffsetDateTime.now());</span>
+<span class="fc" id="L204">        limpiarCredencial(process);</span>
+<span class="fc" id="L205">        processRepository.save(process);</span>
+<span class="fc" id="L206">        log.info(&quot;Credencial del proceso {} entregada al administrador {}.&quot;, processId, oid);</span>
+<span class="fc" id="L207">        return new UserRegistrationCredentialResponseDTO(</span>
+<span class="fc" id="L208">                process.getProcessId(), process.getEmail(), process.getUserId(), password, null);</span>
     }
 
     /** Restablecimiento síncrono: devuelve la clave nueva directamente (no se persiste). */
     @Transactional
     public UserRegistrationCredentialResponseDTO resetPassword(String idUsuario) {
-<span class="nc" id="L214">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
-<span class="nc bnc" id="L215" title="All 2 branches missed.">                .filter(u -&gt; u.getState() != cl.siga.coreshare.dto.usuario.enums.StateUsuario.INACTIVO)</span>
-<span class="nc" id="L216">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+<span class="fc" id="L214">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">                .filter(u -&gt; u.getState() != cl.siga.coreshare.dto.usuario.enums.StateUsuario.INACTIVO)</span>
+<span class="fc" id="L216">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
                         &quot;Usuario con ID &quot; + idUsuario + &quot; no encontrado.&quot;));
-<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (!graphDirectory.isEnabled()) {</span>
-<span class="nc" id="L219">            throw new BusinessException(</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (!graphDirectory.isEnabled()) {</span>
+<span class="fc" id="L219">            throw new BusinessException(</span>
                     &quot;La integración con Microsoft Graph no está configurada (falta AZURE_CLIENT_SECRET).&quot;);
         }
-<span class="nc" id="L222">        String password = graphDirectory.resetPassword(usuario.getId());</span>
-<span class="nc" id="L223">        log.info(&quot;Clave temporal restablecida para el usuario {}.&quot;, usuario.getId());</span>
-<span class="nc" id="L224">        return new UserRegistrationCredentialResponseDTO(</span>
-<span class="nc" id="L225">                null, usuario.getEmail(), usuario.getId(), password, null);</span>
+<span class="fc" id="L222">        String password = graphDirectory.resetPassword(usuario.getId());</span>
+<span class="fc" id="L223">        log.info(&quot;Clave temporal restablecida para el usuario {}.&quot;, usuario.getId());</span>
+<span class="fc" id="L224">        return new UserRegistrationCredentialResponseDTO(</span>
+<span class="fc" id="L225">                null, usuario.getEmail(), usuario.getId(), password, null);</span>
     }
 
     /** Consumidor de la etapa de Entra ID (evento inicial del outbox). */
     public void processAzureSync(UserRegistrationEventDTO event) {
-<span class="nc bnc" id="L230" title="All 2 branches missed.">        if (!event.schemaSoportado()) {</span>
-<span class="nc" id="L231">            stateService.fallarAzure(event.processId(), event.eventId(),</span>
-<span class="nc" id="L232">                    &quot;Versión de evento no soportada: &quot; + event.schemaVersion(), true);</span>
-<span class="nc" id="L233">            return;</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (!event.schemaSoportado()) {</span>
+<span class="fc" id="L231">            stateService.fallarAzure(event.processId(), event.eventId(),</span>
+<span class="fc" id="L232">                    &quot;Versión de evento no soportada: &quot; + event.schemaVersion(), true);</span>
+<span class="fc" id="L233">            return;</span>
         }
-<span class="nc" id="L235">        String dedupeKey = &quot;AZURE:&quot; + event.eventId();</span>
-<span class="nc bnc" id="L236" title="All 2 branches missed.">        if (processedEventRepository.existsById(dedupeKey)) {</span>
-<span class="nc" id="L237">            return;</span>
+<span class="fc" id="L235">        String dedupeKey = &quot;AZURE:&quot; + event.eventId();</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (processedEventRepository.existsById(dedupeKey)) {</span>
+<span class="fc" id="L237">            return;</span>
         }
-<span class="nc" id="L239">        UserRegistrationProcess process = findProceso(event.processId());</span>
-<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (process.getAzureState() == RegistrationStepState.COMPLETADO</span>
-<span class="nc bnc" id="L241" title="All 2 branches missed.">                || process.getState() == RegistrationProcessState.FALLIDO) {</span>
-<span class="nc" id="L242">            return;</span>
+<span class="fc" id="L239">        UserRegistrationProcess process = findProceso(event.processId());</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">        if (process.getAzureState() == RegistrationStepState.COMPLETADO</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">                || process.getState() == RegistrationProcessState.FALLIDO) {</span>
+<span class="fc" id="L242">            return;</span>
         }
 
         try {
-<span class="nc" id="L246">            ProvisionedUser provisioned = graphDirectory.provisionUser(</span>
-<span class="nc" id="L247">                    event.email(), event.fullName(), event.requestedRole(), event.userId());</span>
-<span class="nc" id="L248">            stateService.completarAzure(</span>
-<span class="nc" id="L249">                    process.getProcessId(), event.eventId(), provisioned.oid(), provisioned.temporaryPassword());</span>
-<span class="nc" id="L250">        } catch (GraphTransientException ex) {</span>
-<span class="nc" id="L251">            stateService.registrarIntentoTransitorio(process.getProcessId(), seguro(ex.getMessage()));</span>
-<span class="nc" id="L252">            throw ex;</span>
-<span class="nc" id="L253">        } catch (BusinessException ex) {</span>
-<span class="nc" id="L254">            stateService.fallarAzure(process.getProcessId(), event.eventId(), seguro(ex.getMessage()), true);</span>
-<span class="nc" id="L255">        } catch (RuntimeException ex) {</span>
-<span class="nc" id="L256">            log.error(&quot;Error inesperado aprovisionando el proceso {}&quot;, process.getProcessId(), ex);</span>
-<span class="nc" id="L257">            stateService.registrarIntentoTransitorio(process.getProcessId(),</span>
+<span class="fc" id="L246">            ProvisionedUser provisioned = graphDirectory.provisionUser(</span>
+<span class="fc" id="L247">                    event.email(), event.fullName(), event.requestedRole(), event.userId());</span>
+<span class="fc" id="L248">            stateService.completarAzure(</span>
+<span class="fc" id="L249">                    process.getProcessId(), event.eventId(), provisioned.oid(), provisioned.temporaryPassword());</span>
+<span class="fc" id="L250">        } catch (GraphTransientException ex) {</span>
+<span class="fc" id="L251">            stateService.registrarIntentoTransitorio(process.getProcessId(), seguro(ex.getMessage()));</span>
+<span class="fc" id="L252">            throw ex;</span>
+<span class="fc" id="L253">        } catch (BusinessException ex) {</span>
+<span class="fc" id="L254">            stateService.fallarAzure(process.getProcessId(), event.eventId(), seguro(ex.getMessage()), true);</span>
+<span class="fc" id="L255">        } catch (RuntimeException ex) {</span>
+<span class="fc" id="L256">            log.error(&quot;Error inesperado aprovisionando el proceso {}&quot;, process.getProcessId(), ex);</span>
+<span class="fc" id="L257">            stateService.registrarIntentoTransitorio(process.getProcessId(),</span>
                     &quot;Error inesperado durante el aprovisionamiento.&quot;);
-<span class="nc" id="L259">            throw ex;</span>
-<span class="nc" id="L260">        }</span>
-<span class="nc" id="L261">    }</span>
+<span class="fc" id="L259">            throw ex;</span>
+<span class="fc" id="L260">        }</span>
+<span class="fc" id="L261">    }</span>
 
     /** La cola de Azure agotó los reintentos: el proceso queda FALLIDO y visible. */
     public void procesarAzureDlq(UserRegistrationEventDTO event) {
-<span class="nc" id="L265">        stateService.fallarAzure(event.processId(), event.eventId(),</span>
+<span class="fc" id="L265">        stateService.fallarAzure(event.processId(), event.eventId(),</span>
                 &quot;Se agotaron los reintentos de aprovisionamiento en Entra ID.&quot;, true);
-<span class="nc" id="L267">    }</span>
+<span class="fc" id="L267">    }</span>
 
     /** Resultado de la creación del perfil publicado por el microservicio del rol. */
     public void processDomainStepStatus(UserRegistrationStepResultEventDTO event) {
-<span class="nc" id="L271">        stateService.procesarResultadoDominio(event);</span>
-<span class="nc" id="L272">    }</span>
+<span class="fc" id="L271">        stateService.procesarResultadoDominio(event);</span>
+<span class="fc" id="L272">    }</span>
 
     /** La cola de resultados agotó los reintentos: el dominio queda FALLIDO. */
     public void procesarStatusDlq(UserRegistrationStepResultEventDTO event) {
-<span class="nc" id="L276">        stateService.fallarDominio(event.processId(), event.eventId(),</span>
+<span class="fc" id="L276">        stateService.fallarDominio(event.processId(), event.eventId(),</span>
                 &quot;Se agotaron los reintentos al procesar el resultado de la etapa de dominio.&quot;);
-<span class="nc" id="L278">    }</span>
+<span class="fc" id="L278">    }</span>
 
     /**
      * Un correo está ocupado si pertenece a un usuario ACTIVO, a un proceso en
@@ -289,26 +289,26 @@ public class AsyncUserRegistrationService {
 <span class="fc bfc" id="L289" title="All 2 branches covered.">        if (activoLocal) {</span>
 <span class="fc" id="L290">            return true;</span>
         }
-<span class="pc bpc" id="L292" title="1 of 2 branches missed.">        if (processRepository.existsByEmailAndStateIn(candidato, ESTADOS_EN_CURSO)) {</span>
-<span class="nc" id="L293">            return true;</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">        if (processRepository.existsByEmailAndStateIn(candidato, ESTADOS_EN_CURSO)) {</span>
+<span class="fc" id="L293">            return true;</span>
         }
 <span class="fc" id="L295">        return graphDirectory.accountEnabledByEmail(candidato).orElse(false);</span>
     }
 
     private void validarRolYPayload(Rol rol, DatosRegistroRolDTO roleData) {
-<span class="pc bpc" id="L299" title="1 of 4 branches missed.">        if (rol == null || rol == Rol.ADMIN) {</span>
+<span class="fc bfc" id="L299" title="All 4 branches covered.">        if (rol == null || rol == Rol.ADMIN) {</span>
 <span class="fc" id="L300">            throw new BusinessException(</span>
                     &quot;El registro asíncrono solo admite los roles ESTUDIANTE, DOCENTE y APODERADO.&quot;);
         }
-<span class="pc bpc" id="L303" title="1 of 2 branches missed.">        if (roleData == null) {</span>
-<span class="nc" id="L304">            throw new BusinessException(&quot;Los datos específicos del rol son obligatorios.&quot;);</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        if (roleData == null) {</span>
+<span class="fc" id="L304">            throw new BusinessException(&quot;Los datos específicos del rol son obligatorios.&quot;);</span>
         }
 <span class="fc bfc" id="L306" title="All 2 branches covered.">        boolean estudiante = roleData.estudiante() != null;</span>
-<span class="pc bpc" id="L307" title="1 of 2 branches missed.">        boolean docente = roleData.docente() != null;</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">        boolean docente = roleData.docente() != null;</span>
 <span class="fc bfc" id="L308" title="All 2 branches covered.">        boolean apoderado = roleData.apoderado() != null;</span>
-<span class="pc bpc" id="L309" title="1 of 6 branches missed.">        long informados = (estudiante ? 1 : 0) + (docente ? 1 : 0) + (apoderado ? 1 : 0);</span>
-<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if (informados != 1) {</span>
-<span class="nc" id="L311">            throw new BusinessException(</span>
+<span class="fc bfc" id="L309" title="All 6 branches covered.">        long informados = (estudiante ? 1 : 0) + (docente ? 1 : 0) + (apoderado ? 1 : 0);</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">        if (informados != 1) {</span>
+<span class="fc" id="L311">            throw new BusinessException(</span>
                     &quot;Debes informar exactamente un bloque de datos de rol (estudiante, docente o apoderado).&quot;);
         }
 <span class="pc bpc" id="L314" title="1 of 4 branches missed.">        boolean coincide = switch (rol) {</span>
@@ -324,14 +324,14 @@ public class AsyncUserRegistrationService {
 <span class="fc" id="L324">    }</span>
 
     private void limpiarCredencial(UserRegistrationProcess process) {
-<span class="nc" id="L327">        process.setCredentialCiphertext(null);</span>
-<span class="nc" id="L328">        process.setCredentialIv(null);</span>
-<span class="nc" id="L329">        process.setCredentialExpiresAt(null);</span>
-<span class="nc" id="L330">    }</span>
+<span class="fc" id="L327">        process.setCredentialCiphertext(null);</span>
+<span class="fc" id="L328">        process.setCredentialIv(null);</span>
+<span class="fc" id="L329">        process.setCredentialExpiresAt(null);</span>
+<span class="fc" id="L330">    }</span>
 
     private UserRegistrationProcess findProceso(String processId) {
-<span class="nc" id="L333">        return processRepository.findById(processId)</span>
-<span class="nc" id="L334">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+<span class="fc" id="L333">        return processRepository.findById(processId)</span>
+<span class="fc" id="L334">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
                         &quot;Proceso de registro &quot; + processId + &quot; no encontrado.&quot;));
     }
 
@@ -342,16 +342,16 @@ public class AsyncUserRegistrationService {
     private String serializar(Object valor) {
         try {
 <span class="fc" id="L344">            return objectMapper.writeValueAsString(valor);</span>
-<span class="nc" id="L345">        } catch (JsonProcessingException ex) {</span>
-<span class="nc" id="L346">            throw new IllegalStateException(&quot;No se pudo serializar el evento de registro.&quot;, ex);</span>
+<span class="fc" id="L345">        } catch (JsonProcessingException ex) {</span>
+<span class="fc" id="L346">            throw new IllegalStateException(&quot;No se pudo serializar el evento de registro.&quot;, ex);</span>
         }
     }
 
     private static String seguro(String mensaje) {
-<span class="nc bnc" id="L351" title="All 4 branches missed.">        if (mensaje == null || mensaje.isBlank()) {</span>
-<span class="nc" id="L352">            return &quot;Error de aprovisionamiento en Entra ID.&quot;;</span>
+<span class="pc bpc" id="L351" title="1 of 4 branches missed.">        if (mensaje == null || mensaje.isBlank()) {</span>
+<span class="fc" id="L352">            return &quot;Error de aprovisionamiento en Entra ID.&quot;;</span>
         }
-<span class="nc bnc" id="L354" title="All 2 branches missed.">        return mensaje.length() &gt; 1000 ? mensaje.substring(0, 1000) : mensaje;</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">        return mensaje.length() &gt; 1000 ? mensaje.substring(0, 1000) : mensaje;</span>
     }
 
     private static String normalizeEmail(String email) {
@@ -364,15 +364,15 @@ public class AsyncUserRegistrationService {
     }
 
     private static String trimToNull(String valor) {
-<span class="pc bpc" id="L367" title="1 of 2 branches missed.">        if (valor == null) {</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">        if (valor == null) {</span>
 <span class="fc" id="L368">            return null;</span>
         }
-<span class="nc" id="L370">        String limpio = valor.trim();</span>
-<span class="nc bnc" id="L371" title="All 2 branches missed.">        return limpio.isEmpty() ? null : limpio;</span>
+<span class="fc" id="L370">        String limpio = valor.trim();</span>
+<span class="pc bpc" id="L371" title="1 of 2 branches missed.">        return limpio.isEmpty() ? null : limpio;</span>
     }
 
     private static boolean isBlank(String value) {
-<span class="pc bpc" id="L375" title="1 of 4 branches missed.">        return value == null || value.isBlank();</span>
+<span class="fc bfc" id="L375" title="All 4 branches covered.">        return value == null || value.isBlank();</span>
     }
 
     private UserRegistrationStatusResponseDTO toStatus(UserRegistrationProcess process) {

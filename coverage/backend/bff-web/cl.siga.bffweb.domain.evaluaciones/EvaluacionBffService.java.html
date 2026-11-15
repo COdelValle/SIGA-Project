@@ -40,8 +40,8 @@ public class EvaluacionBffService {
 
     private EvaluacionResponseDTO evaluacionDe(Long id) {
 <span class="fc" id="L42">        EvaluacionResponseDTO evaluacion = evaluacionClient.getEvaluacionById(id);</span>
-<span class="pc bpc" id="L43" title="1 of 2 branches missed.">        if (evaluacion == null) {</span>
-<span class="nc" id="L44">            throw new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (evaluacion == null) {</span>
+<span class="fc" id="L44">            throw new ResourceNotFoundException(&quot;Evaluación con ID &quot; + id + &quot; no encontrada.&quot;);</span>
         }
 <span class="fc" id="L46">        return evaluacion;</span>
     }

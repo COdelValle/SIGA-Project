@@ -43,76 +43,76 @@ public class NotificationOutboxDispatcher {
             ORDER BY creado_en
             LIMIT 20
             FOR UPDATE SKIP LOCKED
-<span class="nc" id="L46">            &quot;&quot;&quot;, (rs, rowNum) -&gt; new OutboxRow(</span>
-<span class="nc" id="L47">                rs.getString(&quot;id_evento&quot;),</span>
-<span class="nc" id="L48">                rs.getString(&quot;intercambio&quot;),</span>
-<span class="nc" id="L49">                rs.getString(&quot;clave&quot;),</span>
-<span class="nc" id="L50">                rs.getString(&quot;tipo_payload&quot;),</span>
-<span class="nc" id="L51">                rs.getString(&quot;payload&quot;),</span>
-<span class="nc" id="L52">                rs.getInt(&quot;intentos&quot;)));</span>
+<span class="fc" id="L46">            &quot;&quot;&quot;, (rs, rowNum) -&gt; new OutboxRow(</span>
+<span class="fc" id="L47">                rs.getString(&quot;id_evento&quot;),</span>
+<span class="fc" id="L48">                rs.getString(&quot;intercambio&quot;),</span>
+<span class="fc" id="L49">                rs.getString(&quot;clave&quot;),</span>
+<span class="fc" id="L50">                rs.getString(&quot;tipo_payload&quot;),</span>
+<span class="fc" id="L51">                rs.getString(&quot;payload&quot;),</span>
+<span class="fc" id="L52">                rs.getInt(&quot;intentos&quot;)));</span>
 
-<span class="pc bpc" id="L54" title="1 of 2 branches missed.">        for (OutboxRow row : pendientes) {</span>
-<span class="nc" id="L55">            despachar(row);</span>
-<span class="nc" id="L56">        }</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (OutboxRow row : pendientes) {</span>
+<span class="fc" id="L55">            despachar(row);</span>
+<span class="fc" id="L56">        }</span>
 <span class="fc" id="L57">    }</span>
 
     private void despachar(OutboxRow row) {
         try {
-<span class="nc" id="L61">            Object evento = deserializar(row.tipoPayload(), row.payload());</span>
-<span class="nc" id="L62">            CorrelationData confirmacion = new CorrelationData(row.idEvento());</span>
-<span class="nc" id="L63">            rabbitTemplate.convertAndSend(row.intercambio(), row.clave(), evento, confirmacion);</span>
+<span class="fc" id="L61">            Object evento = deserializar(row.tipoPayload(), row.payload());</span>
+<span class="fc" id="L62">            CorrelationData confirmacion = new CorrelationData(row.idEvento());</span>
+<span class="fc" id="L63">            rabbitTemplate.convertAndSend(row.intercambio(), row.clave(), evento, confirmacion);</span>
 
-<span class="nc" id="L65">            CorrelationData.Confirm confirm = confirmacion.getFuture()</span>
-<span class="nc" id="L66">                .get(TIMEOUT_CONFIRMACION_SEGUNDOS, TimeUnit.SECONDS);</span>
-<span class="nc bnc" id="L67" title="All 2 branches missed.">            if (!confirm.isAck()) {</span>
-<span class="nc" id="L68">                throw new IllegalStateException(&quot;RabbitMQ rechazó la publicación: &quot; + confirm.getReason());</span>
+<span class="fc" id="L65">            CorrelationData.Confirm confirm = confirmacion.getFuture()</span>
+<span class="fc" id="L66">                .get(TIMEOUT_CONFIRMACION_SEGUNDOS, TimeUnit.SECONDS);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            if (!confirm.isAck()) {</span>
+<span class="fc" id="L68">                throw new IllegalStateException(&quot;RabbitMQ rechazó la publicación: &quot; + confirm.getReason());</span>
             }
-<span class="nc bnc" id="L70" title="All 2 branches missed.">            if (confirmacion.getReturned() != null) {</span>
-<span class="nc" id="L71">                throw new IllegalStateException(&quot;RabbitMQ no encontró una cola para la clave de enrutamiento.&quot;);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            if (confirmacion.getReturned() != null) {</span>
+<span class="fc" id="L71">                throw new IllegalStateException(&quot;RabbitMQ no encontró una cola para la clave de enrutamiento.&quot;);</span>
             }
 
-<span class="nc" id="L74">            jdbcTemplate.update(&quot;&quot;&quot;</span>
+<span class="fc" id="L74">            jdbcTemplate.update(&quot;&quot;&quot;</span>
                 UPDATE notification_event_outbox
                 SET estado = 'ENVIADO', enviado_en = CURRENT_TIMESTAMP(6), ultimo_error = NULL
                 WHERE id_evento = ?
-<span class="nc" id="L78">                &quot;&quot;&quot;, row.idEvento());</span>
-<span class="nc" id="L79">            log.info(&quot;Evento de notificación confirmado por RabbitMQ idEvento={}&quot;, row.idEvento());</span>
-<span class="nc" id="L80">        } catch (Exception error) {</span>
-<span class="nc" id="L81">            registrarFallo(row, error);</span>
-<span class="nc" id="L82">        }</span>
-<span class="nc" id="L83">    }</span>
+<span class="fc" id="L78">                &quot;&quot;&quot;, row.idEvento());</span>
+<span class="fc" id="L79">            log.info(&quot;Evento de notificación confirmado por RabbitMQ idEvento={}&quot;, row.idEvento());</span>
+<span class="fc" id="L80">        } catch (Exception error) {</span>
+<span class="fc" id="L81">            registrarFallo(row, error);</span>
+<span class="fc" id="L82">        }</span>
+<span class="fc" id="L83">    }</span>
 
     private Object deserializar(String tipo, String payload) throws Exception {
-<span class="nc bnc" id="L86" title="All 4 branches missed.">        return switch (tipo) {</span>
-<span class="nc" id="L87">            case &quot;EventoEvaluacion&quot; -&gt; objectMapper.readValue(payload, EventoEvaluacion.class);</span>
-<span class="nc" id="L88">            case &quot;EventoNota&quot; -&gt; objectMapper.readValue(payload, EventoNota.class);</span>
-<span class="nc" id="L89">            case &quot;EventoAsistencia&quot; -&gt; objectMapper.readValue(payload, EventoAsistencia.class);</span>
-<span class="nc" id="L90">            default -&gt; throw new IllegalArgumentException(&quot;Tipo de evento de notificación desconocido: &quot; + tipo);</span>
+<span class="fc bfc" id="L86" title="All 4 branches covered.">        return switch (tipo) {</span>
+<span class="fc" id="L87">            case &quot;EventoEvaluacion&quot; -&gt; objectMapper.readValue(payload, EventoEvaluacion.class);</span>
+<span class="fc" id="L88">            case &quot;EventoNota&quot; -&gt; objectMapper.readValue(payload, EventoNota.class);</span>
+<span class="fc" id="L89">            case &quot;EventoAsistencia&quot; -&gt; objectMapper.readValue(payload, EventoAsistencia.class);</span>
+<span class="fc" id="L90">            default -&gt; throw new IllegalArgumentException(&quot;Tipo de evento de notificación desconocido: &quot; + tipo);</span>
         };
     }
 
     private void registrarFallo(OutboxRow row, Exception error) {
-<span class="nc" id="L95">        int intentos = row.intentos() + 1;</span>
-<span class="nc bnc" id="L96" title="All 2 branches missed.">        boolean agotado = intentos &gt;= MAX_INTENTOS;</span>
-<span class="nc" id="L97">        int esperaSegundos = Math.min(1 &lt;&lt; Math.min(intentos, 8), 300);</span>
-<span class="nc bnc" id="L98" title="All 2 branches missed.">        LocalDateTime proximoIntento = agotado</span>
-<span class="nc" id="L99">            ? LocalDateTime.now()</span>
-<span class="nc" id="L100">            : LocalDateTime.now().plusSeconds(esperaSegundos);</span>
-<span class="nc bnc" id="L101" title="All 2 branches missed.">        String estado = agotado ? &quot;FALLIDO&quot; : &quot;PENDIENTE&quot;;</span>
-<span class="nc bnc" id="L102" title="All 2 branches missed.">        String detalle = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();</span>
-<span class="nc bnc" id="L103" title="All 2 branches missed.">        if (detalle.length() &gt; 1000) {</span>
-<span class="nc" id="L104">            detalle = detalle.substring(0, 1000);</span>
+<span class="fc" id="L95">        int intentos = row.intentos() + 1;</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        boolean agotado = intentos &gt;= MAX_INTENTOS;</span>
+<span class="fc" id="L97">        int esperaSegundos = Math.min(1 &lt;&lt; Math.min(intentos, 8), 300);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        LocalDateTime proximoIntento = agotado</span>
+<span class="fc" id="L99">            ? LocalDateTime.now()</span>
+<span class="fc" id="L100">            : LocalDateTime.now().plusSeconds(esperaSegundos);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        String estado = agotado ? &quot;FALLIDO&quot; : &quot;PENDIENTE&quot;;</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        String detalle = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (detalle.length() &gt; 1000) {</span>
+<span class="fc" id="L104">            detalle = detalle.substring(0, 1000);</span>
         }
-<span class="nc" id="L106">        jdbcTemplate.update(&quot;&quot;&quot;</span>
+<span class="fc" id="L106">        jdbcTemplate.update(&quot;&quot;&quot;</span>
             UPDATE notification_event_outbox
             SET estado = ?, intentos = ?, proximo_intento = ?, ultimo_error = ?
             WHERE id_evento = ?
-<span class="nc" id="L110">            &quot;&quot;&quot;, estado, intentos, proximoIntento, detalle, row.idEvento());</span>
-<span class="nc" id="L111">        log.warn(&quot;Fallo al publicar evento de notificación idEvento={} intento={} estado={}&quot;,</span>
-<span class="nc" id="L112">            row.idEvento(), intentos, estado);</span>
-<span class="nc" id="L113">    }</span>
+<span class="fc" id="L110">            &quot;&quot;&quot;, estado, intentos, proximoIntento, detalle, row.idEvento());</span>
+<span class="fc" id="L111">        log.warn(&quot;Fallo al publicar evento de notificación idEvento={} intento={} estado={}&quot;,</span>
+<span class="fc" id="L112">            row.idEvento(), intentos, estado);</span>
+<span class="fc" id="L113">    }</span>
 
-<span class="nc" id="L115">    private record OutboxRow(</span>
+<span class="fc" id="L115">    private record OutboxRow(</span>
         String idEvento,
         String intercambio,
         String clave,

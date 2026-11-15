@@ -70,8 +70,8 @@ public final class NombrePropio {
     private static String aplicarPrefijos(String palabra) {
 <span class="fc" id="L71">        String lower = palabra.toLowerCase(Locale.ROOT);</span>
 <span class="fc bfc" id="L72" title="All 2 branches covered.">        for (String prefijo : List.of(&quot;mc&quot;, &quot;mac&quot;)) {</span>
-<span class="pc bpc" id="L73" title="1 of 4 branches missed.">            if (!lower.startsWith(prefijo) || palabra.length() &lt;= prefijo.length()) {</span>
-<span class="nc" id="L74">                continue;</span>
+<span class="fc bfc" id="L73" title="All 4 branches covered.">            if (!lower.startsWith(prefijo) || palabra.length() &lt;= prefijo.length()) {</span>
+<span class="fc" id="L74">                continue;</span>
             }
 <span class="fc" id="L76">            char siguiente = palabra.charAt(prefijo.length());</span>
 <span class="fc bfc" id="L77" title="All 4 branches covered.">            boolean macConVocal = &quot;mac&quot;.equals(prefijo) &amp;&amp; esVocal(lower.charAt(prefijo.length()));</span>

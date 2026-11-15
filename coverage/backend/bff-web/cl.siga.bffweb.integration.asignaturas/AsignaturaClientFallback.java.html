@@ -16,32 +16,32 @@ import cl.siga.coreshare.exception.ServiceUnavailableException;
 <span class="fc" id="L16">public class AsignaturaClientFallback implements AsignaturaClient {</span>
     @Override
     public PageResponseDTO&lt;AsignaturaResponseDTO&gt; searchAsignaturas(int size) {
-<span class="nc" id="L19">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas&quot;);</span>
+<span class="fc" id="L19">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas&quot;);</span>
     }
 
     @Override
     public List&lt;MallaCurricularResponseDTO&gt; getMalla(Nivel nivel) {
-<span class="nc" id="L24">        throw new ServiceUnavailableException(&quot;No se pudo obtener la malla curricular&quot;);</span>
+<span class="fc" id="L24">        throw new ServiceUnavailableException(&quot;No se pudo obtener la malla curricular&quot;);</span>
     }
 
     @Override
     public CursoAsignaturaResponseDTO getCursoAsignaturaById(Long id) {
-<span class="nc" id="L29">        throw new ServiceUnavailableException(&quot;No se pudo obtener la dictación &quot; + id);</span>
+<span class="fc" id="L29">        throw new ServiceUnavailableException(&quot;No se pudo obtener la dictación &quot; + id);</span>
     }
 
     @Override
     public PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; searchCursoAsignaturasByClase(Long idClase, int size) {
-<span class="nc" id="L34">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas de la clase &quot; + idClase);</span>
+<span class="fc" id="L34">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas de la clase &quot; + idClase);</span>
     }
 
     @Override
     public PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; searchCursoAsignaturasByDocente(Long idDocente, int size) {
-<span class="nc" id="L39">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas del docente &quot; + idDocente);</span>
+<span class="fc" id="L39">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las asignaturas del docente &quot; + idDocente);</span>
     }
 
     @Override
     public PageResponseDTO&lt;InscripcionResponseDTO&gt; searchInscripcionesByAlumno(Long idAlumno, int size) {
-<span class="nc" id="L44">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las inscripciones del alumno &quot; + idAlumno);</span>
+<span class="fc" id="L44">        throw new ServiceUnavailableException(&quot;No se pudieron obtener las inscripciones del alumno &quot; + idAlumno);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
