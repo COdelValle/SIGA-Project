@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EscuchadorRiesgo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-notificaciones</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msnotificaciones.mensajeria</a> &gt; <span class="el_source">EscuchadorRiesgo.java</span></div><h1>EscuchadorRiesgo.java</h1><pre class="source lang-java linenums">package cl.siga.msnotificaciones.mensajeria;
+
+import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
+import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.msnotificaciones.service.NotificacionService;
+import com.rabbitmq.client.Channel;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="fc" id="L18">@Slf4j</span>
+@RequiredArgsConstructor
+public class EscuchadorRiesgo {
+
+    private final NotificacionService notificacionService;
+    private final ConfirmadorMensajes confirmador;
+
+    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_INASISTENCIA)
+    public void recibirInasistencia(EventoRiesgoAsistencia evento, Channel canal,
+                                     @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="fc" id="L28">        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_INASISTENCIA,</span>
+<span class="fc" id="L29">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="fc" id="L30">    }</span>
+
+    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_RENDIMIENTO)
+    public void recibirRendimiento(EventoRiesgoRendimiento evento, Channel canal,
+                                   @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L35">        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_RENDIMIENTO,</span>
+<span class="nc" id="L36">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="nc" id="L37">    }</span>
+
+    @RabbitListener(queues = NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO)
+    public void recibirCambioEstado(EventoCambioEstadoAcademico evento, Channel canal,
+                                    @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
+<span class="nc" id="L42">        procesar(canal, etiqueta, NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO,</span>
+<span class="nc" id="L43">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="nc" id="L44">    }</span>
+
+    private void procesar(Channel canal, long etiqueta, String cola, String idEvento, Runnable accion) {
+<span class="fc" id="L47">        log.info(&quot;Evento de riesgo recibido idEvento={} cola={}&quot;, idEvento, cola);</span>
+<span class="fc" id="L48">        confirmador.procesar(canal, etiqueta, cola, accion);</span>
+<span class="fc" id="L49">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventoAsistenciaKafka.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.dto.kafka</a> &gt; <span class="el_source">EventoAsistenciaKafka.java</span></div><h1>EventoAsistenciaKafka.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.dto.kafka;
+
+import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
+import cl.siga.coreshare.dto.asistencia.enums.State;
+import cl.siga.coreshare.mensajeria.EventoTrazable;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Evento académico publicado en siga.academico.asistencias.
+ * La clave Kafka debe ser el id del estudiante para conservar el orden de sus
+ * registros dentro de una partición.
+ */
+<span class="nc" id="L15">public record EventoAsistenciaKafka(</span>
+    @NotNull Long idAsistencia,
+    @NotNull Long idEstudiante,
+    @NotNull Long idCursoAsignatura,
+    @NotNull LocalDate fecha,
+    @NotNull State estado,
+    Justificacion justificacion,
+    double porcentajeInasistencia,
+    long totalRegistros,
+    long totalInasistencias,
+    @NotNull LocalDateTime timestamp,
+    @NotNull String idEvento,
+    @NotNull String correlationId
+) implements EventoTrazable {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

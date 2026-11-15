@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteConsultaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-reportes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msreportes.service</a> &gt; <span class="el_source">ReporteConsultaService.java</span></div><h1>ReporteConsultaService.java</h1><pre class="source lang-java linenums">package cl.siga.msreportes.service;
+
+import cl.siga.coreshare.dto.reportes.IndicadorAsistenciaDTO;
+import cl.siga.coreshare.dto.reportes.IndicadorRendimientoDTO;
+import cl.siga.msreportes.model.entity.ProyeccionAsistencia;
+import cl.siga.msreportes.model.entity.ProyeccionRendimiento;
+import cl.siga.msreportes.repository.ProyeccionAsistenciaRepository;
+import cl.siga.msreportes.repository.ProyeccionRendimientoRepository;
+import java.time.LocalDate;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ReporteConsultaService {
+
+    private final ProyeccionAsistenciaRepository asistenciaRepository;
+    private final ProyeccionRendimientoRepository rendimientoRepository;
+
+    public List&lt;IndicadorAsistenciaDTO&gt; buscarAsistencia(
+            Long idEstudiante, Long idCursoAsignatura, LocalDate from, LocalDate to) {
+<span class="nc" id="L23">        validarPeriodo(from, to);</span>
+<span class="nc" id="L24">        return asistenciaRepository.buscar(idEstudiante, idCursoAsignatura, from, to).stream()</span>
+<span class="nc" id="L25">            .map(ReporteConsultaService::toDto)</span>
+<span class="nc" id="L26">            .toList();</span>
+    }
+
+    public List&lt;IndicadorRendimientoDTO&gt; buscarRendimiento(
+            Long idEstudiante, Long idCursoAsignatura, LocalDate from, LocalDate to) {
+<span class="nc" id="L31">        validarPeriodo(from, to);</span>
+<span class="nc" id="L32">        return rendimientoRepository.buscar(idEstudiante, idCursoAsignatura,</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">            from == null ? null : from.atStartOfDay(),</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            to == null ? null : to.plusDays(1).atStartOfDay()).stream()</span>
+<span class="nc" id="L35">            .map(ReporteConsultaService::toDto)</span>
+<span class="nc" id="L36">            .toList();</span>
+    }
+
+    private static void validarPeriodo(LocalDate from, LocalDate to) {
+<span class="nc bnc" id="L40" title="All 6 branches missed.">        if (from != null &amp;&amp; to != null &amp;&amp; from.isAfter(to)) {</span>
+<span class="nc" id="L41">            throw new IllegalArgumentException(&quot;La fecha desde no puede ser posterior a la fecha hasta.&quot;);</span>
+        }
+<span class="nc" id="L43">    }</span>
+
+    private static IndicadorAsistenciaDTO toDto(ProyeccionAsistencia p) {
+<span class="nc" id="L46">        return new IndicadorAsistenciaDTO(p.getIdEstudiante(), p.getIdCursoAsignatura(), p.getFecha(),</span>
+<span class="nc" id="L47">            p.getEstado(), p.getPorcentajeInasistencia(), p.getTotalRegistros(), p.getTotalInasistencias(),</span>
+<span class="nc" id="L48">            p.getNivelRiesgo(), p.getActualizadoEn());</span>
+    }
+
+    private static IndicadorRendimientoDTO toDto(ProyeccionRendimiento p) {
+<span class="nc" id="L52">        return new IndicadorRendimientoDTO(p.getIdEstudiante(), p.getIdEvaluacion(), p.getIdCursoAsignatura(),</span>
+<span class="nc" id="L53">            p.getPuntaje(), p.getPromedio(), p.getEvaluacionesInsuficientes(), p.getNivelRiesgo(),</span>
+<span class="nc" id="L54">            p.getActualizadoEn());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

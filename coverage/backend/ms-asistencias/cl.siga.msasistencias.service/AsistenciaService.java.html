@@ -20,6 +20,7 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
 import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistenciaKafka;
 import cl.siga.msasistencias.model.entity.Asistencia;
 import cl.siga.msasistencias.model.mapper.AsistenciaMapper;
 import cl.siga.msasistencias.model.specifications.AsistenciaSpecifications;
@@ -36,11 +37,12 @@ public class AsistenciaService {
     private final EstudianteClient estudianteClient;
     private final AsignaturaClient asignaturaClient;
     private final PublicadorAsistencia publicador; // Productor RabbitMQ (misma lógica que evaluaciones)
+    private final PublicadorAsistenciaKafka publicadorKafka;
 
     @Transactional(readOnly = true)
     public AsistenciaResponseDTO getAsistenciaById(Long id) {
-<span class="fc" id="L42">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
-<span class="fc" id="L43">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
+<span class="fc" id="L44">        return mapper.toResponseDto(repository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L45">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;)));</span>
     }
 
     @Transactional(readOnly = true)
@@ -51,71 +53,78 @@ public class AsistenciaService {
             LocalDate to,
             State estado,
             Pageable pageable) {
-<span class="fc" id="L54">        Specification&lt;Asistencia&gt; spec = AsistenciaSpecifications.isActive()</span>
-<span class="fc" id="L55">            .and(AsistenciaSpecifications.hasIdEstudiante(idEstudiante))</span>
-<span class="fc" id="L56">            .and(AsistenciaSpecifications.hasIdCursoAsignatura(idCursoAsignatura))</span>
-<span class="fc" id="L57">            .and(AsistenciaSpecifications.hasFechaGreaterThanOrEqual(from))</span>
-<span class="fc" id="L58">            .and(AsistenciaSpecifications.hasFechaLessThanOrEqual(to))</span>
-<span class="fc" id="L59">            .and(AsistenciaSpecifications.hasEstado(estado));</span>
-<span class="fc" id="L60">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
+<span class="fc" id="L56">        Specification&lt;Asistencia&gt; spec = AsistenciaSpecifications.isActive()</span>
+<span class="fc" id="L57">            .and(AsistenciaSpecifications.hasIdEstudiante(idEstudiante))</span>
+<span class="fc" id="L58">            .and(AsistenciaSpecifications.hasIdCursoAsignatura(idCursoAsignatura))</span>
+<span class="fc" id="L59">            .and(AsistenciaSpecifications.hasFechaGreaterThanOrEqual(from))</span>
+<span class="fc" id="L60">            .and(AsistenciaSpecifications.hasFechaLessThanOrEqual(to))</span>
+<span class="fc" id="L61">            .and(AsistenciaSpecifications.hasEstado(estado));</span>
+<span class="fc" id="L62">        return repository.findAll(spec, pageable).map(mapper::toResponseDto);</span>
     }
 
     @Transactional
     public AsistenciaResponseDTO saveAsistencia(@Valid RegistrarAsistenciaRequestDTO request) {
-<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (!estudianteClient.existsById(request.idEstudiante())) {</span>
-<span class="fc" id="L66">            throw new BusinessException(&quot;El estudiante no existe: &quot; + request.idEstudiante());</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (!estudianteClient.existsById(request.idEstudiante())) {</span>
+<span class="fc" id="L68">            throw new BusinessException(&quot;El estudiante no existe: &quot; + request.idEstudiante());</span>
         }
-<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!asignaturaClient.existsById(request.idCursoAsignatura())) {</span>
-<span class="fc" id="L69">            throw new BusinessException(&quot;La dictación no existe: &quot; + request.idCursoAsignatura());</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!asignaturaClient.existsById(request.idCursoAsignatura())) {</span>
+<span class="fc" id="L71">            throw new BusinessException(&quot;La dictación no existe: &quot; + request.idCursoAsignatura());</span>
         }
-<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(</span>
-<span class="fc" id="L72">                request.idEstudiante(), request.idCursoAsignatura(), request.fecha())) {</span>
-<span class="fc" id="L73">            throw new BusinessException(&quot;Ya existe asistencia para el estudiante &quot;</span>
-<span class="fc" id="L74">                + request.idEstudiante() + &quot; en la dictación &quot; + request.idCursoAsignatura()</span>
-<span class="fc" id="L75">                + &quot; el &quot; + request.fecha() + &quot;.&quot;);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(</span>
+<span class="fc" id="L74">                request.idEstudiante(), request.idCursoAsignatura(), request.fecha())) {</span>
+<span class="fc" id="L75">            throw new BusinessException(&quot;Ya existe asistencia para el estudiante &quot;</span>
+<span class="fc" id="L76">                + request.idEstudiante() + &quot; en la dictación &quot; + request.idCursoAsignatura()</span>
+<span class="fc" id="L77">                + &quot; el &quot; + request.fecha() + &quot;.&quot;);</span>
         }
 
-<span class="fc" id="L78">        Asistencia asistencia = mapper.toEntity(request);</span>
+<span class="fc" id="L80">        Asistencia asistencia = mapper.toEntity(request);</span>
         // Presente =&gt; No aplica; ausente/atrasado =&gt; Pendiente (hasta gestionar justificacion).
-<span class="fc bfc" id="L80" title="All 2 branches covered.">        asistencia.setJustificacion(request.estado() == State.PRESENTE</span>
-<span class="fc" id="L81">            ? Justificacion.NO_APLICA</span>
-<span class="fc" id="L82">            : Justificacion.PENDIENTE);</span>
-<span class="fc" id="L83">        asistencia.setActive(true);</span>
-<span class="fc" id="L84">        AsistenciaResponseDTO creada = mapper.toResponseDto(repository.save(asistencia));</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        asistencia.setJustificacion(request.estado() == State.PRESENTE</span>
+<span class="fc" id="L83">            ? Justificacion.NO_APLICA</span>
+<span class="fc" id="L84">            : Justificacion.PENDIENTE);</span>
+<span class="fc" id="L85">        asistencia.setActive(true);</span>
+<span class="fc" id="L86">        AsistenciaResponseDTO creada = mapper.toResponseDto(repository.save(asistencia));</span>
 
-        // Productor: solo se avisa si el estado es AUSENTE o ATRASADO (el PUT de justificación no notifica).
-<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (creada.estado() != State.PRESENTE) {</span>
-<span class="fc" id="L88">            double porcentajeInasistencia = calcularPorcentajeInasistenciaDelMes(</span>
-<span class="fc" id="L89">                creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">            publicador.publicarRegistrada(</span>
+<span class="fc" id="L88">        double porcentajeInasistencia = calcularPorcentajeInasistenciaDelMes(</span>
+<span class="fc" id="L89">            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());</span>
+<span class="fc" id="L90">        long totalInasistencias = contarInasistenciasDelMes(</span>
+<span class="fc" id="L91">            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());</span>
+<span class="fc" id="L92">        long totalRegistros = contarRegistrosDelMes(</span>
+<span class="fc" id="L93">            creada.idEstudiante(), creada.idCursoAsignatura(), creada.fecha());</span>
+<span class="fc" id="L94">        publicadorKafka.publicar(creada, porcentajeInasistencia, totalRegistros, totalInasistencias);</span>
+
+        // RabbitMQ solo avisa si el estado es AUSENTE o ATRASADO (el PUT de
+        // justificación no notifica).
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (creada.estado() != State.PRESENTE) {</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">            publicador.publicarRegistrada(</span>
                 creada,
                 porcentajeInasistencia,
                 porcentajeInasistencia &gt;= NombresMensajeria.UMBRAL_INASISTENCIA);
         }
-<span class="fc" id="L95">        return creada;</span>
+<span class="fc" id="L104">        return creada;</span>
     }
 
     @Transactional
     public AsistenciaResponseDTO updateAsistencia(Long id, @Valid ActualizarAsistenciaRequestDTO request) {
-<span class="fc" id="L100">        Asistencia asistencia = repository.findByIdAndActiveTrue(id)</span>
-<span class="fc" id="L101">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
-<span class="fc" id="L102">        mapper.updateEntityFromDto(request, asistencia);</span>
-<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (request.estado() != null) {</span>
+<span class="fc" id="L109">        Asistencia asistencia = repository.findByIdAndActiveTrue(id)</span>
+<span class="fc" id="L110">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L111">        mapper.updateEntityFromDto(request, asistencia);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (request.estado() != null) {</span>
             // Correccion de la marcacion por parte del docente: se normaliza la
             // justificacion asociada al nuevo estado.
-<span class="fc" id="L106">            asistencia.setEstado(request.estado());</span>
-<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (request.estado() == State.PRESENTE) {</span>
-<span class="fc" id="L108">                asistencia.setJustificacion(Justificacion.NO_APLICA);</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">            } else if (asistencia.getJustificacion() == Justificacion.NO_APLICA) {</span>
-<span class="fc" id="L110">                asistencia.setJustificacion(Justificacion.PENDIENTE);</span>
+<span class="fc" id="L115">            asistencia.setEstado(request.estado());</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            if (request.estado() == State.PRESENTE) {</span>
+<span class="fc" id="L117">                asistencia.setJustificacion(Justificacion.NO_APLICA);</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">            } else if (asistencia.getJustificacion() == Justificacion.NO_APLICA) {</span>
+<span class="fc" id="L119">                asistencia.setJustificacion(Justificacion.PENDIENTE);</span>
             }
         }
-<span class="fc" id="L113">        return mapper.toResponseDto(repository.save(asistencia));</span>
+<span class="fc" id="L122">        return mapper.toResponseDto(repository.save(asistencia));</span>
     }
 
     @Transactional(readOnly = true)
     public boolean existsAsistenciaById(Long id) {
-<span class="fc" id="L118">        return repository.findByIdAndActiveTrue(id).isPresent();</span>
+<span class="fc" id="L127">        return repository.findByIdAndActiveTrue(id).isPresent();</span>
     }
 
     /**
@@ -125,26 +134,35 @@ public class AsistenciaService {
      * no dividir por cero.
      */
     public double calcularPorcentajeInasistenciaDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
-<span class="fc" id="L128">        LocalDate inicioMes = fecha.withDayOfMonth(1);</span>
-<span class="fc" id="L129">        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());</span>
+<span class="fc" id="L137">        long faltas = contarInasistenciasDelMes(idEstudiante, idCursoAsignatura, fecha);</span>
+<span class="fc" id="L138">        long total = contarRegistrosDelMes(idEstudiante, idCursoAsignatura, fecha);</span>
 
-<span class="fc" id="L131">        long faltas = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(</span>
-            idEstudiante, idCursoAsignatura, inicioMes, finMes, State.AUSENTE);
-<span class="fc" id="L133">        long total = repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(</span>
-            idEstudiante, idCursoAsignatura, inicioMes, finMes);
-
-<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (total == 0) {</span>
-<span class="fc" id="L137">            return 0.0;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (total == 0) {</span>
+<span class="fc" id="L141">            return 0.0;</span>
         }
-<span class="fc" id="L139">        return (faltas * 100.0) / total;</span>
+<span class="fc" id="L143">        return (faltas * 100.0) / total;</span>
+    }
+
+    private long contarInasistenciasDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
+<span class="fc" id="L147">        LocalDate inicioMes = fecha.withDayOfMonth(1);</span>
+<span class="fc" id="L148">        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());</span>
+<span class="fc" id="L149">        return repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(</span>
+            idEstudiante, idCursoAsignatura, inicioMes, finMes, State.AUSENTE);
+    }
+
+    private long contarRegistrosDelMes(Long idEstudiante, Long idCursoAsignatura, LocalDate fecha) {
+<span class="fc" id="L154">        LocalDate inicioMes = fecha.withDayOfMonth(1);</span>
+<span class="fc" id="L155">        LocalDate finMes = fecha.withDayOfMonth(fecha.lengthOfMonth());</span>
+<span class="fc" id="L156">        return repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(</span>
+            idEstudiante, idCursoAsignatura, inicioMes, finMes);
     }
 
     @Transactional
     public void deleteAsistencia(Long id) {
-<span class="fc" id="L144">        Asistencia asistencia = repository.findById(id)</span>
-<span class="fc" id="L145">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
-<span class="fc" id="L146">        asistencia.setActive(false);</span>
-<span class="fc" id="L147">        repository.save(asistencia);</span>
-<span class="fc" id="L148">    }</span>
+<span class="fc" id="L162">        Asistencia asistencia = repository.findById(id)</span>
+<span class="fc" id="L163">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Asistencia con ID &quot; + id + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L164">        asistencia.setActive(false);</span>
+<span class="fc" id="L165">        repository.save(asistencia);</span>
+<span class="fc" id="L166">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

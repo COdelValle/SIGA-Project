@@ -66,75 +66,150 @@ import org.springframework.context.annotation.Bean;
     }
 
     @Bean
+    public Queue colaRiesgoInasistencia() {
+<span class="fc" id="L70">        return colaConDlq(NombresMensajeria.COLA_RIESGO_INASISTENCIA,</span>
+            NombresMensajeria.DLQ_RIESGO_INASISTENCIA);
+    }
+
+    @Bean
+    public Queue colaRiesgoInasistenciaDlq() {
+<span class="fc" id="L76">        return QueueBuilder.durable(NombresMensajeria.DLQ_RIESGO_INASISTENCIA).build();</span>
+    }
+
+    @Bean
+    public Queue colaRiesgoRendimiento() {
+<span class="fc" id="L81">        return colaConDlq(NombresMensajeria.COLA_RIESGO_RENDIMIENTO,</span>
+            NombresMensajeria.DLQ_RIESGO_RENDIMIENTO);
+    }
+
+    @Bean
+    public Queue colaRiesgoRendimientoDlq() {
+<span class="fc" id="L87">        return QueueBuilder.durable(NombresMensajeria.DLQ_RIESGO_RENDIMIENTO).build();</span>
+    }
+
+    @Bean
+    public Queue colaCambioEstadoAcademico() {
+<span class="fc" id="L92">        return colaConDlq(NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO,</span>
+            NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO);
+    }
+
+    @Bean
+    public Queue colaCambioEstadoAcademicoDlq() {
+<span class="fc" id="L98">        return QueueBuilder.durable(NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO).build();</span>
+    }
+
+    @Bean
     public Queue colaNotificacionesNotas() {
-<span class="fc" id="L70">        return colaConDlq(NombresMensajeria.COLA_NOTAS, NombresMensajeria.DLQ_NOTAS);</span>
+<span class="fc" id="L103">        return colaConDlq(NombresMensajeria.COLA_NOTAS, NombresMensajeria.DLQ_NOTAS);</span>
     }
 
     @Bean
     public Queue colaNotificacionesNotasDlq() {
-<span class="fc" id="L75">        return QueueBuilder.durable(NombresMensajeria.DLQ_NOTAS).build();</span>
+<span class="fc" id="L108">        return QueueBuilder.durable(NombresMensajeria.DLQ_NOTAS).build();</span>
     }
 
     @Bean
     public Binding enlaceEvaluaciones(Queue colaNotificacionesEvaluaciones,
                                       TopicExchange intercambioNotificaciones) {
-<span class="fc" id="L81">        return BindingBuilder</span>
-<span class="fc" id="L82">            .bind(colaNotificacionesEvaluaciones)</span>
-<span class="fc" id="L83">            .to(intercambioNotificaciones)</span>
-<span class="fc" id="L84">            .with(NombresMensajeria.PATRON_EVALUACION);</span>
+<span class="fc" id="L114">        return BindingBuilder</span>
+<span class="fc" id="L115">            .bind(colaNotificacionesEvaluaciones)</span>
+<span class="fc" id="L116">            .to(intercambioNotificaciones)</span>
+<span class="fc" id="L117">            .with(NombresMensajeria.PATRON_EVALUACION);</span>
     }
 
     @Bean
     public Binding enlaceAsistencias(Queue colaNotificacionesAsistencias,
                                      TopicExchange intercambioNotificaciones) {
-<span class="fc" id="L90">        return BindingBuilder</span>
-<span class="fc" id="L91">            .bind(colaNotificacionesAsistencias)</span>
-<span class="fc" id="L92">            .to(intercambioNotificaciones)</span>
-<span class="fc" id="L93">            .with(NombresMensajeria.PATRON_ASISTENCIA);</span>
+<span class="fc" id="L123">        return BindingBuilder</span>
+<span class="fc" id="L124">            .bind(colaNotificacionesAsistencias)</span>
+<span class="fc" id="L125">            .to(intercambioNotificaciones)</span>
+<span class="fc" id="L126">            .with(NombresMensajeria.PATRON_ASISTENCIA);</span>
+    }
+
+    @Bean
+    public Binding enlaceRiesgoInasistencia(Queue colaRiesgoInasistencia,
+                                            TopicExchange intercambioNotificaciones) {
+<span class="fc" id="L132">        return BindingBuilder.bind(colaRiesgoInasistencia).to(intercambioNotificaciones)</span>
+<span class="fc" id="L133">            .with(NombresMensajeria.CLAVE_RIESGO_INASISTENCIA);</span>
+    }
+
+    @Bean
+    public Binding enlaceRiesgoRendimiento(Queue colaRiesgoRendimiento,
+                                           TopicExchange intercambioNotificaciones) {
+<span class="fc" id="L139">        return BindingBuilder.bind(colaRiesgoRendimiento).to(intercambioNotificaciones)</span>
+<span class="fc" id="L140">            .with(NombresMensajeria.CLAVE_RIESGO_RENDIMIENTO);</span>
+    }
+
+    @Bean
+    public Binding enlaceCambioEstadoAcademico(Queue colaCambioEstadoAcademico,
+                                               TopicExchange intercambioNotificaciones) {
+<span class="fc" id="L146">        return BindingBuilder.bind(colaCambioEstadoAcademico).to(intercambioNotificaciones)</span>
+<span class="fc" id="L147">            .with(NombresMensajeria.CLAVE_CAMBIO_ESTADO_ACADEMICO);</span>
     }
 
     @Bean
     public Binding enlaceNotas(Queue colaNotificacionesNotas,
                                TopicExchange intercambioNotificaciones) {
-<span class="fc" id="L99">        return BindingBuilder</span>
-<span class="fc" id="L100">            .bind(colaNotificacionesNotas)</span>
-<span class="fc" id="L101">            .to(intercambioNotificaciones)</span>
-<span class="fc" id="L102">            .with(NombresMensajeria.PATRON_NOTA);</span>
+<span class="fc" id="L153">        return BindingBuilder</span>
+<span class="fc" id="L154">            .bind(colaNotificacionesNotas)</span>
+<span class="fc" id="L155">            .to(intercambioNotificaciones)</span>
+<span class="fc" id="L156">            .with(NombresMensajeria.PATRON_NOTA);</span>
     }
 
     @Bean
     public Binding enlaceDlqEvaluaciones(Queue colaNotificacionesEvaluacionesDlq,
                                          DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L108">        return BindingBuilder</span>
-<span class="fc" id="L109">            .bind(colaNotificacionesEvaluacionesDlq)</span>
-<span class="fc" id="L110">            .to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L111">            .with(NombresMensajeria.DLQ_EVALUACIONES);</span>
+<span class="fc" id="L162">        return BindingBuilder</span>
+<span class="fc" id="L163">            .bind(colaNotificacionesEvaluacionesDlq)</span>
+<span class="fc" id="L164">            .to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L165">            .with(NombresMensajeria.DLQ_EVALUACIONES);</span>
     }
 
     @Bean
     public Binding enlaceDlqAsistencias(Queue colaNotificacionesAsistenciasDlq,
                                         DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L117">        return BindingBuilder</span>
-<span class="fc" id="L118">            .bind(colaNotificacionesAsistenciasDlq)</span>
-<span class="fc" id="L119">            .to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L120">            .with(NombresMensajeria.DLQ_ASISTENCIAS);</span>
+<span class="fc" id="L171">        return BindingBuilder</span>
+<span class="fc" id="L172">            .bind(colaNotificacionesAsistenciasDlq)</span>
+<span class="fc" id="L173">            .to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L174">            .with(NombresMensajeria.DLQ_ASISTENCIAS);</span>
+    }
+
+    @Bean
+    public Binding enlaceDlqRiesgoInasistencia(Queue colaRiesgoInasistenciaDlq,
+                                               DirectExchange sigaDeadLetterExchange) {
+<span class="fc" id="L180">        return BindingBuilder.bind(colaRiesgoInasistenciaDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L181">            .with(NombresMensajeria.DLQ_RIESGO_INASISTENCIA);</span>
+    }
+
+    @Bean
+    public Binding enlaceDlqRiesgoRendimiento(Queue colaRiesgoRendimientoDlq,
+                                              DirectExchange sigaDeadLetterExchange) {
+<span class="fc" id="L187">        return BindingBuilder.bind(colaRiesgoRendimientoDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L188">            .with(NombresMensajeria.DLQ_RIESGO_RENDIMIENTO);</span>
+    }
+
+    @Bean
+    public Binding enlaceDlqCambioEstadoAcademico(Queue colaCambioEstadoAcademicoDlq,
+                                                  DirectExchange sigaDeadLetterExchange) {
+<span class="fc" id="L194">        return BindingBuilder.bind(colaCambioEstadoAcademicoDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L195">            .with(NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO);</span>
     }
 
     @Bean
     public Binding enlaceDlqNotas(Queue colaNotificacionesNotasDlq,
                                   DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L126">        return BindingBuilder</span>
-<span class="fc" id="L127">            .bind(colaNotificacionesNotasDlq)</span>
-<span class="fc" id="L128">            .to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L129">            .with(NombresMensajeria.DLQ_NOTAS);</span>
+<span class="fc" id="L201">        return BindingBuilder</span>
+<span class="fc" id="L202">            .bind(colaNotificacionesNotasDlq)</span>
+<span class="fc" id="L203">            .to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L204">            .with(NombresMensajeria.DLQ_NOTAS);</span>
     }
 
     private Queue colaConDlq(String nombre, String dlq) {
-<span class="fc" id="L133">        return QueueBuilder.durable(nombre)</span>
-<span class="fc" id="L134">            .withArguments(Map.of(</span>
+<span class="fc" id="L208">        return QueueBuilder.durable(nombre)</span>
+<span class="fc" id="L209">            .withArguments(Map.of(</span>
                 &quot;x-dead-letter-exchange&quot;, NombresMensajeria.INTERCAMBIO_DLQ,
                 &quot;x-dead-letter-routing-key&quot;, dlq))
-<span class="fc" id="L137">            .build();</span>
+<span class="fc" id="L212">            .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteKafkaListener.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-reportes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msreportes.mensajeria</a> &gt; <span class="el_source">ReporteKafkaListener.java</span></div><h1>ReporteKafkaListener.java</h1><pre class="source lang-java linenums">package cl.siga.msreportes.mensajeria;
+
+import cl.siga.coreshare.dto.kafka.EventoAsistenciaKafka;
+import cl.siga.coreshare.dto.kafka.EventoRendimientoKafka;
+import cl.siga.coreshare.mensajeria.NombresKafka;
+import cl.siga.msreportes.service.ReporteProcesamientoService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+<span class="fc" id="L15">@Slf4j</span>
+public class ReporteKafkaListener {
+
+    private final ReporteProcesamientoService procesamientoService;
+
+    @KafkaListener(
+        topics = NombresKafka.TOPIC_ASISTENCIAS,
+        groupId = NombresKafka.GRUPO_REPORTES_ASISTENCIAS,
+        containerFactory = &quot;asistenciaKafkaListenerContainerFactory&quot;)
+    public void recibirAsistencia(ConsumerRecord&lt;String, EventoAsistenciaKafka&gt; record) {
+<span class="fc" id="L25">        log.info(&quot;Evento Kafka de asistencia recibido topic={} particion={} offset={} idEvento={}&quot;,</span>
+<span class="fc" id="L26">            record.topic(), record.partition(), record.offset(),</span>
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">            record.value() == null ? null : record.value().idEvento());</span>
+<span class="fc" id="L28">        procesamientoService.procesarAsistencia(record);</span>
+<span class="fc" id="L29">    }</span>
+
+    @KafkaListener(
+        topics = NombresKafka.TOPIC_RENDIMIENTO,
+        groupId = NombresKafka.GRUPO_REPORTES_RENDIMIENTO,
+        containerFactory = &quot;rendimientoKafkaListenerContainerFactory&quot;)
+    public void recibirRendimiento(ConsumerRecord&lt;String, EventoRendimientoKafka&gt; record) {
+<span class="fc" id="L36">        log.info(&quot;Evento Kafka de rendimiento recibido topic={} particion={} offset={} idEvento={}&quot;,</span>
+<span class="fc" id="L37">            record.topic(), record.partition(), record.offset(),</span>
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">            record.value() == null ? null : record.value().idEvento());</span>
+<span class="fc" id="L39">        procesamientoService.procesarRendimiento(record);</span>
+<span class="fc" id="L40">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

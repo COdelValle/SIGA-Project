@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublicadorAlertaRiesgo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-reportes</a> &gt; <a href="index.source.html" class="el_package">cl.siga.msreportes.mensajeria</a> &gt; <span class="el_source">PublicadorAlertaRiesgo.java</span></div><h1>PublicadorAlertaRiesgo.java</h1><pre class="source lang-java linenums">package cl.siga.msreportes.mensajeria;
+
+import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
+import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
+import cl.siga.msreportes.model.entity.AlertaRiesgo;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class PublicadorAlertaRiesgo {
+
+    private final NotificationEventOutbox outbox;
+
+    public void publicar(AlertaRiesgo alerta) {
+<span class="fc" id="L22">        String idEvento = UUID.nameUUIDFromBytes(</span>
+<span class="fc" id="L23">            alerta.getClaveIdempotencia().getBytes(StandardCharsets.UTF_8)).toString();</span>
+<span class="fc" id="L24">        LocalDateTime timestamp = alerta.getCreadaEn();</span>
+<span class="pc bpc" id="L25" title="3 of 4 branches missed.">        switch (alerta.getTipoRiesgo()) {</span>
+<span class="fc" id="L26">            case INASISTENCIA -&gt; outbox.registrar(idEvento, NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,</span>
+                NombresMensajeria.CLAVE_RIESGO_INASISTENCIA,
+<span class="fc" id="L28">                new EventoRiesgoAsistencia(alerta.getIdEstudiante(), alerta.getIdCursoAsignatura(),</span>
+<span class="fc" id="L29">                    alerta.getNivelNuevo(), alerta.getTipoRiesgo(),</span>
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">                    alerta.getPorcentajeInasistencia() == null ? 0.0 : alerta.getPorcentajeInasistencia(),</span>
+<span class="fc" id="L31">                    alerta.getMotivo(),</span>
+<span class="fc" id="L32">                    timestamp, idEvento, alerta.getCorrelationId()));</span>
+<span class="nc" id="L33">            case BAJO_RENDIMIENTO -&gt; outbox.registrar(idEvento, NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,</span>
+                NombresMensajeria.CLAVE_RIESGO_RENDIMIENTO,
+<span class="nc" id="L35">                new EventoRiesgoRendimiento(alerta.getIdEstudiante(), alerta.getIdCursoAsignatura(),</span>
+<span class="nc" id="L36">                    alerta.getNivelNuevo(), alerta.getTipoRiesgo(), alerta.getPromedio(),</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">                    alerta.getEvaluacionesInsuficientes() == null ? 0 : alerta.getEvaluacionesInsuficientes(),</span>
+<span class="nc" id="L38">                    alerta.getMotivo(), timestamp, idEvento, alerta.getCorrelationId()));</span>
+<span class="nc" id="L39">            case CAMBIO_ESTADO_ACADEMICO -&gt; outbox.registrar(idEvento, NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,</span>
+                NombresMensajeria.CLAVE_CAMBIO_ESTADO_ACADEMICO,
+<span class="nc" id="L41">                new EventoCambioEstadoAcademico(alerta.getIdEstudiante(), alerta.getIdCursoAsignatura(),</span>
+<span class="nc" id="L42">                    alerta.getNivelAnterior(), alerta.getNivelNuevo(), alerta.getMotivo(),</span>
+<span class="nc" id="L43">                    timestamp, idEvento, alerta.getCorrelationId()));</span>
+        }
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

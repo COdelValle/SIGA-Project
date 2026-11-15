@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.reportes</a> &gt; <span class="el_source">ReporteBffService.java</span></div><h1>ReporteBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.reportes;
+
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
+import cl.siga.bffweb.integration.apoderados.ApoderadoClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.bffweb.integration.reportes.ReporteClient;
+import cl.siga.coreshare.dto.apoderado.ApoderadoResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.dto.reportes.IndicadorAsistenciaDTO;
+import cl.siga.coreshare.dto.reportes.IndicadorRendimientoDTO;
+import cl.siga.coreshare.exception.BusinessException;
+import cl.siga.coreshare.security.SecurityUtils;
+import java.time.LocalDate;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ReporteBffService {
+
+    private final ReporteClient reporteClient;
+    private final EstudianteClient estudianteClient;
+    private final ApoderadoClient apoderadoClient;
+    private final DocenteContextService docenteContext;
+
+    public List&lt;IndicadorAsistenciaDTO&gt; buscarAsistencia(
+            Long estudiante, Long curso, LocalDate from, LocalDate to) {
+<span class="fc" id="L30">        Long idEstudiante = resolverEstudiante(estudiante, curso);</span>
+<span class="fc" id="L31">        validarCurso(curso);</span>
+<span class="fc" id="L32">        return reporteClient.buscarAsistencia(idEstudiante, curso, from, to);</span>
+    }
+
+    public List&lt;IndicadorRendimientoDTO&gt; buscarRendimiento(
+            Long estudiante, Long curso, LocalDate from, LocalDate to) {
+<span class="fc" id="L37">        Long idEstudiante = resolverEstudiante(estudiante, curso);</span>
+<span class="fc" id="L38">        validarCurso(curso);</span>
+<span class="fc" id="L39">        return reporteClient.buscarRendimiento(idEstudiante, curso, from, to);</span>
+    }
+
+    private Long resolverEstudiante(Long solicitado, Long curso) {
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="nc" id="L44">            return solicitado;</span>
+        }
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">        if (SecurityUtils.hasRole(&quot;DOCENTE&quot;)) {</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (curso == null) {</span>
+<span class="nc" id="L48">                throw new AccessDeniedException(&quot;Un docente debe filtrar por curso.&quot;);</span>
+            }
+<span class="nc" id="L50">            return solicitado;</span>
+        }
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (solicitado == null) {</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">            if (!SecurityUtils.hasRole(&quot;ESTUDIANTE&quot;)) {</span>
+<span class="nc" id="L54">                throw new AccessDeniedException(&quot;Debes indicar un estudiante.&quot;);</span>
+            }
+<span class="fc" id="L56">            EstudianteResponseDTO propio = estudianteClient.getEstudianteByIdUsuario(oid());</span>
+<span class="fc" id="L57">            return propio.id();</span>
+        }
+<span class="fc" id="L59">        EstudianteResponseDTO estudiante = estudianteClient.getEstudianteById(solicitado);</span>
+<span class="pc bpc" id="L60" title="3 of 4 branches missed.">        if (SecurityUtils.hasRole(&quot;ESTUDIANTE&quot;) &amp;&amp; oid().equals(estudiante.idUsuario())) {</span>
+<span class="nc" id="L61">            return solicitado;</span>
+        }
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (SecurityUtils.hasRole(&quot;APODERADO&quot;)) {</span>
+<span class="fc" id="L64">            ApoderadoResponseDTO apoderado = apoderadoClient.getApoderadoByIdUsuario(oid());</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">            boolean vinculado = apoderado.estudiantes() != null</span>
+<span class="fc" id="L66">                &amp;&amp; apoderado.estudiantes().stream()</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">                    .anyMatch(vinculo -&gt; solicitado.equals(vinculo.idEstudiante()));</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">            if (vinculado) {</span>
+<span class="fc" id="L69">                return solicitado;</span>
+            }
+        }
+<span class="nc" id="L72">        throw new AccessDeniedException(&quot;No tienes permiso para consultar este estudiante.&quot;);</span>
+    }
+
+    private void validarCurso(Long curso) {
+<span class="pc bpc" id="L76" title="2 of 4 branches missed.">        if (curso != null &amp;&amp; SecurityUtils.hasRole(&quot;DOCENTE&quot;)) {</span>
+<span class="nc" id="L77">            docenteContext.validarCursoDelDocente(curso);</span>
+        }
+<span class="fc" id="L79">    }</span>
+
+    private String oid() {
+<span class="fc" id="L82">        return SecurityUtils.getCurrentUserOid()</span>
+<span class="pc" id="L83">            .orElseThrow(() -&gt; new BusinessException(&quot;No se pudo determinar el usuario autenticado.&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

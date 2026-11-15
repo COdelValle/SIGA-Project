@@ -32,6 +32,8 @@ bff-web,cl.siga.bffweb.domain.estudiantes.mapper,PerfilEstudianteMapper,2,21,1,3
 bff-web,cl.siga.bffweb.domain.docentes.dto,ClaseDocenteDTO,0,27,0,0,0,1,0,1,0,1
 bff-web,cl.siga.bffweb.domain.docentes.dto,AlumnoDTO,0,15,0,0,0,1,0,1,0,1
 bff-web,cl.siga.bffweb.domain.docentes.dto,CursoDocenteDTO,0,33,0,0,0,1,0,1,0,1
+bff-web,cl.siga.bffweb.domain.reportes,ReporteController,18,0,0,0,2,0,2,0,2,0
+bff-web,cl.siga.bffweb.domain.reportes,ReporteBffService,40,101,14,12,8,25,13,7,1,6
 bff-web,cl.siga.bffweb.domain.estudiantes,PerfilEstudianteService,20,407,12,30,0,89,14,32,2,23
 bff-web,cl.siga.bffweb.domain.estudiantes,PerfilEstudianteController,0,11,0,0,0,2,0,2,0,2
 bff-web,cl.siga.bffweb,BffWebApplication,5,3,0,0,2,1,1,1,1,1
@@ -59,4 +61,6 @@ bff-web,cl.siga.bffweb.integration.clases,ClaseClientFallback,0,15,0,0,0,3,0,3,0
 bff-web,cl.siga.bffweb.domain.apoderados.dto,PupiloResumenDTO,0,15,0,0,0,1,0,1,0,1
 bff-web,cl.siga.bffweb.domain.apoderados,ApoderadoPupiloController,0,12,0,0,0,2,0,2,0,2
 bff-web,cl.siga.bffweb.domain.apoderados,ApoderadoPupiloService,0,149,2,16,0,27,2,15,0,8
+bff-web,cl.siga.bffweb.integration.reportes,ReporteClientFallbackFactory,6,0,0,0,1,0,1,0,1,0
+bff-web,cl.siga.bffweb.integration.reportes,ReporteClientFallbackFactory.new ReporteClient() {...},25,0,0,0,3,0,3,0,3,0
 bff-web,cl.siga.bffweb.integration.asignaturas,AsignaturaClientFallback,0,37,0,0,0,7,0,7,0,7

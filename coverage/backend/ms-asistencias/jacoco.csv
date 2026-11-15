@@ -1,5 +1,5 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-ms-asistencias,cl.siga.msasistencias.service,AsistenciaService,0,272,0,20,0,52,0,20,0,10
+ms-asistencias,cl.siga.msasistencias.service,AsistenciaService,0,318,0,20,0,61,0,22,0,12
 ms-asistencias,cl.siga.msasistencias.model.specifications,AsistenciaSpecifications,0,83,0,10,0,21,0,17,0,12
 ms-asistencias,cl.siga.msasistencias,MsAsistenciasApplication,5,3,0,0,2,1,1,1,1,1
 ms-asistencias,cl.siga.msasistencias.client,AsignaturaClientFallbackFactory,0,9,0,0,0,2,0,2,0,2
@@ -9,3 +9,4 @@ ms-asistencias,cl.siga.msasistencias.client,EstudianteClientFallbackFactory,0,9,
 ms-asistencias,cl.siga.msasistencias.model.mapper,AsistenciaMapperImpl,34,109,8,8,10,34,7,6,1,4
 ms-asistencias,cl.siga.msasistencias.controller,AsistenciaController,0,46,0,0,0,7,0,6,0,6
 ms-asistencias,cl.siga.msasistencias.mensajeria,PublicadorAsistencia,0,86,0,4,0,24,0,5,0,3
+ms-asistencias,cl.siga.msasistencias.mensajeria,PublicadorAsistenciaKafka,23,95,4,2,2,24,3,4,0,4
