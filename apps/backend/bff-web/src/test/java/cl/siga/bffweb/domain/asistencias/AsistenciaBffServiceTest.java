@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -153,6 +154,40 @@ class AsistenciaBffServiceTest {
             1L, new ActualizarAsistenciaRequestDTO(Justificacion.SI, null, State.PRESENTE));
 
         assertThat(actualizada.idCursoAsignatura()).isEqualTo(5L);
+    }
+
+    @Test
+    void asistenciasDeAsignaturaSinPaginaDevuelveVacio() {
+        autenticar("oid-alejandro", "DOCENTE");
+        when(asignaturaClient.getCursoAsignaturaById(5L)).thenReturn(asignaturaDelDocente());
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        when(asistenciaClient.searchAsistenciasByAsignatura(
+            eq(5L), eq(fecha()), eq(fecha()), anyInt())).thenReturn(null);
+
+        assertThat(service.getAsistenciasAsignatura(5L, fecha())).isEmpty();
+    }
+
+    @Test
+    void actualizarAsistenciaInexistenteDelegaSinValidarCurso() {
+        autenticar("oid-alejandro", "DOCENTE");
+        when(asistenciaClient.getAsistenciaById(99L)).thenReturn(null);
+        when(asistenciaClient.updateAsistencia(eq(99L), any())).thenReturn(respuesta());
+
+        service.actualizarAsistencia(
+            99L, new ActualizarAsistenciaRequestDTO(Justificacion.SI, null, State.PRESENTE));
+
+        verify(asistenciaClient).updateAsistencia(eq(99L), any());
+    }
+
+    @Test
+    void adminPuedeRegistrarSinValidarPertenenciaDocente() {
+        autenticar("oid-admin", "ADMIN");
+        RegistrarAsistenciaRequestDTO request =
+            new RegistrarAsistenciaRequestDTO(1L, 5L, fecha(), State.PRESENTE, null);
+        when(asistenciaClient.saveAsistencia(request)).thenReturn(respuesta());
+
+        assertThat(service.registrarAsistencia(request).idCursoAsignatura()).isEqualTo(5L);
+        org.mockito.Mockito.verifyNoInteractions(asignaturaClient, docenteClient);
     }
 
     private static LocalDate fecha() {

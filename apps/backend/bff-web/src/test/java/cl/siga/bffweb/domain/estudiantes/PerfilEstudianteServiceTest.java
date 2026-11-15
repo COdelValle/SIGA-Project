@@ -190,6 +190,26 @@ class PerfilEstudianteServiceTest {
         verify(estudianteClient).getEstudianteByIdUsuario("oid-camila");
     }
 
+    @Test
+    void getPerfilConDictacionSinHorariosDevuelveHorarioVacio() {
+        when(estudianteClient.getEstudianteById(1L)).thenReturn(estudiante(1L, "oid-camila", 4L));
+        when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
+        CursoAsignaturaResponseDTO sinHorarios = dictacion(
+            1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
+            6L, 4L, null);
+        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+            .thenReturn(pagina(List.of(sinHorarios)));
+        when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of()));
+        when(evaluacionClient.searchEvaluacionesByAsignatura(eq(1L), anyInt())).thenReturn(pagina(List.of()));
+        when(notaClient.searchNotas(eq(1L), anyInt())).thenReturn(pagina(List.of()));
+        when(docenteClient.getDocenteById(6L)).thenReturn(null);
+
+        PerfilEstudianteResponseDTO perfil = service.getPerfil(1L);
+
+        assertThat(perfil.asignaturas()).hasSize(1);
+        assertThat(perfil.asignaturas().get(0).horarios()).isEmpty();
+    }
+
     private static CursoAsignaturaResponseDTO dictacion(
             Long id, Long idAsignatura, String nombre, AreaAcademica area, CaracterAsignatura caracter,
             Long idDocente, Long idClase, List<HorarioResponseDTO> horarios) {
