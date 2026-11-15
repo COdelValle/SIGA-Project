@@ -16,6 +16,7 @@ volumes:
   mariadb_evaluaciones_data:
   mariadb_asistencias_data:
   mariadb_notificaciones_data:
+  mariadb_reportes_data:
   rabbitmq1_data:
   rabbitmq2_data:
   #Kafka
@@ -194,6 +195,17 @@ services:
     volumes:
       - mariadb_notificaciones_data:/var/lib/mysql
 
+  mariadb-reportes:
+    <<: *mariadb-common
+    container_name: mariadb-reportes
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: siga_reportes_db
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+    volumes:
+      - mariadb_reportes_data:/var/lib/mysql
+
   # ---------------------------------------------------------------
   # Mensajeria: clúster RabbitMQ de dos nodos sobre la misma EC2.
   # Comparten el Erlang cookie y se descubren por el archivo de configuración;
@@ -355,6 +367,7 @@ services:
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_EVALUACIONES_URL: http://ms-evaluaciones:8088
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
     depends_on:
       mariadb-notas:
         condition: service_healthy
@@ -365,6 +378,12 @@ services:
       ms-evaluaciones:
         condition: service_healthy
       ms-asignaturas:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
     networks:
       - siga-network
@@ -487,6 +506,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
       MS_ESTUDIANTES_URL: http://ms-estudiantes:8083
       MS_ASIGNATURAS_URL: http://ms-asignaturas:8086
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
     depends_on:
       mariadb-asistencias:
         condition: service_healthy
@@ -495,6 +515,12 @@ services:
       ms-estudiantes:
         condition: service_healthy
       ms-asignaturas:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
     networks:
       - siga-network
@@ -530,6 +556,39 @@ services:
       ms-estudiantes:
         condition: service_healthy
       ms-apoderados:
+        condition: service_healthy
+    networks:
+      - siga-network
+
+  # ---------------------------------------------------------------
+  # Proyecciones academicas y alertas de riesgo (Kafka -> RabbitMQ)
+  # ---------------------------------------------------------------
+  ms-reportes:
+    build:
+      context: ./apps/backend
+      dockerfile: ms-reportes/Dockerfile
+    container_name: ms-reportes
+    healthcheck: *ms-healthcheck
+    restart: unless-stopped
+    ports:
+      - "8093:8093"
+    environment:
+      <<: *ms-common-env
+      SERVER_PORT: "8093"
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb-reportes:3306/siga_reportes_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
+    depends_on:
+      mariadb-reportes:
+        condition: service_healthy
+      rabbitmq1:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
         condition: service_healthy
     networks:
       - siga-network
@@ -643,7 +702,7 @@ services:
       retries: 10
       start_period: 40s
     volumes:
-      - kafka1_data:/var/lib/kafka/log
+      - kafka1_data:/var/lib/kafka/data
     networks:
       - siga-network
   kafka-2:
@@ -682,7 +741,7 @@ services:
       retries: 10
       start_period: 40s
     volumes:
-      - kafka2_data:/var/lib/kafka/log
+      - kafka2_data:/var/lib/kafka/data
     networks:
       - siga-network
   kafka-3:
@@ -721,7 +780,7 @@ services:
       retries: 10
       start_period: 40s
     volumes:
-      - kafka3_data:/var/lib/kafka/log
+      - kafka3_data:/var/lib/kafka/data
     networks:
       - siga-network
 
@@ -814,6 +873,7 @@ services:
       MS_DOCENTES_URL: http://ms-docentes:8085
       MS_ASISTENCIAS_URL: http://ms-asistencias:8090
       MS_NOTIFICACIONES_URL: http://ms-notificaciones:8091
+      MS_REPORTES_URL: http://ms-reportes:8093
       MS_RABBITMQ_ADMIN_URL: http://ms-rabbitmq-admin:8092
     depends_on:
       ms-usuarios-auth:
@@ -835,6 +895,8 @@ services:
       ms-asistencias:
         condition: service_healthy
       ms-notificaciones:
+        condition: service_healthy
+      ms-reportes:
         condition: service_healthy
       ms-rabbitmq-admin:
         condition: service_healthy
