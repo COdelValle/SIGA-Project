@@ -13,7 +13,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@AutoConfiguration 
+@AutoConfiguration
 @EnableWebSecurity
 @EnableMethodSecurity
 <span class="fc" id="L19">public class SharedSecurityConfig {</span>
@@ -46,14 +46,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
                     &quot;/docs/swagger-ui/**&quot;,
                     &quot;/scalar&quot;,
                     &quot;/scalar/**&quot;,
-                    &quot;/docs/scalar/**&quot;
-<span class="fc" id="L50">                ).permitAll()</span>
-<span class="fc" id="L51">                .anyRequest().authenticated()</span>
+                    &quot;/docs/scalar/**&quot;,
+                    &quot;/api/kafka/**&quot;
+<span class="fc" id="L51">                ).permitAll()</span>
+<span class="fc" id="L52">                .anyRequest().authenticated()</span>
             )
-<span class="fc" id="L53">            .oauth2ResourceServer(resourceServer -&gt; resourceServer</span>
-<span class="fc" id="L54">                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));</span>
+<span class="fc" id="L54">            .oauth2ResourceServer(resourceServer -&gt; resourceServer</span>
+<span class="fc" id="L55">                .jwt(jwt -&gt; jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));</span>
 
-<span class="fc" id="L56">        return http.build();</span>
+<span class="fc" id="L57">        return http.build();</span>
     }
 
     /**
@@ -66,16 +67,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
      */
     @Bean
     public WebMvcConfigurer corsConfigurer() {
-<span class="fc" id="L69">        return new WebMvcConfigurer() {</span>
+<span class="fc" id="L70">        return new WebMvcConfigurer() {</span>
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-<span class="fc" id="L72">                registry.addMapping(&quot;/**&quot;)</span>
-<span class="fc" id="L73">                    .allowedOriginPatterns(&quot;*&quot;)</span>
-<span class="fc" id="L74">                    .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;)</span>
-<span class="fc" id="L75">                    .allowedHeaders(&quot;Authorization&quot;, &quot;Content-Type&quot;)</span>
-<span class="fc" id="L76">                    .allowCredentials(false)</span>
-<span class="fc" id="L77">                    .maxAge(300);</span>
-<span class="fc" id="L78">            }</span>
+<span class="fc" id="L73">                registry.addMapping(&quot;/**&quot;)</span>
+<span class="fc" id="L74">                    .allowedOriginPatterns(&quot;*&quot;)</span>
+<span class="fc" id="L75">                    .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;)</span>
+<span class="fc" id="L76">                    .allowedHeaders(&quot;Authorization&quot;, &quot;Content-Type&quot;)</span>
+<span class="fc" id="L77">                    .allowCredentials(false)</span>
+<span class="fc" id="L78">                    .maxAge(300);</span>
+<span class="fc" id="L79">            }</span>
         };
     }
 }
