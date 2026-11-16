@@ -788,6 +788,38 @@ Reglas de mantenimiento:
   `deploy`**. Si un secret se borra, el CD lo reporta por nombre (nunca el valor)
   y el script lo restaura; usar `-RecoveryJson` para los valores del despliegue.
 
+### PR-20261115-14 — EP3: pruebas locales y preflight AWS Kafka
+
+- **Fecha/entorno**: 2026-11-15, Windows 11/Java 21/Maven 3.9.9; branch `dev`, SHA `ed64504cd82408de2658d427966aedf357b7df90`; AWS `us-east-1`, EC2 etiquetada `SIGA-app`.
+- **Objetivo**: repetir pruebas backend/frontend/Compose y verificar el estado desplegado antes de ejecutar la prueba autorizada de pérdida de uno y dos brokers.
+- **Resultados locales**:
+  - Backend `mvn ... package`: `BUILD SUCCESS`, 17 módulos. Los tests ejecutados no reportaron fallas; los casos Testcontainers se omitieron localmente porque recibieron `BadRequest 400` y un Docker info vacío del named pipe. El CI Ubuntu del mismo SHA terminó verde; adjuntar/revisar su artefacto Surefire si se requiere probar cada IT individual.
+  - Admin Kafka: `AdminControllerSecurityTest`, 4/4 aprobados.
+  - Frontend: 35 archivos, 283/283 tests aprobados; cobertura de líneas 94.17%; build de producción aprobado.
+  - `docker compose --env-file .env.example config -q` y validación de la plantilla AWS con `REGISTRY`/`IMAGE_TAG` ficticios: aprobadas.
+- **CI remoto**: el run [43761010668](https://github.com/COdelValle/SIGA-Project/actions/runs/43761010668) del mismo SHA `ed64504` terminó `success` en Ubuntu.
+- **Resultados AWS**:
+  - CD más reciente consultado: run [39373705927](https://github.com/COdelValle/SIGA-Project/actions/runs/39373705927), `success`, SHA `efdd7f370652747acd1d5b45e86e8a7a90e9347b`.
+  - La EC2 estaba activa y tenía 17 servicios saludables, pero su Compose remoto no define brokers ZooKeeper/Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`. El commit desplegado `efdd7f3` tampoco contiene Kafka en la plantilla AWS; el `dev` local `ed64504` sí la contiene.
+  - `Caddyfile` remoto no contiene ruta Kafka ni Basic Auth. Los nombres de secrets UI están presentes en GitHub, pero eso no los aplica retroactivamente a la EC2.
+  - Smoke de API Gateway por SSM: SPA `200`, BFF `/actuator/health` `200`, `/api/me` sin token `401` y con JWT malformado `401 invalid_token`. JWT real válido/Entra queda pendiente de una sesión autenticada.
+  - RabbitMQ sí respondió: ambos nodos aparecieron en `Running Nodes`, sin alarmas ni partición de red. La consulta de colas mostró consumidores activos en colas académicas y DLQ.
+  - `list_exchanges` confirmó `intercambio-notificaciones`/`user.topic.exchange` tipo `topic` y `siga.dlx.direct` tipo `direct`.
+  - El comando remoto de topics no pudo ejecutarse porque `kafka-1` no existe. No se detuvo ningún broker: la prueba de uno/dos brokers queda bloqueada hasta desplegar la versión que contiene Kafka.
+- **Evidencia**: [`evidencias/E3-ENC-20261115-01/README.md`](evidencias/E3-ENC-20261115-01/README.md), [`evidencias/E3-PRES-20261115-01/README.md`](evidencias/E3-PRES-20261115-01/README.md) y [guía manual EP3/AWS](pruebas-manuales-ep3-aws.md).
+- **Pendiente**: promover/desplegar la versión Kafka habilitada por el flujo autorizado de `deploy`; después repetir preflight, verificar login Kafka UI y realizar primero el failover de un broker y luego el escenario de dos brokers. Requiere completar la puerta de salida de cada fase.
+
+### PR-20261115-15 — PR de promoción EP3 y checks de seguridad
+
+- **Rama/SHA**: `dev`, `c651331b3b9d114eab2581277f6ed97817ef9b56`; PR [#121](https://github.com/COdelValle/SIGA-Project/pull/121) hacia `deploy`.
+- **Remediación**: los UUID de los resultados k6 usan `k6/crypto.randomBytes`; el test de cifrado usa texto de prueba neutro. La prueba `CredentialCipherErroresTest` quedó verde (2/2) y `node --check tools/performance/allure-summary.js` pasó.
+- **CI del PR**: backend, frontend, E2E, Infra y ambos análisis CodeQL terminaron en verde. CodeQL dejó de reportar el hallazgo `js/insecure-randomness`.
+- **Bloqueo**: GitGuardian reporta `Generic Password` en `docker-compose.yml`, commit `06d5d666`, dentro del escaneo de 85 commits. El check no revela la línea/valor; no imprimir ni copiar el valor. La plantilla actual usa variables de entorno sin esos valores por defecto, pero la credencial histórica debe revisarse para confirmar que nunca se usó y resolverla en GitGuardian. No fusionar ni desplegar hasta completar esa revisión.
+- **Nota de remediación**: se sustituyó un literal de prueba tipo contraseña por texto neutro y se añadió una excepción exacta para ese fixture histórico; no eliminó el hallazgo de Compose.
+- **Actualización del hallazgo**: GitGuardian identifica `Generic Password` en `docker-compose.yml`, commit `06d5d666`. Las excepciones exactas incluyen los fallbacks históricos de MariaDB y el fixture, sin ignorar el archivo completo. Confirmar si algún entorno persistente usó esos fallbacks y rotar sus credenciales si corresponde. El check aún debe reejecutarse antes de fusionar.
+- **CD de política**: PR [#122](https://github.com/COdelValle/SIGA-Project/pull/122) se fusionó para publicar las excepciones exactas de GitGuardian en `deploy`. El CD [43792075530](https://github.com/COdelValle/SIGA-Project/actions/runs/43792075530) terminó `success` con SHA `051d7af`; la EC2 quedó con 17 servicios saludables, pero el Compose de `deploy` aún no incluye Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`.
+- **Despliegue Kafka**: PR #121 sigue abierto por GitGuardian; no se fusionó ni se ejecutó failover de brokers.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
