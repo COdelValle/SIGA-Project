@@ -11,15 +11,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ReporteProcesamientoService {
 
@@ -29,6 +28,22 @@ public class ReporteProcesamientoService {
     private final ProyeccionRendimientoRepository rendimientoRepository;
     private final AlertaRiesgoRepository alertasRepository;
     private final PublicadorAlertaRiesgo publicadorAlerta;
+
+    @Autowired
+    public ReporteProcesamientoService(
+            Validator validator,
+            EventoReporteProcesadoRepository eventosRepository,
+            ProyeccionAsistenciaRepository asistenciaRepository,
+            ProyeccionRendimientoRepository rendimientoRepository,
+            AlertaRiesgoRepository alertasRepository,
+            PublicadorAlertaRiesgo publicadorAlerta) {
+        this.validator = validator;
+        this.eventosRepository = eventosRepository;
+        this.asistenciaRepository = asistenciaRepository;
+        this.rendimientoRepository = rendimientoRepository;
+        this.alertasRepository = alertasRepository;
+        this.publicadorAlerta = publicadorAlerta;
+    }
 
     public ReporteProcesamientoService(
             Validator validator,
