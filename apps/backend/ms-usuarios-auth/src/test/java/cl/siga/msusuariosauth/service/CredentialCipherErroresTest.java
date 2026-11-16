@@ -27,7 +27,7 @@ class CredentialCipherErroresTest {
     @Test
     void descifrarConCiphertextAlteradoLanzaIllegalState() {
         CredentialCipher cipher = cipher();
-        CredentialCipher.Cifrado cifrado = cipher.cifrar("Secreta-123!");
+        CredentialCipher.Cifrado cifrado = cipher.cifrar("texto de prueba");
         String alterado = (cifrado.ciphertext().charAt(0) == 'A' ? "B" : "A")
                 + cifrado.ciphertext().substring(1);
 

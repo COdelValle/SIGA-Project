@@ -8,3 +8,5 @@ secret:
   ignored-matches:
     - name: password efimero de Testcontainers
       match: ^siga$
+    - name: texto fijo usado solo en test de cifrado
+      match: '^Secreta-123!$'
