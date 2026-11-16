@@ -1,0 +1,1 @@
+{"id":"35f3ba32ca6a62d6371c5fa8379619e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.bffweb.domain.admin.rabbitmq.RabbitMqAdminControllerTest.declararExchange_ConBodyValido_Retorna201EInvocaServicio","name":"Declarar exchange con body valido retorna201 e invoca servicio","status":"passed","testResultsByEnv":{"default":"9504e8720a4c11b870493481ce13def4"}}

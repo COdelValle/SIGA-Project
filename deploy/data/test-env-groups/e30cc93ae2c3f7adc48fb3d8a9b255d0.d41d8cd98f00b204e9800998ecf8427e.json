@@ -1,0 +1,1 @@
+{"id":"e30cc93ae2c3f7adc48fb3d8a9b255d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.bffweb.domain.admin.rabbitmq.RabbitMqAdminControllerTest.estadoCola_ConNombreValido_RetornaEstadoDelServicio","name":"Estado cola con nombre valido retorna estado del servicio","status":"passed","testResultsByEnv":{"default":"db57884584d3f883cdb72a1e25f1d97b"}}

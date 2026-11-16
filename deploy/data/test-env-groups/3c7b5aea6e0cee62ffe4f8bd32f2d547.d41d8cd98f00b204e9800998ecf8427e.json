@@ -1,0 +1,1 @@
+{"id":"3c7b5aea6e0cee62ffe4f8bd32f2d547.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.msrabbitmqadmin.controller.RabbitAdminControllerValidationTest.rechazaNombreDeColaVacioAntesDeInvocarAlBroker","name":"Rechaza nombre de cola vacio antes de invocar al broker","status":"passed","testResultsByEnv":{"default":"a423fdd2fa410587a11572b1e96d93d0"}}
