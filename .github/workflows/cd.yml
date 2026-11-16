@@ -159,6 +159,60 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # El reporte centralizado exige también una suite de infraestructura.
+      # Mantener aquí los mismos smoke checks de Terraform/Compose que en CI.
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Inicializar Terraform
+        run: terraform -chdir=infra/terraform init -backend=false
+
+      - name: Terraform validate
+        run: >-
+          node tools/ci/allure-command.mjs --name "terraform validate"
+          --dir tools/infra/allure-results --
+          terraform -chdir=infra/terraform validate
+
+      - name: Terraform fmt -check
+        run: >-
+          node tools/ci/allure-command.mjs --name "terraform fmt -check"
+          --dir tools/infra/allure-results --
+          terraform -chdir=infra/terraform fmt -check
+
+      - name: Docker Compose config
+        run: >-
+          node tools/ci/allure-command.mjs --name "docker compose config"
+          --dir tools/infra/allure-results --
+          docker compose --env-file .env.example config -q
+
+      - name: Docker Compose config - plantilla AWS
+        env:
+          REGISTRY: registry.example.com/siga
+          IMAGE_TAG: ci
+        run: >-
+          node tools/ci/allure-command.mjs --name "docker compose config - AWS"
+          --dir tools/infra/allure-results --
+          docker compose --env-file .env.example
+          -f infra/terraform/templates/docker-compose.yml config -q
+
+      - name: Preparar artefacto Allure de infraestructura
+        if: always()
+        run: |
+          rm -rf infra-allure-artifact
+          mkdir -p infra-allure-artifact/allure-results
+          if [ -d tools/infra/allure-results ]; then
+            cp -R tools/infra/allure-results/. infra-allure-artifact/allure-results/
+          fi
+
+      - name: Guardar resultados Allure de infraestructura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-allure-${{ github.sha }}
+          path: infra-allure-artifact
+          if-no-files-found: warn
+          retention-days: 30
+
   allure-report:
     name: Reporte Allure centralizado (deploy)
     needs: verify
