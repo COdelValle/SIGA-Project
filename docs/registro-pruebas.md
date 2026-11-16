@@ -1192,7 +1192,7 @@ datos y Azure AD.
 ### PR-20261116-22 — Carga 4: dashboard de reportes y RabbitMQ configurable
 
 - **Fecha:** 2026-11-16.
-- **Rama / commit:** `dev` con cambios locales sin commit.
+- **Rama / commit:** `feat/rabbitmq-topologia-configurable` @ `1f198b1` y `feat/dashboard-reportes-academicos` @ `b79dd44`; mergeados a `dev` en `26fe760` mediante PRs #131 y #132.
 - **Alcance:** cerrar #20, #21, #24 y #25; #22 ya estaba en Done y #23 se cierra manualmente.
 - **Entorno:** Windows + Docker Desktop, stack Compose completo (`siga-project`), MariaDB 11.4, RabbitMQ 2 nodos, Kafka 3 brokers.
 - **Pasos de verificación:**
@@ -1202,10 +1202,10 @@ datos y Azure AD.
   4. Verificación de colas, bindings y consumidores con `rabbitmqctl list_queues`, `list_bindings` y `list_consumers`.
   5. Regeneración de `docs/openapi/bff-web.json` con `OpenApiSpecificationTest`.
 - **Resultado:** `OK`.
-  - Backend: `BUILD SUCCESS`; pruebas de todos los módulos en verde (las suites `*ApplicationTests` se excluyeron por requerir BD/Azure; Testcontainers se omite en Windows).
+  - Backend: CI en verde (build + tests unitarios); local se validó la compilación de los 17 módulos y tests acotados de mensajería/BFF. Las suites `*ApplicationTests` se excluyeron por requerir BD/Azure; Testcontainers se omite en Windows.
   - Frontend: TypeScript OK; Vitest **288/288**; build de producción OK; Playwright de reportes **2/2** (Docente y Administración).
   - Docker: 35 contenedores del stack activos; los servicios con healthcheck quedaron `healthy` (`ms-kafka-admin` no define healthcheck).
   - RabbitMQ: los nombres de colas, DLQ, exchanges, routing keys, bindings y consumers coinciden con los valores por defecto y no cambiaron respecto de la topología previa.
   - OpenAPI: `bff-web.json` incluye `/reportes/filtros`, `/reportes/filtros/estudiantes`, `CursoReporteDTO`, `EstudianteReporteDTO` y `ReporteFiltrosDTO`.
 - **Evidencia de configuración:** `common-properties.yaml` y los `application.yaml` de los servicios contienen `siga.mensajeria.registro.*` y `siga.mensajeria.notificaciones.*`; los tests `PropiedadesMensajeriaTest`, `RegistrationMessagingConfigTest` y `ConfiguracionTopologiaNotificacionesTest` demuestran que cambiar una propiedad modifica la cola/binding sin recompilar.
-- **Pendientes / notas:** commit/PR y actualización de las tarjetas en Trello. No se renombraron colas ni se borraron volúmenes; el smoke se ejecutó sobre el stack local ya levantado.
+- **Pendientes / notas:** PRs #131 y #132 mergeados; actualizar las tarjetas de Trello (#20, #21, #24 y #25). #22 ya estaba en Done y #23 se cierra manualmente. No se renombraron colas ni se borraron volúmenes; el smoke se ejecutó sobre el stack local ya levantado.
