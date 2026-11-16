@@ -866,6 +866,13 @@ Reglas de mantenimiento:
 - **Corrección local**: la primera escritura requería `actualizado_en`, `id_evento`, `correlation_id` y `nivel_riesgo`; `ReporteProcesamientoService.procesarRendimiento` inicializa ahora esos campos antes del primer `save`. La regresión unitaria captura el estado en el instante de cada invocación a `save` (no la referencia mutable final). `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS` (16 tests del módulo, 0 errores/fallos, 1 Testcontainers omitida por Docker local no disponible); `mvn -f apps/backend/pom.xml -pl ms-reportes -am -DskipTests package` también `BUILD SUCCESS`. El cambio está en `dev`, pendiente de PR/CD y de repetir el smoke de rendimiento con un `idEvento` nuevo.
 - **Evidencia detallada**: [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No se detuvo ZooKeeper/EC2 ni se publicaron eventos de prueba en la etapa de dos brokers caídos.
 
+### PR-20261116-21 — Fix de rendimiento desplegado y verificado en AWS
+
+- **Merge/CD**: PR #129 se fusionó como `df32827ab5101121a5969731762124ac67be7c1c`; el CD [43881252562](https://github.com/COdelValle/SIGA-Project/actions/runs/43881252562) terminó `success` y desplegó el stack completo.
+- **Smoke de rendimiento OK**: evento sintético `e3-smoke-r-20261116-02` (clave `idEstudiante=900000000000000001`) persistió en `proyecciones_rendimiento` con `puntaje=6.5`, `promedio=6.5`, `nivel_riesgo=NORMAL`, y en `eventos_reportes_procesados` (topic rendimiento, partición 0, offset 1). SSM `84750ee1-602a-4110-89a5-c4ca05473c66`.
+- **Estado final**: los 26 contenedores quedaron `healthy` (SSM `f2f07f4a-a2e0-424d-8fc0-e6893cb8ca94`); grupos `siga-reportes-asistencias` (offset 1) y `siga-reportes-rendimiento` (offset 2) con lag 0; ambos topics con ISR 3/3; RabbitMQ con dos nodos en `Running Nodes`; `ms-kafka-admin` y `ms-reportes` en `UP` (SSM `db6f6862-71a1-4d88-a714-beef230cb926`).
+- **Nota operativa**: `ms-reportes` tarda ~438 s en arrancar tras el redeploy y puede aparecer `unhealthy` durante ese periodo; un productor lanzado en ese intervalo recibió `REQUEST_TIMED_OUT` con reintento exitoso. Verificar el health antes de publicar eventos de smoke.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
