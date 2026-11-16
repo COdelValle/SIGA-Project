@@ -10,6 +10,7 @@
 - **CD reintento:** [run 43811522748](https://github.com/COdelValle/SIGA-Project/actions/runs/43811522748), la verificación backend/frontend e informe Allure pasaron; el deploy falló antes de la EC2 en `ecr:GetAuthorizationToken` por denegación explícita `voc-cancel-cred`.
 - **CD siguiente:** [run 43851631259](https://github.com/COdelValle/SIGA-Project/actions/runs/43851631259), SHA `473c07ab9dc88eebfb1cb5e836f4f35eea4b51e8`; las verificaciones y Allure pasaron, pero Compose abortó a las 11:07:51 UTC con `dependency failed to start: container kafka-1 is unhealthy`.
 - **CD tras corregir el arranque:** [run 43858404711](https://github.com/COdelValle/SIGA-Project/actions/runs/43858404711), merge SHA `296a1f7ba951caefd7c3ad661a48f0e642e6d528`; verificaciones, Allure y los 15 builds/push ECR pasaron, pero la acción SSH expiró a las 12:01:42 UTC con `Run Command Timeout` al límite de 15 minutos.
+- **CD con timeout ampliado:** [run 43864706041](https://github.com/COdelValle/SIGA-Project/actions/runs/43864706041), merge SHA `80cc2798e14403b22146e3fdb6681a80ead84cdc`; el arranque llegó más lejos, pero Compose abortó a las 12:35:22 UTC con `dependency failed to start: container rabbitmq1 is unhealthy`.
 - **Secret names:** GitHub lista `KAFKA_UI_USER` y `KAFKA_UI_PASSWORD_HASH`; no se consultaron sus valores.
 
 ## Preflight antes de promover Kafka
@@ -51,10 +52,10 @@ La comprobación posterior confirmó que `sts:GetCallerIdentity` responde, pero 
 
 ## Diagnóstico más reciente — 2026-11-16
 
-- PR #126 promovió la corrección de constructor de `ms-reportes` y amplió el timeout de healthcheck Kafka a 30 s. El CD `43858404711` publicó todas las imágenes y desplegó parcialmente, pero su sesión SSH expiró tras 15 min antes de que Compose iniciara todo el stack.
-- SSM posterior confirmó los tres brokers `healthy`, sus APIs accesibles, ambos topics con 3 particiones/RF=3, `min.insync.replicas=2`, ISR completo y retención 7 días/128 MiB. RabbitMQ tiene ambos nodos activos sin alarmas ni particiones; `ms-kafka-admin` y `ms-reportes` están `healthy`.
-- Al vencer el SSH, `ms-asistencias` y `ms-evaluaciones` estaban saludables; `ms-notificaciones` seguía `starting`, y `ms-notas`, `bff-web` y `frontend` permanecían `Created`. El Compose arranca los servicios en cadenas de dependencias que sobrepasan el timeout SSH de 15 min.
-- Se amplió `command_timeout` del workflow CD a 45 min en `dev`; falta promover y reintentar para que la validación post-deploy complete.
+- PR #126 corrigió el constructor de `ms-reportes` y amplió a 30 s los healthchecks Kafka; PR #127 amplió el `command_timeout` SSH a 45 min. El CD `43864706041` se detuvo en Compose porque `rabbitmq1` quedó `unhealthy`.
+- SSM posterior confirmó brokers Kafka y `ms-reportes` saludables. Los dos RabbitMQ aparecieron `unhealthy`, pero ambos aceptaban TCP en `127.0.0.1:5672` y un `rabbitmq-diagnostics ping` directo posterior respondió; los cinco últimos probes Docker habían expirado (`ExitCode=-1`). La instancia tenía 2 vCPU y carga media aproximada de 24 durante el arranque.
+- En el momento de la detención `ms-asistencias`, `ms-evaluaciones` y `ms-notificaciones` estaban en proceso de inicio; `ms-notas`, `bff-web` y `frontend` seguían `Created`. No hay aún un CD exitoso de stack completo.
+- El Compose de `dev` cambia el healthcheck RabbitMQ por una comprobación TCP de 5672, con margen de arranque y timeout ampliados; queda pendiente promoverlo y volver a desplegar.
 - No se han detenido brokers ni ejecutado failover. Mantenerlo bloqueado hasta que el CD termine correctamente, todos los contenedores estén saludables y se repita el preflight.
 
 ## Trazas SSM
@@ -71,5 +72,8 @@ La comprobación posterior confirmó que `sts:GetCallerIdentity` responde, pero 
 - `0c88968a-e652-4354-a2ac-6bfd9c0f9eb0`: inventario actual; confirma servicios dependientes `Created` y `ms-reportes` en reinicio.
 - `50589113-3442-458f-a6f4-47a62073eb85`: inventario durante el CD `43858404711`; Kafka brokers y ZooKeeper saludables mientras se iniciaban dependientes.
 - `d9a220f9-d32a-47bb-b7a3-e477ea0ae1cd` y `c0d0b377-88cd-4af1-b01c-ca531f2ff90f`: inventario tras el timeout; `ms-reportes`/admin y brokers saludables, algunos servicios aún `Created`/`starting`.
+- `6d7afbf7-31a1-4a4b-a670-b6cae3068839`: logs RabbitMQ y probes Docker `ExitCode=-1` tras el CD `43864706041`.
+- `9c819fe6-bd76-4783-95f6-0becc4d0ea4b`: la prueba de `rabbitmq-diagnostics ping` con límite de 25 s falló durante carga alta.
+- `dd285b4f-2edf-4fa7-af64-a1d572566089`: RabbitMQ aceptó TCP en ambos nodos y el ping directo respondió después; host con 2 CPU y load average cercano a 24.
 
-No se realizó ninguna parada/reinicio de broker ni se cambió Compose manualmente en la EC2. El ajuste del timeout SSH está pendiente de promover; después se debe registrar un resultado nuevo `OK` y conservar este preflight bloqueado.
+No se realizó ninguna parada/reinicio de broker ni se cambió Compose manualmente en la EC2. El ajuste del healthcheck RabbitMQ está pendiente de promover; después se debe registrar un resultado nuevo `OK` y conservar este preflight bloqueado.

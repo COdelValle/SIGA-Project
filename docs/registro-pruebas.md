@@ -845,6 +845,14 @@ Reglas de mantenimiento:
 - **Estado posterior**: SSM a las 12:02 UTC confirmó brokers, ZooKeeper, `ms-kafka-admin`, `ms-reportes`, MariaDB y RabbitMQ saludables; `ms-asistencias` y `ms-evaluaciones` healthy; `ms-notificaciones` en `starting`; `ms-notas`, `bff-web` y `frontend` en `Created`.
 - **Cambio**: `.github/workflows/cd.yml` amplía `command_timeout` a 45 min para permitir que el arranque del grafo Compose y las verificaciones post-deploy concluyan. Pendiente de promoción y nuevo CD; no ejecutar failover hasta tener todos los servicios healthy y un CD exitoso.
 
+### PR-20261116-19 — Healthcheck RabbitMQ bajo carga de arranque
+
+- **CD 43864706041**: PR #127 fue desplegado con timeout SSH de 45 min, pero Compose falló a las 12:35:22 UTC con `dependency failed to start: container rabbitmq1 is unhealthy`.
+- **Diagnóstico**: ambos RabbitMQ tenían sus cinco probes Docker recientes con `ExitCode=-1`; el healthcheck ejecutaba `rabbitmq-diagnostics -q ping` con timeout de 5 s. SSM observó load average ~24 en host de 2 CPU; una prueba TCP al puerto 5672 pasó en ambos nodos y el ping directo también pasó después, confirmando que el timeout del probe era transitorio.
+- **Cambio**: el healthcheck cambia a `nc -z 127.0.0.1 5672`, timeout 15 s, intervalo 15 s, 10 reintentos y start period de 60 s en ambos nodos.
+- **Estado remoto**: RabbitMQ se conserva persistente y no se ha modificado manualmente; en la lectura posterior algunos servicios dependientes siguen `Created`/`starting`. No se detuvieron brokers ni se ejecutaron failovers.
+- **Siguiente paso**: validar Compose, promover el healthcheck y repetir CD. Solo ejecutar failover tras un CD exitoso y preflight con stack completo saludable.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
