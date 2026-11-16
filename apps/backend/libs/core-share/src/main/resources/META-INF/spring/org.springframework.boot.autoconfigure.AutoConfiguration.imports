@@ -7,7 +7,7 @@ cl.siga.coreshare.config.SharedFeignAuthConfig
 cl.siga.coreshare.config.SharedFeignFormatConfig
 cl.siga.coreshare.config.CorrelationIdConfig
 cl.siga.coreshare.messaging.RegistrationMessagingConfig
-cl.siga.coreshare.mensajeria.ConfiguracionNombresRabbitMQ
+cl.siga.coreshare.mensajeria.ConfiguracionPropiedadesMensajeria
 cl.siga.coreshare.mensajeria.ConfiguracionMensajeriaCompartida
 cl.siga.coreshare.mensajeria.ConfiguracionTopologiaNotificaciones
 cl.siga.coreshare.mensajeria.outbox.NotificationOutboxAutoConfiguration

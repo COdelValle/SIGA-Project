@@ -12,7 +12,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.model.entity.OutboxEventState;
 import cl.siga.msusuariosauth.model.entity.RegistrationOutboxEvent;
@@ -35,6 +35,7 @@ public class RegistrationOutboxPublisher {
     private final RegistrationStateService stateService;
     private final RabbitTemplate rabbitTemplate;
     private final RegistroAsyncProperties properties;
+    private final RegistroMensajeriaProperties messagingProperties;
 
     @Scheduled(fixedDelayString = "${siga.registro-async.outbox-poll-ms:2000}")
     public void publicarPendientes() {
@@ -57,7 +58,7 @@ public class RegistrationOutboxPublisher {
             props.setMessageId(evento.getEventId());
             if (evento.getCorrelationId() != null) {
                 props.setCorrelationId(evento.getCorrelationId());
-                props.setHeader(RegistrationMessagingConstants.HEADER_CORRELATION_ID,
+                props.setHeader(messagingProperties.getHeaderCorrelationId(),
                         evento.getCorrelationId());
             }
             Message message = new Message(

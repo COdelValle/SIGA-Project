@@ -5,7 +5,7 @@ import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.AccionNota;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msnotas.client.AsignaturaClient;
 import cl.siga.msnotas.client.EvaluacionClient;
@@ -31,15 +31,16 @@ public class PublicadorNota {
     private final NotificationEventOutbox outbox;
     private final EvaluacionClient evaluacionClient;
     private final AsignaturaClient asignaturaClient;
+    private final NotificacionesMensajeriaProperties propiedades;
 
     /** POST con fila nueva. */
     public void publicarCreada(NotaResponseDTO nota) {
-        publicar(nota, AccionNota.CREADA, NombresMensajeria.CLAVE_NOTA_CREADA);
+        publicar(nota, AccionNota.CREADA, propiedades.getClaveNotaCreada());
     }
 
     /** PUT, o POST que reactiva una nota borrada lógicamente. */
     public void publicarActualizada(NotaResponseDTO nota) {
-        publicar(nota, AccionNota.ACTUALIZADA, NombresMensajeria.CLAVE_NOTA_ACTUALIZADA);
+        publicar(nota, AccionNota.ACTUALIZADA, propiedades.getClaveNotaActualizada());
     }
 
     private void publicar(NotaResponseDTO nota, AccionNota accion, String claveEnrutamiento) {
@@ -54,7 +55,7 @@ public class PublicadorNota {
                 nombreEvaluacion(nota),
                 nombreAsignatura(nota)
         );
-        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES, claveEnrutamiento, evento);
+        outbox.registrar(evento.idEvento(), propiedades.getExchangeNotificaciones(), claveEnrutamiento, evento);
         log.info("Evento de nota agregado al outbox: accion={} id={} clave={}",
                 accion, nota.id(), claveEnrutamiento);
     }

@@ -20,16 +20,19 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
 import cl.siga.coreshare.dto.usuario.enums.RegistrationStepType;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 
 class RegistrationStatusPublisherTest {
 
     private RabbitTemplate rabbitTemplate;
     private RegistrationStatusPublisher publisher;
+    private RegistroMensajeriaProperties properties;
 
     @BeforeEach
     void setUp() {
         rabbitTemplate = mock(RabbitTemplate.class);
-        publisher = new RegistrationStatusPublisher(rabbitTemplate);
+        properties = RegistrationMessagingConfigTest.registro();
+        publisher = new RegistrationStatusPublisher(rabbitTemplate, properties);
     }
 
     private void responderCon(CorrelationData.Confirm confirmacion, boolean completar) {
@@ -68,8 +71,8 @@ class RegistrationStatusPublisherTest {
         assertThat(evento.success()).isTrue();
         assertThat(evento.stepType()).isEqualTo(RegistrationStepType.DOMAIN_SYNC);
         assertThat(evento.message()).isEqualTo("perfil creado");
-        verify(rabbitTemplate).convertAndSend(eq(RegistrationMessagingConstants.EXCHANGE),
-                eq(RegistrationMessagingConstants.RK_STATUS), any(Object.class),
+        verify(rabbitTemplate).convertAndSend(eq(properties.getExchange()),
+                eq(properties.getRkStatus()), any(Object.class),
                 any(MessagePostProcessor.class), any(CorrelationData.class));
 
         Message mensaje = new Message(new byte[0]);
@@ -78,7 +81,7 @@ class RegistrationStatusPublisherTest {
         assertThat(mensaje.getMessageProperties().getContentType()).isEqualTo("application/json");
         assertThat(mensaje.getMessageProperties().getCorrelationId()).isEqualTo("corr-1");
         Object correlationHeader = mensaje.getMessageProperties()
-                .getHeader(RegistrationMessagingConstants.HEADER_CORRELATION_ID);
+                .getHeader(properties.getHeaderCorrelationId());
         assertThat(correlationHeader).isEqualTo("corr-1");
     }
 
@@ -92,7 +95,7 @@ class RegistrationStatusPublisherTest {
         capturarPostProcessor().postProcessMessage(mensaje);
         assertThat(mensaje.getMessageProperties().getCorrelationId()).isNull();
         Object correlationHeader = mensaje.getMessageProperties()
-                .getHeader(RegistrationMessagingConstants.HEADER_CORRELATION_ID);
+                .getHeader(properties.getHeaderCorrelationId());
         assertThat(correlationHeader).isNull();
         assertThat(capturarEvento().message()).isEqualTo("Sin detalle.");
     }

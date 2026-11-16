@@ -3,6 +3,8 @@ spring:
     name: ms-kafka-admin
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:aws}
+  config:
+    import: "optional:classpath:common-properties.yaml"
 
 server:
   port: 8095
