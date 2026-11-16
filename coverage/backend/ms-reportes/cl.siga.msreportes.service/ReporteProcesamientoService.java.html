@@ -11,16 +11,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
-<span class="fc" id="L23">@Slf4j</span>
+<span class="fc" id="L22">@Slf4j</span>
 public class ReporteProcesamientoService {
 
     private final Validator validator;
@@ -30,142 +29,158 @@ public class ReporteProcesamientoService {
     private final AlertaRiesgoRepository alertasRepository;
     private final PublicadorAlertaRiesgo publicadorAlerta;
 
+    @Autowired
+    public ReporteProcesamientoService(
+            Validator validator,
+            EventoReporteProcesadoRepository eventosRepository,
+            ProyeccionAsistenciaRepository asistenciaRepository,
+            ProyeccionRendimientoRepository rendimientoRepository,
+            AlertaRiesgoRepository alertasRepository,
+<span class="fc" id="L39">            PublicadorAlertaRiesgo publicadorAlerta) {</span>
+<span class="fc" id="L40">        this.validator = validator;</span>
+<span class="fc" id="L41">        this.eventosRepository = eventosRepository;</span>
+<span class="fc" id="L42">        this.asistenciaRepository = asistenciaRepository;</span>
+<span class="fc" id="L43">        this.rendimientoRepository = rendimientoRepository;</span>
+<span class="fc" id="L44">        this.alertasRepository = alertasRepository;</span>
+<span class="fc" id="L45">        this.publicadorAlerta = publicadorAlerta;</span>
+<span class="fc" id="L46">    }</span>
+
     public ReporteProcesamientoService(
             Validator validator,
             EventoReporteProcesadoRepository eventosRepository,
             ProyeccionAsistenciaRepository asistenciaRepository,
             ProyeccionRendimientoRepository rendimientoRepository,
             AlertaRiesgoRepository alertasRepository) {
-<span class="fc" id="L39">        this(validator, eventosRepository, asistenciaRepository, rendimientoRepository,</span>
+<span class="fc" id="L54">        this(validator, eventosRepository, asistenciaRepository, rendimientoRepository,</span>
             alertasRepository, null);
-<span class="fc" id="L41">    }</span>
+<span class="fc" id="L56">    }</span>
 
     @Transactional
     public void procesarAsistencia(ConsumerRecord&lt;String, EventoAsistenciaKafka&gt; record) {
-<span class="fc" id="L45">        EventoAsistenciaKafka evento = validar(record.value());</span>
-<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (eventosRepository.existsByIdEvento(evento.idEvento())) {</span>
-<span class="fc" id="L47">            log.info(&quot;Evento de asistencia duplicado ignorado idEvento={} correlationId={}&quot;,</span>
-<span class="fc" id="L48">                evento.idEvento(), evento.correlationId());</span>
-<span class="fc" id="L49">            return;</span>
+<span class="fc" id="L60">        EventoAsistenciaKafka evento = validar(record.value());</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (eventosRepository.existsByIdEvento(evento.idEvento())) {</span>
+<span class="fc" id="L62">            log.info(&quot;Evento de asistencia duplicado ignorado idEvento={} correlationId={}&quot;,</span>
+<span class="fc" id="L63">                evento.idEvento(), evento.correlationId());</span>
+<span class="fc" id="L64">            return;</span>
         }
 
-<span class="fc" id="L52">        ProyeccionAsistencia proyeccion = asistenciaRepository</span>
-<span class="fc" id="L53">            .findByIdEstudianteAndIdCursoAsignatura(</span>
-<span class="fc" id="L54">                evento.idEstudiante(), evento.idCursoAsignatura())</span>
-<span class="fc" id="L55">            .orElseGet(ProyeccionAsistencia::new);</span>
-<span class="fc" id="L56">        NivelRiesgo nivelAnterior = proyeccion.getNivelRiesgo();</span>
-<span class="fc" id="L57">        double porcentajeAnterior = proyeccion.getPorcentajeInasistencia();</span>
-<span class="fc" id="L58">        NivelRiesgo nivelNuevo = nivelAsistencia(evento.porcentajeInasistencia());</span>
-<span class="fc" id="L59">        proyeccion.setIdEstudiante(evento.idEstudiante());</span>
-<span class="fc" id="L60">        proyeccion.setIdCursoAsignatura(evento.idCursoAsignatura());</span>
-<span class="fc" id="L61">        proyeccion.setIdAsistencia(evento.idAsistencia());</span>
-<span class="fc" id="L62">        proyeccion.setFecha(evento.fecha());</span>
-<span class="fc" id="L63">        proyeccion.setEstado(evento.estado());</span>
-<span class="fc" id="L64">        proyeccion.setPorcentajeInasistencia(evento.porcentajeInasistencia());</span>
-<span class="fc" id="L65">        proyeccion.setTotalRegistros(evento.totalRegistros());</span>
-<span class="fc" id="L66">        proyeccion.setTotalInasistencias(evento.totalInasistencias());</span>
-<span class="fc" id="L67">        proyeccion.setNivelRiesgo(nivelNuevo);</span>
-<span class="fc" id="L68">        proyeccion.setIdEvento(evento.idEvento());</span>
-<span class="fc" id="L69">        proyeccion.setCorrelationId(evento.correlationId());</span>
-<span class="fc" id="L70">        proyeccion.setActualizadoEn(evento.timestamp());</span>
-<span class="fc" id="L71">        asistenciaRepository.save(proyeccion);</span>
-<span class="fc" id="L72">        registrarAlertaAsistencia(evento, nivelAnterior, nivelNuevo, porcentajeAnterior);</span>
-<span class="fc" id="L73">        registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),</span>
-<span class="fc" id="L74">            evento.idCursoAsignatura(), nivelAnterior, nivelNuevo, &quot;asistencia&quot;);</span>
-<span class="fc" id="L75">        registrarProcesado(record, evento.idEvento(), evento.timestamp(), evento.correlationId());</span>
-<span class="fc" id="L76">    }</span>
+<span class="fc" id="L67">        ProyeccionAsistencia proyeccion = asistenciaRepository</span>
+<span class="fc" id="L68">            .findByIdEstudianteAndIdCursoAsignatura(</span>
+<span class="fc" id="L69">                evento.idEstudiante(), evento.idCursoAsignatura())</span>
+<span class="fc" id="L70">            .orElseGet(ProyeccionAsistencia::new);</span>
+<span class="fc" id="L71">        NivelRiesgo nivelAnterior = proyeccion.getNivelRiesgo();</span>
+<span class="fc" id="L72">        double porcentajeAnterior = proyeccion.getPorcentajeInasistencia();</span>
+<span class="fc" id="L73">        NivelRiesgo nivelNuevo = nivelAsistencia(evento.porcentajeInasistencia());</span>
+<span class="fc" id="L74">        proyeccion.setIdEstudiante(evento.idEstudiante());</span>
+<span class="fc" id="L75">        proyeccion.setIdCursoAsignatura(evento.idCursoAsignatura());</span>
+<span class="fc" id="L76">        proyeccion.setIdAsistencia(evento.idAsistencia());</span>
+<span class="fc" id="L77">        proyeccion.setFecha(evento.fecha());</span>
+<span class="fc" id="L78">        proyeccion.setEstado(evento.estado());</span>
+<span class="fc" id="L79">        proyeccion.setPorcentajeInasistencia(evento.porcentajeInasistencia());</span>
+<span class="fc" id="L80">        proyeccion.setTotalRegistros(evento.totalRegistros());</span>
+<span class="fc" id="L81">        proyeccion.setTotalInasistencias(evento.totalInasistencias());</span>
+<span class="fc" id="L82">        proyeccion.setNivelRiesgo(nivelNuevo);</span>
+<span class="fc" id="L83">        proyeccion.setIdEvento(evento.idEvento());</span>
+<span class="fc" id="L84">        proyeccion.setCorrelationId(evento.correlationId());</span>
+<span class="fc" id="L85">        proyeccion.setActualizadoEn(evento.timestamp());</span>
+<span class="fc" id="L86">        asistenciaRepository.save(proyeccion);</span>
+<span class="fc" id="L87">        registrarAlertaAsistencia(evento, nivelAnterior, nivelNuevo, porcentajeAnterior);</span>
+<span class="fc" id="L88">        registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),</span>
+<span class="fc" id="L89">            evento.idCursoAsignatura(), nivelAnterior, nivelNuevo, &quot;asistencia&quot;);</span>
+<span class="fc" id="L90">        registrarProcesado(record, evento.idEvento(), evento.timestamp(), evento.correlationId());</span>
+<span class="fc" id="L91">    }</span>
 
     @Transactional
     public void procesarRendimiento(ConsumerRecord&lt;String, EventoRendimientoKafka&gt; record) {
-<span class="fc" id="L80">        EventoRendimientoKafka evento = validar(record.value());</span>
-<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (eventosRepository.existsByIdEvento(evento.idEvento())) {</span>
-<span class="fc" id="L82">            log.info(&quot;Evento de rendimiento duplicado ignorado idEvento={} correlationId={}&quot;,</span>
-<span class="fc" id="L83">                evento.idEvento(), evento.correlationId());</span>
-<span class="fc" id="L84">            return;</span>
+<span class="fc" id="L95">        EventoRendimientoKafka evento = validar(record.value());</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (eventosRepository.existsByIdEvento(evento.idEvento())) {</span>
+<span class="fc" id="L97">            log.info(&quot;Evento de rendimiento duplicado ignorado idEvento={} correlationId={}&quot;,</span>
+<span class="fc" id="L98">                evento.idEvento(), evento.correlationId());</span>
+<span class="fc" id="L99">            return;</span>
         }
 
-<span class="fc" id="L87">        ProyeccionRendimiento proyeccion = rendimientoRepository</span>
-<span class="fc" id="L88">            .findByIdEstudianteAndIdEvaluacion(evento.idEstudiante(), evento.idEvaluacion())</span>
-<span class="fc" id="L89">            .orElseGet(ProyeccionRendimiento::new);</span>
-<span class="fc" id="L90">        NivelRiesgo nivelAnterior = proyeccion.getNivelRiesgo();</span>
-<span class="fc" id="L91">        NivelRiesgo nivelNuevo = nivelRendimiento(evento);</span>
-<span class="fc" id="L92">        proyeccion.setIdEstudiante(evento.idEstudiante());</span>
-<span class="fc" id="L93">        proyeccion.setIdEvaluacion(evento.idEvaluacion());</span>
-<span class="fc" id="L94">        proyeccion.setIdCursoAsignatura(evento.idCursoAsignatura());</span>
-<span class="fc" id="L95">        proyeccion.setIdNota(evento.idNota());</span>
-<span class="fc" id="L96">        proyeccion.setPuntaje(evento.puntaje());</span>
-<span class="fc" id="L97">        proyeccion.setPromedio(evento.promedio());</span>
-<span class="fc" id="L98">        proyeccion.setEvaluacionesInsuficientes(evento.evaluacionesInsuficientes());</span>
-<span class="fc" id="L99">        rendimientoRepository.save(proyeccion);</span>
-
-<span class="fc" id="L101">        IndicadoresRendimiento indicadores = recalcularIndicadores(evento, proyeccion);</span>
-<span class="fc" id="L102">        proyeccion.setPromedio(indicadores.promedio());</span>
-<span class="fc" id="L103">        proyeccion.setEvaluacionesInsuficientes(indicadores.evaluacionesInsuficientes());</span>
-<span class="fc" id="L104">        EventoRendimientoKafka eventoCalculado = new EventoRendimientoKafka(</span>
-<span class="fc" id="L105">            evento.idNota(), evento.idEstudiante(), evento.idEvaluacion(),</span>
-<span class="fc" id="L106">            evento.idCursoAsignatura(), evento.puntaje(), indicadores.promedio(),</span>
-<span class="fc" id="L107">            indicadores.evaluacionesInsuficientes(), evento.timestamp(),</span>
-<span class="fc" id="L108">            evento.idEvento(), evento.correlationId());</span>
-<span class="fc" id="L109">        nivelNuevo = nivelRendimiento(eventoCalculado);</span>
-<span class="fc" id="L110">        proyeccion.setNivelRiesgo(nivelNuevo);</span>
-<span class="fc" id="L111">        proyeccion.setIdEvento(evento.idEvento());</span>
-<span class="fc" id="L112">        proyeccion.setCorrelationId(evento.correlationId());</span>
-<span class="fc" id="L113">        proyeccion.setActualizadoEn(evento.timestamp());</span>
+<span class="fc" id="L102">        ProyeccionRendimiento proyeccion = rendimientoRepository</span>
+<span class="fc" id="L103">            .findByIdEstudianteAndIdEvaluacion(evento.idEstudiante(), evento.idEvaluacion())</span>
+<span class="fc" id="L104">            .orElseGet(ProyeccionRendimiento::new);</span>
+<span class="fc" id="L105">        NivelRiesgo nivelAnterior = proyeccion.getNivelRiesgo();</span>
+<span class="fc" id="L106">        NivelRiesgo nivelNuevo = nivelRendimiento(evento);</span>
+<span class="fc" id="L107">        proyeccion.setIdEstudiante(evento.idEstudiante());</span>
+<span class="fc" id="L108">        proyeccion.setIdEvaluacion(evento.idEvaluacion());</span>
+<span class="fc" id="L109">        proyeccion.setIdCursoAsignatura(evento.idCursoAsignatura());</span>
+<span class="fc" id="L110">        proyeccion.setIdNota(evento.idNota());</span>
+<span class="fc" id="L111">        proyeccion.setPuntaje(evento.puntaje());</span>
+<span class="fc" id="L112">        proyeccion.setPromedio(evento.promedio());</span>
+<span class="fc" id="L113">        proyeccion.setEvaluacionesInsuficientes(evento.evaluacionesInsuficientes());</span>
 <span class="fc" id="L114">        rendimientoRepository.save(proyeccion);</span>
-<span class="fc" id="L115">        registrarAlertaRendimiento(eventoCalculado, nivelAnterior, nivelNuevo);</span>
-<span class="fc" id="L116">        registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),</span>
-<span class="fc" id="L117">            evento.idCursoAsignatura(), nivelAnterior, nivelNuevo, &quot;rendimiento&quot;);</span>
-<span class="fc" id="L118">        registrarProcesado(record, evento.idEvento(), evento.timestamp(), evento.correlationId());</span>
-<span class="fc" id="L119">    }</span>
+
+<span class="fc" id="L116">        IndicadoresRendimiento indicadores = recalcularIndicadores(evento, proyeccion);</span>
+<span class="fc" id="L117">        proyeccion.setPromedio(indicadores.promedio());</span>
+<span class="fc" id="L118">        proyeccion.setEvaluacionesInsuficientes(indicadores.evaluacionesInsuficientes());</span>
+<span class="fc" id="L119">        EventoRendimientoKafka eventoCalculado = new EventoRendimientoKafka(</span>
+<span class="fc" id="L120">            evento.idNota(), evento.idEstudiante(), evento.idEvaluacion(),</span>
+<span class="fc" id="L121">            evento.idCursoAsignatura(), evento.puntaje(), indicadores.promedio(),</span>
+<span class="fc" id="L122">            indicadores.evaluacionesInsuficientes(), evento.timestamp(),</span>
+<span class="fc" id="L123">            evento.idEvento(), evento.correlationId());</span>
+<span class="fc" id="L124">        nivelNuevo = nivelRendimiento(eventoCalculado);</span>
+<span class="fc" id="L125">        proyeccion.setNivelRiesgo(nivelNuevo);</span>
+<span class="fc" id="L126">        proyeccion.setIdEvento(evento.idEvento());</span>
+<span class="fc" id="L127">        proyeccion.setCorrelationId(evento.correlationId());</span>
+<span class="fc" id="L128">        proyeccion.setActualizadoEn(evento.timestamp());</span>
+<span class="fc" id="L129">        rendimientoRepository.save(proyeccion);</span>
+<span class="fc" id="L130">        registrarAlertaRendimiento(eventoCalculado, nivelAnterior, nivelNuevo);</span>
+<span class="fc" id="L131">        registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),</span>
+<span class="fc" id="L132">            evento.idCursoAsignatura(), nivelAnterior, nivelNuevo, &quot;rendimiento&quot;);</span>
+<span class="fc" id="L133">        registrarProcesado(record, evento.idEvento(), evento.timestamp(), evento.correlationId());</span>
+<span class="fc" id="L134">    }</span>
 
     private IndicadoresRendimiento recalcularIndicadores(
             EventoRendimientoKafka evento,
             ProyeccionRendimiento actual) {
-<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (evento.idCursoAsignatura() == null) {</span>
-<span class="nc" id="L125">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        if (evento.idCursoAsignatura() == null) {</span>
+<span class="nc" id="L140">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
         }
-<span class="fc" id="L127">        List&lt;ProyeccionRendimiento&gt; proyecciones =</span>
-<span class="fc" id="L128">            rendimientoRepository.findByIdEstudianteAndIdCursoAsignatura(</span>
-<span class="fc" id="L129">                evento.idEstudiante(), evento.idCursoAsignatura());</span>
-<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (proyecciones.isEmpty()) {</span>
-<span class="fc" id="L131">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
+<span class="fc" id="L142">        List&lt;ProyeccionRendimiento&gt; proyecciones =</span>
+<span class="fc" id="L143">            rendimientoRepository.findByIdEstudianteAndIdCursoAsignatura(</span>
+<span class="fc" id="L144">                evento.idEstudiante(), evento.idCursoAsignatura());</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (proyecciones.isEmpty()) {</span>
+<span class="fc" id="L146">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
         }
-<span class="fc" id="L133">        double suma = 0.0;</span>
-<span class="fc" id="L134">        long cantidad = 0;</span>
-<span class="fc" id="L135">        long insuficientes = 0;</span>
-<span class="fc bfc" id="L136" title="All 2 branches covered.">        for (ProyeccionRendimiento proyeccion : proyecciones) {</span>
-<span class="pc bpc" id="L137" title="1 of 2 branches missed.">            if (proyeccion.getPuntaje() != null) {</span>
-<span class="fc" id="L138">                suma += proyeccion.getPuntaje();</span>
-<span class="fc" id="L139">                cantidad++;</span>
-<span class="fc bfc" id="L140" title="All 2 branches covered.">                if (proyeccion.getPuntaje() &lt; 4.0) {</span>
-<span class="fc" id="L141">                    insuficientes++;</span>
+<span class="fc" id="L148">        double suma = 0.0;</span>
+<span class="fc" id="L149">        long cantidad = 0;</span>
+<span class="fc" id="L150">        long insuficientes = 0;</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        for (ProyeccionRendimiento proyeccion : proyecciones) {</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">            if (proyeccion.getPuntaje() != null) {</span>
+<span class="fc" id="L153">                suma += proyeccion.getPuntaje();</span>
+<span class="fc" id="L154">                cantidad++;</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">                if (proyeccion.getPuntaje() &lt; 4.0) {</span>
+<span class="fc" id="L156">                    insuficientes++;</span>
                 }
             }
-<span class="fc" id="L144">        }</span>
-<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (cantidad == 0) {</span>
-<span class="nc" id="L146">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
+<span class="fc" id="L159">        }</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">        if (cantidad == 0) {</span>
+<span class="nc" id="L161">            return new IndicadoresRendimiento(evento.promedio(), evento.evaluacionesInsuficientes());</span>
         }
-<span class="fc" id="L148">        return new IndicadoresRendimiento(suma / cantidad, insuficientes);</span>
+<span class="fc" id="L163">        return new IndicadoresRendimiento(suma / cantidad, insuficientes);</span>
     }
 
-<span class="fc" id="L151">    private record IndicadoresRendimiento(Double promedio, long evaluacionesInsuficientes) {</span>
+<span class="fc" id="L166">    private record IndicadoresRendimiento(Double promedio, long evaluacionesInsuficientes) {</span>
     }
 
     private &lt;T&gt; T validar(T evento) {
-<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (evento == null) {</span>
-<span class="nc" id="L156">            throw new IllegalArgumentException(&quot;El payload Kafka no puede ser nulo.&quot;);</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">        if (evento == null) {</span>
+<span class="nc" id="L171">            throw new IllegalArgumentException(&quot;El payload Kafka no puede ser nulo.&quot;);</span>
         }
-<span class="fc" id="L158">        var errores = validator.validate(evento);</span>
-<span class="fc bfc" id="L159" title="All 2 branches covered.">        if (!errores.isEmpty()) {</span>
-<span class="fc" id="L160">            String detalle = errores.stream()</span>
-<span class="fc" id="L161">                .map(ConstraintViolation::getPropertyPath)</span>
-<span class="fc" id="L162">                .map(Object::toString)</span>
-<span class="fc" id="L163">                .sorted()</span>
-<span class="fc" id="L164">                .reduce((a, b) -&gt; a + &quot;, &quot; + b)</span>
-<span class="fc" id="L165">                .orElse(&quot;payload inválido&quot;);</span>
-<span class="fc" id="L166">            throw new IllegalArgumentException(&quot;Payload Kafka inválido: &quot; + detalle);</span>
+<span class="fc" id="L173">        var errores = validator.validate(evento);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (!errores.isEmpty()) {</span>
+<span class="fc" id="L175">            String detalle = errores.stream()</span>
+<span class="fc" id="L176">                .map(ConstraintViolation::getPropertyPath)</span>
+<span class="fc" id="L177">                .map(Object::toString)</span>
+<span class="fc" id="L178">                .sorted()</span>
+<span class="fc" id="L179">                .reduce((a, b) -&gt; a + &quot;, &quot; + b)</span>
+<span class="fc" id="L180">                .orElse(&quot;payload inválido&quot;);</span>
+<span class="fc" id="L181">            throw new IllegalArgumentException(&quot;Payload Kafka inválido: &quot; + detalle);</span>
         }
-<span class="fc" id="L168">        return evento;</span>
+<span class="fc" id="L183">        return evento;</span>
     }
 
     private void registrarProcesado(
@@ -174,41 +189,41 @@ public class ReporteProcesamientoService {
             LocalDateTime timestamp,
             String correlationId) {
         try {
-<span class="fc" id="L177">            eventosRepository.save(EventoReporteProcesado.builder()</span>
-<span class="fc" id="L178">                .idEvento(idEvento)</span>
-<span class="fc" id="L179">                .topic(record.topic())</span>
-<span class="fc" id="L180">                .particion(record.partition())</span>
-<span class="fc" id="L181">                .offsetKafka(record.offset())</span>
-<span class="fc" id="L182">                .correlationId(correlationId)</span>
-<span class="fc" id="L183">                .timestampEvento(timestamp)</span>
-<span class="fc" id="L184">                .procesadoEn(LocalDateTime.now())</span>
-<span class="fc" id="L185">                .build());</span>
-<span class="nc" id="L186">        } catch (DataIntegrityViolationException error) {</span>
-<span class="nc" id="L187">            throw new IllegalStateException(</span>
+<span class="fc" id="L192">            eventosRepository.save(EventoReporteProcesado.builder()</span>
+<span class="fc" id="L193">                .idEvento(idEvento)</span>
+<span class="fc" id="L194">                .topic(record.topic())</span>
+<span class="fc" id="L195">                .particion(record.partition())</span>
+<span class="fc" id="L196">                .offsetKafka(record.offset())</span>
+<span class="fc" id="L197">                .correlationId(correlationId)</span>
+<span class="fc" id="L198">                .timestampEvento(timestamp)</span>
+<span class="fc" id="L199">                .procesadoEn(LocalDateTime.now())</span>
+<span class="fc" id="L200">                .build());</span>
+<span class="nc" id="L201">        } catch (DataIntegrityViolationException error) {</span>
+<span class="nc" id="L202">            throw new IllegalStateException(</span>
                 &quot;El evento ya fue registrado concurrentemente: &quot; + idEvento, error);
-<span class="fc" id="L189">        }</span>
-<span class="fc" id="L190">    }</span>
+<span class="fc" id="L204">        }</span>
+<span class="fc" id="L205">    }</span>
 
     private NivelRiesgo nivelAsistencia(double porcentaje) {
-<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (porcentaje &gt; 40.0) {</span>
-<span class="fc" id="L194">            return NivelRiesgo.CRITICO;</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        if (porcentaje &gt; 40.0) {</span>
+<span class="fc" id="L209">            return NivelRiesgo.CRITICO;</span>
         }
-<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (porcentaje &gt; 20.0) {</span>
-<span class="fc" id="L197">            return NivelRiesgo.PREVENTIVO;</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">        if (porcentaje &gt; 20.0) {</span>
+<span class="fc" id="L212">            return NivelRiesgo.PREVENTIVO;</span>
         }
-<span class="fc" id="L199">        return NivelRiesgo.NORMAL;</span>
+<span class="fc" id="L214">        return NivelRiesgo.NORMAL;</span>
     }
 
     private NivelRiesgo nivelRendimiento(EventoRendimientoKafka evento) {
-<span class="fc bfc" id="L203" title="All 2 branches covered.">        Double indicador = evento.promedio() == null ? evento.puntaje() : evento.promedio();</span>
-<span class="pc bpc" id="L204" title="2 of 4 branches missed.">        if (evento.evaluacionesInsuficientes() &gt;= 2</span>
-<span class="fc bfc" id="L205" title="All 2 branches covered.">                || indicador != null &amp;&amp; indicador &lt; 4.0) {</span>
-<span class="fc" id="L206">            return NivelRiesgo.CRITICO;</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        Double indicador = evento.promedio() == null ? evento.puntaje() : evento.promedio();</span>
+<span class="pc bpc" id="L219" title="2 of 4 branches missed.">        if (evento.evaluacionesInsuficientes() &gt;= 2</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">                || indicador != null &amp;&amp; indicador &lt; 4.0) {</span>
+<span class="fc" id="L221">            return NivelRiesgo.CRITICO;</span>
         }
-<span class="pc bpc" id="L208" title="1 of 4 branches missed.">        if (indicador != null &amp;&amp; indicador &lt; 5.0) {</span>
-<span class="fc" id="L209">            return NivelRiesgo.PREVENTIVO;</span>
+<span class="pc bpc" id="L223" title="1 of 4 branches missed.">        if (indicador != null &amp;&amp; indicador &lt; 5.0) {</span>
+<span class="fc" id="L224">            return NivelRiesgo.PREVENTIVO;</span>
         }
-<span class="fc" id="L211">        return NivelRiesgo.NORMAL;</span>
+<span class="fc" id="L226">        return NivelRiesgo.NORMAL;</span>
     }
 
     private void registrarAlertaAsistencia(
@@ -216,55 +231,55 @@ public class ReporteProcesamientoService {
             NivelRiesgo nivelAnterior,
             NivelRiesgo nivelNuevo,
             double porcentajeAnterior) {
-<span class="fc" id="L219">        int umbral = umbralCruzado(porcentajeAnterior, evento.porcentajeInasistencia());</span>
-<span class="pc bpc" id="L220" title="1 of 4 branches missed.">        boolean cambioEstado = nivelNuevo != nivelAnterior</span>
+<span class="fc" id="L234">        int umbral = umbralCruzado(porcentajeAnterior, evento.porcentajeInasistencia());</span>
+<span class="pc bpc" id="L235" title="1 of 4 branches missed.">        boolean cambioEstado = nivelNuevo != nivelAnterior</span>
             &amp;&amp; nivelNuevo != NivelRiesgo.NORMAL;
-<span class="pc bpc" id="L222" title="1 of 4 branches missed.">        if (umbral == 0 &amp;&amp; !cambioEstado) {</span>
-<span class="fc" id="L223">            return;</span>
+<span class="pc bpc" id="L237" title="1 of 4 branches missed.">        if (umbral == 0 &amp;&amp; !cambioEstado) {</span>
+<span class="fc" id="L238">            return;</span>
         }
-<span class="fc" id="L225">        String clave = &quot;ASISTENCIA|&quot; + evento.idEvento() + &quot;|&quot; + umbral + &quot;|&quot; + nivelNuevo;</span>
-<span class="fc" id="L226">        registrarAlerta(AlertaRiesgo.builder()</span>
-<span class="fc" id="L227">            .claveIdempotencia(clave)</span>
-<span class="fc" id="L228">            .tipoRiesgo(TipoRiesgo.INASISTENCIA)</span>
-<span class="fc" id="L229">            .idEstudiante(evento.idEstudiante())</span>
-<span class="fc" id="L230">            .idCursoAsignatura(evento.idCursoAsignatura())</span>
-<span class="fc" id="L231">            .nivelAnterior(nivelAnterior)</span>
-<span class="fc" id="L232">            .nivelNuevo(nivelNuevo)</span>
-<span class="fc" id="L233">            .porcentajeInasistencia(evento.porcentajeInasistencia())</span>
-<span class="fc" id="L234">            .motivo(motivoAsistencia(evento.porcentajeInasistencia(), umbral))</span>
-<span class="fc" id="L235">            .idEvento(evento.idEvento())</span>
-<span class="fc" id="L236">            .correlationId(evento.correlationId())</span>
-<span class="fc" id="L237">            .creadaEn(LocalDateTime.now())</span>
-<span class="fc" id="L238">            .build());</span>
-<span class="fc" id="L239">    }</span>
+<span class="fc" id="L240">        String clave = &quot;ASISTENCIA|&quot; + evento.idEvento() + &quot;|&quot; + umbral + &quot;|&quot; + nivelNuevo;</span>
+<span class="fc" id="L241">        registrarAlerta(AlertaRiesgo.builder()</span>
+<span class="fc" id="L242">            .claveIdempotencia(clave)</span>
+<span class="fc" id="L243">            .tipoRiesgo(TipoRiesgo.INASISTENCIA)</span>
+<span class="fc" id="L244">            .idEstudiante(evento.idEstudiante())</span>
+<span class="fc" id="L245">            .idCursoAsignatura(evento.idCursoAsignatura())</span>
+<span class="fc" id="L246">            .nivelAnterior(nivelAnterior)</span>
+<span class="fc" id="L247">            .nivelNuevo(nivelNuevo)</span>
+<span class="fc" id="L248">            .porcentajeInasistencia(evento.porcentajeInasistencia())</span>
+<span class="fc" id="L249">            .motivo(motivoAsistencia(evento.porcentajeInasistencia(), umbral))</span>
+<span class="fc" id="L250">            .idEvento(evento.idEvento())</span>
+<span class="fc" id="L251">            .correlationId(evento.correlationId())</span>
+<span class="fc" id="L252">            .creadaEn(LocalDateTime.now())</span>
+<span class="fc" id="L253">            .build());</span>
+<span class="fc" id="L254">    }</span>
 
     private void registrarAlertaRendimiento(
             EventoRendimientoKafka evento,
             NivelRiesgo nivelAnterior,
             NivelRiesgo nivelNuevo) {
-<span class="pc bpc" id="L245" title="3 of 6 branches missed.">        if (nivelNuevo == NivelRiesgo.NORMAL</span>
+<span class="pc bpc" id="L260" title="3 of 6 branches missed.">        if (nivelNuevo == NivelRiesgo.NORMAL</span>
                 || nivelNuevo == nivelAnterior &amp;&amp; nivelAnterior != null) {
-<span class="fc" id="L247">            return;</span>
+<span class="fc" id="L262">            return;</span>
         }
-<span class="fc bfc" id="L249" title="All 2 branches covered.">        Double indicador = evento.promedio() == null ? evento.puntaje() : evento.promedio();</span>
-<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        String motivo = evento.evaluacionesInsuficientes() &gt;= 2</span>
-<span class="nc" id="L251">            ? &quot;El estudiante acumula dos o más evaluaciones insuficientes.&quot;</span>
-<span class="fc" id="L252">            : &quot;El indicador de rendimiento es inferior al mínimo establecido: &quot; + indicador + &quot;.&quot;;</span>
-<span class="fc" id="L253">        registrarAlerta(AlertaRiesgo.builder()</span>
-<span class="fc" id="L254">            .claveIdempotencia(&quot;RENDIMIENTO|&quot; + evento.idEvento() + &quot;|&quot; + nivelNuevo)</span>
-<span class="fc" id="L255">            .tipoRiesgo(TipoRiesgo.BAJO_RENDIMIENTO)</span>
-<span class="fc" id="L256">            .idEstudiante(evento.idEstudiante())</span>
-<span class="fc" id="L257">            .idCursoAsignatura(evento.idCursoAsignatura())</span>
-<span class="fc" id="L258">            .nivelAnterior(nivelAnterior)</span>
-<span class="fc" id="L259">            .nivelNuevo(nivelNuevo)</span>
-<span class="fc bfc" id="L260" title="All 2 branches covered.">            .promedio(evento.promedio() == null ? evento.puntaje() : evento.promedio())</span>
-<span class="fc" id="L261">            .evaluacionesInsuficientes(evento.evaluacionesInsuficientes())</span>
-<span class="fc" id="L262">            .motivo(motivo)</span>
-<span class="fc" id="L263">            .idEvento(evento.idEvento())</span>
-<span class="fc" id="L264">            .correlationId(evento.correlationId())</span>
-<span class="fc" id="L265">            .creadaEn(LocalDateTime.now())</span>
-<span class="fc" id="L266">            .build());</span>
-<span class="fc" id="L267">    }</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        Double indicador = evento.promedio() == null ? evento.puntaje() : evento.promedio();</span>
+<span class="pc bpc" id="L265" title="1 of 2 branches missed.">        String motivo = evento.evaluacionesInsuficientes() &gt;= 2</span>
+<span class="nc" id="L266">            ? &quot;El estudiante acumula dos o más evaluaciones insuficientes.&quot;</span>
+<span class="fc" id="L267">            : &quot;El indicador de rendimiento es inferior al mínimo establecido: &quot; + indicador + &quot;.&quot;;</span>
+<span class="fc" id="L268">        registrarAlerta(AlertaRiesgo.builder()</span>
+<span class="fc" id="L269">            .claveIdempotencia(&quot;RENDIMIENTO|&quot; + evento.idEvento() + &quot;|&quot; + nivelNuevo)</span>
+<span class="fc" id="L270">            .tipoRiesgo(TipoRiesgo.BAJO_RENDIMIENTO)</span>
+<span class="fc" id="L271">            .idEstudiante(evento.idEstudiante())</span>
+<span class="fc" id="L272">            .idCursoAsignatura(evento.idCursoAsignatura())</span>
+<span class="fc" id="L273">            .nivelAnterior(nivelAnterior)</span>
+<span class="fc" id="L274">            .nivelNuevo(nivelNuevo)</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">            .promedio(evento.promedio() == null ? evento.puntaje() : evento.promedio())</span>
+<span class="fc" id="L276">            .evaluacionesInsuficientes(evento.evaluacionesInsuficientes())</span>
+<span class="fc" id="L277">            .motivo(motivo)</span>
+<span class="fc" id="L278">            .idEvento(evento.idEvento())</span>
+<span class="fc" id="L279">            .correlationId(evento.correlationId())</span>
+<span class="fc" id="L280">            .creadaEn(LocalDateTime.now())</span>
+<span class="fc" id="L281">            .build());</span>
+<span class="fc" id="L282">    }</span>
 
     private void registrarCambioEstado(
             String idEvento,
@@ -274,65 +289,65 @@ public class ReporteProcesamientoService {
             NivelRiesgo nivelAnterior,
             NivelRiesgo nivelNuevo,
             String dominio) {
-<span class="pc bpc" id="L277" title="3 of 4 branches missed.">        if (nivelAnterior == null || nivelAnterior == nivelNuevo) {</span>
-<span class="fc" id="L278">            return;</span>
+<span class="pc bpc" id="L292" title="3 of 4 branches missed.">        if (nivelAnterior == null || nivelAnterior == nivelNuevo) {</span>
+<span class="fc" id="L293">            return;</span>
         }
-<span class="nc" id="L280">        registrarAlerta(AlertaRiesgo.builder()</span>
-<span class="nc" id="L281">            .claveIdempotencia(&quot;ESTADO|&quot; + dominio + &quot;|&quot; + idEvento + &quot;|&quot; + nivelNuevo)</span>
-<span class="nc" id="L282">            .tipoRiesgo(TipoRiesgo.CAMBIO_ESTADO_ACADEMICO)</span>
-<span class="nc" id="L283">            .idEstudiante(idEstudiante)</span>
-<span class="nc" id="L284">            .idCursoAsignatura(idCursoAsignatura)</span>
-<span class="nc" id="L285">            .nivelAnterior(nivelAnterior)</span>
-<span class="nc" id="L286">            .nivelNuevo(nivelNuevo)</span>
-<span class="nc" id="L287">            .motivo(&quot;El estado académico cambió de &quot; + nivelAnterior + &quot; a &quot; + nivelNuevo + &quot;.&quot;)</span>
-<span class="nc" id="L288">            .idEvento(idEvento)</span>
-<span class="nc" id="L289">            .correlationId(correlationId)</span>
-<span class="nc" id="L290">            .creadaEn(LocalDateTime.now())</span>
-<span class="nc" id="L291">            .build());</span>
-<span class="nc" id="L292">    }</span>
+<span class="nc" id="L295">        registrarAlerta(AlertaRiesgo.builder()</span>
+<span class="nc" id="L296">            .claveIdempotencia(&quot;ESTADO|&quot; + dominio + &quot;|&quot; + idEvento + &quot;|&quot; + nivelNuevo)</span>
+<span class="nc" id="L297">            .tipoRiesgo(TipoRiesgo.CAMBIO_ESTADO_ACADEMICO)</span>
+<span class="nc" id="L298">            .idEstudiante(idEstudiante)</span>
+<span class="nc" id="L299">            .idCursoAsignatura(idCursoAsignatura)</span>
+<span class="nc" id="L300">            .nivelAnterior(nivelAnterior)</span>
+<span class="nc" id="L301">            .nivelNuevo(nivelNuevo)</span>
+<span class="nc" id="L302">            .motivo(&quot;El estado académico cambió de &quot; + nivelAnterior + &quot; a &quot; + nivelNuevo + &quot;.&quot;)</span>
+<span class="nc" id="L303">            .idEvento(idEvento)</span>
+<span class="nc" id="L304">            .correlationId(correlationId)</span>
+<span class="nc" id="L305">            .creadaEn(LocalDateTime.now())</span>
+<span class="nc" id="L306">            .build());</span>
+<span class="nc" id="L307">    }</span>
 
     private void registrarAlerta(AlertaRiesgo alerta) {
-<span class="pc bpc" id="L295" title="1 of 2 branches missed.">        if (alertasRepository.existsByClaveIdempotencia(alerta.getClaveIdempotencia())) {</span>
-<span class="nc" id="L296">            log.info(&quot;Alerta duplicada ignorada claveIdempotencia={}&quot;, alerta.getClaveIdempotencia());</span>
-<span class="nc" id="L297">            return;</span>
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if (alertasRepository.existsByClaveIdempotencia(alerta.getClaveIdempotencia())) {</span>
+<span class="nc" id="L311">            log.info(&quot;Alerta duplicada ignorada claveIdempotencia={}&quot;, alerta.getClaveIdempotencia());</span>
+<span class="nc" id="L312">            return;</span>
         }
         try {
-<span class="fc" id="L300">            alertasRepository.save(alerta);</span>
-<span class="fc bfc" id="L301" title="All 2 branches covered.">            if (publicadorAlerta != null) {</span>
-<span class="fc" id="L302">                publicadorAlerta.publicar(alerta);</span>
+<span class="fc" id="L315">            alertasRepository.save(alerta);</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">            if (publicadorAlerta != null) {</span>
+<span class="fc" id="L317">                publicadorAlerta.publicar(alerta);</span>
             }
-<span class="nc" id="L304">        } catch (DataIntegrityViolationException error) {</span>
-<span class="nc" id="L305">            log.info(&quot;Alerta concurrente ignorada claveIdempotencia={}&quot;, alerta.getClaveIdempotencia());</span>
-<span class="fc" id="L306">        }</span>
-<span class="fc" id="L307">    }</span>
+<span class="nc" id="L319">        } catch (DataIntegrityViolationException error) {</span>
+<span class="nc" id="L320">            log.info(&quot;Alerta concurrente ignorada claveIdempotencia={}&quot;, alerta.getClaveIdempotencia());</span>
+<span class="fc" id="L321">        }</span>
+<span class="fc" id="L322">    }</span>
 
     private int umbralCruzado(double anterior, double actual) {
-<span class="pc bpc" id="L310" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 60.0) {</span>
-<span class="fc" id="L311">            return 60;</span>
+<span class="pc bpc" id="L325" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 60.0) {</span>
+<span class="fc" id="L326">            return 60;</span>
         }
-<span class="pc bpc" id="L313" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 40.0) {</span>
-<span class="fc" id="L314">            return 40;</span>
+<span class="pc bpc" id="L328" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 40.0) {</span>
+<span class="fc" id="L329">            return 40;</span>
         }
-<span class="pc bpc" id="L316" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 20.0) {</span>
-<span class="fc" id="L317">            return 20;</span>
+<span class="pc bpc" id="L331" title="1 of 4 branches missed.">        if (anterior == 0.0 &amp;&amp; actual &gt; 20.0) {</span>
+<span class="fc" id="L332">            return 20;</span>
         }
-<span class="pc bpc" id="L319" title="2 of 4 branches missed.">        if (anterior &lt;= 60.0 &amp;&amp; actual &gt; 60.0) {</span>
-<span class="nc" id="L320">            return 60;</span>
+<span class="pc bpc" id="L334" title="2 of 4 branches missed.">        if (anterior &lt;= 60.0 &amp;&amp; actual &gt; 60.0) {</span>
+<span class="nc" id="L335">            return 60;</span>
         }
-<span class="pc bpc" id="L322" title="2 of 4 branches missed.">        if (anterior &lt;= 40.0 &amp;&amp; actual &gt; 40.0) {</span>
-<span class="nc" id="L323">            return 40;</span>
+<span class="pc bpc" id="L337" title="2 of 4 branches missed.">        if (anterior &lt;= 40.0 &amp;&amp; actual &gt; 40.0) {</span>
+<span class="nc" id="L338">            return 40;</span>
         }
-<span class="pc bpc" id="L325" title="2 of 4 branches missed.">        if (anterior &lt;= 20.0 &amp;&amp; actual &gt; 20.0) {</span>
-<span class="nc" id="L326">            return 20;</span>
+<span class="pc bpc" id="L340" title="2 of 4 branches missed.">        if (anterior &lt;= 20.0 &amp;&amp; actual &gt; 20.0) {</span>
+<span class="nc" id="L341">            return 20;</span>
         }
-<span class="fc" id="L328">        return 0;</span>
+<span class="fc" id="L343">        return 0;</span>
     }
 
     private String motivoAsistencia(double porcentaje, int umbral) {
-<span class="pc bpc" id="L332" title="1 of 2 branches missed.">        if (umbral &gt; 0) {</span>
-<span class="fc" id="L333">            return &quot;La inasistencia superó el umbral del &quot; + umbral + &quot;% (&quot; + porcentaje + &quot;%).&quot;;</span>
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">        if (umbral &gt; 0) {</span>
+<span class="fc" id="L348">            return &quot;La inasistencia superó el umbral del &quot; + umbral + &quot;% (&quot; + porcentaje + &quot;%).&quot;;</span>
         }
-<span class="nc" id="L335">        return &quot;El nivel de riesgo de inasistencia cambió a preventivo o crítico.&quot;;</span>
+<span class="nc" id="L350">        return &quot;El nivel de riesgo de inasistencia cambió a preventivo o crítico.&quot;;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
