@@ -35,9 +35,9 @@ variable "instance_type" {
 }
 
 variable "data_volume_size" {
-  description = "Tamano en GB del volumen EBS gp3 para MariaDB (cobra aunque la instancia este detenida)"
+  description = "Tamano en GB del volumen EBS gp3 para MariaDB, RabbitMQ y Kafka/ZooKeeper (cobra aunque la instancia este detenida)"
   type        = number
-  default     = 10
+  default     = 20
 }
 
 variable "ssh_cidr" {

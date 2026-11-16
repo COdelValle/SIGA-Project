@@ -94,8 +94,11 @@ Pasos en Entra ID (TI):
 | `MARIADB_ROOT_PASSWORD` | Password root de MariaDB (solo dev). |
 | `DB_USER`, `DB_PASS` | Usuario/password de las bases por microservicio. |
 | `AZURE_TENANT_ID` | Tenant del colegio. |
-| `AZURE_CLIENT_ID` | App de API (audiencia esperada del token). |
+| `AZURE_CLIENT_ID` | Client ID de la app usada por el frontend/API. |
 | `AZURE_APP_ID_URI` | `api://<client-id>` de la app de API. |
+| `AZURE_JWT_ISSUER` | (Opcional) issuer exacto; default v1 `https://sts.windows.net/<tenant>/`. |
+| `AZURE_JWKS_URI` | (Opcional) URL de JWKS para firma; default del tenant Entra. |
+| `AZURE_JWT_AUDIENCES` | (Opcional, CSV) audiencias aceptadas; default App ID URI y client ID. |
 | `AZURE_CLIENT_SECRET` | (Fase 2) Secreto para llamar a Graph. Si esta vacio, Graph queda deshabilitado. |
 | `AZURE_API_APP_ID` | (Fase 2) App id que define los app roles. Si se omite, usa `AZURE_CLIENT_ID`. |
 | `REGISTRO_ASYNC_ENABLED` | Registro asincrono de usuarios (default `false`). Requiere Graph configurado y `REGISTRO_CRED_KEY`. |

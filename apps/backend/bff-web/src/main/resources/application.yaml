@@ -45,6 +45,8 @@ services:
     url: ${MS_ASISTENCIAS_URL:http://localhost:8090}
   notificaciones:
     url: ${MS_NOTIFICACIONES_URL:http://localhost:8091}
+  reportes:
+    url: ${MS_REPORTES_URL:http://localhost:8093}
   rabbitmq-admin:
     url: ${MS_RABBITMQ_ADMIN_URL:http://localhost:8092}
 

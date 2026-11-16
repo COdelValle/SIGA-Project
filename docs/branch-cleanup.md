@@ -6,13 +6,15 @@ remotas: `dev`, `main` y `deploy`.
 ## Modelo adoptado
 
 ```
-feature/*  ->  dev  ->  main  ->  deploy
-                                (dispara CD)
+feature/*  ->  dev  ->  deploy  ->  main
+                       AWS       release estable
 ```
 
-- **dev**: integracion.
-- **main**: estable / entrega.
-- **deploy**: rama que dispara el CD (`push: deploy` + `workflow_dispatch`).
+- **dev**: integración de desarrollo; CI valida pull requests y pushes.
+- **deploy**: candidato de release. El push dispara CD, que debe completar su
+  puerta de calidad, el despliegue AWS y los smoke tests.
+- **main**: release estable; solo se actualiza después de que el mismo SHA pasó
+  aceptación post-deploy en AWS.
 - **feature/*** y **fix/***: ramas cortas, se eliminan al integrar.
 
 ## Resultado
@@ -36,20 +38,24 @@ Los tags se pueden consultar con `git tag -l "archive/*"` y
 heads antes de sincronizarlos: la alineación histórica no garantiza que sigan
 iguales hoy.
 
-## Flujo de trabajo
+## Flujo de trabajo y aceptación
 
-1. Crear `feature/<algo>` o `fix/<algo>` desde `dev`.
-2. PR a `dev` (merge `--no-ff`).
-3. PR `dev` -> `main` (merge `--no-ff`).
-4. Actualizar `deploy` solo desde `main`. Este push **dispara el CD** por
-   `.github/workflows/cd.yml` (`push` en `deploy`):
-   ```bash
-   git fetch origin
-   git switch deploy
-   git merge --ff-only origin/main
-   git push origin deploy
-   ```
-5. Borrar la rama corta tras el merge.
+1. Crear `feature/<tema>` o `fix/<tema>` desde `dev`; vincular cada cambio a los
+   IDs de la matriz de rúbrica y a pruebas/evidencias.
+2. PR a `dev`: requiere CI backend/frontend completo y pruebas de contrato.
+   No mezclar cambios que no estén relacionados con la matriz de evaluación.
+3. PR `dev` → `deploy` solo si todos los indicadores de código están aprobados
+   y la evidencia local/CI está indexada. CI también debe correr en este PR.
+4. El push de merge a `deploy` dispara `.github/workflows/cd.yml`. Su job `verify`
+   vuelve a ejecutar pruebas antes de construir/desplegar. Desplegar imágenes por
+   SHA inmutable y conservar el tag de la versión previa para rollback.
+5. Ejecutar smoke/E2E AWS: Gateway/401/200/403, frontend/MSAL, clúster RabbitMQ,
+   colas/DLQ, CRUD admin, salud de servicios y verificación de persistencia.
+6. Solo con todos los resultados aprobados, PR/fast-forward `deploy` → `main` con
+   **el mismo SHA desplegado**; no cambiar código entre aceptación y promoción.
+7. Si falla una validación, no promover a `main`: guardar el resultado fallido,
+   corregir en una nueva rama desde `dev`, repetir pruebas y volver a candidatear.
+8. Borrar la rama corta tras integrar.
 
 ### Sincronización documental sin despliegue
 
@@ -68,5 +74,7 @@ no se excluye automáticamente del disparador de despliegue.
 ## Protecciones recomendadas en GitHub
 
 - Requerir PR y CI verde hacia `dev` y `main`.
-- `deploy`: protegida, solo actualizaciones desde `main`.
+- Requerir CI verde también en PR hacia `deploy`; `deploy` solo recibe desde `dev`.
+- `main`: solo recibe el SHA de `deploy` después de la aceptación AWS.
+- Proteger `deploy` para que el CD no se dispare con un push accidental.
 - Activar "Automatically delete head branches" para las ramas cortas.

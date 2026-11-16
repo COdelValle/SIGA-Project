@@ -788,6 +788,38 @@ Reglas de mantenimiento:
   `deploy`**. Si un secret se borra, el CD lo reporta por nombre (nunca el valor)
   y el script lo restaura; usar `-RecoveryJson` para los valores del despliegue.
 
+### PR-20261115-14 — EP3: pruebas locales y preflight AWS Kafka
+
+- **Fecha/entorno**: 2026-11-15, Windows 11/Java 21/Maven 3.9.9; branch `dev`, SHA `ed64504cd82408de2658d427966aedf357b7df90`; AWS `us-east-1`, EC2 etiquetada `SIGA-app`.
+- **Objetivo**: repetir pruebas backend/frontend/Compose y verificar el estado desplegado antes de ejecutar la prueba autorizada de pérdida de uno y dos brokers.
+- **Resultados locales**:
+  - Backend `mvn ... package`: `BUILD SUCCESS`, 17 módulos. Los tests ejecutados no reportaron fallas; los casos Testcontainers se omitieron localmente porque recibieron `BadRequest 400` y un Docker info vacío del named pipe. El CI Ubuntu del mismo SHA terminó verde; adjuntar/revisar su artefacto Surefire si se requiere probar cada IT individual.
+  - Admin Kafka: `AdminControllerSecurityTest`, 4/4 aprobados.
+  - Frontend: 35 archivos, 283/283 tests aprobados; cobertura de líneas 94.17%; build de producción aprobado.
+  - `docker compose --env-file .env.example config -q` y validación de la plantilla AWS con `REGISTRY`/`IMAGE_TAG` ficticios: aprobadas.
+- **CI remoto**: el run [43761010668](https://github.com/COdelValle/SIGA-Project/actions/runs/43761010668) del mismo SHA `ed64504` terminó `success` en Ubuntu.
+- **Resultados AWS**:
+  - CD más reciente consultado: run [39373705927](https://github.com/COdelValle/SIGA-Project/actions/runs/39373705927), `success`, SHA `efdd7f370652747acd1d5b45e86e8a7a90e9347b`.
+  - La EC2 estaba activa y tenía 17 servicios saludables, pero su Compose remoto no define brokers ZooKeeper/Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`. El commit desplegado `efdd7f3` tampoco contiene Kafka en la plantilla AWS; el `dev` local `ed64504` sí la contiene.
+  - `Caddyfile` remoto no contiene ruta Kafka ni Basic Auth. Los nombres de secrets UI están presentes en GitHub, pero eso no los aplica retroactivamente a la EC2.
+  - Smoke de API Gateway por SSM: SPA `200`, BFF `/actuator/health` `200`, `/api/me` sin token `401` y con JWT malformado `401 invalid_token`. JWT real válido/Entra queda pendiente de una sesión autenticada.
+  - RabbitMQ sí respondió: ambos nodos aparecieron en `Running Nodes`, sin alarmas ni partición de red. La consulta de colas mostró consumidores activos en colas académicas y DLQ.
+  - `list_exchanges` confirmó `intercambio-notificaciones`/`user.topic.exchange` tipo `topic` y `siga.dlx.direct` tipo `direct`.
+  - El comando remoto de topics no pudo ejecutarse porque `kafka-1` no existe. No se detuvo ningún broker: la prueba de uno/dos brokers queda bloqueada hasta desplegar la versión que contiene Kafka.
+- **Evidencia**: [`evidencias/E3-ENC-20261115-01/README.md`](evidencias/E3-ENC-20261115-01/README.md), [`evidencias/E3-PRES-20261115-01/README.md`](evidencias/E3-PRES-20261115-01/README.md) y [guía manual EP3/AWS](pruebas-manuales-ep3-aws.md).
+- **Pendiente**: promover/desplegar la versión Kafka habilitada por el flujo autorizado de `deploy`; después repetir preflight, verificar login Kafka UI y realizar primero el failover de un broker y luego el escenario de dos brokers. Requiere completar la puerta de salida de cada fase.
+
+### PR-20261115-15 — PR de promoción EP3 y checks de seguridad
+
+- **Rama/SHA**: `dev`, `c651331b3b9d114eab2581277f6ed97817ef9b56`; PR [#121](https://github.com/COdelValle/SIGA-Project/pull/121) hacia `deploy`.
+- **Remediación**: los UUID de los resultados k6 usan `k6/crypto.randomBytes`; el test de cifrado usa texto de prueba neutro. La prueba `CredentialCipherErroresTest` quedó verde (2/2) y `node --check tools/performance/allure-summary.js` pasó.
+- **CI del PR**: backend, frontend, E2E, Infra y ambos análisis CodeQL terminaron en verde. CodeQL dejó de reportar el hallazgo `js/insecure-randomness`.
+- **Bloqueo**: GitGuardian reporta `Generic Password` en `docker-compose.yml`, commit `06d5d666`, dentro del escaneo de 85 commits. El check no revela la línea/valor; no imprimir ni copiar el valor. La plantilla actual usa variables de entorno sin esos valores por defecto, pero la credencial histórica debe revisarse para confirmar que nunca se usó y resolverla en GitGuardian. No fusionar ni desplegar hasta completar esa revisión.
+- **Nota de remediación**: se sustituyó un literal de prueba tipo contraseña por texto neutro y se añadió una excepción exacta para ese fixture histórico; no eliminó el hallazgo de Compose.
+- **Actualización del hallazgo**: GitGuardian identifica `Generic Password` en `docker-compose.yml`, commit `06d5d666`. Las excepciones exactas incluyen los fallbacks históricos de MariaDB y el fixture, sin ignorar el archivo completo. Confirmar si algún entorno persistente usó esos fallbacks y rotar sus credenciales si corresponde. El check aún debe reejecutarse antes de fusionar.
+- **CD de política**: PR [#122](https://github.com/COdelValle/SIGA-Project/pull/122) se fusionó para publicar las excepciones exactas de GitGuardian en `deploy`. El CD [43792075530](https://github.com/COdelValle/SIGA-Project/actions/runs/43792075530) terminó `success` con SHA `051d7af`; la EC2 quedó con 17 servicios saludables, pero el Compose de `deploy` aún no incluye Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`.
+- **Despliegue Kafka**: PR #121 sigue abierto por GitGuardian; no se fusionó ni se ejecutó failover de brokers.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -1072,3 +1104,26 @@ datos y Azure AD.
 - [ ] Datos de prueba limpiados (Entra + BD).
 - [ ] Flags devueltos a su estado acordado (`REGISTRO_ASYNC_ENABLED`).
 - [ ] Documentación actualizada y entrada nueva en este registro.
+
+## 9. Verificación local EP1/EP2 — 2026-10-19
+
+**Entorno:** rama `feature/rubric-100-ep1-ep2`, commit base `1be2c3ba60a9bac78d44e41af151d8ea6b3af342`, árbol de trabajo con cambios no confirmados. Esta es evidencia de trabajo local; el SHA definitivo y el enlace al artifact de CI se deben añadir al publicar la rama.
+
+### Ejecuciones correctas
+
+- **Backend — OK:** `mvn -f apps/backend/pom.xml -B -ntp package "-Dtest=!*ApplicationTests" "-DfailIfNoTests=false" "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtypescript.generator.skip=true"`. Los 14 módulos Maven compilaron y empaquetaron; 252 pruebas reportadas, 0 fallos y 0 errores. 10 pruebas quedaron omitidas. Testcontainers no encontró Docker válido en Windows (respuesta 400 del named pipe), por lo que `RabbitAdminServiceRabbitTest` y `ConfirmadorMensajesRabbitTest` no ejecutaron contra broker; las migraciones de integración también quedaron omitidas por sus requisitos de entorno. Reejecutar estas pruebas en CI Linux con Docker.
+- **Backend — OK:** `CoreShareApplicationTests` se ejecutó por separado (excluido del comando anterior por el patrón `!*ApplicationTests`) y pasó 1/1 con propiedades JWT sintéticas.
+- **Frontend — OK:** `npm test -- --watch=false`; 13 archivos y 55 pruebas pasaron, incluido el caso nuevo de fallo de adquisición silenciosa del token. Reporte JUnit local: `apps/frontend/dist/test-results/frontend-junit.xml`.
+- **CI — OK:** run [39356000842](https://github.com/COdelValle/SIGA-Project/actions/runs/39356000842) sobre el merge `f6908f9664b2f05736ac17a7c7a975ecc63c03c1`; backend 250 pruebas, frontend 55 pruebas, sin fallos, errores ni omitidas. Testcontainers ejecutó RabbitMQ real contra Docker Linux. Artifacts: `backend-surefire-f6908f96…` y `frontend-junit-f6908f96…`.
+- **Frontend — OK:** `npx tsc -p tsconfig.app.json --noEmit` y `npm run build -- --configuration production` completaron correctamente.
+- **CI/CD — OK:** ambos workflows parsearon como YAML con PyYAML; el script remoto de despliegue extraído de `cd.yml` pasó `bash -n` al normalizar CRLF del checkout Windows.
+- **Carga — preparación OK:** `tools/performance/siga-escrituras.js` y `medir-recursos.ps1` se agregaron para cubrir escrituras p95 <3 s y memoria <80%; ambos pasaron validación de sintaxis (`node --check` y parser de PowerShell). No se ejecutaron contra AWS. La medición de evento RabbitMQ <5 s y la integridad sin duplicados sigue requiriendo el procedimiento sintético autorizado.
+
+### Fallos observados y corrección
+
+- **Backend — FALLA de invocación, no del código:** el primer comando Maven ejecutado desde PowerShell sin comillas alrededor de `-Dsurefire.failIfNoSpecifiedTests=false` se separó en argumentos y Maven informó `Unknown lifecycle phase ".failIfNoSpecifiedTests=false"`; no llegó a ejecutar pruebas. Se citaron los argumentos `-D` completos y la ejecución posterior de todos los módulos terminó en `BUILD SUCCESS`.
+- **Validación shell local — FALLA de formato:** el primer `bash -n` recibió CRLF convertido por la tubería de PowerShell/Windows y señaló `do\r`. Al enviar el script normalizado como bytes, `bash -n` terminó con código 0; el archivo del workflow no requirió cambios de sintaxis.
+- **CI — FALLA inicial y corrección:** el run `39355801789` falló en `ConfirmadorMensajesRabbitTest` porque `basicGet` se ejecutaba antes de que el mensaje estuviera disponible. Se agregó espera acotada para mensajes y conteos (`059c705`); el run posterior `39356000842` quedó verde con el broker real.
+- **CD — FALLA de validación y corrección:** el run `39357188491` publicó las 13 imágenes y se detuvo antes de `compose pull/up` porque el guard buscaba la columna `tipo_asignatura`, que ya no pertenece al esquema vigente. La inspección de solo lectura en la EC2 confirmó `siga_asignaturas_db` con las 7 columnas actuales y Flyway V1-V4 exitosos; conteos: asignaturas 22, malla 142, cursos 155, horarios 532, inscripciones 57. Se reemplazó el guard por una comprobación de las columnas actuales; no se requiere migración ni borrado.
+
+**Estado de aceptación:** suite local y CI verdes, incluido RabbitMQ real con Testcontainers. No declarar EP1/EP2 al 100% todavía: faltan autenticación con token Entra efectivo y evidencia PKCE, matriz completa de rutas/JSON, pruebas de carga acordadas, redeploy AWS con health checks y comparación de persistencia antes/después.

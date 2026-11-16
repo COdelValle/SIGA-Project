@@ -18,6 +18,8 @@ import cl.siga.coreshare.dto.rabbitmq.SolicitudBindingDTO;
 import cl.siga.coreshare.dto.rabbitmq.SolicitudColaDTO;
 import cl.siga.coreshare.dto.rabbitmq.SolicitudExchangeDTO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -30,6 +32,9 @@ import lombok.RequiredArgsConstructor;
 @Validated
 public class RabbitMqAdminController {
 
+    private static final String REGEX_NOMBRE = "^[a-zA-Z0-9._-]+$";
+    private static final String MSG_ERROR = "El nombre no puede estar vacío, ni contener espacios o caracteres especiales";
+
     private final RabbitMqAdminBffService service;
 
     @PostMapping("/queues")
@@ -41,13 +46,13 @@ public class RabbitMqAdminController {
 
     @GetMapping("/queues/{nombre}")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:read')")
-    public ResponseEntity<EstadoColaDTO> estadoCola(@PathVariable String nombre) {
+    public ResponseEntity<EstadoColaDTO> estadoCola(@PathVariable @NotBlank (message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String nombre) {
         return ResponseEntity.ok(service.estadoCola(nombre));
     }
 
     @DeleteMapping("/queues/{nombre}")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
-    public ResponseEntity<Void> eliminarCola(@PathVariable String nombre) {
+    public ResponseEntity<Void> eliminarCola(@PathVariable @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String nombre) {
         service.eliminarCola(nombre);
         return ResponseEntity.noContent().build();
     }
@@ -61,7 +66,7 @@ public class RabbitMqAdminController {
 
     @DeleteMapping("/exchanges/{nombre}")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
-    public ResponseEntity<Void> eliminarExchange(@PathVariable String nombre) {
+    public ResponseEntity<Void> eliminarExchange(@PathVariable @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String nombre) {
         service.eliminarExchange(nombre);
         return ResponseEntity.noContent().build();
     }
@@ -76,8 +81,8 @@ public class RabbitMqAdminController {
     @DeleteMapping("/bindings")
     @PreAuthorize("hasRole('ADMIN') and hasAuthority('SCOPE_usuarios:delete')")
     public ResponseEntity<Void> eliminarBinding(
-            @RequestParam String cola,
-            @RequestParam String exchange,
+            @RequestParam @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String cola,
+            @RequestParam @NotBlank(message = MSG_ERROR) @Pattern(regexp = REGEX_NOMBRE, message = MSG_ERROR) String exchange,
             @RequestParam(required = false) String routingKey) {
         service.eliminarBinding(cola, exchange, routingKey);
         return ResponseEntity.noContent().build();

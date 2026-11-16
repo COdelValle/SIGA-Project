@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
+import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
+import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -87,6 +90,10 @@ public class NotificationOutboxDispatcher {
             case "EventoEvaluacion" -> objectMapper.readValue(payload, EventoEvaluacion.class);
             case "EventoNota" -> objectMapper.readValue(payload, EventoNota.class);
             case "EventoAsistencia" -> objectMapper.readValue(payload, EventoAsistencia.class);
+            case "EventoRiesgoAsistencia" -> objectMapper.readValue(payload, EventoRiesgoAsistencia.class);
+            case "EventoRiesgoRendimiento" -> objectMapper.readValue(payload, EventoRiesgoRendimiento.class);
+            case "EventoCambioEstadoAcademico" ->
+                objectMapper.readValue(payload, EventoCambioEstadoAcademico.class);
             default -> throw new IllegalArgumentException("Tipo de evento de notificación desconocido: " + tipo);
         };
     }

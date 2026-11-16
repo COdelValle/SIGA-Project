@@ -40,6 +40,7 @@ import cl.siga.coreshare.dto.notas.ActualizarNotaRequestDTO;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notas.RegistrarNotaRequestDTO;
 import cl.siga.coreshare.enums.AreaAcademica;
+import cl.siga.coreshare.exception.ResourceNotFoundException;
 
 class NotaBffServiceTest {
 
@@ -134,6 +135,41 @@ class NotaBffServiceTest {
         verify(notaClient).deleteNota(7L);
     }
 
+    @Test
+    void getCursoNotasSinClaseNoConsultaAlumnos() {
+        autenticarAdmin();
+        CursoAsignaturaResponseDTO sinClase = new CursoAsignaturaResponseDTO(
+            3L, 4L, "Taller", "taller", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.ELECTIVA, Semestre.SEMESTRE_1, 1L, null, null, null, 0, List.of());
+        when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(sinClase);
+        when(evaluacionClient.searchEvaluacionesByAsignatura(eq(3L), anyInt()))
+            .thenReturn(new PageResponseDTO<>(null, 0, 0, 100, 0, true, true, true));
+
+        var curso = service.getCursoNotas(3L);
+
+        assertThat(curso.curso()).isEqualTo("Taller");
+        assertThat(curso.evaluaciones()).isEmpty();
+        assertThat(curso.alumnos()).isEmpty();
+    }
+
+    @Test
+    void editarNotaFallaCuandoLaNotaNoExiste() {
+        when(notaClient.getNotaById(99L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.editarNota(99L, new ActualizarNotaRequestDTO(6.0)))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Nota con ID 99 no encontrada.");
+    }
+
+    @Test
+    void crearNotaFallaCuandoLaEvaluacionNoExiste() {
+        when(evaluacionClient.getEvaluacionById(99L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.crearNota(new RegistrarNotaRequestDTO(1L, 99L, 6.0)))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessage("Evaluación con ID 99 no encontrada.");
+    }
+
     private void cuandoEsDuenio() {
         when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente(1L, "oid-alejandro"));
@@ -143,6 +179,12 @@ class NotaBffServiceTest {
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").claim("oid", oid).build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
             jwt, List.of(new SimpleGrantedAuthority("ROLE_DOCENTE"))));
+    }
+
+    private static void autenticarAdmin() {
+        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").claim("oid", "oid-admin").build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+            jwt, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     private static DocenteResponseDTO docente(Long id, String oid) {

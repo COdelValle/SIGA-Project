@@ -2,7 +2,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { APP_CONFIG } from '@siga/core';
-import { CursoNotas, DocenteNotasService, EvaluacionNotas } from './docente-notas.service';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  CursoNotas,
+  DocenteNotasService,
+  EvaluacionNotas,
+  NotaCurso,
+} from './docente-notas.service';
 
 function configurar(useMocks: boolean): void {
   TestBed.configureTestingModule({
@@ -169,5 +175,81 @@ describe('DocenteNotasService (modo demo)', () => {
 
     expect(evaluaciones).toBe(3);
     http.expectNone('/api/bff/v1/docentes/cursos/3/notas');
+  });
+});
+
+describe('DocenteNotasService (modo demo, operaciones)', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  function servicioDemo() {
+    configurar(true);
+    return TestBed.inject(DocenteNotasService);
+  }
+
+  it('crea, edita y elimina notas sobre el set demo', () => {
+    const service = servicioDemo();
+    let curso: CursoNotas | undefined;
+    service.getCursoNotas(3).subscribe((valor) => (curso = valor));
+    const alumno = curso!.alumnos[0];
+    const evaluacion = curso!.evaluaciones[1];
+
+    let creada: NotaCurso | undefined;
+    service.crearNota(alumno.id, evaluacion.id, 6.5).subscribe((valor) => (creada = valor));
+    expect(creada?.score).toBe(6.5);
+    expect(alumno.notas.some((nota) => nota.id === creada?.id)).toBe(true);
+
+    let editada: NotaCurso | undefined;
+    service.editarNota(creada!.id, 5.8).subscribe((valor) => (editada = valor));
+    expect(editada?.score).toBe(5.8);
+
+    service.eliminarNota(creada!.id).subscribe();
+    expect(alumno.notas.some((nota) => nota.id === creada?.id)).toBe(false);
+  });
+
+  it('crea, edita y elimina evaluaciones sobre el set demo', () => {
+    const service = servicioDemo();
+    let curso: CursoNotas | undefined;
+    service.getCursoNotas(3).subscribe((valor) => (curso = valor));
+
+    let creada: EvaluacionNotas | undefined;
+    service
+      .crearEvaluacion(3, { nombre: 'PRUEBA 2', tipo: 'SUMATIVA', ponderacion: 40 })
+      .subscribe((valor) => (creada = valor));
+    expect(creada?.id).toBeLessThan(0);
+    expect(curso?.evaluaciones.some((item) => item.id === creada?.id)).toBe(true);
+
+    let editada: EvaluacionNotas | undefined;
+    service
+      .editarEvaluacion(creada!.id, { nombre: 'PRUEBA 2B', tipo: 'FORMATIVA', ponderacion: 0 })
+      .subscribe((valor) => (editada = valor));
+    expect(editada?.nombre).toBe('PRUEBA 2B');
+
+    const evaluacion = curso!.evaluaciones[0];
+    service.eliminarEvaluacion(evaluacion.id).subscribe();
+    expect(curso?.evaluaciones.some((item) => item.id === evaluacion.id)).toBe(false);
+    expect(curso?.alumnos.every((item) => item.notas.every((nota) => nota.idEvaluacion !== evaluacion.id))).toBe(true);
+  });
+
+  it('usa valores por defecto para cursos y entidades desconocidas', () => {
+    const service = servicioDemo();
+    let curso: CursoNotas | undefined;
+    service.getCursoNotas(999).subscribe((valor) => (curso = valor));
+
+    expect(curso?.curso).toBe('Curso 999');
+    expect(curso?.alumnos).toEqual([]);
+
+    let nota: NotaCurso | undefined;
+    service.crearNota(123456, 99, 4).subscribe((valor) => (nota = valor));
+    expect(nota).toEqual({ id: expect.any(Number), idEvaluacion: 99, score: 4 });
+
+    let editada: NotaCurso | undefined;
+    service.editarNota(-999, 6).subscribe((valor) => (editada = valor));
+    expect(editada).toEqual({ id: -999, idEvaluacion: 0, score: 6 });
+
+    let evaluacion: EvaluacionNotas | undefined;
+    service
+      .editarEvaluacion(-999, { nombre: 'X', tipo: 'FORMATIVA', ponderacion: 0 })
+      .subscribe((valor) => (evaluacion = valor));
+    expect(evaluacion).toEqual({ id: -999, nombre: 'X', tipo: 'FORMATIVA', ponderacion: 0 });
   });
 });

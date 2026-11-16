@@ -1,6 +1,7 @@
 package cl.siga.msasistencias.mensajeria;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -47,5 +48,56 @@ class PublicadorAsistenciaTest {
         assertThat(evento.getValue().porcentajeInasistencia()).isEqualTo(60.0);
         assertThat(evento.getValue().superaUmbralInasistencia()).isTrue();
         assertThat(evento.getValue().nombreAsignatura()).isEqualTo("Matemática");
+    }
+
+    @Test
+    void noConsultaLaDictacionCuandoLaAsistenciaNoTieneCursoAsignatura() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, null,
+            LocalDate.of(2026, 10, 7), State.AUSENTE, Justificacion.PENDIENTE, null);
+
+        publicador.publicarRegistrada(asistencia, 70.0, true);
+
+        ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+        verify(asignaturaClient, org.mockito.Mockito.never()).getCursoAsignaturaById(any());
+    }
+
+    @Test
+    void publicaConNombreNuloCuandoLaDictacionNoExiste() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        when(asignaturaClient.getCursoAsignaturaById(4L)).thenReturn(null);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, 4L,
+            LocalDate.of(2026, 10, 7), State.ATRASADO, Justificacion.PENDIENTE, null);
+
+        publicador.publicarRegistrada(asistencia, 40.0, false);
+
+        ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
+    }
+
+    @Test
+    void publicaAunqueFalleElNombreDeLaAsignatura() {
+        NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
+        AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
+        when(asignaturaClient.getCursoAsignaturaById(4L)).thenThrow(new RuntimeException("ms caído"));
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, 4L,
+            LocalDate.of(2026, 10, 7), State.AUSENTE, Justificacion.PENDIENTE, null);
+
+        publicador.publicarRegistrada(asistencia, 60.0, true);
+
+        ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
+        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
+            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        assertThat(evento.getValue().nombreAsignatura()).isNull();
     }
 }

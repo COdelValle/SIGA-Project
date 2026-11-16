@@ -3,17 +3,21 @@ package cl.siga.bffweb.integration.rabbitmq;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
+import cl.siga.bffweb.integration.FeignErrorTranslator;
 import cl.siga.coreshare.dto.rabbitmq.EstadoColaDTO;
 import cl.siga.coreshare.dto.rabbitmq.SolicitudBindingDTO;
 import cl.siga.coreshare.dto.rabbitmq.SolicitudColaDTO;
 import cl.siga.coreshare.dto.rabbitmq.SolicitudExchangeDTO;
-import cl.siga.coreshare.exception.FeignFallbacks;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class RabbitMqAdminClientFallbackFactory implements FallbackFactory<RabbitMqAdminClient> {
+
+    private final FeignErrorTranslator translator;
 
     @Override
     public RabbitMqAdminClient create(Throwable causa) {
@@ -56,7 +60,7 @@ public class RabbitMqAdminClientFallbackFactory implements FallbackFactory<Rabbi
             private RuntimeException error(String mensaje) {
                 log.error("Fallo al llamar a ms-rabbitmq-admin (HTTP {}): {}",
                     causa instanceof FeignException feign ? feign.status() : -1, causa.getMessage());
-                return FeignFallbacks.noDisponible(causa, mensaje);
+                return translator.traducir(causa, mensaje);
             }
         };
     }

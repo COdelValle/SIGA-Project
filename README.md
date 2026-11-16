@@ -8,9 +8,12 @@ separados por dominio, con persistencia *database-per-service* en MariaDB.
 - **Backend**: `apps/backend` (Maven multi-módulo, Spring Boot 3.5, Java 21).
 - **Infraestructura**: `infra/terraform` (AWS Academy Learner Lab: EC2, EBS, ECR y API Gateway HTTP API).
 - **Documentación detallada**: [`docs/`](docs/README.md).
+- **Reporte de pruebas (Allure 3)**: [`https://codelvalle.github.io/SIGA-Project/`](https://codelvalle.github.io/SIGA-Project/)
+  - Guia de ejecucion y contratos: [`docs/testing.md`](docs/testing.md).
 
-> Estado del repositorio: el backend contiene los dominios académicos, el BFF y
-> los flujos asíncronos de registro/notificaciones RabbitMQ. El frontend dispone
+> Estado del repositorio: el backend contiene los dominios académicos, el BFF,
+> los flujos de registro/notificaciones RabbitMQ y la proyección analítica Kafka
+> de asistencia/rendimiento en `ms-reportes`. El frontend dispone
 > de portales por rol y consume datos reales del BFF para los recursos que tienen
 > endpoint. `useMocks` está desactivado por defecto; los mocks se usan en modo demo
 > explícito o como constantes, no como fallback automático de una petición fallida.
@@ -32,6 +35,7 @@ flowchart LR
     B --> H[MS Asistencias]
     B --> T[MS Notificaciones]
     B --> R[MS RabbitMQ Admin]
+    B --> M[MS Reportes]
     B -. Feign .-> A
     B -. Feign .-> E
     B -. Feign .-> S
@@ -40,15 +44,21 @@ flowchart LR
     B -. Feign .-> H
     B -. Feign .-> T
     B -. Feign .-> R
+    B -. Feign .-> M
     N -. "Feign: exists" .-> E
     N -. "Feign: exists" .-> S
     V -. "Feign: dictación" .-> S
     H -. "Feign: estudiante/dictación" .-> E
     H -. "Feign: dictación" .-> S
+    N -. "siga.academico.rendimiento" .-> K[(Kafka topics)]
+    H -. "siga.academico.asistencias" .-> K
+    K --> M
+    M --> DM[(BD reportes)]
     V -. outbox .-> Q[(RabbitMQ cluster)]
     N -. outbox .-> Q
     H -. outbox .-> Q
     Q -. listeners .-> T
+    M -. alertas .-> Q
     A --> DA[(BD usuarios)]
     E --> DE[(BD estudiantes)]
     S --> DS[(BD asignaturas)]
@@ -68,7 +78,7 @@ Feign. La documentación completa de la arquitectura está en
 | Frontend | Angular 22.1, TypeScript 6, RxJS 7.8, MSAL Angular v6, Tailwind CSS 4, Nx, Vitest |
 | Backend | Java 21, Spring Boot 3.5.0, Spring Cloud 2025.0.0 (OpenFeign), Resilience4j, Spring Security OAuth2, JPA/Hibernate, MapStruct, Lombok, springdoc (Swagger/Scalar) |
 | Persistencia | MariaDB 11.4 (una base por microservicio), Flyway |
-| Mensajería/contratos | HTTP + Feign y RabbitMQ; DTOs/topologías comunes en `core-share` |
+| Mensajería/contratos | HTTP + Feign, RabbitMQ para colas/notificaciones y Kafka para eventos analíticos; DTOs/nombres comunes en `core-share` |
 | Infra | Docker Compose (local), Terraform (AWS), GitHub Actions (CI/CD) |
 
 ## Estructura del repositorio
@@ -89,7 +99,9 @@ SIGA-Project/
 │   │   ├── ms-evaluaciones/      # evaluaciones por asignatura
 │   │   ├── ms-asistencias/       # asistencias por estudiante y asignatura
 │   │   ├── ms-notificaciones/    # bandeja in-app que consume eventos académicos
-│   │   └── ms-rabbitmq-admin/    # API REST de administración de RabbitMQ
+│   │   ├── ms-reportes/          # proyecciones de asistencia/rendimiento desde Kafka
+│   │   ├── ms-rabbitmq-admin/    # API REST de administración de RabbitMQ
+│   │   └── ms-kafka-admin/       # API REST de topics, brokers y consumer groups
 │   └── frontend/                 # Angular + Nx (ver apps/frontend/README.md)
 ├── docs/                         # documentación (ver docs/README.md)
 │   └── microservicios/           # fichas técnicas por servicio, BFF y core-share
@@ -114,7 +126,7 @@ cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 #    Completar MARIADB_ROOT_PASSWORD, DB_USER, DB_PASS, RABBITMQ_USER/PASS,
 #    RABBITMQ_ERLANG_COOKIE (clúster) y las variables AZURE_*
 
-# 2. Levantar todo el stack (bases, microservicios, BFF, RabbitMQ y frontend)
+# 2. Levantar todo el stack (bases, microservicios, BFF, RabbitMQ, Kafka y frontend)
 docker compose up -d --build
 
 # 3. Ver estado y logs
@@ -129,6 +141,9 @@ Accesos del entorno local:
 | Frontend (SPA) | http://localhost:4200 |
 | BFF Web | http://localhost:8080 |
 | RabbitMQ (management) | http://localhost:15672 |
+| Kafka UI (local) | http://localhost:8096 |
+| API admin Kafka | http://localhost:8095/docs/swagger |
+| API reportes | http://localhost:8093/docs/swagger |
 | Swagger BFF | http://localhost:8080/docs/swagger |
 | Scalar BFF | http://localhost:8080/docs/scalar |
 | Swagger usuarios | http://localhost:8081/docs/swagger |
@@ -154,6 +169,10 @@ Accesos del entorno local:
 | `ms-asistencias` | 8090 | Asistencias por estudiante/asignatura (soft delete y unique por fecha). |
 | `ms-notificaciones` | 8091 | Bandeja de notificaciones in-app para estudiantes y apoderados; consume eventos académicos. |
 | `ms-rabbitmq-admin` | 8092 | API REST para administrar colas, exchanges y bindings de RabbitMQ. |
+| `ms-reportes` | 8093 | Consume topics Kafka y expone proyecciones de asistencia/rendimiento. |
+| `ms-kafka-admin` | 8095 | Administra topics, configuraciones, brokers, consumer groups, offsets y lag. |
+| `kafka-ui` | 8096 | UI local del clúster Kafka; en AWS se publica por Caddy con Basic Auth. |
+| `kafka-1` / `kafka-2` / `kafka-3` | interno 29092; host 9092/9093/9094 | Brokers Kafka; tres ZooKeeper internos coordinan el clúster. |
 | `rabbitmq1` / `rabbitmq2` | interno 5672; host 5672/15672 en `rabbitmq1` | Clúster de dos nodos en la misma EC2; Management UI solo se publica desde `rabbitmq1`. |
 | `mariadb-*` | interno | Una instancia MariaDB por microservicio (10 bases). |
 
@@ -238,16 +257,16 @@ Detalles de la topología AWS y secretos en
 ## Flujo de trabajo (ramas)
 
 ```text
-feature/*  ->  dev  ->  main  ->  deploy
-                                 (dispara CD)
+feature/*  ->  dev  ->  deploy  ->  main
+                         (CD + AWS)  (solo tras aceptación AWS)
 ```
 
-- `dev`: integración. `main`: estable. `deploy`: dispara el despliegue (CD).
+- `dev`: integración. `deploy`: candidato de release y despliegue AWS. `main`:
+  release estable, se actualiza con el mismo SHA solo después de aceptar AWS.
 - Ramas cortas `feature/*` y `fix/*` se eliminan al integrar.
-- CI corre en push a `dev`, `main` y `deploy`, y en PR a `dev`/`main`.
-- CD se dispara por push a `deploy` o manualmente con `workflow_dispatch`. Un push
-  de solo documentación a `deploy` también dispara CD mientras el workflow esté
-  activo; consultar `docs/branch-cleanup.md`/README de infraestructura antes de
-  sincronizar ramas sin despliegue.
+- CI corre en push a `dev`, `main` y `deploy`, y en PR a `dev`/`deploy`/`main`.
+- CD se dispara por push a `deploy` o manualmente con `workflow_dispatch`; ejecuta
+  su propia puerta de calidad antes de publicar imágenes. Un push de solo
+  documentación a `deploy` también dispara CD mientras el workflow esté activo.
 
 Ver [`docs/branch-cleanup.md`](docs/branch-cleanup.md).

@@ -10,7 +10,7 @@ El inventario de módulos/puertos, comandos y catálogo de endpoints permanece e
 
 El POM padre [`apps/backend/pom.xml`](../apps/backend/pom.xml) fija Java 21 y Spring Boot 3.5.0. Gestiona Spring Cloud 2025.0.0, Azure Spring 5.18.0, Springdoc 2.8.14 y MapStruct 1.5.5; configura procesamiento de anotaciones Lombok/MapStruct y dependencias de test comunes. Cada POM de módulo declara sus propios starters; no asumir que todo el classpath común está declarado directamente.
 
-Tecnologías transversales: Spring MVC, Spring Security + OAuth2 Resource Server, Spring Data JPA/Hibernate, MariaDB, Flyway, OpenFeign/Resilience4j donde aplica, MapStruct, Lombok, Actuator, OpenAPI y RabbitMQ AMQP en componentes participantes.
+Tecnologías transversales: Spring MVC, Spring Security + OAuth2 Resource Server, Spring Data JPA/Hibernate, MariaDB, Flyway, OpenFeign/Resilience4j donde aplica, MapStruct, Lombok, Actuator, OpenAPI y RabbitMQ AMQP en componentes participantes. El resource server compartido usa `NimbusJwtDecoder` con JWKS Entra, issuer/audience y validación temporal explícitos, y convierte claims `scp`/`roles` a authorities Spring.
 
 ## Patrones de arquitectura
 

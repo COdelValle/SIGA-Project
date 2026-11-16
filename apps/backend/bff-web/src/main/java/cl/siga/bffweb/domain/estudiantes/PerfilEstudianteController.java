@@ -19,6 +19,8 @@ public class PerfilEstudianteController {
 
     /** Perfil del estudiante autenticado (resuelve el oid del token). */
     @GetMapping ("/perfil/me")
+    @PreAuthorize("hasRole('ESTUDIANTE') and hasAuthority('SCOPE_estudiantes:read') "
+        + "and hasAuthority('SCOPE_asignaturas:read') and hasAuthority('SCOPE_notas:read')")
     public ResponseEntity<PerfilEstudianteResponseDTO> getPerfilMe() {
         return ResponseEntity.ok(service.getPerfilMe());
     }

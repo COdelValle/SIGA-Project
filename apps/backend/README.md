@@ -81,6 +81,8 @@ mvn -f apps/backend/pom.xml -pl ms-usuarios-auth test -Dtest=UsuarioServiceTest
 | `GET` | `/api/bff/v1/admin/registraciones/{processId}/credencial` | `ADMIN` + `SCOPE_usuarios:read` | Credencial temporal de un solo uso (solo el admin iniciador). |
 | `POST` | `/api/bff/v1/admin/usuarios/{idUsuario}/reset-password` | `ADMIN` + `SCOPE_usuarios:update` | Regenera la clave temporal (requiere el rol User Administrator en Graph). |
 | `GET` | `/api/bff/v1/asistencias/estudiante/me` · `/{id}` | `SCOPE_asistencias:read` (ownership para `{id}`) | Asistencias del estudiante autenticado, de un pupilo vinculado o de un docente. |
+| `GET` | `/api/bff/v1/reportes/asistencia?idEstudiante=&idCursoAsignatura=&from=&to=` | `SCOPE_asistencias:read` | Indicadores de asistencia proyectados, filtrables por estudiante, curso y período. |
+| `GET` | `/api/bff/v1/reportes/rendimiento?idEstudiante=&idCursoAsignatura=&from=&to=` | `SCOPE_notas:read` | Indicadores de rendimiento proyectados, filtrables por estudiante, curso y período. |
 | `GET` | `/api/bff/v1/asistencias/asignatura/{id}?fecha=` | `DOCENTE` + `SCOPE_asistencias:read` (ownership) | Asistencias de una asignatura en una fecha, para el docente dueño. |
 | `POST` | `/api/bff/v1/asistencias` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:write` (ownership) | Registra asistencia. |
 | `PUT` | `/api/bff/v1/asistencias/{id}` | `ADMIN`/`DOCENTE` + `SCOPE_asistencias:update` (ownership) | Actualiza justificación/observación y, opcionalmente, el estado. |
@@ -264,7 +266,8 @@ se revisa en [`docs/testing-login.md`](../../docs/testing-login.md).
 
 Variables principales: `MARIADB_ROOT_PASSWORD`, `DB_USER`, `DB_PASS`,
 `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_APP_ID_URI`, `AZURE_CLIENT_SECRET`,
-`AZURE_API_APP_ID`, `MS_USUARIOS_URL`, `MS_ESTUDIANTES_URL`,
+`AZURE_API_APP_ID`, `AZURE_JWT_ISSUER` (opcional), `AZURE_JWKS_URI` (opcional),
+`AZURE_JWT_AUDIENCES` (opcional CSV), `MS_USUARIOS_URL`, `MS_ESTUDIANTES_URL`,
 `MS_ASIGNATURAS_URL`, `MS_NOTAS_URL`, `MS_DOCENTES_URL`, `MS_CLASES_URL`,
 `MS_EVALUACIONES_URL`, `MS_ASISTENCIAS_URL`, `RABBITMQ_USER`, `RABBITMQ_PASS`,
 `REGISTRO_ASYNC_ENABLED`, `REGISTRO_CRED_KEY`,
