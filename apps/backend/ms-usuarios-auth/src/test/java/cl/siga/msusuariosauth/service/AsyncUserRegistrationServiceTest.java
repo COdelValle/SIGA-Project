@@ -40,7 +40,7 @@ import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.integration.estudiantes.EstudianteDirectory;
 import cl.siga.msusuariosauth.integration.graph.GraphUserDirectory;
@@ -78,6 +78,7 @@ class AsyncUserRegistrationServiceTest {
     private CredentialCipher credentialCipher;
 
     private final RegistroAsyncProperties properties = new RegistroAsyncProperties();
+    private final RegistroMensajeriaProperties messagingProperties = new RegistroMensajeriaProperties();
     private final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
     private AsyncUserRegistrationService service;
@@ -86,6 +87,8 @@ class AsyncUserRegistrationServiceTest {
     void setUp() {
         properties.setEnabled(true);
         properties.setCredentialKey("irrelevante-para-este-test");
+        messagingProperties.setExchange("user.topic.exchange");
+        messagingProperties.setRkAzureSync("user.registration.azure");
         service = new AsyncUserRegistrationService(
                 processRepository,
                 attemptRepository,
@@ -97,6 +100,7 @@ class AsyncUserRegistrationServiceTest {
                 stateService,
                 credentialCipher,
                 properties,
+                messagingProperties,
                 objectMapper,
                 new EmailInstitucionalGenerator(properties));
     }
@@ -152,7 +156,7 @@ class AsyncUserRegistrationServiceTest {
 
         ArgumentCaptor<RegistrationOutboxEvent> outbox = ArgumentCaptor.forClass(RegistrationOutboxEvent.class);
         verify(outboxRepository).save(outbox.capture());
-        assertEquals(RegistrationMessagingConstants.RK_AZURE_SYNC, outbox.getValue().getRoutingKey());
+        assertEquals(messagingProperties.getRkAzureSync(), outbox.getValue().getRoutingKey());
         assertTrue(outbox.getValue().getPayload().contains(EMAIL));
         verify(estudianteDirectory, never()).validarVinculos(any());
     }

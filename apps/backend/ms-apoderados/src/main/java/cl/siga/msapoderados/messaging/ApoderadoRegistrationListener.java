@@ -13,8 +13,9 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.payload.DatosRegistroApoderadoDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import cl.siga.coreshare.messaging.MessagingHeaders;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
 import cl.siga.msapoderados.repository.ApoderadoRepository;
 import cl.siga.msapoderados.service.ApoderadoService;
@@ -39,25 +40,26 @@ public class ApoderadoRegistrationListener {
     private final ApoderadoRepository apoderadoRepository;
     private final RegistrationStatusPublisher statusPublisher;
     private final ConfirmadorMensajes confirmador;
+    private final RegistroMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_QUEUE)
+    @RabbitListener(queues = "${siga.mensajeria.registro.apoderados-queue}")
     public void handle(
             UserRegistrationEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
         String correlacion = (correlationId != null && !correlationId.isBlank())
                 ? correlationId
                 : event.correlationId();
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_QUEUE,
+        confirmador.procesar(canal, etiqueta, propiedades.getApoderadosQueue(),
             () -> RegistrationCorrelation.ejecutar(correlacion, () -> procesar(event)));
     }
 
-    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_DLQ)
+    @RabbitListener(queues = "${siga.mensajeria.registro.apoderados-dlq}")
     public void handleDlq(UserRegistrationEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_DLQ,
+        confirmador.procesar(canal, etiqueta, propiedades.getApoderadosDlq(),
             () -> statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,
                 "Se agotaron los reintentos creando el perfil de apoderado."));
     }

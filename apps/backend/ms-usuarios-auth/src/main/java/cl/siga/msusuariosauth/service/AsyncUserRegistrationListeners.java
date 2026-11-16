@@ -10,8 +10,9 @@ import org.springframework.stereotype.Component;
 import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
 import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import cl.siga.coreshare.messaging.MessagingHeaders;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -29,40 +30,41 @@ public class AsyncUserRegistrationListeners {
 
     private final AsyncUserRegistrationService service;
     private final ConfirmadorMensajes confirmador;
+    private final RegistroMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_QUEUE)
+    @RabbitListener(queues = "${siga.mensajeria.registro.azure-queue}")
     public void handleAzureSync(
             UserRegistrationEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_QUEUE,
+        confirmador.procesar(canal, etiqueta, propiedades.getAzureQueue(),
             () -> conCorrelacion(correlationId, event.correlationId(), () -> service.processAzureSync(event)));
     }
 
-    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_DLQ)
+    @RabbitListener(queues = "${siga.mensajeria.registro.azure-dlq}")
     public void handleAzureDlq(UserRegistrationEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_DLQ,
+        confirmador.procesar(canal, etiqueta, propiedades.getAzureDlq(),
             () -> conCorrelacion(null, event.correlationId(), () -> service.procesarAzureDlq(event)));
     }
 
-    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_QUEUE)
+    @RabbitListener(queues = "${siga.mensajeria.registro.status-queue}")
     public void handleDomainStatus(
             UserRegistrationStepResultEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_QUEUE,
+        confirmador.procesar(canal, etiqueta, propiedades.getStatusQueue(),
             () -> conCorrelacion(correlationId, null, () -> service.processDomainStepStatus(event)));
     }
 
-    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_DLQ)
+    @RabbitListener(queues = "${siga.mensajeria.registro.status-dlq}")
     public void handleStatusDlq(UserRegistrationStepResultEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_DLQ,
+        confirmador.procesar(canal, etiqueta, propiedades.getStatusDlq(),
             () -> conCorrelacion(null, null, () -> service.procesarStatusDlq(event)));
     }
 

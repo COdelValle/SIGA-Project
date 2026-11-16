@@ -16,7 +16,9 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 
 class RegistrationMessagingConfigExtraTest {
 
-    private final RegistrationMessagingConfig config = new RegistrationMessagingConfig();
+    private final RegistrationMessagingConfig config = new RegistrationMessagingConfig(
+        RegistrationMessagingConfigTest.registro(),
+        RegistrationMessagingConfigTest.notificaciones());
 
     @Test
     void creaElPublicadorDeEstadoConElRabbitTemplate() {

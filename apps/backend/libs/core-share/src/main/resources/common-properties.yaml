@@ -18,6 +18,60 @@ spring:
       pageable:
         default-page-size: 20
         max-page-size: 100
+
+# Nombres de la mensajería. Se pueden sobrescribir en el application.yaml de
+# cada servicio o con variables de entorno (Spring relaxed binding).
+siga:
+  mensajeria:
+    registro:
+      exchange: user.topic.exchange
+      azure-queue: user.azure.sync.queue
+      estudiantes-queue: ms.estudiantes.queue
+      docentes-queue: ms.docentes.queue
+      apoderados-queue: ms.apoderados.queue
+      status-queue: user.registration.status.queue
+      credentials-queue: user.credentials.notify.queue
+      azure-dlq: user.azure.sync.dlq
+      estudiantes-dlq: ms.estudiantes.dlq
+      docentes-dlq: ms.docentes.dlq
+      apoderados-dlq: ms.apoderados.dlq
+      status-dlq: user.registration.status.dlq
+      credentials-dlq: user.credentials.notify.dlq
+      rk-azure-sync: user.registration.azure
+      rk-register-estudiante: user.register.estudiante
+      rk-register-docente: user.register.docente
+      rk-register-apoderado: user.register.apoderado
+      rk-status: user.registration.status
+      rk-credentials-notify: user.credentials.notify
+      header-correlation-id: X-Correlation-Id
+    notificaciones:
+      exchange-notificaciones: intercambio-notificaciones
+      exchange-dlq: siga.dlx.direct
+      cola-evaluaciones: cola-notificaciones-evaluaciones
+      dlq-evaluaciones: cola-notificaciones-evaluaciones.dlq
+      cola-asistencias: cola-notificaciones-asistencias
+      dlq-asistencias: cola-notificaciones-asistencias.dlq
+      cola-notas: cola-notificaciones-notas
+      dlq-notas: cola-notificaciones-notas.dlq
+      cola-riesgo-inasistencia: cola-notificaciones-riesgo-inasistencia
+      dlq-riesgo-inasistencia: cola-notificaciones-riesgo-inasistencia.dlq
+      cola-riesgo-rendimiento: cola-notificaciones-riesgo-rendimiento
+      dlq-riesgo-rendimiento: cola-notificaciones-riesgo-rendimiento.dlq
+      cola-cambio-estado-academico: cola-notificaciones-cambio-estado
+      dlq-cambio-estado-academico: cola-notificaciones-cambio-estado.dlq
+      patron-evaluacion: "evaluacion.*"
+      patron-asistencia: "asistencia.*"
+      patron-nota: "nota.*"
+      clave-evaluacion-creada: evaluacion.creada
+      clave-evaluacion-actualizada: evaluacion.actualizada
+      clave-evaluacion-eliminada: evaluacion.eliminada
+      clave-asistencia-registrada: asistencia.registrada
+      clave-riesgo-inasistencia: riesgo.inasistencia
+      clave-riesgo-rendimiento: riesgo.rendimiento
+      clave-cambio-estado-academico: riesgo.estado-academico
+      clave-nota-creada: nota.creada
+      clave-nota-actualizada: nota.actualizada
+
 # Incluye el correlation id (MDC) en el nivel de cada log.
 logging:
   pattern:

@@ -37,7 +37,7 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.model.entity.InvitacionUsuario;
 import cl.siga.msusuariosauth.model.entity.OutboxEventState;
@@ -78,12 +78,18 @@ class RegistrationStateServiceTest {
     private CredentialCipher credentialCipher;
 
     private final RegistroAsyncProperties properties = new RegistroAsyncProperties();
+    private final RegistroMensajeriaProperties messagingProperties = new RegistroMensajeriaProperties();
     private final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
     private RegistrationStateService service;
 
     @BeforeEach
     void setUp() {
+        messagingProperties.setExchange("user.topic.exchange");
+        messagingProperties.setRkRegisterEstudiante("user.register.estudiante");
+        messagingProperties.setRkRegisterDocente("user.register.docente");
+        messagingProperties.setRkRegisterApoderado("user.register.apoderado");
+        messagingProperties.setRkCredentialsNotify("user.credentials.notify");
         service = new RegistrationStateService(
                 processRepository,
                 attemptRepository,
@@ -93,6 +99,7 @@ class RegistrationStateServiceTest {
                 invitacionRepository,
                 credentialCipher,
                 properties,
+                messagingProperties,
                 objectMapper);
         when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(processRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -155,7 +162,7 @@ class RegistrationStateServiceTest {
 
         ArgumentCaptor<RegistrationOutboxEvent> outbox = ArgumentCaptor.forClass(RegistrationOutboxEvent.class);
         verify(outboxRepository).save(outbox.capture());
-        assertEquals(RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE, outbox.getValue().getRoutingKey());
+        assertEquals(messagingProperties.getRkRegisterEstudiante(), outbox.getValue().getRoutingKey());
         assertEquals(OutboxEventState.PENDIENTE, outbox.getValue().getState());
         assertTrue(outbox.getValue().getPayload().contains(EMAIL));
 
@@ -177,9 +184,9 @@ class RegistrationStateServiceTest {
         verify(outboxRepository, times(2)).save(outbox.capture());
         List<RegistrationOutboxEvent> eventos = outbox.getAllValues();
         assertTrue(eventos.stream().anyMatch(e ->
-                RegistrationMessagingConstants.RK_CREDENTIALS_NOTIFY.equals(e.getRoutingKey())));
+                messagingProperties.getRkCredentialsNotify().equals(e.getRoutingKey())));
         assertTrue(eventos.stream().anyMatch(e ->
-                RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE.equals(e.getRoutingKey())));
+                messagingProperties.getRkRegisterEstudiante().equals(e.getRoutingKey())));
         assertTrue(eventos.stream().noneMatch(e -> e.getPayload().contains("Temp-123")));
     }
 

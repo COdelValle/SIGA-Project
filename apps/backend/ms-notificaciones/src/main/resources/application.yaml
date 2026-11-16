@@ -3,6 +3,34 @@ server:
 
 # Bandeja in-app: retención global y horario de purga.
 siga:
+  mensajeria:
+    notificaciones:
+      exchange-notificaciones: ${SIGA_MENSAJERIA_NOTIFICACIONES_EXCHANGE_NOTIFICACIONES:intercambio-notificaciones}
+      exchange-dlq: ${SIGA_MENSAJERIA_NOTIFICACIONES_EXCHANGE_DLQ:siga.dlx.direct}
+      cola-evaluaciones: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_EVALUACIONES:cola-notificaciones-evaluaciones}
+      dlq-evaluaciones: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_EVALUACIONES:cola-notificaciones-evaluaciones.dlq}
+      cola-asistencias: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_ASISTENCIAS:cola-notificaciones-asistencias}
+      dlq-asistencias: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_ASISTENCIAS:cola-notificaciones-asistencias.dlq}
+      cola-notas: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_NOTAS:cola-notificaciones-notas}
+      dlq-notas: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_NOTAS:cola-notificaciones-notas.dlq}
+      cola-riesgo-inasistencia: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_RIESGO_INASISTENCIA:cola-notificaciones-riesgo-inasistencia}
+      dlq-riesgo-inasistencia: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_RIESGO_INASISTENCIA:cola-notificaciones-riesgo-inasistencia.dlq}
+      cola-riesgo-rendimiento: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_RIESGO_RENDIMIENTO:cola-notificaciones-riesgo-rendimiento}
+      dlq-riesgo-rendimiento: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_RIESGO_RENDIMIENTO:cola-notificaciones-riesgo-rendimiento.dlq}
+      cola-cambio-estado-academico: ${SIGA_MENSAJERIA_NOTIFICACIONES_COLA_CAMBIO_ESTADO_ACADEMICO:cola-notificaciones-cambio-estado}
+      dlq-cambio-estado-academico: ${SIGA_MENSAJERIA_NOTIFICACIONES_DLQ_CAMBIO_ESTADO_ACADEMICO:cola-notificaciones-cambio-estado.dlq}
+      patron-evaluacion: ${SIGA_MENSAJERIA_NOTIFICACIONES_PATRON_EVALUACION:evaluacion.*}
+      patron-asistencia: ${SIGA_MENSAJERIA_NOTIFICACIONES_PATRON_ASISTENCIA:asistencia.*}
+      patron-nota: ${SIGA_MENSAJERIA_NOTIFICACIONES_PATRON_NOTA:nota.*}
+      clave-evaluacion-creada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_EVALUACION_CREADA:evaluacion.creada}
+      clave-evaluacion-actualizada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_EVALUACION_ACTUALIZADA:evaluacion.actualizada}
+      clave-evaluacion-eliminada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_EVALUACION_ELIMINADA:evaluacion.eliminada}
+      clave-asistencia-registrada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_ASISTENCIA_REGISTRADA:asistencia.registrada}
+      clave-riesgo-inasistencia: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_RIESGO_INASISTENCIA:riesgo.inasistencia}
+      clave-riesgo-rendimiento: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_RIESGO_RENDIMIENTO:riesgo.rendimiento}
+      clave-cambio-estado-academico: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_CAMBIO_ESTADO_ACADEMICO:riesgo.estado-academico}
+      clave-nota-creada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_NOTA_CREADA:nota.creada}
+      clave-nota-actualizada: ${SIGA_MENSAJERIA_NOTIFICACIONES_CLAVE_NOTA_ACTUALIZADA:nota.actualizada}
   notificaciones:
     retencion-dias: 90
     purga:

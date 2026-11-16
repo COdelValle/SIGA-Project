@@ -27,6 +27,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.model.entity.OutboxEventState;
 import cl.siga.msusuariosauth.model.entity.RegistrationOutboxEvent;
@@ -43,6 +44,7 @@ class RegistrationOutboxPublisherTest {
     private RabbitTemplate rabbitTemplate;
 
     private final RegistroAsyncProperties properties = new RegistroAsyncProperties();
+    private final RegistroMensajeriaProperties messagingProperties = new RegistroMensajeriaProperties();
 
     private RegistrationOutboxPublisher publisher;
 
@@ -50,7 +52,8 @@ class RegistrationOutboxPublisherTest {
     void setUp() {
         properties.setEnabled(true);
         properties.setOutboxConfirmTimeoutSeconds(1);
-        publisher = new RegistrationOutboxPublisher(outboxRepository, stateService, rabbitTemplate, properties);
+        messagingProperties.setHeaderCorrelationId("X-Correlation-Id");
+        publisher = new RegistrationOutboxPublisher(outboxRepository, stateService, rabbitTemplate, properties, messagingProperties);
     }
 
     private RegistrationOutboxEvent evento(int attempts, String correlationId) {

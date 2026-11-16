@@ -21,7 +21,7 @@ import cl.siga.coreshare.dto.usuario.enums.StateInvitacion;
 import cl.siga.coreshare.dto.usuario.enums.StateUsuario;
 import cl.siga.coreshare.dto.usuario.payload.DatosRegistroRolDTO;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.model.entity.OutboxEventState;
 import cl.siga.msusuariosauth.model.entity.ProcessedRegistrationEvent;
@@ -57,6 +57,7 @@ public class RegistrationStateService {
     private final InvitacionUsuarioRepository invitacionRepository;
     private final CredentialCipher credentialCipher;
     private final RegistroAsyncProperties properties;
+    private final RegistroMensajeriaProperties messagingProperties;
     private final ObjectMapper objectMapper;
 
     /**
@@ -221,7 +222,7 @@ public class RegistrationStateService {
                 process.getRequestedRole(),
                 OffsetDateTime.now());
         encolar(evento.eventId(), process.getProcessId(), process.getCorrelationId(),
-                RegistrationMessagingConstants.RK_CREDENTIALS_NOTIFY, serializar(evento));
+                messagingProperties.getRkCredentialsNotify(), serializar(evento));
     }
 
     private void encolar(String eventId, String processId, String correlationId,
@@ -229,7 +230,7 @@ public class RegistrationStateService {
         outboxRepository.save(RegistrationOutboxEvent.builder()
                 .eventId(eventId)
                 .processId(processId)
-                .exchange(RegistrationMessagingConstants.EXCHANGE)
+                .exchange(messagingProperties.getExchange())
                 .routingKey(routingKey)
                 .correlationId(correlationId)
                 .payload(payload)
@@ -240,9 +241,9 @@ public class RegistrationStateService {
 
     private String routingKeyPorRol(Rol rol) {
         return switch (rol) {
-            case ESTUDIANTE -> RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE;
-            case DOCENTE -> RegistrationMessagingConstants.RK_REGISTER_DOCENTE;
-            case APODERADO -> RegistrationMessagingConstants.RK_REGISTER_APODERADO;
+            case ESTUDIANTE -> messagingProperties.getRkRegisterEstudiante();
+            case DOCENTE -> messagingProperties.getRkRegisterDocente();
+            case APODERADO -> messagingProperties.getRkRegisterApoderado();
             case ADMIN -> throw new IllegalStateException("El rol ADMIN no usa el registro asíncrono.");
         };
     }

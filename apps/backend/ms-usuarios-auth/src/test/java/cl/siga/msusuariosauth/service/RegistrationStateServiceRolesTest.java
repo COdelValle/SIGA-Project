@@ -26,7 +26,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import cl.siga.coreshare.dto.usuario.enums.RegistrationProcessState;
 import cl.siga.coreshare.dto.usuario.enums.RegistrationStepState;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.model.entity.RegistrationOutboxEvent;
 import cl.siga.msusuariosauth.model.entity.UserRegistrationProcess;
@@ -62,15 +62,21 @@ class RegistrationStateServiceRolesTest {
     private CredentialCipher credentialCipher;
 
     private final RegistroAsyncProperties properties = new RegistroAsyncProperties();
+    private final RegistroMensajeriaProperties messagingProperties = new RegistroMensajeriaProperties();
     private final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
     private RegistrationStateService service;
 
     @BeforeEach
     void setUp() {
+        messagingProperties.setExchange("user.topic.exchange");
+        messagingProperties.setRkRegisterEstudiante("user.register.estudiante");
+        messagingProperties.setRkRegisterDocente("user.register.docente");
+        messagingProperties.setRkRegisterApoderado("user.register.apoderado");
+        messagingProperties.setRkCredentialsNotify("user.credentials.notify");
         service = new RegistrationStateService(processRepository, attemptRepository,
                 processedEventRepository, outboxRepository, usuarioRepository,
-                invitacionRepository, credentialCipher, properties, objectMapper);
+                invitacionRepository, credentialCipher, properties, messagingProperties, objectMapper);
         when(usuarioRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(processRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(attemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -110,14 +116,14 @@ class RegistrationStateServiceRolesTest {
         ArgumentCaptor<RegistrationOutboxEvent> outbox = ArgumentCaptor.forClass(RegistrationOutboxEvent.class);
         verify(outboxRepository).save(outbox.capture());
         assertThat(outbox.getValue().getRoutingKey())
-                .isEqualTo(RegistrationMessagingConstants.RK_REGISTER_DOCENTE);
+                .isEqualTo(messagingProperties.getRkRegisterDocente());
 
         org.mockito.Mockito.clearInvocations(outboxRepository);
         completar(Rol.APODERADO);
 
         verify(outboxRepository).save(outbox.capture());
         assertThat(outbox.getValue().getRoutingKey())
-                .isEqualTo(RegistrationMessagingConstants.RK_REGISTER_APODERADO);
+                .isEqualTo(messagingProperties.getRkRegisterApoderado());
     }
 
     @Test
@@ -129,7 +135,7 @@ class RegistrationStateServiceRolesTest {
                 .thenThrow(new JsonProcessingException("boom") { });
         RegistrationStateService servicioRoto = new RegistrationStateService(processRepository,
                 attemptRepository, processedEventRepository, outboxRepository,
-                usuarioRepository, invitacionRepository, credentialCipher, properties, mapperRoto);
+                usuarioRepository, invitacionRepository, credentialCipher, properties, messagingProperties, mapperRoto);
         when(processRepository.findById(PROCESS_ID)).thenReturn(Optional.of(proceso(Rol.ESTUDIANTE)));
 
         assertThatThrownBy(() -> servicioRoto.completarAzure(PROCESS_ID, EVENT_ID, OID, "Temp-123"))
