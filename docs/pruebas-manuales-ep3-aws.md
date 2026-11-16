@@ -2,9 +2,9 @@
 
 Guía separada para comprobar los requisitos de código y funcionamiento de la EP3. Está pensada para repetirla en local y en AWS, guardar evidencia verificable y explicar por qué se configuró así Kafka junto a RabbitMQ.
 
-> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el constructor de `ms-reportes`; PR #127 amplió el timeout SSH a 45 min. El CD `43864706041` avanzó, pero Compose abortó por el healthcheck de `rabbitmq1`. Ambos RabbitMQ estaban aceptando TCP en el puerto 5672 y un ping directo pasó después; los probes Docker de 5 s habían expirado con CPU alta. El Compose de `dev` cambia ese healthcheck a TCP con más margen, pendiente de promoción. No hacer failover hasta completar un CD exitoso y repetir esta puerta.
+> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el arranque de `ms-reportes`, PR #127 amplió el timeout SSH y PR #128 cambió el healthcheck RabbitMQ a TCP. El CD `43869955825` terminó `success` con SHA `dc98259`; los 26 contenedores están saludables/en ejecución. Los dos topics de negocio tienen 3 particiones, RF=3, ISR 3/3 y retención correcta; ambos grupos de reportes están conectados. Las pruebas autorizadas de caída de cada broker pasaron y la prueba de dos brokers rechazó escrituras como se esperaba; el clúster quedó restaurado y se eliminó el topic temporal. El smoke sintético de asistencia pasó y el de rendimiento detectó `actualizado_en` nulo; la corrección está en curso. Ver [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No declarar terminado el flujo end-to-end hasta desplegar esa corrección y repetir el smoke.
 
-> Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El fallo actual es de healthcheck durante arranque Compose, no de autorización AWS.
+> Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El CD está resuelto; resta desplegar la corrección de rendimiento descubierta por el smoke sintético.
 
 ## 1. Justificación tecnológica para la evaluación
 
@@ -114,19 +114,22 @@ Guardar la salida sin datos personales. En Kafka UI, no dejar mensajes de produc
 
 Las operaciones de actualización/eliminación de asistencia y eliminación de notas deben figurar como **brecha conocida** hasta que el código publique esos cambios y la proyección los procese; no marcar consistencia completa de proyecciones para esos casos.
 
+**Smoke AWS 2026-11-16:** un evento sintético normal de asistencia se consumió y apareció en la proyección con lag 0. El evento sintético de rendimiento fue recibido pero no persistido: la primera escritura llegó sin `actualizado_en`, `id_evento`, `correlation_id` ni `nivel_riesgo`. Ya se corrigió el orden de inicialización en `dev` y las pruebas del módulo pasan; tras promoverlo, repetir rendimiento con un `idEvento` nuevo. Detalle en [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md).
+
 ## 7. Prueba controlada de disponibilidad en AWS
 
 Realizar solo después del preflight, en ventana coordinada y con los tres brokers inicialmente saludables. Nunca detener ZooKeeper ni el host durante esta prueba.
 
 ### 7.1 Preparar un topic temporal
 
-Crear un topic exclusivo de prueba, con nombre único, tres particiones, tres réplicas y `min.insync.replicas=2`. No enviar mensajes de prueba a los topics de negocio durante el escenario de dos brokers caídos.
+Crear un topic exclusivo de prueba, con nombre único, tres particiones, tres réplicas y `min.insync.replicas=2`. Limitarlo con una retención corta y `retention.bytes`; no enviar mensajes de prueba a los topics de negocio durante el escenario de dos brokers caídos.
 
 ```bash
 export TOPIC=siga.e3.failover-$(date +%Y%m%d%H%M%S)
 docker exec kafka-1 kafka-topics --bootstrap-server kafka-1:29092 \
   --create --topic "$TOPIC" --partitions 3 \
-  --replication-factor 3 --config min.insync.replicas=2
+  --replication-factor 3 --config min.insync.replicas=2 \
+  --config retention.ms=3600000 --config retention.bytes=1048576
 docker exec kafka-1 kafka-topics --bootstrap-server kafka-1:29092 \
   --describe --topic "$TOPIC"
 docker exec kafka-1 kafka-producer-perf-test --topic "$TOPIC" \
@@ -135,7 +138,12 @@ docker exec kafka-1 kafka-producer-perf-test --topic "$TOPIC" \
     request.timeout.ms=5000 delivery.timeout.ms=10000
 ```
 
-Guardar offsets iniciales, líderes e ISR. Verificar primero una publicación de prueba exitosa con `acks=all`.
+Guardar offsets iniciales, líderes e ISR. Verificar primero una publicación de prueba exitosa con `acks=all`:
+
+```bash
+docker exec kafka-1 kafka-run-class kafka.tools.GetOffsetShell \
+  --broker-list kafka-1:29092 --topic "$TOPIC" --time -1
+```
 
 ### 7.2 Pérdida de un broker, uno por vez
 
@@ -168,17 +176,21 @@ Este escenario reduce deliberadamente la disponibilidad de Kafka:
    docker stop kafka-2
    docker exec kafka-3 kafka-topics --bootstrap-server kafka-3:29092 \
      --describe --topic "$TOPIC"
-    if docker exec kafka-3 kafka-producer-perf-test --topic "$TOPIC" \
-      --num-records 1 --record-size 16 --throughput -1 \
-      --producer-props bootstrap.servers=kafka-3:29092 acks=all \
-        request.timeout.ms=5000 delivery.timeout.ms=10000; then
-      echo UNEXPECTED_SUCCESS
-    else
-      echo EXPECTED_FAILURE_WITH_TWO_BROKERS_DOWN
-    fi
+   PRODUCER_OUTPUT=$(docker exec kafka-3 kafka-producer-perf-test --topic "$TOPIC" \
+     --num-records 1 --record-size 16 --throughput -1 \
+     --producer-props bootstrap.servers=kafka-3:29092 acks=all \
+       request.timeout.ms=5000 delivery.timeout.ms=10000 2>&1 || true)
+   printf '%s\n' "$PRODUCER_OUTPUT"
+   echo "$PRODUCER_OUTPUT" | grep -q 'NOT_ENOUGH_REPLICAS'
+   echo "$PRODUCER_OUTPUT" | grep -q '^0 records sent'
    ```
 
-   El comando de productor debe terminar con error de réplicas insuficientes; registra ese fallo como resultado esperado de la prueba de disponibilidad, no como éxito de publicación.
+   `kafka-producer-perf-test` puede salir con código 0 aunque no entregue ningún registro. La prueba solo pasa si la salida contiene `NOT_ENOUGH_REPLICAS` y `0 records sent`; compara los offsets con la captura inicial para confirmar que no hubo escritura:
+
+   ```bash
+   docker exec kafka-1 kafka-run-class kafka.tools.GetOffsetShell \
+     --broker-list kafka-1:29092 --topic "$TOPIC" --time -1
+   ```
 3. Registrar el error esperado, offsets antes/después y estado del grupo. Confirmar que el mensaje fallido no se confirme como publicado.
 4. Arrancar primero el segundo broker; esperar dos réplicas en ISR. Después arrancar el primero; esperar tres réplicas en ISR:
 

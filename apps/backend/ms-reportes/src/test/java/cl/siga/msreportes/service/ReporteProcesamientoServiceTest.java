@@ -17,6 +17,7 @@ import cl.siga.msreportes.mensajeria.PublicadorAlertaRiesgo;
 import cl.siga.msreportes.repository.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -96,6 +97,18 @@ class ReporteProcesamientoServiceTest {
         EventoReporteProcesadoRepository eventos = mock(EventoReporteProcesadoRepository.class);
         ProyeccionRendimientoRepository rendimiento = mock(ProyeccionRendimientoRepository.class);
         when(eventos.existsByIdEvento("evento-r-nuevo")).thenReturn(false);
+        List<LocalDateTime> timestampsAlGuardar = new ArrayList<>();
+        List<String> idsEventoAlGuardar = new ArrayList<>();
+        List<String> correlationIdsAlGuardar = new ArrayList<>();
+        List<NivelRiesgo> nivelesRiesgoAlGuardar = new ArrayList<>();
+        doAnswer(invocacion -> {
+            ProyeccionRendimiento guardada = invocacion.getArgument(0);
+            timestampsAlGuardar.add(guardada.getActualizadoEn());
+            idsEventoAlGuardar.add(guardada.getIdEvento());
+            correlationIdsAlGuardar.add(guardada.getCorrelationId());
+            nivelesRiesgoAlGuardar.add(guardada.getNivelRiesgo());
+            return guardada;
+        }).when(rendimiento).save(any());
         ReporteProcesamientoService service = new ReporteProcesamientoService(
             validator, eventos, mock(ProyeccionAsistenciaRepository.class), rendimiento,
             mock(AlertaRiesgoRepository.class));
@@ -106,6 +119,10 @@ class ReporteProcesamientoServiceTest {
         service.procesarRendimiento(
             new ConsumerRecord<>("siga.academico.rendimiento", 1, 5L, "10", evento));
 
+        assertThat(timestampsAlGuardar).containsOnly(evento.timestamp());
+        assertThat(idsEventoAlGuardar).containsOnly(evento.idEvento());
+        assertThat(correlationIdsAlGuardar).containsOnly(evento.correlationId());
+        assertThat(nivelesRiesgoAlGuardar).containsOnly(NivelRiesgo.NORMAL);
         var proyeccion = org.mockito.ArgumentCaptor.forClass(ProyeccionRendimiento.class);
         verify(rendimiento, atLeastOnce()).save(proyeccion.capture());
         org.assertj.core.api.Assertions.assertThat(

@@ -76,4 +76,4 @@ La comprobación posterior confirmó que `sts:GetCallerIdentity` responde, pero 
 - `9c819fe6-bd76-4783-95f6-0becc4d0ea4b`: la prueba de `rabbitmq-diagnostics ping` con límite de 25 s falló durante carga alta.
 - `dd285b4f-2edf-4fa7-af64-a1d572566089`: RabbitMQ aceptó TCP en ambos nodos y el ping directo respondió después; host con 2 CPU y load average cercano a 24.
 
-No se realizó ninguna parada/reinicio de broker ni se cambió Compose manualmente en la EC2. El ajuste del healthcheck RabbitMQ está pendiente de promover; después se debe registrar un resultado nuevo `OK` y conservar este preflight bloqueado.
+Este README conserva el preflight inicial y los fallos intermedios. El despliegue y los failovers se completaron después; consultar [`../E3-PRES-20261116-01/README.md`](../E3-PRES-20261116-01/README.md) para la evidencia más reciente.

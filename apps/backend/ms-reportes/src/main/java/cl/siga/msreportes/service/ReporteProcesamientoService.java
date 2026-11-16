@@ -111,6 +111,10 @@ public class ReporteProcesamientoService {
         proyeccion.setPuntaje(evento.puntaje());
         proyeccion.setPromedio(evento.promedio());
         proyeccion.setEvaluacionesInsuficientes(evento.evaluacionesInsuficientes());
+        proyeccion.setNivelRiesgo(nivelNuevo);
+        proyeccion.setIdEvento(evento.idEvento());
+        proyeccion.setCorrelationId(evento.correlationId());
+        proyeccion.setActualizadoEn(evento.timestamp());
         rendimientoRepository.save(proyeccion);
 
         IndicadoresRendimiento indicadores = recalcularIndicadores(evento, proyeccion);
@@ -123,9 +127,6 @@ public class ReporteProcesamientoService {
             evento.idEvento(), evento.correlationId());
         nivelNuevo = nivelRendimiento(eventoCalculado);
         proyeccion.setNivelRiesgo(nivelNuevo);
-        proyeccion.setIdEvento(evento.idEvento());
-        proyeccion.setCorrelationId(evento.correlationId());
-        proyeccion.setActualizadoEn(evento.timestamp());
         rendimientoRepository.save(proyeccion);
         registrarAlertaRendimiento(eventoCalculado, nivelAnterior, nivelNuevo);
         registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),

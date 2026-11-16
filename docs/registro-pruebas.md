@@ -853,6 +853,19 @@ Reglas de mantenimiento:
 - **Estado remoto**: RabbitMQ se conserva persistente y no se ha modificado manualmente; en la lectura posterior algunos servicios dependientes siguen `Created`/`starting`. No se detuvieron brokers ni se ejecutaron failovers.
 - **Siguiente paso**: validar Compose, promover el healthcheck y repetir CD. Solo ejecutar failover tras un CD exitoso y preflight con stack completo saludable.
 
+### PR-20261116-20 — CD exitoso, failover y smoke Kafka
+
+- **CD final**: PR #128 se fusionó como `dc98259ab2fab428647c133475f5126c724d36b8`; el CD [43869955825](https://github.com/COdelValle/SIGA-Project/actions/runs/43869955825) terminó `success`, incluido el deploy completo y sus verificaciones post-deploy.
+- **Preflight**: los 26 contenedores están activos; todos los servicios con healthcheck `healthy`. Tres brokers y tres ZooKeeper healthy; Kafka UI en ejecución; RabbitMQ 1/2 healthy, ambos nodos `Running Nodes`, sin alarmas ni particiones. El acceso público Kafka UI sin autenticar devuelve HTTP 401.
+- **Topics de negocio**: ambos con 3 particiones, RF=3, `min.insync.replicas=2`, ISR 3/3, `retention.ms=604800000`, `retention.bytes=134217728`, `cleanup.policy=delete`. Los grupos `siga-reportes-asistencias` y `siga-reportes-rendimiento` están conectados; sin eventos de negocio el lag está vacío/cero.
+- **Failover de un broker**: topic temporal `siga.e3.failover-20261116-01`; se detuvo cada broker individualmente. En cada escenario todas las particiones conservaron ISR=2, `acks=all` confirmó un registro y, al restaurar el broker, recuperó `healthy`/ISR=3. Se repitió en kafka-1, kafka-2 y kafka-3.
+- **Failover de dos brokers**: con solo kafka-3 activo, ISR=1 y el broker devolvió `NOT_ENOUGH_REPLICAS`. `kafka-producer-perf-test` indicó `0 records sent`, aunque el proceso devolvió exit code 0; por ello no usar solo su código de salida. Los offsets finales (p0=1,p1=0,p2=3; total 4) son la publicación inicial más tres de los escenarios individuales, sin escritura adicional durante el rechazo.
+- **Recuperación/limpieza**: se restauró kafka-2 y luego kafka-1; tres brokers e ISR 3/3. Se eliminó el topic temporal; `kafka-topics --list` volvió a mostrar solo los topics de negocio. RabbitMQ permaneció con dos nodos y sus colas consumidoras intactas.
+- **Smoke funcional de asistencia**: evento sintético `e3-smoke-a-20261116-01`, clave `idEstudiante=900000000000000001`; se consumió y persistió proyección `PRESENTE/NORMAL`, lag 0.
+- **Smoke funcional de rendimiento — FALLA**: el listener recibió `e3-smoke-r-20261116-01`, pero la primera escritura falló por `Column 'actualizado_en' cannot be null`; después de reintentos se rechazó. No se persistió proyección ni entrada procesada. El mensaje sintético inválido permanece en el topic hasta cumplir la retención; no contiene PII.
+- **Corrección local**: la primera escritura requería `actualizado_en`, `id_evento`, `correlation_id` y `nivel_riesgo`; `ReporteProcesamientoService.procesarRendimiento` inicializa ahora esos campos antes del primer `save`. La regresión unitaria captura el estado en el instante de cada invocación a `save` (no la referencia mutable final). `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS` (16 tests del módulo, 0 errores/fallos, 1 Testcontainers omitida por Docker local no disponible); `mvn -f apps/backend/pom.xml -pl ms-reportes -am -DskipTests package` también `BUILD SUCCESS`. El cambio está en `dev`, pendiente de PR/CD y de repetir el smoke de rendimiento con un `idEvento` nuevo.
+- **Evidencia detallada**: [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No se detuvo ZooKeeper/EC2 ni se publicaron eventos de prueba en la etapa de dos brokers caídos.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
