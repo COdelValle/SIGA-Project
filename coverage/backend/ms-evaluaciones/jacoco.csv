@@ -5,6 +5,6 @@ ms-evaluaciones,cl.siga.msevaluaciones,MsEvaluacionesApplication,5,3,0,0,2,1,1,1
 ms-evaluaciones,cl.siga.msevaluaciones.model.specifications,EvaluacionSpecifications,3,62,0,8,1,15,1,12,1,8
 ms-evaluaciones,cl.siga.msevaluaciones.service,EvaluacionService,2,351,4,26,0,66,4,25,0,14
 ms-evaluaciones,cl.siga.msevaluaciones.controller,EvaluacionController,0,44,0,0,0,7,0,6,0,6
-ms-evaluaciones,cl.siga.msevaluaciones.mensajeria,PublicadorEvaluacion,0,98,0,4,0,29,0,8,0,6
+ms-evaluaciones,cl.siga.msevaluaciones.mensajeria,PublicadorEvaluacion,0,106,0,4,0,29,0,8,0,6
 ms-evaluaciones,cl.siga.msevaluaciones.model.entity,Evaluacion,10,0,2,0,3,0,2,0,1,0
 ms-evaluaciones,cl.siga.msevaluaciones.model.mapper,EvaluacionMapperImpl,132,0,16,0,41,0,13,0,5,0

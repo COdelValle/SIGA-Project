@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
 import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.msnotificaciones.service.NotificacionService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
@@ -21,31 +21,32 @@ public class EscuchadorRiesgo {
 
     private final NotificacionService notificacionService;
     private final ConfirmadorMensajes confirmador;
+    private final NotificacionesMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_INASISTENCIA)
+    @RabbitListener(queues = &quot;${siga.mensajeria.notificaciones.cola-riesgo-inasistencia}&quot;)
     public void recibirInasistencia(EventoRiesgoAsistencia evento, Channel canal,
                                      @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="fc" id="L28">        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_INASISTENCIA,</span>
-<span class="fc" id="L29">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
-<span class="fc" id="L30">    }</span>
+<span class="fc" id="L29">        procesar(canal, etiqueta, propiedades.getColaRiesgoInasistencia(),</span>
+<span class="fc" id="L30">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="fc" id="L31">    }</span>
 
-    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_RENDIMIENTO)
+    @RabbitListener(queues = &quot;${siga.mensajeria.notificaciones.cola-riesgo-rendimiento}&quot;)
     public void recibirRendimiento(EventoRiesgoRendimiento evento, Channel canal,
                                    @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="nc" id="L35">        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_RENDIMIENTO,</span>
-<span class="nc" id="L36">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
-<span class="nc" id="L37">    }</span>
+<span class="nc" id="L36">        procesar(canal, etiqueta, propiedades.getColaRiesgoRendimiento(),</span>
+<span class="nc" id="L37">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="nc" id="L38">    }</span>
 
-    @RabbitListener(queues = NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO)
+    @RabbitListener(queues = &quot;${siga.mensajeria.notificaciones.cola-cambio-estado-academico}&quot;)
     public void recibirCambioEstado(EventoCambioEstadoAcademico evento, Channel canal,
                                     @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="nc" id="L42">        procesar(canal, etiqueta, NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO,</span>
-<span class="nc" id="L43">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
-<span class="nc" id="L44">    }</span>
+<span class="nc" id="L43">        procesar(canal, etiqueta, propiedades.getColaCambioEstadoAcademico(),</span>
+<span class="nc" id="L44">            evento.idEvento(), () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="nc" id="L45">    }</span>
 
     private void procesar(Channel canal, long etiqueta, String cola, String idEvento, Runnable accion) {
-<span class="fc" id="L47">        log.info(&quot;Evento de riesgo recibido idEvento={} cola={}&quot;, idEvento, cola);</span>
-<span class="fc" id="L48">        confirmador.procesar(canal, etiqueta, cola, accion);</span>
-<span class="fc" id="L49">    }</span>
+<span class="fc" id="L48">        log.info(&quot;Evento de riesgo recibido idEvento={} cola={}&quot;, idEvento, cola);</span>
+<span class="fc" id="L49">        confirmador.procesar(canal, etiqueta, cola, accion);</span>
+<span class="fc" id="L50">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

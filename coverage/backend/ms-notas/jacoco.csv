@@ -1,6 +1,6 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 ms-notas,cl.siga.msnotas.mensajeria,PublicadorNotaKafka,33,108,4,4,6,25,3,6,0,5
-ms-notas,cl.siga.msnotas.mensajeria,PublicadorNota,0,134,0,12,0,38,0,12,0,6
+ms-notas,cl.siga.msnotas.mensajeria,PublicadorNota,0,140,0,12,0,38,0,12,0,6
 ms-notas,cl.siga.msnotas.controller,NotaController,0,38,0,0,0,6,0,5,0,5
 ms-notas,cl.siga.msnotas.model.specifications,NotaSpecifications,3,68,0,8,1,17,1,14,1,10
 ms-notas,cl.siga.msnotas.service,NotaService,0,211,0,8,0,42,0,12,0,8

@@ -16,7 +16,7 @@ import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.UmbralesNotificacion;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
 import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
@@ -99,7 +99,7 @@ public class AsistenciaService {
 <span class="fc bfc" id="L99" title="All 2 branches covered.">            publicador.publicarRegistrada(</span>
                 creada,
                 porcentajeInasistencia,
-                porcentajeInasistencia &gt;= NombresMensajeria.UMBRAL_INASISTENCIA);
+                porcentajeInasistencia &gt;= UmbralesNotificacion.UMBRAL_INASISTENCIA);
         }
 <span class="fc" id="L104">        return creada;</span>
     }

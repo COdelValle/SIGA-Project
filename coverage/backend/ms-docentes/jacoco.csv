@@ -6,7 +6,7 @@ ms-docentes,cl.siga.msdocentes.model.mapper,DocenteMapperImpl,2,244,1,25,1,69,1,
 ms-docentes,cl.siga.msdocentes.service,DocenteService,0,277,1,15,0,54,1,20,0,13
 ms-docentes,cl.siga.msdocentes.service,CertificadoService,0,105,0,6,0,21,0,8,0,5
 ms-docentes,cl.siga.msdocentes,MsDocentesApplication,5,3,0,0,2,1,1,1,1,1
-ms-docentes,cl.siga.msdocentes.messaging,DocenteRegistrationListener,176,0,18,0,41,0,17,0,8,0
+ms-docentes,cl.siga.msdocentes.messaging,DocenteRegistrationListener,180,0,18,0,41,0,17,0,8,0
 ms-docentes,cl.siga.msdocentes.model.specifications,DocenteSpecifications,3,121,1,17,1,25,2,22,1,14
 ms-docentes,cl.siga.msdocentes.controller,CertificadoController,0,23,0,0,0,4,0,3,0,3
 ms-docentes,cl.siga.msdocentes.controller,DocenteController,0,53,0,0,0,8,0,7,0,7

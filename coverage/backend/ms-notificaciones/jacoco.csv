@@ -13,8 +13,8 @@ ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoInscripcionF
 ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoApoderadoFactory,9,0,0,0,2,0,2,0,2,0
 ms-notificaciones,cl.siga.msnotificaciones.cliente.respaldo,RespaldoAsignaturaFactory.new ClienteAsignatura() {...},18,0,0,0,3,0,3,0,3,0
 ms-notificaciones,cl.siga.msnotificaciones.controller,NotificacionController,33,0,0,0,8,0,5,0,5,0
-ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorNota,26,0,0,0,5,0,3,0,3,0
-ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorEvaluacion,26,0,0,0,5,0,3,0,3,0
-ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorRiesgo,32,33,0,0,6,7,4,4,4,4
-ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorAsistencia,26,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorNota,28,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorEvaluacion,28,0,0,0,5,0,3,0,3,0
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorRiesgo,36,35,0,0,6,7,4,4,4,4
+ms-notificaciones,cl.siga.msnotificaciones.mensajeria,EscuchadorAsistencia,28,0,0,0,5,0,3,0,3,0
 ms-notificaciones,cl.siga.msnotificaciones,MsNotificacionesApplication,5,3,0,0,2,1,1,1,1,1

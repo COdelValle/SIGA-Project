@@ -10,8 +10,9 @@ import org.springframework.stereotype.Component;
 import cl.siga.coreshare.dto.usuario.UserRegistrationEventDTO;
 import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import cl.siga.coreshare.messaging.MessagingHeaders;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -29,46 +30,47 @@ public class AsyncUserRegistrationListeners {
 
     private final AsyncUserRegistrationService service;
     private final ConfirmadorMensajes confirmador;
+    private final RegistroMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_QUEUE)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.azure-queue}&quot;)
     public void handleAzureSync(
             UserRegistrationEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="fc" id="L40">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_QUEUE,</span>
-<span class="fc" id="L41">            () -&gt; conCorrelacion(correlationId, event.correlationId(), () -&gt; service.processAzureSync(event)));</span>
-<span class="fc" id="L42">    }</span>
+<span class="fc" id="L42">        confirmador.procesar(canal, etiqueta, propiedades.getAzureQueue(),</span>
+<span class="fc" id="L43">            () -&gt; conCorrelacion(correlationId, event.correlationId(), () -&gt; service.processAzureSync(event)));</span>
+<span class="fc" id="L44">    }</span>
 
-    @RabbitListener(queues = RegistrationMessagingConstants.AZURE_DLQ)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.azure-dlq}&quot;)
     public void handleAzureDlq(UserRegistrationEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="fc" id="L47">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.AZURE_DLQ,</span>
-<span class="fc" id="L48">            () -&gt; conCorrelacion(null, event.correlationId(), () -&gt; service.procesarAzureDlq(event)));</span>
-<span class="fc" id="L49">    }</span>
+<span class="fc" id="L49">        confirmador.procesar(canal, etiqueta, propiedades.getAzureDlq(),</span>
+<span class="fc" id="L50">            () -&gt; conCorrelacion(null, event.correlationId(), () -&gt; service.procesarAzureDlq(event)));</span>
+<span class="fc" id="L51">    }</span>
 
-    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_QUEUE)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.status-queue}&quot;)
     public void handleDomainStatus(
             UserRegistrationStepResultEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="fc" id="L58">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_QUEUE,</span>
-<span class="fc" id="L59">            () -&gt; conCorrelacion(correlationId, null, () -&gt; service.processDomainStepStatus(event)));</span>
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L60">        confirmador.procesar(canal, etiqueta, propiedades.getStatusQueue(),</span>
+<span class="fc" id="L61">            () -&gt; conCorrelacion(correlationId, null, () -&gt; service.processDomainStepStatus(event)));</span>
+<span class="fc" id="L62">    }</span>
 
-    @RabbitListener(queues = RegistrationMessagingConstants.STATUS_DLQ)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.status-dlq}&quot;)
     public void handleStatusDlq(UserRegistrationStepResultEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="fc" id="L65">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.STATUS_DLQ,</span>
-<span class="fc" id="L66">            () -&gt; conCorrelacion(null, null, () -&gt; service.procesarStatusDlq(event)));</span>
-<span class="fc" id="L67">    }</span>
+<span class="fc" id="L67">        confirmador.procesar(canal, etiqueta, propiedades.getStatusDlq(),</span>
+<span class="fc" id="L68">            () -&gt; conCorrelacion(null, null, () -&gt; service.procesarStatusDlq(event)));</span>
+<span class="fc" id="L69">    }</span>
 
     private void conCorrelacion(String header, String fallback, Runnable action) {
-<span class="fc bfc" id="L70" title="All 4 branches covered.">        String correlationId = (header != null &amp;&amp; !header.isBlank()) ? header : fallback;</span>
-<span class="fc" id="L71">        RegistrationCorrelation.ejecutar(correlationId, action);</span>
-<span class="fc" id="L72">    }</span>
+<span class="fc bfc" id="L72" title="All 4 branches covered.">        String correlationId = (header != null &amp;&amp; !header.isBlank()) ? header : fallback;</span>
+<span class="fc" id="L73">        RegistrationCorrelation.ejecutar(correlationId, action);</span>
+<span class="fc" id="L74">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -2,7 +2,7 @@
 
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.msnotificaciones.service.NotificacionService;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
@@ -27,13 +27,14 @@ public class EscuchadorAsistencia {
 
     private final NotificacionService notificacionService;
     private final ConfirmadorMensajes confirmador;
+    private final NotificacionesMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = NombresMensajeria.COLA_ASISTENCIAS)
+    @RabbitListener(queues = &quot;${siga.mensajeria.notificaciones.cola-asistencias}&quot;)
     public void alRecibirEvento(EventoAsistencia evento, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="nc" id="L34">        log.info(&quot;Evento de asistencia recibido idEvento={} id={}&quot;, evento.idEvento(), evento.idAsistencia());</span>
-<span class="nc" id="L35">        confirmador.procesar(canal, etiqueta, NombresMensajeria.COLA_ASISTENCIAS,</span>
-<span class="nc" id="L36">            () -&gt; notificacionService.registrarEvento(evento));</span>
-<span class="nc" id="L37">    }</span>
+<span class="nc" id="L35">        log.info(&quot;Evento de asistencia recibido idEvento={} id={}&quot;, evento.idEvento(), evento.idAsistencia());</span>
+<span class="nc" id="L36">        confirmador.procesar(canal, etiqueta, propiedades.getColaAsistencias(),</span>
+<span class="nc" id="L37">            () -&gt; notificacionService.registrarEvento(evento));</span>
+<span class="nc" id="L38">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

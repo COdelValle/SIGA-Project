@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.AccionAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import java.time.LocalDateTime;
@@ -27,43 +27,44 @@ public class PublicadorAsistencia {
 
     private final NotificationEventOutbox outbox;
     private final AsignaturaClient asignaturaClient;
+    private final NotificacionesMensajeriaProperties propiedades;
 
     /** Se llama al registrar (POST /api/v1/asistencias) si es AUSENTE o ATRASADO. */
     public void publicarRegistrada(AsistenciaResponseDTO asistencia,
                                    double porcentajeInasistencia,
                                    boolean superaUmbral) {
-<span class="fc" id="L35">        EventoAsistencia evento = new EventoAsistencia(</span>
-<span class="fc" id="L36">                asistencia.id(),</span>
-<span class="fc" id="L37">                asistencia.idEstudiante(),</span>
-<span class="fc" id="L38">                asistencia.idCursoAsignatura(),</span>
-<span class="fc" id="L39">                asistencia.fecha(),</span>
-<span class="fc" id="L40">                asistencia.estado(),</span>
-<span class="fc" id="L41">                asistencia.justificacion(),</span>
+<span class="fc" id="L36">        EventoAsistencia evento = new EventoAsistencia(</span>
+<span class="fc" id="L37">                asistencia.id(),</span>
+<span class="fc" id="L38">                asistencia.idEstudiante(),</span>
+<span class="fc" id="L39">                asistencia.idCursoAsignatura(),</span>
+<span class="fc" id="L40">                asistencia.fecha(),</span>
+<span class="fc" id="L41">                asistencia.estado(),</span>
+<span class="fc" id="L42">                asistencia.justificacion(),</span>
                 AccionAsistencia.REGISTRADA,
                 porcentajeInasistencia,
                 superaUmbral,
-<span class="fc" id="L45">                LocalDateTime.now(),</span>
-<span class="fc" id="L46">                UUID.randomUUID().toString(),</span>
-<span class="fc" id="L47">                nombreAsignatura(asistencia)</span>
+<span class="fc" id="L46">                LocalDateTime.now(),</span>
+<span class="fc" id="L47">                UUID.randomUUID().toString(),</span>
+<span class="fc" id="L48">                nombreAsignatura(asistencia)</span>
         );
-<span class="fc" id="L49">        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,</span>
-                NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA, evento);
-<span class="fc" id="L51">        log.info(&quot;Evento de asistencia agregado al outbox: id={} estado={} superaUmbral={}&quot;,</span>
-<span class="fc" id="L52">                asistencia.id(), asistencia.estado(), superaUmbral);</span>
-<span class="fc" id="L53">    }</span>
+<span class="fc" id="L50">        outbox.registrar(evento.idEvento(), propiedades.getExchangeNotificaciones(),</span>
+<span class="fc" id="L51">                propiedades.getClaveAsistenciaRegistrada(), evento);</span>
+<span class="fc" id="L52">        log.info(&quot;Evento de asistencia agregado al outbox: id={} estado={} superaUmbral={}&quot;,</span>
+<span class="fc" id="L53">                asistencia.id(), asistencia.estado(), superaUmbral);</span>
+<span class="fc" id="L54">    }</span>
 
     private String nombreAsignatura(AsistenciaResponseDTO asistencia) {
-<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (asistencia.idCursoAsignatura() == null) {</span>
-<span class="fc" id="L57">            return null;</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (asistencia.idCursoAsignatura() == null) {</span>
+<span class="fc" id="L58">            return null;</span>
         }
         try {
-<span class="fc" id="L60">            CursoAsignaturaResponseDTO dictacion =</span>
-<span class="fc" id="L61">                    asignaturaClient.getCursoAsignaturaById(asistencia.idCursoAsignatura());</span>
-<span class="fc bfc" id="L62" title="All 2 branches covered.">            return dictacion == null ? null : dictacion.nombre();</span>
-<span class="fc" id="L63">        } catch (Exception error) {</span>
-<span class="fc" id="L64">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
-<span class="fc" id="L65">                    asistencia.idCursoAsignatura(), error.getMessage());</span>
-<span class="fc" id="L66">            return null;</span>
+<span class="fc" id="L61">            CursoAsignaturaResponseDTO dictacion =</span>
+<span class="fc" id="L62">                    asignaturaClient.getCursoAsignaturaById(asistencia.idCursoAsignatura());</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            return dictacion == null ? null : dictacion.nombre();</span>
+<span class="fc" id="L64">        } catch (Exception error) {</span>
+<span class="fc" id="L65">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
+<span class="fc" id="L66">                    asistencia.idCursoAsignatura(), error.getMessage());</span>
+<span class="fc" id="L67">            return null;</span>
         }
     }
 }

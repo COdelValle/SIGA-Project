@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.AccionEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msevaluaciones.client.AsignaturaClient;
 import java.time.LocalDateTime;
@@ -26,51 +26,52 @@ public class PublicadorEvaluacion {
 
     private final NotificationEventOutbox outbox;
     private final AsignaturaClient asignaturaClient;
+    private final NotificacionesMensajeriaProperties propiedades;
 
     /** Se llama al crear (POST /api/v1/evaluaciones). */
     public void publicarCreada(EvaluacionResponseDTO evaluacion) {
-<span class="fc" id="L32">        publicar(evaluacion, AccionEvaluacion.CREADA, NombresMensajeria.CLAVE_EVALUACION_CREADA);</span>
-<span class="fc" id="L33">    }</span>
+<span class="fc" id="L33">        publicar(evaluacion, AccionEvaluacion.CREADA, propiedades.getClaveEvaluacionCreada());</span>
+<span class="fc" id="L34">    }</span>
 
     /** Se llama al modificar (PUT /api/v1/evaluaciones/{id}). */
     public void publicarActualizada(EvaluacionResponseDTO evaluacion) {
-<span class="fc" id="L37">        publicar(evaluacion, AccionEvaluacion.ACTUALIZADA, NombresMensajeria.CLAVE_EVALUACION_ACTUALIZADA);</span>
-<span class="fc" id="L38">    }</span>
+<span class="fc" id="L38">        publicar(evaluacion, AccionEvaluacion.ACTUALIZADA, propiedades.getClaveEvaluacionActualizada());</span>
+<span class="fc" id="L39">    }</span>
 
     /** Se llama al eliminar (DELETE lógico). */
     public void publicarEliminada(EvaluacionResponseDTO evaluacion) {
-<span class="fc" id="L42">        publicar(evaluacion, AccionEvaluacion.ELIMINADA, NombresMensajeria.CLAVE_EVALUACION_ELIMINADA);</span>
-<span class="fc" id="L43">    }</span>
+<span class="fc" id="L43">        publicar(evaluacion, AccionEvaluacion.ELIMINADA, propiedades.getClaveEvaluacionEliminada());</span>
+<span class="fc" id="L44">    }</span>
 
     private void publicar(EvaluacionResponseDTO evaluacion, AccionEvaluacion accion, String claveEnrutamiento) {
-<span class="fc" id="L46">        EventoEvaluacion evento = new EventoEvaluacion(</span>
-<span class="fc" id="L47">                evaluacion.id(),</span>
-<span class="fc" id="L48">                evaluacion.nombre(),</span>
-<span class="fc" id="L49">                evaluacion.tipo(),</span>
-<span class="fc" id="L50">                evaluacion.ponderacion(),</span>
-<span class="fc" id="L51">                evaluacion.idCursoAsignatura(),</span>
+<span class="fc" id="L47">        EventoEvaluacion evento = new EventoEvaluacion(</span>
+<span class="fc" id="L48">                evaluacion.id(),</span>
+<span class="fc" id="L49">                evaluacion.nombre(),</span>
+<span class="fc" id="L50">                evaluacion.tipo(),</span>
+<span class="fc" id="L51">                evaluacion.ponderacion(),</span>
+<span class="fc" id="L52">                evaluacion.idCursoAsignatura(),</span>
                 accion,
-<span class="fc" id="L53">                LocalDateTime.now(),</span>
-<span class="fc" id="L54">                UUID.randomUUID().toString(),</span>
-<span class="fc" id="L55">                nombreAsignatura(evaluacion)</span>
+<span class="fc" id="L54">                LocalDateTime.now(),</span>
+<span class="fc" id="L55">                UUID.randomUUID().toString(),</span>
+<span class="fc" id="L56">                nombreAsignatura(evaluacion)</span>
         );
-<span class="fc" id="L57">        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES, claveEnrutamiento, evento);</span>
-<span class="fc" id="L58">        log.info(&quot;Evento de evaluación agregado al outbox: accion={} id={} clave={}&quot;,</span>
-<span class="fc" id="L59">                accion, evaluacion.id(), claveEnrutamiento);</span>
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L58">        outbox.registrar(evento.idEvento(), propiedades.getExchangeNotificaciones(), claveEnrutamiento, evento);</span>
+<span class="fc" id="L59">        log.info(&quot;Evento de evaluación agregado al outbox: accion={} id={} clave={}&quot;,</span>
+<span class="fc" id="L60">                accion, evaluacion.id(), claveEnrutamiento);</span>
+<span class="fc" id="L61">    }</span>
 
     private String nombreAsignatura(EvaluacionResponseDTO evaluacion) {
-<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (evaluacion.idCursoAsignatura() == null) {</span>
-<span class="fc" id="L64">            return null;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (evaluacion.idCursoAsignatura() == null) {</span>
+<span class="fc" id="L65">            return null;</span>
         }
         try {
-<span class="fc" id="L67">            CursoAsignaturaResponseDTO dictacion =</span>
-<span class="fc" id="L68">                    asignaturaClient.getCursoAsignaturaById(evaluacion.idCursoAsignatura());</span>
-<span class="fc bfc" id="L69" title="All 2 branches covered.">            return dictacion == null ? null : dictacion.nombre();</span>
-<span class="fc" id="L70">        } catch (Exception error) {</span>
-<span class="fc" id="L71">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
-<span class="fc" id="L72">                    evaluacion.idCursoAsignatura(), error.getMessage());</span>
-<span class="fc" id="L73">            return null;</span>
+<span class="fc" id="L68">            CursoAsignaturaResponseDTO dictacion =</span>
+<span class="fc" id="L69">                    asignaturaClient.getCursoAsignaturaById(evaluacion.idCursoAsignatura());</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            return dictacion == null ? null : dictacion.nombre();</span>
+<span class="fc" id="L71">        } catch (Exception error) {</span>
+<span class="fc" id="L72">            log.warn(&quot;No se pudo obtener el nombre de la asignatura de la dictación {}: {}&quot;,</span>
+<span class="fc" id="L73">                    evaluacion.idCursoAsignatura(), error.getMessage());</span>
+<span class="fc" id="L74">            return null;</span>
         }
     }
 }

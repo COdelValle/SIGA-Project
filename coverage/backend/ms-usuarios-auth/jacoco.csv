@@ -17,15 +17,15 @@ ms-usuarios-auth,cl.siga.msusuariosauth.integration.graph,PasswordGenerator,0,90
 ms-usuarios-auth,cl.siga.msusuariosauth.model.mapper,UsuarioMapperImpl,121,0,16,0,38,0,13,0,5,0
 ms-usuarios-auth,cl.siga.msusuariosauth.model.specification,UsuarioSpecifications,0,54,0,8,0,9,0,11,0,7
 ms-usuarios-auth,cl.siga.msusuariosauth.controller,UsuarioController,0,106,0,2,0,21,0,15,0,14
-ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationListeners,0,109,0,4,0,15,0,15,0,13
+ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationListeners,0,117,0,4,0,15,0,15,0,13
 ms-usuarios-auth,cl.siga.msusuariosauth.service,InvitacionVinculacionService,0,133,1,13,0,33,1,12,0,6
-ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationStateService,1,554,4,42,0,155,4,43,0,23
-ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationService,3,771,6,84,0,184,6,67,0,27
+ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationStateService,1,564,4,42,0,155,4,43,0,23
+ms-usuarios-auth,cl.siga.msusuariosauth.service,AsyncUserRegistrationService,3,775,6,84,0,184,6,67,0,27
 ms-usuarios-auth,cl.siga.msusuariosauth.service,CredentialCipher.Cifrado,0,9,0,0,0,1,0,1,0,1
 ms-usuarios-auth,cl.siga.msusuariosauth.service,UsuarioService,22,973,15,103,1,209,17,79,2,35
 ms-usuarios-auth,cl.siga.msusuariosauth.service,UsuarioService.new TransactionSynchronization() {...},0,38,0,0,0,6,0,2,0,2
 ms-usuarios-auth,cl.siga.msusuariosauth.service,InvitacionVinculacionService.new TransactionSynchronization() {...},0,17,0,0,0,6,0,2,0,2
-ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationOutboxPublisher,0,244,0,18,0,52,0,14,0,5
+ms-usuarios-auth,cl.siga.msusuariosauth.service,RegistrationOutboxPublisher,0,246,0,18,0,52,0,14,0,5
 ms-usuarios-auth,cl.siga.msusuariosauth.service,CredentialCipher,7,124,1,7,2,29,1,8,0,5
 ms-usuarios-auth,cl.siga.msusuariosauth.service,EmailInstitucionalGenerator,0,362,3,37,0,60,3,26,0,7
 ms-usuarios-auth,cl.siga.msusuariosauth,MsUsuariosAuthApplication,5,3,0,0,2,1,1,1,1,1

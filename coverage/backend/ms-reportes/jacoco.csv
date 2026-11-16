@@ -5,5 +5,5 @@ ms-reportes,cl.siga.msreportes.service,ReporteProcesamientoService,89,730,27,63,
 ms-reportes,cl.siga.msreportes.controller,ReporteController,18,0,0,0,2,0,2,0,2,0
 ms-reportes,cl.siga.msreportes,MsReportesApplication,8,0,0,0,3,0,2,0,2,0
 ms-reportes,cl.siga.msreportes.mensajeria,ReporteKafkaListener,4,78,2,2,0,11,2,3,0,3
-ms-reportes,cl.siga.msreportes.mensajeria,PublicadorAlertaRiesgo,59,47,6,2,9,11,5,1,0,1
+ms-reportes,cl.siga.msreportes.mensajeria,PublicadorAlertaRiesgo,67,51,6,2,11,12,5,1,0,1
 ms-reportes,cl.siga.msreportes.config,KafkaConsumerConfig,140,0,0,0,27,0,10,0,10,0

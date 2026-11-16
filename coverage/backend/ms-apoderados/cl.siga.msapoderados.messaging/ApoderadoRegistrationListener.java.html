@@ -13,8 +13,9 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.payload.DatosRegistroApoderadoDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import cl.siga.coreshare.messaging.MessagingHeaders;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
 import cl.siga.msapoderados.repository.ApoderadoRepository;
 import cl.siga.msapoderados.service.ApoderadoService;
@@ -30,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
  * &lt;p&gt;La confirmación es manual: ACK cuando la etapa termina y NACK hacia la DLQ
  * cuando el evento es inválido o se agotan los reintentos.&lt;/p&gt;
  */
-<span class="nc" id="L33">@Slf4j</span>
+<span class="nc" id="L34">@Slf4j</span>
 @Component
 @RequiredArgsConstructor
 public class ApoderadoRegistrationListener {
@@ -39,68 +40,69 @@ public class ApoderadoRegistrationListener {
     private final ApoderadoRepository apoderadoRepository;
     private final RegistrationStatusPublisher statusPublisher;
     private final ConfirmadorMensajes confirmador;
+    private final RegistroMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_QUEUE)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.apoderados-queue}&quot;)
     public void handle(
             UserRegistrationEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="nc bnc" id="L50" title="All 4 branches missed.">        String correlacion = (correlationId != null &amp;&amp; !correlationId.isBlank())</span>
-<span class="nc" id="L51">                ? correlationId</span>
-<span class="nc" id="L52">                : event.correlationId();</span>
-<span class="nc" id="L53">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_QUEUE,</span>
-<span class="nc" id="L54">            () -&gt; RegistrationCorrelation.ejecutar(correlacion, () -&gt; procesar(event)));</span>
-<span class="nc" id="L55">    }</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">        String correlacion = (correlationId != null &amp;&amp; !correlationId.isBlank())</span>
+<span class="nc" id="L53">                ? correlationId</span>
+<span class="nc" id="L54">                : event.correlationId();</span>
+<span class="nc" id="L55">        confirmador.procesar(canal, etiqueta, propiedades.getApoderadosQueue(),</span>
+<span class="nc" id="L56">            () -&gt; RegistrationCorrelation.ejecutar(correlacion, () -&gt; procesar(event)));</span>
+<span class="nc" id="L57">    }</span>
 
-    @RabbitListener(queues = RegistrationMessagingConstants.APODERADOS_DLQ)
+    @RabbitListener(queues = &quot;${siga.mensajeria.registro.apoderados-dlq}&quot;)
     public void handleDlq(UserRegistrationEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-<span class="nc" id="L60">        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.APODERADOS_DLQ,</span>
-<span class="nc" id="L61">            () -&gt; statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,</span>
+<span class="nc" id="L62">        confirmador.procesar(canal, etiqueta, propiedades.getApoderadosDlq(),</span>
+<span class="nc" id="L63">            () -&gt; statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,</span>
                 &quot;Se agotaron los reintentos creando el perfil de apoderado.&quot;));
-<span class="nc" id="L63">    }</span>
+<span class="nc" id="L65">    }</span>
 
     private void procesar(UserRegistrationEventDTO event) {
-<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (!event.schemaSoportado()) {</span>
-<span class="nc" id="L67">            fallar(event, &quot;Versión de evento no soportada: &quot; + event.schemaVersion());</span>
-<span class="nc" id="L68">            return;</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (!event.schemaSoportado()) {</span>
+<span class="nc" id="L69">            fallar(event, &quot;Versión de evento no soportada: &quot; + event.schemaVersion());</span>
+<span class="nc" id="L70">            return;</span>
         }
-<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (event.requestedRole() != Rol.APODERADO) {</span>
-<span class="nc" id="L71">            fallar(event, &quot;El evento no corresponde al rol APODERADO.&quot;);</span>
-<span class="nc" id="L72">            return;</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (event.requestedRole() != Rol.APODERADO) {</span>
+<span class="nc" id="L73">            fallar(event, &quot;El evento no corresponde al rol APODERADO.&quot;);</span>
+<span class="nc" id="L74">            return;</span>
         }
-<span class="nc bnc" id="L74" title="All 2 branches missed.">        DatosRegistroApoderadoDTO datos = event.roleData() == null ? null : event.roleData().apoderado();</span>
-<span class="nc bnc" id="L75" title="All 6 branches missed.">        if (datos == null || event.userId() == null || event.userId().isBlank()) {</span>
-<span class="nc" id="L76">            fallar(event, &quot;El evento de apoderado está incompleto.&quot;);</span>
-<span class="nc" id="L77">            return;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        DatosRegistroApoderadoDTO datos = event.roleData() == null ? null : event.roleData().apoderado();</span>
+<span class="nc bnc" id="L77" title="All 6 branches missed.">        if (datos == null || event.userId() == null || event.userId().isBlank()) {</span>
+<span class="nc" id="L78">            fallar(event, &quot;El evento de apoderado está incompleto.&quot;);</span>
+<span class="nc" id="L79">            return;</span>
         }
-<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (apoderadoRepository.existsByIdUsuario(event.userId())) {</span>
-<span class="nc" id="L80">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (apoderadoRepository.existsByIdUsuario(event.userId())) {</span>
+<span class="nc" id="L82">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
                 &quot;El perfil del apoderado ya existía (idempotente).&quot;);
-<span class="nc" id="L82">            return;</span>
+<span class="nc" id="L84">            return;</span>
         }
         try {
-<span class="nc" id="L85">            apoderadoService.saveApoderadoDesdeEvento(new RegistrarApoderadoRequestDTO(</span>
-<span class="nc" id="L86">                event.userId(),</span>
-<span class="nc" id="L87">                datos.firstName(),</span>
-<span class="nc" id="L88">                datos.middleName(),</span>
-<span class="nc" id="L89">                datos.firstSurname(),</span>
-<span class="nc" id="L90">                datos.secondSurname(),</span>
-<span class="nc" id="L91">                datos.rut(),</span>
-<span class="nc" id="L92">                datos.telefonos(),</span>
-<span class="nc" id="L93">                datos.estudiantes()));</span>
-<span class="nc" id="L94">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
+<span class="nc" id="L87">            apoderadoService.saveApoderadoDesdeEvento(new RegistrarApoderadoRequestDTO(</span>
+<span class="nc" id="L88">                event.userId(),</span>
+<span class="nc" id="L89">                datos.firstName(),</span>
+<span class="nc" id="L90">                datos.middleName(),</span>
+<span class="nc" id="L91">                datos.firstSurname(),</span>
+<span class="nc" id="L92">                datos.secondSurname(),</span>
+<span class="nc" id="L93">                datos.rut(),</span>
+<span class="nc" id="L94">                datos.telefonos(),</span>
+<span class="nc" id="L95">                datos.estudiantes()));</span>
+<span class="nc" id="L96">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), true,</span>
                 &quot;Perfil de apoderado creado.&quot;);
-<span class="nc" id="L96">        } catch (BusinessException ex) {</span>
-<span class="nc" id="L97">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, ex.getMessage());</span>
-<span class="nc" id="L98">        }</span>
-<span class="nc" id="L99">    }</span>
+<span class="nc" id="L98">        } catch (BusinessException ex) {</span>
+<span class="nc" id="L99">            statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, ex.getMessage());</span>
+<span class="nc" id="L100">        }</span>
+<span class="nc" id="L101">    }</span>
 
     private void fallar(UserRegistrationEventDTO event, String mensaje) {
-<span class="nc" id="L102">        log.warn(&quot;Evento de registro {} rechazado: {}&quot;, event.processId(), mensaje);</span>
-<span class="nc" id="L103">        statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, mensaje);</span>
-<span class="nc" id="L104">    }</span>
+<span class="nc" id="L104">        log.warn(&quot;Evento de registro {} rechazado: {}&quot;, event.processId(), mensaje);</span>
+<span class="nc" id="L105">        statusPublisher.publicarResultado(event.processId(), event.correlationId(), false, mensaje);</span>
+<span class="nc" id="L106">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
