@@ -29,7 +29,8 @@ Un punto solo pasa a `100% demostrado` cuando están verdes las pruebas automát
 
 - `E3-ENC-20261115-01`: Maven backend `BUILD SUCCESS` (los tests dependientes de Testcontainers se omitieron por el Docker Desktop local), 4/4 pruebas de seguridad del administrador Kafka, 283/283 pruebas frontend, build Angular de producción y configuración de ambos Compose válidas. Ver detalle en [`E3-ENC-20261115-01/README.md`](E3-ENC-20261115-01/README.md).
 - `E3-ENC-20261115-02`: PR #121 para promover a `deploy`; CodeQL corregido y checks de backend/frontend/E2E/infra/CodeQL verdes. GitGuardian continúa bloqueando el PR con un hallazgo que requiere revisar su detalle en el dashboard. Ver [`E3-ENC-20261115-02/README.md`](E3-ENC-20261115-02/README.md).
-- `E3-PRES-20261115-01`: la EC2 observada usa una plantilla antigua sin Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`; por eso no se ejecutaron pruebas de broker ni autenticación UI en AWS. Ver detalle en [`E3-PRES-20261115-01/README.md`](E3-PRES-20261115-01/README.md).
+- `E3-PRES-20261115-01`: conserva el preflight inicial bloqueado antes de promover Kafka. Ver [`E3-PRES-20261115-01/README.md`](E3-PRES-20261115-01/README.md).
+- `E3-PRES-20261116-01`: CD `43869955825` exitoso; stack AWS saludable; failovers de uno y dos brokers con recuperación ISR; topic temporal eliminado. La prueba sintética de asistencia pasó y reveló un defecto pendiente en persistencia del evento de rendimiento. Ver [`E3-PRES-20261116-01/README.md`](E3-PRES-20261116-01/README.md).
 - Los nombres de los secrets `KAFKA_UI_USER` y `KAFKA_UI_PASSWORD_HASH` se confirmaron en GitHub; sus valores no se leyeron ni se adjuntan.
 
 ## Casos previstos para cierre EP1/EP2
