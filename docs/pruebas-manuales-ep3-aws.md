@@ -2,9 +2,9 @@
 
 Guía separada para comprobar los requisitos de código y funcionamiento de la EP3. Está pensada para repetirla en local y en AWS, guardar evidencia verificable y explicar por qué se configuró así Kafka junto a RabbitMQ.
 
-> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el constructor de `ms-reportes` y amplió el healthcheck Kafka; el CD `43858404711` publicó las imágenes pero excedió el timeout SSH de 15 min mientras Compose iniciaba los servicios en cadena. Los brokers, `ms-kafka-admin`, `ms-reportes` y ambos nodos RabbitMQ quedaron saludables; `ms-notificaciones` estaba `starting`, y `ms-notas`, `bff-web` y `frontend` `Created`. El timeout SSH se amplió a 45 min en `dev`, pendiente de promoción. No hacer failover hasta completar un CD exitoso y repetir esta puerta.
+> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el constructor de `ms-reportes`; PR #127 amplió el timeout SSH a 45 min. El CD `43864706041` avanzó, pero Compose abortó por el healthcheck de `rabbitmq1`. Ambos RabbitMQ estaban aceptando TCP en el puerto 5672 y un ping directo pasó después; los probes Docker de 5 s habían expirado con CPU alta. El Compose de `dev` cambia ese healthcheck a TCP con más margen, pendiente de promoción. No hacer failover hasta completar un CD exitoso y repetir esta puerta.
 
-> Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El fallo actual es de arranque/verificación Compose, no de autorización AWS.
+> Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El fallo actual es de healthcheck durante arranque Compose, no de autorización AWS.
 
 ## 1. Justificación tecnológica para la evaluación
 
