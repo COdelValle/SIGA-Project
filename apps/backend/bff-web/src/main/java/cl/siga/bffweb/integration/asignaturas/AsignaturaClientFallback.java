@@ -30,13 +30,10 @@ public class AsignaturaClientFallback implements AsignaturaClient {
     }
 
     @Override
-    public PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturasByClase(Long idClase, int size) {
-        throw new ServiceUnavailableException("No se pudieron obtener las asignaturas de la clase " + idClase);
-    }
-
-    @Override
-    public PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturasByDocente(Long idDocente, int size) {
-        throw new ServiceUnavailableException("No se pudieron obtener las asignaturas del docente " + idDocente);
+    public PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturas(
+            Long idClase, Long idDocente, int size) {
+        throw new ServiceUnavailableException(
+            "No se pudieron obtener las dictaciones solicitadas");
     }
 
     @Override

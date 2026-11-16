@@ -12,6 +12,7 @@ const MENU: MenuItem[] = [
     route: '/docente/registrar-asistencias',
     icon: 'register-attendance',
   },
+  { label: 'Reportes', route: '/docente/reportes', icon: 'reports' },
 ];
 
 @Component({
@@ -57,6 +58,10 @@ export const DOCENTE_ROUTES: Routes = [
           import('./pages/registrar-asistencias.component').then(
             (m) => m.DocenteRegistrarAsistenciasComponent,
           ),
+      },
+      {
+        path: 'reportes',
+        loadComponent: () => import('./pages/reportes.component').then((m) => m.DocenteReportesComponent),
       },
     ],
   },

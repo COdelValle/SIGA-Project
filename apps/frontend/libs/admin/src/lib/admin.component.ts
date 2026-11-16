@@ -8,6 +8,7 @@ const MENU: MenuItem[] = [
   { label: 'Roles', route: '/admin/roles', icon: 'roles' },
   { label: 'Asignaturas', route: '/admin/asignaturas', icon: 'subjects' },
   { label: 'Malla curricular', route: '/admin/malla', icon: 'curriculum' },
+  { label: 'Reportes', route: '/admin/reportes', icon: 'reports' },
 ];
 
 @Component({
@@ -49,6 +50,10 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'malla',
         loadComponent: () => import('./pages/malla.component').then((m) => m.AdminMallaComponent),
+      },
+      {
+        path: 'reportes',
+        loadComponent: () => import('./pages/reportes.component').then((m) => m.AdminReportesComponent),
       },
     ],
   },

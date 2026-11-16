@@ -30,6 +30,7 @@ import cl.siga.bffweb.domain.me.MeService;
 import cl.siga.bffweb.domain.notas.NotaBffService;
 import cl.siga.bffweb.domain.notificaciones.NotificacionBffService;
 import cl.siga.bffweb.domain.reportes.ReporteBffService;
+import cl.siga.bffweb.domain.reportes.ReporteFiltroBffService;
 import cl.siga.coreshare.security.JwtResourceServerConfiguration;
 import cl.siga.coreshare.security.SharedSecurityConfig;
 
@@ -75,6 +76,9 @@ class OpenApiSpecificationTest {
 
     @MockitoBean
     private ReporteBffService reporteBffService;
+
+    @MockitoBean
+    private ReporteFiltroBffService reporteFiltroBffService;
 
     @Test
     void generaEspecificacionOpenApi() throws Exception {

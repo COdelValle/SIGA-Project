@@ -58,14 +58,14 @@ class DocenteContextServiceTest {
 
     @Test
     void cursosDelDocenteSinPaginaDevuelveListaVacia() {
-        when(asignaturaClient.searchCursoAsignaturasByDocente(1L, 100)).thenReturn(null);
+        when(asignaturaClient.searchCursoAsignaturas(null, 1L, 100)).thenReturn(null);
 
         assertThat(service.cursosDelDocente(1L)).isEmpty();
     }
 
     @Test
     void cursosDelDocenteConPaginaNulaDevuelveListaVacia() {
-        when(asignaturaClient.searchCursoAsignaturasByDocente(1L, 100))
+        when(asignaturaClient.searchCursoAsignaturas(null, 1L, 100))
             .thenReturn(new cl.siga.coreshare.dto.common.PageResponseDTO<>(
                 null, 0, 0, 100, 0, true, true, true));
 

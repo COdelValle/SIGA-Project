@@ -10,6 +10,7 @@ export type MenuIconName =
   | 'subjects'
   | 'curriculum'
   | 'progress'
+  | 'reports'
   | 'register-notes'
   | 'register-attendance';
 
