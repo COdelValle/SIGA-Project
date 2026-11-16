@@ -818,7 +818,25 @@ Reglas de mantenimiento:
 - **Nota de remediación**: se sustituyó un literal de prueba tipo contraseña por texto neutro y se añadió una excepción exacta para ese fixture histórico; no eliminó el hallazgo de Compose.
 - **Actualización del hallazgo**: GitGuardian identifica `Generic Password` en `docker-compose.yml`, commit `06d5d666`. Las excepciones exactas incluyen los fallbacks históricos de MariaDB y el fixture, sin ignorar el archivo completo. Confirmar si algún entorno persistente usó esos fallbacks y rotar sus credenciales si corresponde. El check aún debe reejecutarse antes de fusionar.
 - **CD de política**: PR [#122](https://github.com/COdelValle/SIGA-Project/pull/122) se fusionó para publicar las excepciones exactas de GitGuardian en `deploy`. El CD [43792075530](https://github.com/COdelValle/SIGA-Project/actions/runs/43792075530) terminó `success` con SHA `051d7af`; la EC2 quedó con 17 servicios saludables, pero el Compose de `deploy` aún no incluye Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`.
-- **Despliegue Kafka**: PR #121 sigue abierto por GitGuardian; no se fusionó ni se ejecutó failover de brokers.
+- **Estado a esa fecha**: PR #121 estaba abierto por GitGuardian; ver PR-20261116-16 para la continuación.
+
+### PR-20261116-16 — CD EP3, ECR y recuperación pendiente
+
+- **Merge EP3**: PR #121 se fusionó como `6db01be0a160e0ad018d0a9a29f5c244aa81e1ed` después de que GitGuardian cambiara a `skipped`. PR #124 fusionó el fix de la suite de infraestructura en Allure.
+- **Terraform/ECR**: el plan dirigido mostró solo `2 to add, 0 to change, 0 to destroy`; se crearon `siga-kafka-admin` y `siga-reportes`. El plan completo mostró `0 to add, 2 to change, 0 to destroy`; se amplió EBS 10→20 GB y actualizó `user_data` in-place.
+- **CD 43799769525**: build de imágenes exitoso hasta la etapa de Compose; el deploy falló cuando RabbitMQ quedó `unhealthy`. La lectura SSM posterior mostró Kafka 1 `unhealthy`, Kafka 2/3 `healthy`, `ms-kafka-admin` `healthy`, `ms-reportes`/`ms-notas` en `starting` y BFF/frontend `Created`.
+- **CD 43811522748**: verificación backend/frontend e informe Allure `success`; `Build, push a ECR y deploy en EC2` falló al hacer ECR login por `ecr:GetAuthorizationToken` denegado explícitamente por la política `voc-cancel-cred`. No llegó a modificar la EC2.
+- **Estado AWS**: el último snapshot SSM disponible es parcial: Kafka 1 unhealthy, Kafka 2/3 healthy, `ms-kafka-admin` healthy, `ms-reportes` y `ms-notas` arrancando, BFF/frontend creados y RabbitMQ recuperado. La comprobación local confirmó `sts:GetCallerIdentity`, pero ECR y SSM reciben denegación explícita `voc-cancel-cred`; hay que iniciar/renovar AWS Academy y actualizar los secrets `AWS_*` antes de reintentar CD. No se hicieron pruebas de failover.
+
+### PR-20261116-17 — Diagnóstico del CD y corrección de arranque
+
+- **CD 43851631259**: las verificaciones backend/frontend e informe Allure pasaron; el deploy de SHA `473c07ab9dc88eebfb1cb5e836f4f35eea4b51e8` falló en `docker compose up --remove-orphans` a las 11:07:51 UTC con `dependency failed to start: container kafka-1 is unhealthy`.
+- **Estado Kafka/RabbitMQ posterior**: SSM confirmó las APIs de los tres brokers accesibles y `healthy`; ambos topics con 3 particiones, RF=3, `min.insync.replicas=2`, ISR 3/3 y `retention.ms=604800000`/`retention.bytes=134217728`. RabbitMQ tiene los nodos `rabbit@rabbitmq1` y `rabbit@rabbitmq2` activos, sin alarmas ni particiones; `ms-kafka-admin` responde UP.
+- **Hallazgo ms-reportes**: los logs muestran `UnsatisfiedDependencyException` en `ReporteProcesamientoService`: Spring no seleccionaba el constructor porque Lombok generaba uno para los campos finales y existía además una sobrecarga de cinco argumentos. Se explicitó el constructor de seis dependencias con `@Autowired` y se agregó una prueba ligera de wiring de contexto.
+- **Healthcheck Kafka**: se observaron probes con timeout (`ExitCode=-1`) mientras los brokers luego aparecían healthy; el probe del Compose pasa de 10 a 30 segundos para evitar falsos unhealthy durante el arranque bajo carga.
+- **Pruebas locales**: `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS`; `ms-reportes`: 16 pruebas, 0 fallos, 0 errores, 1 omitida (migración Testcontainers porque Docker local no está disponible). La nueva prueba Spring de wiring pasó.
+- **Estado remoto parcial**: `ms-notas`, `ms-asistencias`, `bff-web` y `frontend` siguen `Created`; `ms-reportes` continúa reiniciando hasta desplegar la corrección. No se detuvieron brokers ni se ejecutaron failovers.
+- **Siguientes pasos**: promover los cambios de constructor y healthcheck, esperar un CD exitoso, confirmar que todos los contenedores estén healthy y repetir preflight antes de las pruebas autorizadas de fallo de uno y dos brokers.
 
 ## 5. Runbook reproducible
 

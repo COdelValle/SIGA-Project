@@ -2,9 +2,9 @@
 
 Guía separada para comprobar los requisitos de código y funcionamiento de la EP3. Está pensada para repetirla en local y en AWS, guardar evidencia verificable y explicar por qué se configuró así Kafka junto a RabbitMQ.
 
-> **Estado observado el 15–16 de noviembre de 2026:** la EC2 activa ejecuta el commit `efdd7f3`; su Compose no contiene Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`. Los secrets `KAFKA_UI_USER` y `KAFKA_UI_PASSWORD_HASH` existen en GitHub, pero la ruta Caddy de Kafka UI tampoco está presente en esa EC2. La SPA/API Gateway/BFF sí respondió y rechazó peticiones sin JWT o con JWT malformado. No ejecutar pruebas de brokers hasta desplegar una versión que incluya esos servicios y repetir el preflight de esta guía.
+> **Estado AWS actualizado al 16 de noviembre de 2026:** el CD `43851631259` desplegó parcialmente SHA `473c07ab`; Compose abortó porque `kafka-1` figuró `unhealthy`. La lectura SSM posterior confirma los tres brokers saludables, APIs accesibles, ISR completo y retención correcta; RabbitMQ tiene sus dos nodos activos. Sin embargo, `ms-reportes` está en reinicio por un error de constructor Spring (`No default constructor found`), y `ms-notas`, `ms-asistencias`, `bff-web` y `frontend` aparecen `Created`. La corrección de constructor y el timeout ampliado de healthcheck Kafka están en `dev`, pendientes de promoción. No hacer failover hasta completar el despliegue y repetir esta puerta.
 
-> **Actualización tras CD 43792075530:** la EC2 quedó en `051d7af`; los 17 servicios Compose siguen saludables, pero Kafka, Kafka UI, `ms-kafka-admin` y `ms-reportes` siguen ausentes. El preflight y el gate de no ejecutar failover continúan vigentes.
+> Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El fallo actual es de arranque/verificación Compose, no de autorización AWS.
 
 ## 1. Justificación tecnológica para la evaluación
 
