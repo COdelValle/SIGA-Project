@@ -1,0 +1,4 @@
+{"id":3,"idAsignatura":10,"nombre":"Ciencias Naturales","descripcion":"Ciencias",
+ "area":"Ciencias Naturales y Exactas","calificable":true,"caracter":"OBLIGATORIA","semestre":"SEMESTRE_1",
+ "idDocente":5,"idClase":4,"cupoMaximo":40,"cuposDisponibles":35,
+ "totalInscritos":5,"horarios":[]}
