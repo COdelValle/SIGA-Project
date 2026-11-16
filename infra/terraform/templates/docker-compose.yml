@@ -93,10 +93,11 @@ services:
       - /home/ubuntu/siga-data/rabbitmq1:/var/lib/rabbitmq
       - /home/ubuntu/siga/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "5672"]
+      interval: 15s
+      timeout: 15s
       retries: 10
+      start_period: 60s
 
   rabbitmq2:
     image: rabbitmq:4.3.6-management-alpine
@@ -113,10 +114,11 @@ services:
       - /home/ubuntu/siga-data/rabbitmq2:/var/lib/rabbitmq
       - /home/ubuntu/siga/rabbitmq-cluster.conf:/etc/rabbitmq/conf.d/10-cluster.conf:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "5672"]
+      interval: 15s
+      timeout: 15s
       retries: 10
+      start_period: 60s
 
   # Panel de RabbitMQ por HTTPS publico: Caddy termina TLS (Let's Encrypt via
   # sslip.io) y hace reverse-proxy al Management UI, que pide el login propio
@@ -554,7 +556,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
       interval: 15s
-      timeout: 10s
+      timeout: 30s
       retries: 12
       start_period: 60s
 
@@ -596,7 +598,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
       interval: 15s
-      timeout: 10s
+      timeout: 30s
       retries: 12
       start_period: 60s
 
@@ -638,7 +640,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092"]
       interval: 15s
-      timeout: 10s
+      timeout: 30s
       retries: 12
       start_period: 60s
 

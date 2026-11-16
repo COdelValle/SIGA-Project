@@ -818,7 +818,53 @@ Reglas de mantenimiento:
 - **Nota de remediación**: se sustituyó un literal de prueba tipo contraseña por texto neutro y se añadió una excepción exacta para ese fixture histórico; no eliminó el hallazgo de Compose.
 - **Actualización del hallazgo**: GitGuardian identifica `Generic Password` en `docker-compose.yml`, commit `06d5d666`. Las excepciones exactas incluyen los fallbacks históricos de MariaDB y el fixture, sin ignorar el archivo completo. Confirmar si algún entorno persistente usó esos fallbacks y rotar sus credenciales si corresponde. El check aún debe reejecutarse antes de fusionar.
 - **CD de política**: PR [#122](https://github.com/COdelValle/SIGA-Project/pull/122) se fusionó para publicar las excepciones exactas de GitGuardian en `deploy`. El CD [43792075530](https://github.com/COdelValle/SIGA-Project/actions/runs/43792075530) terminó `success` con SHA `051d7af`; la EC2 quedó con 17 servicios saludables, pero el Compose de `deploy` aún no incluye Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`.
-- **Despliegue Kafka**: PR #121 sigue abierto por GitGuardian; no se fusionó ni se ejecutó failover de brokers.
+- **Estado a esa fecha**: PR #121 estaba abierto por GitGuardian; ver PR-20261116-16 para la continuación.
+
+### PR-20261116-16 — CD EP3, ECR y recuperación pendiente
+
+- **Merge EP3**: PR #121 se fusionó como `6db01be0a160e0ad018d0a9a29f5c244aa81e1ed` después de que GitGuardian cambiara a `skipped`. PR #124 fusionó el fix de la suite de infraestructura en Allure.
+- **Terraform/ECR**: el plan dirigido mostró solo `2 to add, 0 to change, 0 to destroy`; se crearon `siga-kafka-admin` y `siga-reportes`. El plan completo mostró `0 to add, 2 to change, 0 to destroy`; se amplió EBS 10→20 GB y actualizó `user_data` in-place.
+- **CD 43799769525**: build de imágenes exitoso hasta la etapa de Compose; el deploy falló cuando RabbitMQ quedó `unhealthy`. La lectura SSM posterior mostró Kafka 1 `unhealthy`, Kafka 2/3 `healthy`, `ms-kafka-admin` `healthy`, `ms-reportes`/`ms-notas` en `starting` y BFF/frontend `Created`.
+- **CD 43811522748**: verificación backend/frontend e informe Allure `success`; `Build, push a ECR y deploy en EC2` falló al hacer ECR login por `ecr:GetAuthorizationToken` denegado explícitamente por la política `voc-cancel-cred`. No llegó a modificar la EC2.
+- **Estado AWS**: el último snapshot SSM disponible es parcial: Kafka 1 unhealthy, Kafka 2/3 healthy, `ms-kafka-admin` healthy, `ms-reportes` y `ms-notas` arrancando, BFF/frontend creados y RabbitMQ recuperado. La comprobación local confirmó `sts:GetCallerIdentity`, pero ECR y SSM reciben denegación explícita `voc-cancel-cred`; hay que iniciar/renovar AWS Academy y actualizar los secrets `AWS_*` antes de reintentar CD. No se hicieron pruebas de failover.
+
+### PR-20261116-17 — Diagnóstico del CD y corrección de arranque
+
+- **CD 43851631259**: las verificaciones backend/frontend e informe Allure pasaron; el deploy de SHA `473c07ab9dc88eebfb1cb5e836f4f35eea4b51e8` falló en `docker compose up --remove-orphans` a las 11:07:51 UTC con `dependency failed to start: container kafka-1 is unhealthy`.
+- **Estado Kafka/RabbitMQ posterior**: SSM confirmó las APIs de los tres brokers accesibles y `healthy`; ambos topics con 3 particiones, RF=3, `min.insync.replicas=2`, ISR 3/3 y `retention.ms=604800000`/`retention.bytes=134217728`. RabbitMQ tiene los nodos `rabbit@rabbitmq1` y `rabbit@rabbitmq2` activos, sin alarmas ni particiones; `ms-kafka-admin` responde UP.
+- **Hallazgo ms-reportes**: los logs muestran `UnsatisfiedDependencyException` en `ReporteProcesamientoService`: Spring no seleccionaba el constructor porque Lombok generaba uno para los campos finales y existía además una sobrecarga de cinco argumentos. Se explicitó el constructor de seis dependencias con `@Autowired` y se agregó una prueba ligera de wiring de contexto.
+- **Healthcheck Kafka**: se observaron probes con timeout (`ExitCode=-1`) mientras los brokers luego aparecían healthy; el probe del Compose pasa de 10 a 30 segundos para evitar falsos unhealthy durante el arranque bajo carga.
+- **Pruebas locales**: `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS`; `ms-reportes`: 16 pruebas, 0 fallos, 0 errores, 1 omitida (migración Testcontainers porque Docker local no está disponible). La nueva prueba Spring de wiring pasó.
+- **CD 43858404711 / merge `296a1f7`**: todas las verificaciones, Allure y builds/push ECR pasaron; el deploy remoto excedió a las 12:01:42 UTC el timeout de 15 min de la acción SSH (`Run Command Timeout`). SSM confirmó que Kafka, `ms-kafka-admin`, `ms-reportes` y RabbitMQ quedaron healthy; `ms-notificaciones` seguía `starting`, y `ms-notas`, `bff-web` y `frontend` `Created` al finalizar.
+- **Corrección del timeout**: la cadena de dependencias de Compose necesita más de 15 min para iniciar los JVM en esta EC2. El `command_timeout` se amplió a 45 min en `.github/workflows/cd.yml`, pendiente de promover.
+- **Estado remoto**: no se detuvieron brokers ni se ejecutaron failovers. Aún se requiere CD exitoso, todos los contenedores healthy y preflight antes de las pruebas autorizadas de caída de uno y dos brokers.
+
+### PR-20261116-18 — Ampliar espera del deploy remoto
+
+- **Causa del fallo**: el CD `43858404711` terminó con `Run Command Timeout` exactamente tras los 15 min configurados en `appleboy/ssh-action`; Docker Compose seguía recorriendo la cadena de healthchecks y no había iniciado `ms-notas`, BFF ni frontend.
+- **Estado posterior**: SSM a las 12:02 UTC confirmó brokers, ZooKeeper, `ms-kafka-admin`, `ms-reportes`, MariaDB y RabbitMQ saludables; `ms-asistencias` y `ms-evaluaciones` healthy; `ms-notificaciones` en `starting`; `ms-notas`, `bff-web` y `frontend` en `Created`.
+- **Cambio**: `.github/workflows/cd.yml` amplía `command_timeout` a 45 min para permitir que el arranque del grafo Compose y las verificaciones post-deploy concluyan. Pendiente de promoción y nuevo CD; no ejecutar failover hasta tener todos los servicios healthy y un CD exitoso.
+
+### PR-20261116-19 — Healthcheck RabbitMQ bajo carga de arranque
+
+- **CD 43864706041**: PR #127 fue desplegado con timeout SSH de 45 min, pero Compose falló a las 12:35:22 UTC con `dependency failed to start: container rabbitmq1 is unhealthy`.
+- **Diagnóstico**: ambos RabbitMQ tenían sus cinco probes Docker recientes con `ExitCode=-1`; el healthcheck ejecutaba `rabbitmq-diagnostics -q ping` con timeout de 5 s. SSM observó load average ~24 en host de 2 CPU; una prueba TCP al puerto 5672 pasó en ambos nodos y el ping directo también pasó después, confirmando que el timeout del probe era transitorio.
+- **Cambio**: el healthcheck cambia a `nc -z 127.0.0.1 5672`, timeout 15 s, intervalo 15 s, 10 reintentos y start period de 60 s en ambos nodos.
+- **Estado remoto**: RabbitMQ se conserva persistente y no se ha modificado manualmente; en la lectura posterior algunos servicios dependientes siguen `Created`/`starting`. No se detuvieron brokers ni se ejecutaron failovers.
+- **Siguiente paso**: validar Compose, promover el healthcheck y repetir CD. Solo ejecutar failover tras un CD exitoso y preflight con stack completo saludable.
+
+### PR-20261116-20 — CD exitoso, failover y smoke Kafka
+
+- **CD final**: PR #128 se fusionó como `dc98259ab2fab428647c133475f5126c724d36b8`; el CD [43869955825](https://github.com/COdelValle/SIGA-Project/actions/runs/43869955825) terminó `success`, incluido el deploy completo y sus verificaciones post-deploy.
+- **Preflight**: los 26 contenedores están activos; todos los servicios con healthcheck `healthy`. Tres brokers y tres ZooKeeper healthy; Kafka UI en ejecución; RabbitMQ 1/2 healthy, ambos nodos `Running Nodes`, sin alarmas ni particiones. El acceso público Kafka UI sin autenticar devuelve HTTP 401.
+- **Topics de negocio**: ambos con 3 particiones, RF=3, `min.insync.replicas=2`, ISR 3/3, `retention.ms=604800000`, `retention.bytes=134217728`, `cleanup.policy=delete`. Los grupos `siga-reportes-asistencias` y `siga-reportes-rendimiento` están conectados; sin eventos de negocio el lag está vacío/cero.
+- **Failover de un broker**: topic temporal `siga.e3.failover-20261116-01`; se detuvo cada broker individualmente. En cada escenario todas las particiones conservaron ISR=2, `acks=all` confirmó un registro y, al restaurar el broker, recuperó `healthy`/ISR=3. Se repitió en kafka-1, kafka-2 y kafka-3.
+- **Failover de dos brokers**: con solo kafka-3 activo, ISR=1 y el broker devolvió `NOT_ENOUGH_REPLICAS`. `kafka-producer-perf-test` indicó `0 records sent`, aunque el proceso devolvió exit code 0; por ello no usar solo su código de salida. Los offsets finales (p0=1,p1=0,p2=3; total 4) son la publicación inicial más tres de los escenarios individuales, sin escritura adicional durante el rechazo.
+- **Recuperación/limpieza**: se restauró kafka-2 y luego kafka-1; tres brokers e ISR 3/3. Se eliminó el topic temporal; `kafka-topics --list` volvió a mostrar solo los topics de negocio. RabbitMQ permaneció con dos nodos y sus colas consumidoras intactas.
+- **Smoke funcional de asistencia**: evento sintético `e3-smoke-a-20261116-01`, clave `idEstudiante=900000000000000001`; se consumió y persistió proyección `PRESENTE/NORMAL`, lag 0.
+- **Smoke funcional de rendimiento — FALLA**: el listener recibió `e3-smoke-r-20261116-01`, pero la primera escritura falló por `Column 'actualizado_en' cannot be null`; después de reintentos se rechazó. No se persistió proyección ni entrada procesada. El mensaje sintético inválido permanece en el topic hasta cumplir la retención; no contiene PII.
+- **Corrección local**: la primera escritura requería `actualizado_en`, `id_evento`, `correlation_id` y `nivel_riesgo`; `ReporteProcesamientoService.procesarRendimiento` inicializa ahora esos campos antes del primer `save`. La regresión unitaria captura el estado en el instante de cada invocación a `save` (no la referencia mutable final). `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS` (16 tests del módulo, 0 errores/fallos, 1 Testcontainers omitida por Docker local no disponible); `mvn -f apps/backend/pom.xml -pl ms-reportes -am -DskipTests package` también `BUILD SUCCESS`. El cambio está en `dev`, pendiente de PR/CD y de repetir el smoke de rendimiento con un `idEvento` nuevo.
+- **Evidencia detallada**: [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No se detuvo ZooKeeper/EC2 ni se publicaron eventos de prueba en la etapa de dos brokers caídos.
 
 ## 5. Runbook reproducible
 

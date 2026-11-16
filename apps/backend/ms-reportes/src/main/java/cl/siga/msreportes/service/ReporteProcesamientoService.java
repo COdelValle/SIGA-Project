@@ -11,15 +11,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ReporteProcesamientoService {
 
@@ -29,6 +28,22 @@ public class ReporteProcesamientoService {
     private final ProyeccionRendimientoRepository rendimientoRepository;
     private final AlertaRiesgoRepository alertasRepository;
     private final PublicadorAlertaRiesgo publicadorAlerta;
+
+    @Autowired
+    public ReporteProcesamientoService(
+            Validator validator,
+            EventoReporteProcesadoRepository eventosRepository,
+            ProyeccionAsistenciaRepository asistenciaRepository,
+            ProyeccionRendimientoRepository rendimientoRepository,
+            AlertaRiesgoRepository alertasRepository,
+            PublicadorAlertaRiesgo publicadorAlerta) {
+        this.validator = validator;
+        this.eventosRepository = eventosRepository;
+        this.asistenciaRepository = asistenciaRepository;
+        this.rendimientoRepository = rendimientoRepository;
+        this.alertasRepository = alertasRepository;
+        this.publicadorAlerta = publicadorAlerta;
+    }
 
     public ReporteProcesamientoService(
             Validator validator,
@@ -96,6 +111,10 @@ public class ReporteProcesamientoService {
         proyeccion.setPuntaje(evento.puntaje());
         proyeccion.setPromedio(evento.promedio());
         proyeccion.setEvaluacionesInsuficientes(evento.evaluacionesInsuficientes());
+        proyeccion.setNivelRiesgo(nivelNuevo);
+        proyeccion.setIdEvento(evento.idEvento());
+        proyeccion.setCorrelationId(evento.correlationId());
+        proyeccion.setActualizadoEn(evento.timestamp());
         rendimientoRepository.save(proyeccion);
 
         IndicadoresRendimiento indicadores = recalcularIndicadores(evento, proyeccion);
@@ -108,9 +127,6 @@ public class ReporteProcesamientoService {
             evento.idEvento(), evento.correlationId());
         nivelNuevo = nivelRendimiento(eventoCalculado);
         proyeccion.setNivelRiesgo(nivelNuevo);
-        proyeccion.setIdEvento(evento.idEvento());
-        proyeccion.setCorrelationId(evento.correlationId());
-        proyeccion.setActualizadoEn(evento.timestamp());
         rendimientoRepository.save(proyeccion);
         registrarAlertaRendimiento(eventoCalculado, nivelAnterior, nivelNuevo);
         registrarCambioEstado(evento.idEvento(), evento.correlationId(), evento.idEstudiante(),
