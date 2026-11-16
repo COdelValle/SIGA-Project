@@ -1,0 +1,1 @@
+{"id":"413176e9808e73f908cd720780ff4103.d41d8cd98f00b204e9800998ecf8427e","fullName":"frontend:libs/apoderado/src/lib/state/apoderado.service.spec.ts#ApoderadoService propaga el error del BFF sin usar datos mock","name":"propaga el error del BFF sin usar datos mock","status":"passed","testResultsByEnv":{"default":"0d318773e759dec581dd8a56ba5802f0"}}
