@@ -37,7 +37,7 @@ public class DocenteContextService {
 
     public List&lt;CursoAsignaturaResponseDTO&gt; cursosDelDocente(Long idDocente) {
 <span class="fc" id="L39">        PageResponseDTO&lt;CursoAsignaturaResponseDTO&gt; pagina =</span>
-<span class="fc" id="L40">            asignaturaClient.searchCursoAsignaturasByDocente(idDocente, PAGE_SIZE);</span>
+<span class="fc" id="L40">            asignaturaClient.searchCursoAsignaturas(null, idDocente, PAGE_SIZE);</span>
 <span class="fc bfc" id="L41" title="All 4 branches covered.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
     }
 

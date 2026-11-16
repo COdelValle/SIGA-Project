@@ -76,7 +76,7 @@ public class PerfilEstudianteService {
         // 2. Clase -&gt; dictaciones + optativas/electivas inscritas por el estudiante
 <span class="fc bfc" id="L77" title="All 2 branches covered.">        List&lt;CursoAsignaturaResponseDTO&gt; delCurso = estudiante.idClase() == null</span>
 <span class="fc" id="L78">            ? Collections.emptyList()</span>
-<span class="fc" id="L79">            : contentOf(asignaturaClient.searchCursoAsignaturasByClase(estudiante.idClase(), PAGE_SIZE));</span>
+<span class="fc" id="L79">            : contentOf(asignaturaClient.searchCursoAsignaturas(estudiante.idClase(), null, PAGE_SIZE));</span>
 <span class="fc bfc" id="L80" title="All 2 branches covered.">        List&lt;InscripcionResponseDTO&gt; inscripciones = estudiante.idClase() == null</span>
 <span class="fc" id="L81">            ? Collections.emptyList()</span>
 <span class="fc" id="L82">            : inscripcionesDelEstudiante(estudiante.id());</span>

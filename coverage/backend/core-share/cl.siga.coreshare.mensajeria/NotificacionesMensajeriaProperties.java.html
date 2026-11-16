@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionesMensajeriaProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">core-share</a> &gt; <a href="index.source.html" class="el_package">cl.siga.coreshare.mensajeria</a> &gt; <span class="el_source">NotificacionesMensajeriaProperties.java</span></div><h1>NotificacionesMensajeriaProperties.java</h1><pre class="source lang-java linenums">package cl.siga.coreshare.mensajeria;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * Nombres de la topología RabbitMQ académica (notas, asistencias,
+ * evaluaciones y alertas de riesgo). Todos los productores y consumidores
+ * comparten esta configuración para no duplicar literales en Java.
+ */
+@Getter
+@Setter
+@ConfigurationProperties(prefix = &quot;siga.mensajeria.notificaciones&quot;)
+<span class="fc" id="L17">public class NotificacionesMensajeriaProperties {</span>
+
+    private String exchangeNotificaciones;
+    private String exchangeDlq;
+
+    private String colaEvaluaciones;
+    private String dlqEvaluaciones;
+    private String colaAsistencias;
+    private String dlqAsistencias;
+    private String colaNotas;
+    private String dlqNotas;
+    private String colaRiesgoInasistencia;
+    private String dlqRiesgoInasistencia;
+    private String colaRiesgoRendimiento;
+    private String dlqRiesgoRendimiento;
+    private String colaCambioEstadoAcademico;
+    private String dlqCambioEstadoAcademico;
+
+    private String patronEvaluacion;
+    private String patronAsistencia;
+    private String patronNota;
+
+    private String claveEvaluacionCreada;
+    private String claveEvaluacionActualizada;
+    private String claveEvaluacionEliminada;
+    private String claveAsistenciaRegistrada;
+    private String claveRiesgoInasistencia;
+    private String claveRiesgoRendimiento;
+    private String claveCambioEstadoAcademico;
+    private String claveNotaCreada;
+    private String claveNotaActualizada;
+
+    @PostConstruct
+    public void validar() {
+<span class="fc" id="L51">        requerido(exchangeNotificaciones, &quot;exchange-notificaciones&quot;);</span>
+<span class="fc" id="L52">        requerido(exchangeDlq, &quot;exchange-dlq&quot;);</span>
+<span class="fc" id="L53">        requerido(colaEvaluaciones, &quot;cola-evaluaciones&quot;);</span>
+<span class="fc" id="L54">        requerido(dlqEvaluaciones, &quot;dlq-evaluaciones&quot;);</span>
+<span class="fc" id="L55">        requerido(colaAsistencias, &quot;cola-asistencias&quot;);</span>
+<span class="fc" id="L56">        requerido(dlqAsistencias, &quot;dlq-asistencias&quot;);</span>
+<span class="fc" id="L57">        requerido(colaNotas, &quot;cola-notas&quot;);</span>
+<span class="fc" id="L58">        requerido(dlqNotas, &quot;dlq-notas&quot;);</span>
+<span class="fc" id="L59">        requerido(colaRiesgoInasistencia, &quot;cola-riesgo-inasistencia&quot;);</span>
+<span class="fc" id="L60">        requerido(dlqRiesgoInasistencia, &quot;dlq-riesgo-inasistencia&quot;);</span>
+<span class="fc" id="L61">        requerido(colaRiesgoRendimiento, &quot;cola-riesgo-rendimiento&quot;);</span>
+<span class="fc" id="L62">        requerido(dlqRiesgoRendimiento, &quot;dlq-riesgo-rendimiento&quot;);</span>
+<span class="fc" id="L63">        requerido(colaCambioEstadoAcademico, &quot;cola-cambio-estado-academico&quot;);</span>
+<span class="fc" id="L64">        requerido(dlqCambioEstadoAcademico, &quot;dlq-cambio-estado-academico&quot;);</span>
+<span class="fc" id="L65">        requerido(patronEvaluacion, &quot;patron-evaluacion&quot;);</span>
+<span class="fc" id="L66">        requerido(patronAsistencia, &quot;patron-asistencia&quot;);</span>
+<span class="fc" id="L67">        requerido(patronNota, &quot;patron-nota&quot;);</span>
+<span class="fc" id="L68">        requerido(claveEvaluacionCreada, &quot;clave-evaluacion-creada&quot;);</span>
+<span class="fc" id="L69">        requerido(claveEvaluacionActualizada, &quot;clave-evaluacion-actualizada&quot;);</span>
+<span class="fc" id="L70">        requerido(claveEvaluacionEliminada, &quot;clave-evaluacion-eliminada&quot;);</span>
+<span class="fc" id="L71">        requerido(claveAsistenciaRegistrada, &quot;clave-asistencia-registrada&quot;);</span>
+<span class="fc" id="L72">        requerido(claveRiesgoInasistencia, &quot;clave-riesgo-inasistencia&quot;);</span>
+<span class="fc" id="L73">        requerido(claveRiesgoRendimiento, &quot;clave-riesgo-rendimiento&quot;);</span>
+<span class="fc" id="L74">        requerido(claveCambioEstadoAcademico, &quot;clave-cambio-estado-academico&quot;);</span>
+<span class="fc" id="L75">        requerido(claveNotaCreada, &quot;clave-nota-creada&quot;);</span>
+<span class="fc" id="L76">        requerido(claveNotaActualizada, &quot;clave-nota-actualizada&quot;);</span>
+<span class="fc" id="L77">    }</span>
+
+    private static void requerido(String valor, String clave) {
+<span class="pc bpc" id="L80" title="2 of 4 branches missed.">        if (valor == null || valor.isBlank()) {</span>
+<span class="nc" id="L81">            throw new IllegalStateException(</span>
+                &quot;Falta configurar siga.mensajeria.notificaciones.&quot; + clave);
+        }
+<span class="fc" id="L84">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

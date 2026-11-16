@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.reportes</a> &gt; <span class="el_source">ReporteController.java</span></div><h1>ReporteController.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.reportes;
 
+import cl.siga.bffweb.domain.reportes.dto.EstudianteReporteDTO;
+import cl.siga.bffweb.domain.reportes.dto.ReporteFiltrosDTO;
 import cl.siga.coreshare.dto.reportes.IndicadorAsistenciaDTO;
 import cl.siga.coreshare.dto.reportes.IndicadorRendimientoDTO;
 import java.time.LocalDate;
@@ -19,6 +21,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReporteController {
 
     private final ReporteBffService service;
+    private final ReporteFiltroBffService filtroService;
+
+    @GetMapping(&quot;/filtros&quot;)
+    @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) &quot;
+        + &quot;and hasAuthority('SCOPE_asistencias:read') and hasAuthority('SCOPE_notas:read')&quot;)
+    public ResponseEntity&lt;ReporteFiltrosDTO&gt; filtros() {
+<span class="nc" id="L30">        return ResponseEntity.ok(filtroService.filtros());</span>
+    }
+
+    @GetMapping(&quot;/filtros/estudiantes&quot;)
+    @PreAuthorize(&quot;(hasRole('ADMIN') or hasRole('DOCENTE')) &quot;
+        + &quot;and hasAuthority('SCOPE_asistencias:read') and hasAuthority('SCOPE_notas:read')&quot;)
+    public ResponseEntity&lt;List&lt;EstudianteReporteDTO&gt;&gt; estudiantes(
+            @RequestParam Long idCursoAsignatura) {
+<span class="nc" id="L38">        return ResponseEntity.ok(filtroService.estudiantes(idCursoAsignatura));</span>
+    }
 
     @GetMapping(&quot;/asistencia&quot;)
     @PreAuthorize(&quot;hasAuthority('SCOPE_asistencias:read')&quot;)
@@ -27,7 +45,7 @@ public class ReporteController {
             @RequestParam(required = false) Long idCursoAsignatura,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-<span class="nc" id="L30">        return ResponseEntity.ok(service.buscarAsistencia(idEstudiante, idCursoAsignatura, from, to));</span>
+<span class="nc" id="L48">        return ResponseEntity.ok(service.buscarAsistencia(idEstudiante, idCursoAsignatura, from, to));</span>
     }
 
     @GetMapping(&quot;/rendimiento&quot;)
@@ -37,7 +55,7 @@ public class ReporteController {
             @RequestParam(required = false) Long idCursoAsignatura,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-<span class="nc" id="L40">        return ResponseEntity.ok(service.buscarRendimiento(idEstudiante, idCursoAsignatura, from, to));</span>
+<span class="nc" id="L58">        return ResponseEntity.ok(service.buscarRendimiento(idEstudiante, idCursoAsignatura, from, to));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

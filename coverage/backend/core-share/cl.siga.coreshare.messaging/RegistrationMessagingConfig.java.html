@@ -23,7 +23,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Topología compartida del registro asíncrono. Se activa solo en los servicios
@@ -33,176 +35,179 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
  * mismas colas y argumentos, y para que productor y consumidores compartan el
  * mismo converter JSON (fechas ISO-8601, sin serialización Java).
  *
- * &lt;p&gt;Cada cola tiene su DLQ enlazada al exchange directo compartido
- * {@code siga.dlx.direct}. Los consumidores rechazan (NACK sin requeue) hacia
- * esa DLQ cuando el evento es inválido o se agotan los reintentos.&lt;/p&gt;
+ * &lt;p&gt;Los nombres se inyectan desde configuración para poder modificarlos sin
+ * recompilar.&lt;/p&gt;
  */
 @AutoConfiguration
 @AutoConfigureBefore(RabbitAutoConfiguration.class)
 @ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnProperty(prefix = &quot;siga.mensajeria.registro&quot;, name = &quot;topology-enabled&quot;, havingValue = &quot;true&quot;)
-<span class="fc" id="L44">public class RegistrationMessagingConfig {</span>
+@RequiredArgsConstructor
+public class RegistrationMessagingConfig {
+
+    private final RegistroMensajeriaProperties registro;
+    private final NotificacionesMensajeriaProperties notificaciones;
 
     @Bean
     @ConditionalOnMissingBean(name = &quot;userTopicExchange&quot;)
     public TopicExchange userTopicExchange() {
-<span class="fc" id="L49">        return new TopicExchange(RegistrationMessagingConstants.EXCHANGE, true, false);</span>
+<span class="fc" id="L54">        return new TopicExchange(registro.getExchange(), true, false);</span>
     }
 
     @Bean
     @ConditionalOnMissingBean
     public RegistrationStatusPublisher registrationStatusPublisher(RabbitTemplate rabbitTemplate) {
-<span class="fc" id="L55">        return new RegistrationStatusPublisher(rabbitTemplate);</span>
+<span class="fc" id="L60">        return new RegistrationStatusPublisher(rabbitTemplate, registro);</span>
     }
 
     @Bean
     @ConditionalOnMissingBean
     public MessageConverter registrationJsonMessageConverter() {
-<span class="fc" id="L61">        JsonMapper mapper = JsonMapper.builder()</span>
-<span class="fc" id="L62">                .addModule(new JavaTimeModule())</span>
-<span class="fc" id="L63">                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)</span>
-<span class="fc" id="L64">                .build();</span>
-<span class="fc" id="L65">        return new Jackson2JsonMessageConverter(mapper);</span>
+<span class="fc" id="L66">        JsonMapper mapper = JsonMapper.builder()</span>
+<span class="fc" id="L67">                .addModule(new JavaTimeModule())</span>
+<span class="fc" id="L68">                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)</span>
+<span class="fc" id="L69">                .build();</span>
+<span class="fc" id="L70">        return new Jackson2JsonMessageConverter(mapper);</span>
     }
 
     @Bean
     public Queue userAzureSyncQueue() {
-<span class="fc" id="L70">        return conDlq(RegistrationMessagingConstants.AZURE_QUEUE, RegistrationMessagingConstants.AZURE_DLQ);</span>
+<span class="fc" id="L75">        return conDlq(registro.getAzureQueue(), registro.getAzureDlq());</span>
     }
 
     @Bean
     public Queue userRegistrationStatusQueue() {
-<span class="fc" id="L75">        return conDlq(RegistrationMessagingConstants.STATUS_QUEUE, RegistrationMessagingConstants.STATUS_DLQ);</span>
+<span class="fc" id="L80">        return conDlq(registro.getStatusQueue(), registro.getStatusDlq());</span>
     }
 
     @Bean
     public Queue userCredentialsNotifyQueue() {
-<span class="fc" id="L80">        return conDlq(RegistrationMessagingConstants.CREDENTIALS_QUEUE, RegistrationMessagingConstants.CREDENTIALS_DLQ);</span>
+<span class="fc" id="L85">        return conDlq(registro.getCredentialsQueue(), registro.getCredentialsDlq());</span>
     }
 
     @Bean
     public Queue msEstudiantesQueue() {
-<span class="fc" id="L85">        return conDlq(RegistrationMessagingConstants.ESTUDIANTES_QUEUE, RegistrationMessagingConstants.ESTUDIANTES_DLQ);</span>
+<span class="fc" id="L90">        return conDlq(registro.getEstudiantesQueue(), registro.getEstudiantesDlq());</span>
     }
 
     @Bean
     public Queue msDocentesQueue() {
-<span class="fc" id="L90">        return conDlq(RegistrationMessagingConstants.DOCENTES_QUEUE, RegistrationMessagingConstants.DOCENTES_DLQ);</span>
+<span class="fc" id="L95">        return conDlq(registro.getDocentesQueue(), registro.getDocentesDlq());</span>
     }
 
     @Bean
     public Queue msApoderadosQueue() {
-<span class="fc" id="L95">        return conDlq(RegistrationMessagingConstants.APODERADOS_QUEUE, RegistrationMessagingConstants.APODERADOS_DLQ);</span>
+<span class="fc" id="L100">        return conDlq(registro.getApoderadosQueue(), registro.getApoderadosDlq());</span>
     }
 
     @Bean
     public Queue userAzureSyncDlq() {
-<span class="fc" id="L100">        return QueueBuilder.durable(RegistrationMessagingConstants.AZURE_DLQ).build();</span>
+<span class="fc" id="L105">        return QueueBuilder.durable(registro.getAzureDlq()).build();</span>
     }
 
     @Bean
     public Queue userRegistrationStatusDlq() {
-<span class="fc" id="L105">        return QueueBuilder.durable(RegistrationMessagingConstants.STATUS_DLQ).build();</span>
+<span class="fc" id="L110">        return QueueBuilder.durable(registro.getStatusDlq()).build();</span>
     }
 
     @Bean
     public Queue userCredentialsNotifyDlq() {
-<span class="fc" id="L110">        return QueueBuilder.durable(RegistrationMessagingConstants.CREDENTIALS_DLQ).build();</span>
+<span class="fc" id="L115">        return QueueBuilder.durable(registro.getCredentialsDlq()).build();</span>
     }
 
     @Bean
     public Queue msEstudiantesDlq() {
-<span class="fc" id="L115">        return QueueBuilder.durable(RegistrationMessagingConstants.ESTUDIANTES_DLQ).build();</span>
+<span class="fc" id="L120">        return QueueBuilder.durable(registro.getEstudiantesDlq()).build();</span>
     }
 
     @Bean
     public Queue msDocentesDlq() {
-<span class="fc" id="L120">        return QueueBuilder.durable(RegistrationMessagingConstants.DOCENTES_DLQ).build();</span>
+<span class="fc" id="L125">        return QueueBuilder.durable(registro.getDocentesDlq()).build();</span>
     }
 
     @Bean
     public Queue msApoderadosDlq() {
-<span class="fc" id="L125">        return QueueBuilder.durable(RegistrationMessagingConstants.APODERADOS_DLQ).build();</span>
+<span class="fc" id="L130">        return QueueBuilder.durable(registro.getApoderadosDlq()).build();</span>
     }
 
     @Bean
     public Binding bindingAzureSync(Queue userAzureSyncQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L130">        return BindingBuilder.bind(userAzureSyncQueue).to(userTopicExchange)</span>
-<span class="fc" id="L131">                .with(RegistrationMessagingConstants.RK_AZURE_SYNC);</span>
+<span class="fc" id="L135">        return BindingBuilder.bind(userAzureSyncQueue).to(userTopicExchange)</span>
+<span class="fc" id="L136">                .with(registro.getRkAzureSync());</span>
     }
 
     @Bean
     public Binding bindingEstudiantes(Queue msEstudiantesQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L136">        return BindingBuilder.bind(msEstudiantesQueue).to(userTopicExchange)</span>
-<span class="fc" id="L137">                .with(RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE);</span>
+<span class="fc" id="L141">        return BindingBuilder.bind(msEstudiantesQueue).to(userTopicExchange)</span>
+<span class="fc" id="L142">                .with(registro.getRkRegisterEstudiante());</span>
     }
 
     @Bean
     public Binding bindingDocentes(Queue msDocentesQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L142">        return BindingBuilder.bind(msDocentesQueue).to(userTopicExchange)</span>
-<span class="fc" id="L143">                .with(RegistrationMessagingConstants.RK_REGISTER_DOCENTE);</span>
+<span class="fc" id="L147">        return BindingBuilder.bind(msDocentesQueue).to(userTopicExchange)</span>
+<span class="fc" id="L148">                .with(registro.getRkRegisterDocente());</span>
     }
 
     @Bean
     public Binding bindingApoderados(Queue msApoderadosQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L148">        return BindingBuilder.bind(msApoderadosQueue).to(userTopicExchange)</span>
-<span class="fc" id="L149">                .with(RegistrationMessagingConstants.RK_REGISTER_APODERADO);</span>
+<span class="fc" id="L153">        return BindingBuilder.bind(msApoderadosQueue).to(userTopicExchange)</span>
+<span class="fc" id="L154">                .with(registro.getRkRegisterApoderado());</span>
     }
 
     @Bean
     public Binding bindingStatus(Queue userRegistrationStatusQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L154">        return BindingBuilder.bind(userRegistrationStatusQueue).to(userTopicExchange)</span>
-<span class="fc" id="L155">                .with(RegistrationMessagingConstants.RK_STATUS);</span>
+<span class="fc" id="L159">        return BindingBuilder.bind(userRegistrationStatusQueue).to(userTopicExchange)</span>
+<span class="fc" id="L160">                .with(registro.getRkStatus());</span>
     }
 
     @Bean
     public Binding bindingCredentialsNotify(Queue userCredentialsNotifyQueue, TopicExchange userTopicExchange) {
-<span class="fc" id="L160">        return BindingBuilder.bind(userCredentialsNotifyQueue).to(userTopicExchange)</span>
-<span class="fc" id="L161">                .with(RegistrationMessagingConstants.RK_CREDENTIALS_NOTIFY);</span>
+<span class="fc" id="L165">        return BindingBuilder.bind(userCredentialsNotifyQueue).to(userTopicExchange)</span>
+<span class="fc" id="L166">                .with(registro.getRkCredentialsNotify());</span>
     }
 
     @Bean
     public Binding bindingAzureSyncDlq(Queue userAzureSyncDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L166">        return BindingBuilder.bind(userAzureSyncDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L167">                .with(RegistrationMessagingConstants.AZURE_DLQ);</span>
+<span class="fc" id="L171">        return BindingBuilder.bind(userAzureSyncDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L172">                .with(registro.getAzureDlq());</span>
     }
 
     @Bean
     public Binding bindingEstudiantesDlq(Queue msEstudiantesDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L172">        return BindingBuilder.bind(msEstudiantesDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L173">                .with(RegistrationMessagingConstants.ESTUDIANTES_DLQ);</span>
+<span class="fc" id="L177">        return BindingBuilder.bind(msEstudiantesDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L178">                .with(registro.getEstudiantesDlq());</span>
     }
 
     @Bean
     public Binding bindingDocentesDlq(Queue msDocentesDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L178">        return BindingBuilder.bind(msDocentesDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L179">                .with(RegistrationMessagingConstants.DOCENTES_DLQ);</span>
+<span class="fc" id="L183">        return BindingBuilder.bind(msDocentesDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L184">                .with(registro.getDocentesDlq());</span>
     }
 
     @Bean
     public Binding bindingApoderadosDlq(Queue msApoderadosDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L184">        return BindingBuilder.bind(msApoderadosDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L185">                .with(RegistrationMessagingConstants.APODERADOS_DLQ);</span>
+<span class="fc" id="L189">        return BindingBuilder.bind(msApoderadosDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L190">                .with(registro.getApoderadosDlq());</span>
     }
 
     @Bean
     public Binding bindingStatusDlq(Queue userRegistrationStatusDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L190">        return BindingBuilder.bind(userRegistrationStatusDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L191">                .with(RegistrationMessagingConstants.STATUS_DLQ);</span>
+<span class="fc" id="L195">        return BindingBuilder.bind(userRegistrationStatusDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L196">                .with(registro.getStatusDlq());</span>
     }
 
     @Bean
     public Binding bindingCredentialsNotifyDlq(Queue userCredentialsNotifyDlq, DirectExchange sigaDeadLetterExchange) {
-<span class="fc" id="L196">        return BindingBuilder.bind(userCredentialsNotifyDlq).to(sigaDeadLetterExchange)</span>
-<span class="fc" id="L197">                .with(RegistrationMessagingConstants.CREDENTIALS_DLQ);</span>
+<span class="fc" id="L201">        return BindingBuilder.bind(userCredentialsNotifyDlq).to(sigaDeadLetterExchange)</span>
+<span class="fc" id="L202">                .with(registro.getCredentialsDlq());</span>
     }
 
     private Queue conDlq(String nombre, String dlq) {
-<span class="fc" id="L201">        return QueueBuilder.durable(nombre)</span>
-<span class="fc" id="L202">                .withArguments(Map.of(</span>
-                        &quot;x-dead-letter-exchange&quot;, NombresMensajeria.INTERCAMBIO_DLQ,
+<span class="fc" id="L206">        return QueueBuilder.durable(nombre)</span>
+<span class="fc" id="L207">                .withArguments(Map.of(</span>
+<span class="fc" id="L208">                        &quot;x-dead-letter-exchange&quot;, notificaciones.getExchangeDlq(),</span>
                         &quot;x-dead-letter-routing-key&quot;, dlq))
-<span class="fc" id="L205">                .build();</span>
+<span class="fc" id="L210">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteFiltroBffService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-web</a> &gt; <a href="index.source.html" class="el_package">cl.siga.bffweb.domain.reportes</a> &gt; <span class="el_source">ReporteFiltroBffService.java</span></div><h1>ReporteFiltroBffService.java</h1><pre class="source lang-java linenums">package cl.siga.bffweb.domain.reportes;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+import cl.siga.bffweb.domain.docentes.DocenteContextService;
+import cl.siga.bffweb.domain.reportes.dto.CursoReporteDTO;
+import cl.siga.bffweb.domain.reportes.dto.EstudianteReporteDTO;
+import cl.siga.bffweb.domain.reportes.dto.ReporteFiltrosDTO;
+import cl.siga.bffweb.integration.asignaturas.AsignaturaClient;
+import cl.siga.bffweb.integration.clases.ClaseClient;
+import cl.siga.bffweb.integration.estudiantes.EstudianteClient;
+import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
+import cl.siga.coreshare.dto.clase.ClaseResponseDTO;
+import cl.siga.coreshare.dto.common.PageResponseDTO;
+import cl.siga.coreshare.dto.estudiante.EstudianteResponseDTO;
+import cl.siga.coreshare.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Entrega los cursos y estudiantes que puede filtrar el dashboard de reportes
+ * según el rol autenticado. El docente solo ve sus dictaciones; el
+ * administrador ve todas.
+ */
+@Service
+@RequiredArgsConstructor
+public class ReporteFiltroBffService {
+
+    private static final int PAGE_SIZE = 500;
+
+    private final AsignaturaClient asignaturaClient;
+    private final ClaseClient claseClient;
+    private final EstudianteClient estudianteClient;
+    private final DocenteContextService docenteContext;
+
+    public ReporteFiltrosDTO filtros() {
+<span class="fc" id="L42">        List&lt;CursoAsignaturaResponseDTO&gt; cursos = cursosVisibles();</span>
+<span class="fc" id="L43">        Map&lt;Long, String&gt; nombresClase = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L44">        List&lt;CursoReporteDTO&gt; opciones = cursos.stream()</span>
+<span class="fc" id="L45">            .map(curso -&gt; new CursoReporteDTO(</span>
+<span class="fc" id="L46">                curso.id(),</span>
+<span class="fc" id="L47">                curso.nombre(),</span>
+<span class="fc" id="L48">                nombreClase(curso, nombresClase),</span>
+<span class="fc" id="L49">                curso.idClase()))</span>
+<span class="fc" id="L50">            .toList();</span>
+<span class="fc" id="L51">        return new ReporteFiltrosDTO(opciones);</span>
+    }
+
+    public List&lt;EstudianteReporteDTO&gt; estudiantes(Long idCursoAsignatura) {
+<span class="fc" id="L55">        CursoAsignaturaResponseDTO curso = asignaturaClient.getCursoAsignaturaById(idCursoAsignatura);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (curso == null) {</span>
+<span class="nc" id="L57">            throw new cl.siga.coreshare.exception.ResourceNotFoundException(</span>
+                &quot;Dictación con ID &quot; + idCursoAsignatura + &quot; no encontrada.&quot;);
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (SecurityUtils.hasRole(&quot;DOCENTE&quot;)) {</span>
+<span class="fc" id="L61">            docenteContext.validarCursoDelDocente(idCursoAsignatura);</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        } else if (!SecurityUtils.isAdmin()) {</span>
+<span class="nc" id="L63">            throw new AccessDeniedException(&quot;No tienes permiso para consultar los estudiantes del curso.&quot;);</span>
+        }
+<span class="fc" id="L65">        return contentOf(estudianteClient.searchEstudiantesByClase(curso.idClase(), PAGE_SIZE)).stream()</span>
+<span class="fc" id="L66">            .map(this::toEstudiante)</span>
+<span class="fc" id="L67">            .toList();</span>
+    }
+
+    private List&lt;CursoAsignaturaResponseDTO&gt; cursosVisibles() {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (SecurityUtils.isAdmin()) {</span>
+<span class="fc" id="L72">            return contentOf(asignaturaClient.searchCursoAsignaturas(null, null, PAGE_SIZE));</span>
+        }
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (SecurityUtils.hasRole(&quot;DOCENTE&quot;)) {</span>
+<span class="fc" id="L75">            return docenteContext.cursosDelDocente(docenteContext.docenteActual().id());</span>
+        }
+<span class="nc" id="L77">        throw new AccessDeniedException(&quot;No tienes permiso para consultar los filtros de reportes.&quot;);</span>
+    }
+
+    private String nombreClase(CursoAsignaturaResponseDTO curso, Map&lt;Long, String&gt; cache) {
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (curso.idClase() == null) {</span>
+<span class="nc" id="L82">            return curso.nombre();</span>
+        }
+<span class="fc" id="L84">        return cache.computeIfAbsent(curso.idClase(), id -&gt; {</span>
+            try {
+<span class="fc" id="L86">                ClaseResponseDTO clase = claseClient.getClaseById(id);</span>
+<span class="pc bpc" id="L87" title="2 of 4 branches missed.">                if (clase == null || clase.nivel() == null) {</span>
+<span class="nc" id="L88">                    return &quot;Curso #&quot; + id;</span>
+                }
+<span class="fc" id="L90">                return clase.nivel().getDescripcion() + &quot; &quot; + clase.letra();</span>
+<span class="nc" id="L91">            } catch (RuntimeException ex) {</span>
+<span class="nc" id="L92">                return &quot;Curso #&quot; + id;</span>
+            }
+        });
+    }
+
+    private EstudianteReporteDTO toEstudiante(EstudianteResponseDTO estudiante) {
+<span class="fc" id="L98">        String nombre = Stream.of(</span>
+<span class="fc" id="L99">                estudiante.firstName(),</span>
+<span class="fc" id="L100">                estudiante.middleName(),</span>
+<span class="fc" id="L101">                estudiante.firstSurname(),</span>
+<span class="fc" id="L102">                estudiante.secondSurname())</span>
+<span class="pc bpc" id="L103" title="1 of 4 branches missed.">            .filter(parte -&gt; parte != null &amp;&amp; !parte.isBlank())</span>
+<span class="fc" id="L104">            .reduce((a, b) -&gt; a + &quot; &quot; + b)</span>
+<span class="fc" id="L105">            .orElse(&quot;Estudiante &quot; + estudiante.id());</span>
+<span class="fc" id="L106">        return new EstudianteReporteDTO(estudiante.id(), nombre, estudiante.rut());</span>
+    }
+
+    private static &lt;T&gt; List&lt;T&gt; contentOf(PageResponseDTO&lt;T&gt; pagina) {
+<span class="pc bpc" id="L110" title="2 of 4 branches missed.">        return pagina == null || pagina.content() == null ? List.of() : pagina.content();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

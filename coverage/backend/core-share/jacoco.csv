@@ -39,9 +39,9 @@ core-share,cl.siga.coreshare.dto.kafka,EventoRendimientoKafka,33,0,0,0,1,0,1,0,1
 core-share,cl.siga.coreshare.dto.kafka,EventoAsistenciaKafka,39,0,0,0,1,0,1,0,1,0
 core-share,cl.siga.coreshare.dto.reportes,IndicadorAsistenciaDTO,30,0,0,0,1,0,1,0,1,0
 core-share,cl.siga.coreshare.dto.reportes,IndicadorRendimientoDTO,27,0,0,0,1,0,1,0,1,0
-core-share,cl.siga.coreshare.messaging,RegistrationStatusPublisher,0,118,2,14,0,31,2,10,0,4
+core-share,cl.siga.coreshare.messaging,RegistrationStatusPublisher,0,128,2,14,0,35,2,10,0,4
 core-share,cl.siga.coreshare.messaging,RegistrationCorrelation,0,19,0,6,0,6,0,4,0,1
-core-share,cl.siga.coreshare.messaging,RegistrationMessagingConfig,0,185,0,0,0,47,0,29,0,29
+core-share,cl.siga.coreshare.messaging,RegistrationMessagingConfig,0,248,0,0,0,47,0,28,0,28
 core-share,cl.siga.coreshare.validation,ChileanGradeValidator,2,19,2,4,0,3,2,3,0,2
 core-share,cl.siga.coreshare.validation,PhoneValidator,1,49,2,8,0,7,2,5,0,2
 core-share,cl.siga.coreshare.validation,RUTValidator,2,98,1,11,0,19,1,9,0,4
@@ -129,10 +129,12 @@ core-share,cl.siga.coreshare.dto.asistencia,ActualizarAsistenciaRequestDTO,12,0,
 core-share,cl.siga.coreshare.dto.docente,ActualizarDocenteRequestDTO,21,0,0,0,1,0,1,0,1,0
 core-share,cl.siga.coreshare.dto.docente,DocenteResponseDTO,36,0,0,0,1,0,1,0,1,0
 core-share,cl.siga.coreshare.dto.docente,RegistrarDocenteRequestDTO,30,0,0,0,1,0,1,0,1,0
-core-share,cl.siga.coreshare.mensajeria,ConfiguracionNombresRabbitMQ,0,3,0,0,0,1,0,1,0,1
-core-share,cl.siga.coreshare.mensajeria,ConfiguracionTopologiaNotificaciones,0,167,0,0,0,54,0,28,0,28
+core-share,cl.siga.coreshare.mensajeria,ConfiguracionPropiedadesMensajeria,0,3,0,0,0,1,0,1,0,1
+core-share,cl.siga.coreshare.mensajeria,ConfiguracionTopologiaNotificaciones,0,230,0,0,0,55,0,27,0,27
 core-share,cl.siga.coreshare.mensajeria,EventoInvalidoException,0,4,0,0,0,2,0,1,0,1
 core-share,cl.siga.coreshare.mensajeria,ConfirmadorMensajes,0,106,0,2,0,31,0,7,0,6
+core-share,cl.siga.coreshare.mensajeria,NotificacionesMensajeriaProperties,6,114,2,2,1,30,2,3,0,3
+core-share,cl.siga.coreshare.mensajeria,RegistroMensajeriaProperties,6,90,2,2,1,24,2,3,0,3
 core-share,cl.siga.coreshare.mensajeria,ConfiguracionMensajeriaCompartida,0,55,0,0,0,14,0,4,0,4
 core-share,cl.siga.coreshare.dto.docente.certificado,CertificadoResponseDTO,15,0,0,0,1,0,1,0,1,0
 core-share,cl.siga.coreshare.dto.docente.certificado,CertificadoRequestDTO,12,0,0,0,1,0,1,0,1,0
