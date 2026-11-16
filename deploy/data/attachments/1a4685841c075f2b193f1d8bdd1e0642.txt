@@ -1,0 +1,1 @@
+{"id":4,"nivel":"8vo Básico","letra":"A","anioAcademico":2026,"idDocenteJefe":1}
