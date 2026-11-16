@@ -1,1 +1,1 @@
-{"id":"3b434b85ca6256f11235f493f90d1e43.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.mensajeria.outbox.NotificationEventOutboxExtraTest.rechazaEventoSinId","name":"Rechaza evento sin id","status":"passed","testResultsByEnv":{"default":"20f74ad9f3106f6efc7e756dbb536fa6"}}
+{"id":"3b434b85ca6256f11235f493f90d1e43.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.mensajeria.outbox.NotificationEventOutboxExtraTest.rechazaEventoSinId","name":"Rechaza evento sin id","status":"passed","testResultsByEnv":{"default":"2eb0700820193e5138a227fe3a464872"}}
