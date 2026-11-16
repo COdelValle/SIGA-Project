@@ -1188,3 +1188,24 @@ datos y Azure AD.
 - **CD — FALLA de validación y corrección:** el run `39357188491` publicó las 13 imágenes y se detuvo antes de `compose pull/up` porque el guard buscaba la columna `tipo_asignatura`, que ya no pertenece al esquema vigente. La inspección de solo lectura en la EC2 confirmó `siga_asignaturas_db` con las 7 columnas actuales y Flyway V1-V4 exitosos; conteos: asignaturas 22, malla 142, cursos 155, horarios 532, inscripciones 57. Se reemplazó el guard por una comprobación de las columnas actuales; no se requiere migración ni borrado.
 
 **Estado de aceptación:** suite local y CI verdes, incluido RabbitMQ real con Testcontainers. No declarar EP1/EP2 al 100% todavía: faltan autenticación con token Entra efectivo y evidencia PKCE, matriz completa de rutas/JSON, pruebas de carga acordadas, redeploy AWS con health checks y comparación de persistencia antes/después.
+
+### PR-20261116-22 — Carga 4: dashboard de reportes y RabbitMQ configurable
+
+- **Fecha:** 2026-11-16.
+- **Rama / commit:** `dev` con cambios locales sin commit.
+- **Alcance:** cerrar #20, #21, #24 y #25; #22 ya estaba en Done y #23 se cierra manualmente.
+- **Entorno:** Windows + Docker Desktop, stack Compose completo (`siga-project`), MariaDB 11.4, RabbitMQ 2 nodos, Kafka 3 brokers.
+- **Pasos de verificación:**
+  1. Backend completo con `mvn -f apps/backend/pom.xml -B test "-Dtest=!*ApplicationTests" "-DfailIfNoTests=false" "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtypescript.generator.skip=true"`.
+  2. Frontend con `npx tsc -p tsconfig.app.json --noEmit`, `npm test -- --watch=false`, `npm run build -- --configuration production` y `npx playwright test -c e2e/playwright.config.ts e2e/tests/reportes.spec.ts`.
+  3. Imágenes Docker reconstruidas para los módulos afectados y `docker compose up -d`.
+  4. Verificación de colas, bindings y consumidores con `rabbitmqctl list_queues`, `list_bindings` y `list_consumers`.
+  5. Regeneración de `docs/openapi/bff-web.json` con `OpenApiSpecificationTest`.
+- **Resultado:** `OK`.
+  - Backend: `BUILD SUCCESS`; pruebas de todos los módulos en verde (las suites `*ApplicationTests` se excluyeron por requerir BD/Azure; Testcontainers se omite en Windows).
+  - Frontend: TypeScript OK; Vitest **288/288**; build de producción OK; Playwright de reportes **2/2** (Docente y Administración).
+  - Docker: 35 contenedores del stack activos; los servicios con healthcheck quedaron `healthy` (`ms-kafka-admin` no define healthcheck).
+  - RabbitMQ: los nombres de colas, DLQ, exchanges, routing keys, bindings y consumers coinciden con los valores por defecto y no cambiaron respecto de la topología previa.
+  - OpenAPI: `bff-web.json` incluye `/reportes/filtros`, `/reportes/filtros/estudiantes`, `CursoReporteDTO`, `EstudianteReporteDTO` y `ReporteFiltrosDTO`.
+- **Evidencia de configuración:** `common-properties.yaml` y los `application.yaml` de los servicios contienen `siga.mensajeria.registro.*` y `siga.mensajeria.notificaciones.*`; los tests `PropiedadesMensajeriaTest`, `RegistrationMessagingConfigTest` y `ConfiguracionTopologiaNotificacionesTest` demuestran que cambiar una propiedad modifica la cola/binding sin recompilar.
+- **Pendientes / notas:** commit/PR y actualización de las tarjetas en Trello. No se renombraron colas ni se borraron volúmenes; el smoke se ejecutó sobre el stack local ya levantado.

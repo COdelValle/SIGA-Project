@@ -12,3 +12,6 @@ export * from './lib/components/notas-lista.component';
 export * from './lib/components/notas-tabla.component';
 export * from './lib/components/periodo-resumen.component';
 export * from './lib/resumen-academico.component';
+export * from './lib/models/reporte.model';
+export * from './lib/state/reporte.service';
+export * from './lib/components/reportes-dashboard.component';

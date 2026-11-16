@@ -76,7 +76,7 @@ public class PerfilEstudianteService {
         // 2. Clase -> dictaciones + optativas/electivas inscritas por el estudiante
         List<CursoAsignaturaResponseDTO> delCurso = estudiante.idClase() == null
             ? Collections.emptyList()
-            : contentOf(asignaturaClient.searchCursoAsignaturasByClase(estudiante.idClase(), PAGE_SIZE));
+            : contentOf(asignaturaClient.searchCursoAsignaturas(estudiante.idClase(), null, PAGE_SIZE));
         List<InscripcionResponseDTO> inscripciones = estudiante.idClase() == null
             ? Collections.emptyList()
             : inscripcionesDelEstudiante(estudiante.id());

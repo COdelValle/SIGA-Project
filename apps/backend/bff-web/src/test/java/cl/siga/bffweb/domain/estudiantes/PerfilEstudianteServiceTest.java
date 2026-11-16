@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,7 +72,7 @@ class PerfilEstudianteServiceTest {
             1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
             6L, 4L,
             List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")));
-        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(eq(4L), isNull(), anyInt()))
             .thenReturn(pagina(List.of(matematica)));
 
         EvaluacionResponseDTO prueba = new EvaluacionResponseDTO(
@@ -111,7 +112,7 @@ class PerfilEstudianteServiceTest {
             1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
             6L, 4L,
             List.of(new HorarioResponseDTO(10L, DiaSemana.MARTES, LocalTime.of(9, 50), LocalTime.of(10, 35), "Sala 8° Básico A")));
-        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(eq(4L), isNull(), anyInt()))
             .thenReturn(pagina(List.of(matematica)));
 
         // Camila inscrita en la optativa Educación Financiera de su curso.
@@ -147,7 +148,7 @@ class PerfilEstudianteServiceTest {
         CursoAsignaturaResponseDTO musica = dictacion(
             9L, 12L, "Música", AreaAcademica.ARTES, CaracterAsignatura.ELECTIVA,
             10L, 4L, List.of());
-        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(eq(4L), isNull(), anyInt()))
             .thenReturn(pagina(List.of(artes, musica)));
 
         when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of(
@@ -197,7 +198,7 @@ class PerfilEstudianteServiceTest {
         CursoAsignaturaResponseDTO sinHorarios = dictacion(
             1L, 3L, "Matemática", AreaAcademica.MATEMATICAS, CaracterAsignatura.OBLIGATORIA,
             6L, 4L, null);
-        when(asignaturaClient.searchCursoAsignaturasByClase(eq(4L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(eq(4L), isNull(), anyInt()))
             .thenReturn(pagina(List.of(sinHorarios)));
         when(asignaturaClient.searchInscripcionesByAlumno(eq(1L), anyInt())).thenReturn(pagina(List.of()));
         when(evaluacionClient.searchEvaluacionesByAsignatura(eq(1L), anyInt())).thenReturn(pagina(List.of()));

@@ -54,11 +54,67 @@ export async function mockAuth(page: Page, rol: Rol, useMocks = false): Promise<
         },
       });
     }
+    if (path.endsWith('/reportes/filtros')) {
+      return route.fulfill({
+        json: {
+          cursos: [{ id: 8, nombre: 'Matemática', curso: '8vo Básico A', idClase: 4 }],
+        },
+      });
+    }
+    if (path.endsWith('/reportes/filtros/estudiantes')) {
+      return route.fulfill({
+        json: [{ id: 41, nombre: 'Ana Pérez', rut: '11111111-1' }],
+      });
+    }
+    if (path.endsWith('/reportes/asistencia')) {
+      return route.fulfill({
+        json: [
+          {
+            idEstudiante: 41,
+            idCursoAsignatura: 8,
+            fecha: '2026-11-09',
+            estado: 'AUSENTE',
+            porcentajeInasistencia: 45.0,
+            totalRegistros: 20,
+            totalInasistencias: 9,
+            nivelRiesgo: 'CRITICO',
+            actualizadoEn: '2026-11-09T22:00:00',
+          },
+        ],
+      });
+    }
+    if (path.endsWith('/reportes/rendimiento')) {
+      return route.fulfill({
+        json: [
+          {
+            idEstudiante: 41,
+            idEvaluacion: 12,
+            idCursoAsignatura: 8,
+            puntaje: 3.5,
+            promedio: 3.5,
+            evaluacionesInsuficientes: 2,
+            nivelRiesgo: 'CRITICO',
+            actualizadoEn: '2026-11-09T22:00:00',
+          },
+        ],
+      });
+    }
     if (path.includes('/notificaciones/me/no-leidas/count')) {
       return route.fulfill({ json: { noLeidas: 0 } });
     }
     if (path.includes('/notificaciones/me')) {
       return route.fulfill({ json: pageResponse });
+    }
+    if (
+      path.endsWith('/docentes/cursos') ||
+      path.endsWith('/docentes/horario') ||
+      path.endsWith('/admin/usuarios') ||
+      path.endsWith('/admin/asignaturas') ||
+      path.endsWith('/admin/malla') ||
+      path.endsWith('/admin/clases') ||
+      path.endsWith('/admin/estudiantes')
+    ) {
+      return route.fulfill({ json: [] });
     }
     return route.fulfill({ json: pageResponse });
   });

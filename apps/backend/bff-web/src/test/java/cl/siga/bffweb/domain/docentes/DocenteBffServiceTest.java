@@ -3,6 +3,7 @@ package cl.siga.bffweb.domain.docentes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +56,7 @@ class DocenteBffServiceTest {
     void getCursosArmaCursoConAlumnosYDias() {
         autenticar();
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
-        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(isNull(), eq(1L), anyInt()))
             .thenReturn(pagina(List.of(ciencias())));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
         when(estudianteClient.searchEstudiantesByClase(eq(4L), anyInt())).thenReturn(pagina(List.of(estudiante())));
@@ -76,7 +77,7 @@ class DocenteBffServiceTest {
     void getHorarioCalculaLaFranja() {
         autenticar();
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
-        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(isNull(), eq(1L), anyInt()))
             .thenReturn(pagina(List.of(ciencias())));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
 
@@ -95,7 +96,7 @@ class DocenteBffServiceTest {
         CursoAsignaturaResponseDTO sinHorarios = new CursoAsignaturaResponseDTO(
             3L, 4L, "Ciencias Naturales", "ciencias naturales", AreaAcademica.CIENCIAS, true,
             CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 1L, 4L, null, null, 0, null);
-        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(isNull(), eq(1L), anyInt()))
             .thenReturn(pagina(List.of(sinHorarios)));
         when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
         when(estudianteClient.searchEstudiantesByClase(eq(4L), anyInt())).thenReturn(null);
@@ -118,7 +119,7 @@ class DocenteBffServiceTest {
             List.of(
                 new HorarioResponseDTO(1L, DiaSemana.LUNES, null, null, "Patio"),
                 new HorarioResponseDTO(2L, DiaSemana.MARTES, LocalTime.of(12, 15), LocalTime.of(13, 0), "Patio")));
-        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+        when(asignaturaClient.searchCursoAsignaturas(isNull(), eq(1L), anyInt()))
             .thenReturn(pagina(List.of(sinClase)));
 
         var horario = service.getHorario();

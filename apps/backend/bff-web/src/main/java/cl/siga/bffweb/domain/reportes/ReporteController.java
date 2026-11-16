@@ -1,5 +1,7 @@
 package cl.siga.bffweb.domain.reportes;
 
+import cl.siga.bffweb.domain.reportes.dto.EstudianteReporteDTO;
+import cl.siga.bffweb.domain.reportes.dto.ReporteFiltrosDTO;
 import cl.siga.coreshare.dto.reportes.IndicadorAsistenciaDTO;
 import cl.siga.coreshare.dto.reportes.IndicadorRendimientoDTO;
 import java.time.LocalDate;
@@ -19,6 +21,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReporteController {
 
     private final ReporteBffService service;
+    private final ReporteFiltroBffService filtroService;
+
+    @GetMapping("/filtros")
+    @PreAuthorize("(hasRole('ADMIN') or hasRole('DOCENTE')) "
+        + "and hasAuthority('SCOPE_asistencias:read') and hasAuthority('SCOPE_notas:read')")
+    public ResponseEntity<ReporteFiltrosDTO> filtros() {
+        return ResponseEntity.ok(filtroService.filtros());
+    }
+
+    @GetMapping("/filtros/estudiantes")
+    @PreAuthorize("(hasRole('ADMIN') or hasRole('DOCENTE')) "
+        + "and hasAuthority('SCOPE_asistencias:read') and hasAuthority('SCOPE_notas:read')")
+    public ResponseEntity<List<EstudianteReporteDTO>> estudiantes(
+            @RequestParam Long idCursoAsignatura) {
+        return ResponseEntity.ok(filtroService.estudiantes(idCursoAsignatura));
+    }
 
     @GetMapping("/asistencia")
     @PreAuthorize("hasAuthority('SCOPE_asistencias:read')")
