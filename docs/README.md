@@ -11,6 +11,7 @@
 | [`microservicios/README.md`](microservicios/README.md) | Catálogo por servicio, dependencias y grafo de acoplamientos. |
 | [`frontend.md`](frontend.md) | Arquitectura Angular/Nx, autenticación, consumo del BFF y estado de datos. |
 | [`../infra/terraform/README.md`](../infra/terraform/README.md) | Recursos AWS, Compose, persistencia, RabbitMQ, seguridad operativa y CI/CD. |
+| [`../apps/backend/ms-kafka-admin/ReadmeKAFKA.md`](../apps/backend/ms-kafka-admin/ReadmeKAFKA.md) | Topics Kafka vigentes, claves, retención, réplicas y justificación de diseño. |
 | [`paginacion.md`](paginacion.md) | Contrato común `Page<T>` y consultas paginadas. |
 
 ## Pruebas e historial
@@ -18,6 +19,8 @@
 | Documento | Uso |
 |---|---|
 | [`testing-login.md`](testing-login.md) | Runbook para login/Entra, Docker y comprobaciones funcionales actuales. |
+| [`testing.md`](testing.md) | Allure 3, contratos OpenAPI, cobertura, E2E con auth simulada y publicacion en Pages. |
+| [`pruebas-manuales-ep3-aws.md`](pruebas-manuales-ep3-aws.md) | Guía independiente para Kafka, failover controlado, regresión RabbitMQ y evidencia EP3 en local/AWS. |
 | [`registro-pruebas.md`](registro-pruebas.md) | Bitácora cronológica de verificaciones ejecutadas; conservar como evidencia histórica. |
 | [`evidencias/README.md`](evidencias/README.md) | Convención para guardar pruebas positivas/negativas y vincular artefactos. |
 | [`auditoria-backend.md`](auditoria-backend.md) | Auditoría histórica y trazabilidad de remediaciones; no usar sus hallazgos antiguos como estado vigente sin cotejar con las fichas actuales. |

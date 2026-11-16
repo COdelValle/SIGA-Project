@@ -88,6 +88,50 @@ class DocenteBffServiceTest {
         assertThat(horario.get(0).curso()).isEqualTo("8vo Básico A");
     }
 
+    @Test
+    void getCursosSinHorariosUsaLaSalaDeLaClaseYSinDias() {
+        autenticar();
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        CursoAsignaturaResponseDTO sinHorarios = new CursoAsignaturaResponseDTO(
+            3L, 4L, "Ciencias Naturales", "ciencias naturales", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 1L, 4L, null, null, 0, null);
+        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+            .thenReturn(pagina(List.of(sinHorarios)));
+        when(claseClient.getClaseById(4L)).thenReturn(new ClaseResponseDTO(4L, Nivel.OCTAVO_BASICO, "A", 2026, 1L));
+        when(estudianteClient.searchEstudiantesByClase(eq(4L), anyInt())).thenReturn(null);
+
+        var cursos = service.getCursos();
+
+        assertThat(cursos).hasSize(1);
+        assertThat(cursos.get(0).sala()).isEqualTo("Sala 8vo Básico A");
+        assertThat(cursos.get(0).diasClase()).isEmpty();
+        assertThat(cursos.get(0).alumnos()).isEmpty();
+    }
+
+    @Test
+    void getHorarioConCursoSinClaseYHorarioIncompleto() {
+        autenticar();
+        when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente());
+        CursoAsignaturaResponseDTO sinClase = new CursoAsignaturaResponseDTO(
+            3L, 4L, "Taller", "taller", AreaAcademica.CIENCIAS, true,
+            CaracterAsignatura.ELECTIVA, Semestre.SEMESTRE_1, 1L, null, null, null, 0,
+            List.of(
+                new HorarioResponseDTO(1L, DiaSemana.LUNES, null, null, "Patio"),
+                new HorarioResponseDTO(2L, DiaSemana.MARTES, LocalTime.of(12, 15), LocalTime.of(13, 0), "Patio")));
+        when(asignaturaClient.searchCursoAsignaturasByDocente(eq(1L), anyInt()))
+            .thenReturn(pagina(List.of(sinClase)));
+
+        var horario = service.getHorario();
+
+        assertThat(horario).hasSize(2);
+        assertThat(horario.get(0).franja()).isZero();
+        assertThat(horario.get(0).curso()).isEqualTo("Taller");
+        assertThat(horario.get(0).dia()).isEqualTo("Lunes");
+        assertThat(horario.get(0).horaInicio()).isNull();
+        assertThat(horario.get(0).horaFin()).isNull();
+        assertThat(horario.get(1).franja()).isEqualTo(3);
+    }
+
     private static void autenticar() {
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").claim("oid", "oid-alejandro").build();
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(

@@ -1,9 +1,9 @@
 # SIGA - Infraestructura AWS (Terraform)
 
 Topología para **AWS Academy Learner Lab**: una instancia EC2 `t3.large`, un
-volumen EBS dedicado para datos MariaDB y ambos nodos RabbitMQ, y un API Gateway
-HTTP API que sirve el SPA por HTTPS (requisito de MSAL) y valida el JWT de Azure
-AD antes de llegar al BFF.
+volumen EBS compartido para MariaDB, RabbitMQ, Kafka/ZooKeeper y respaldos, y un
+API Gateway HTTP API que sirve el SPA por HTTPS (requisito de MSAL) y valida el
+JWT de Azure AD antes de llegar al BFF.
 
 Contexto del proyecto en el [README raiz](../../README.md) e
 [`docs/arquitectura.md`](../../docs/arquitectura.md); indice en
@@ -20,10 +20,11 @@ API Gateway HTTP API (HTTPS + CORS)
 EC2 t3.large (EIP)
   |- nginx:80        SPA + /config.json
   |- bff-web:8080
-  |- ms-*:8081/8083-8092          (8082 reservado: ms-auditoria)
+  |- ms-*:8081/8083-8093          (8082 reservado: ms-auditoria)
   |- caddy:443       panel RabbitMQ (https://<ip-con-guiones>.sslip.io)
   |- rabbitmq1 + rabbitmq2:5672   (clúster; management interno 15672)
-  |- mariadb:3306    10 bases
+  |- kafka-1..3 + zookeeper-1..3 (listeners internos 29092/2181)
+  |- mariadb:3306    11 bases
   `- /home/ubuntu/siga-data  (EBS gp3, prevent_destroy; backups diarios)
 ```
 
@@ -71,7 +72,7 @@ Variables principales (`variables.tf`, ajustables en `terraform.tfvars`):
 | `aws_region` | `us-east-1` | Region permitida en el Learner Lab. |
 | `management_name` | `SIGA` | Prefijo de nombres/etiquetas. |
 | `instance_type` | `t3.large` | Tipo de instancia EC2 (el stack supera 5.8 GB en contenedores). |
-| `data_volume_size` | `10` | Tamaño (GB) del EBS gp3 usado por datos MariaDB y los dos nodos RabbitMQ. |
+| `data_volume_size` | `20` | Tamaño (GB) del EBS gp3 usado por datos MariaDB, RabbitMQ, Kafka/ZooKeeper y respaldos. |
 | `key_name` | `vockey` | Key pair del Learner Lab. |
 | `ssh_cidr` | `0.0.0.0/0` | CIDR autorizado para SSH. |
 | `cors_allowed_origins` | `["http://localhost:4200"]` | Orígenes permitidos por CORS en el Gateway. |
@@ -108,11 +109,19 @@ deriva issuer v1, JWKS y audiencias de `AZURE_TENANT_ID`, `AZURE_APP_ID_URI` y
   `infra/rabbitmq/rabbitmq-cluster.conf` a la EC2 en cada despliegue para que
   ambos nodos se descubran; el volumen `rabbitmq_data` anterior queda como
   respaldo y no se migra.
+- Kafka y ZooKeeper también viven en el EBS (`.../kafka1..3` y
+  `.../zookeeper1..3`), con retención de 7 días y 128 MB por partición para no
+  llenar el disco. El EBS debe crecer a 20 GB (`data_volume_size`) y el CD
+  ejecuta `resize2fs` de forma idempotente para instancias existentes.
+- La `t3.large` aloja todo el stack: los JVM se limitan con `JAVA_TOOL_OPTIONS`
+  (256 MB por servicio), Kafka a 512 MB y ZooKeeper a 256 MB. El `user-data`
+  crea 4 GB de swap en instancias nuevas y el CD agrega un swap extra si una
+  instancia existente aún tiene menos.
 - Detener/arrancar la instancia ("End Lab" / "Start Lab") conserva los datos.
 - Reemplazar la instancia (cambio de AMI o de `user_data`) conserva los datos.
 - `prevent_destroy` evita que `terraform destroy` borre el volumen; para
   eliminarlo a propósito hay que quitar ese `lifecycle` del `ebs.tf`.
-- El workflow CD instala un respaldo diario (06:15 UTC): dump de las diez bases
+- El workflow CD instala un respaldo diario (06:15 UTC): dump de las once bases
   y export de definiciones RabbitMQ en `/home/ubuntu/siga-data/backups/diario/`
   con retención de siete días. La configuración está en el script generado por
   `.github/workflows/cd.yml`; revisar `crontab`/`cron.log` para confirmar la
@@ -129,7 +138,7 @@ deriva issuer v1, JWKS y audiencias de `AZURE_TENANT_ID`, `AZURE_APP_ID_URI` y
 
 ## Inicialización de la base
 
-1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 10 bases y el
+1. `init-db.sh` (en el primer arranque con datos vacíos) crea las 11 bases y el
    usuario.
 2. **Flyway** en cada microservicio crea/evoluciona el esquema al arrancar
    (`ddl-auto: validate`). Una base vacía se auto-inicializa.
@@ -142,18 +151,23 @@ El CD publica una imagen por servicio (tag `latest` y el SHA del commit):
 
 `siga-usuarios-auth`, `siga-estudiantes`, `siga-asignaturas`, `siga-notas`,
 `siga-docentes`, `siga-apoderados`, `siga-clases`, `siga-evaluaciones`,
-`siga-asistencias`, `siga-notificaciones`, `siga-rabbitmq-admin`,
-`siga-bff-web` y `siga-frontend`.
+`siga-asistencias`, `siga-notificaciones`, `siga-reportes`,
+`siga-rabbitmq-admin`, `siga-kafka-admin`, `siga-bff-web` y `siga-frontend`.
 
 ## Seguridad de red y terminación TLS
 
 `security.tf` abre 80 (SPA), 8080 (BFF para integración Gateway), 443 (panel Caddy)
 y 22 (SSH según `ssh_cidr`). El default de SSH está abierto y debe restringirse
 al CIDR de administración antes de usar el stack fuera del entorno académico.
-Los puertos internos de microservicios, MariaDB y AMQP no se publican mediante
-ese security group; RabbitMQ Management se publica por Caddy en 443. El BFF sigue
-validando JWT porque la integración HTTP_PROXY de Gateway no sustituye la
-seguridad del backend.
+Los puertos internos de microservicios, MariaDB, AMQP y Kafka no se publican
+mediante ese security group; RabbitMQ Management y Kafka UI se publican por Caddy
+en 443. El BFF sigue validando JWT porque la integración HTTP_PROXY de Gateway no
+sustituye la seguridad del backend.
+
+`ms-kafka-admin` no se publica por Caddy ni por el security group. Sus endpoints
+`/api/kafka/**` exigen JWT con rol `ADMIN` y los scopes `usuarios:read`,
+`usuarios:write` o `usuarios:delete` según la operación. El healthcheck usa
+`/actuator/health` para no depender de un endpoint administrativo.
 
 La SPA usa HTTPS del dominio `execute-api`; las integraciones internas API Gateway
 → EC2 son HTTP y TLS termina en Gateway. Caddy ofrece HTTPS al panel RabbitMQ.
@@ -167,6 +181,12 @@ La SPA usa HTTPS del dominio `execute-api`; las integraciones internas API Gatew
   HTTP Basic en el mismo origen comparten el header `Authorization` y provocan
   un bucle de credenciales en el navegador. El `Caddyfile` lo genera el CD en
   la EC2 y el SG abre 443.
+- **Kafka UI** se publica en un hostname separado,
+  `https://kafka.<eip-con-guiones>.sslip.io`, con **basic auth de Caddy**
+  (`KAFKA_UI_USER` / hash bcrypt en `KAFKA_UI_PASSWORD_HASH`). Al estar en otro
+  origen no compite con el login de RabbitMQ. El contenedor `kafka-ui` no
+  publica puertos en el host; solo Caddy lo alcanza por la red de Compose.
+
 La persistencia y los respaldos están descritos en la sección anterior.
 
 ## Notas del laboratorio
@@ -175,7 +195,7 @@ La persistencia y los respaldos están descritos en la sección anterior.
 - Perfil IAM pre-creado: `LabInstanceProfile` (rol `LabRole`); no se crean IAM.
 - Key pair por defecto en `us-east-1`: `vockey`.
 - Sin NAT Gateway (consume presupuesto y sigue cobrando fuera de sesión).
-- EBS gp3 de 10 GB ≈ **$0.80/mes** aunque la instancia esté detenida.
+- EBS gp3 de 20 GB ≈ **$1.60/mes** aunque la instancia esté detenida.
 
 ## CI y CD en GitHub Actions
 
@@ -219,6 +239,8 @@ desde *AWS Details* antes de cada `workflow_dispatch`.
 | `REGISTRO_ASYNC_ENABLED` | `true`/`false`; activa el registro asíncrono de usuarios |
 | `REGISTRO_CRED_KEY` | clave AES-256 en Base64 (32 bytes) para la credencial temporal; misma entre despliegues |
 | `REGISTRO_NOTIFY_CREDENTIALS_ENABLED` | emite `user.credentials.notify` (reservado para el envío por correo) |
+| `KAFKA_UI_USER` | usuario de basic auth para Kafka UI |
+| `KAFKA_UI_PASSWORD_HASH` | hash bcrypt de la clave de Kafka UI (`caddy hash-password`) |
 
 `REGISTRO_EMAIL_DOMAIN` usa el default `platformsiga.onmicrosoft.com` del Compose
 si no se define.

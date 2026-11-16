@@ -13,7 +13,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@AutoConfiguration 
+@AutoConfiguration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SharedSecurityConfig {

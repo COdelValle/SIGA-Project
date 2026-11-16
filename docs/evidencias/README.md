@@ -6,6 +6,8 @@ Este directorio acompaña la matriz de rúbricas externa preparada por el equipo
 
 Cada ejecución debe incluir: ID `E1-ENC-*`, `E1-PRES-*`, `E2-ENC-*` o `E2-PRES-*`; fecha/hora; commit SHA; entorno (`local`, Testcontainers, CI o AWS); caso positivo/negativo; esperado/obtenido; estado; enlace al run y referencia al artefacto.
 
+Para EP3 usar los prefijos `E3-ENC-*` (código/build/pruebas) y `E3-PRES-*` (despliegue y demostración operativa). La guía reproducible está en [`../pruebas-manuales-ep3-aws.md`](../pruebas-manuales-ep3-aws.md).
+
 Para un fallo, conservar el intento `FALLA`, diagnóstico y corrección. Crear una nueva verificación `OK` para demostrar la solución; no reemplazar ni borrar el fallo inicial. No declarar un indicador 100% si queda un caso requerido sin probar o sin evidencia vigente.
 
 ## Fuentes de artefactos
@@ -15,12 +17,20 @@ Para un fallo, conservar el intento `FALLA`, diagnóstico y corrección. Crear u
 - **RabbitMQ:** snapshot de `cluster_status`, exchanges, colas, bindings, consumers y conteo DLQ; publicar eventos sintéticos y purgar solo los IDs creados por la prueba.
 - **Base de datos:** versión Flyway y conteos antes/después de despliegue; no incluir dumps, filas personales ni credenciales.
 - **AWS:** commit/tag desplegado, estado health/containers, respuesta SPA y códigos de prueba del API Gateway; identificar fecha/ambiente.
+- **Kafka:** estado de brokers, metadatos de los dos topics, líderes/ISR, grupos/offsets/lag, publicaciones sintéticas y recuperación del broker; incluir captura de Kafka UI autenticada sin credenciales visibles.
 
 Los artefactos/binarios deben subirse a GitHub Actions o guardarse como capturas saneadas bajo `docs/evidencias/<ID>/`. No versionar access tokens, cookies Erlang, `.env`, claves privadas, dumps de producción ni secretos.
 
 ## Puerta de aceptación
 
 Un punto solo pasa a `100% demostrado` cuando están verdes las pruebas automáticas aplicables y la evidencia manual/cloud necesaria. El estado del código se registra por separado del estado de infraestructura: un unit test no demuestra que AWS/Entra/RabbitMQ estén activos.
+
+## EP3 Kafka — verificación vigente
+
+- `E3-ENC-20261115-01`: Maven backend `BUILD SUCCESS` (los tests dependientes de Testcontainers se omitieron por el Docker Desktop local), 4/4 pruebas de seguridad del administrador Kafka, 283/283 pruebas frontend, build Angular de producción y configuración de ambos Compose válidas. Ver detalle en [`E3-ENC-20261115-01/README.md`](E3-ENC-20261115-01/README.md).
+- `E3-ENC-20261115-02`: PR #121 para promover a `deploy`; CodeQL corregido y checks de backend/frontend/E2E/infra/CodeQL verdes. GitGuardian continúa bloqueando el PR con un hallazgo que requiere revisar su detalle en el dashboard. Ver [`E3-ENC-20261115-02/README.md`](E3-ENC-20261115-02/README.md).
+- `E3-PRES-20261115-01`: la EC2 observada usa una plantilla antigua sin Kafka, Kafka UI, `ms-kafka-admin` ni `ms-reportes`; por eso no se ejecutaron pruebas de broker ni autenticación UI en AWS. Ver detalle en [`E3-PRES-20261115-01/README.md`](E3-PRES-20261115-01/README.md).
+- Los nombres de los secrets `KAFKA_UI_USER` y `KAFKA_UI_PASSWORD_HASH` se confirmaron en GitHub; sus valores no se leyeron ni se adjuntan.
 
 ## Casos previstos para cierre EP1/EP2
 

@@ -99,6 +99,24 @@ class EvaluacionBffServiceTest {
         verify(evaluacionClient).deleteEvaluacion(9L);
     }
 
+    @Test
+    void editarEvaluacionFallaCuandoNoExiste() {
+        when(evaluacionClient.getEvaluacionById(99L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.editarEvaluacion(
+            99L, new ActualizarEvaluacionRequestDTO("PRUEBA 1", TipoEvaluacion.SUMATIVA, 35.0)))
+            .isInstanceOf(cl.siga.coreshare.exception.ResourceNotFoundException.class)
+            .hasMessage("Evaluación con ID 99 no encontrada.");
+    }
+
+    @Test
+    void eliminarEvaluacionFallaCuandoNoExiste() {
+        when(evaluacionClient.getEvaluacionById(99L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.eliminarEvaluacion(99L))
+            .isInstanceOf(cl.siga.coreshare.exception.ResourceNotFoundException.class);
+    }
+
     private void cuandoEsDuenio() {
         when(asignaturaClient.getCursoAsignaturaById(3L)).thenReturn(ciencias());
         when(docenteClient.getDocenteByIdUsuario("oid-alejandro")).thenReturn(docente(1L, "oid-alejandro"));

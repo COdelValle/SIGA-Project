@@ -15,8 +15,14 @@ npm ci
 npm start
 npx tsc -p tsconfig.app.json --noEmit
 npm test -- --watch=false
+npm test -- --watch=false --coverage
+npm run e2e
 npm run build -- --configuration production
 ```
+
+`npm test` publica resultados en `allure-results/`; `npm run e2e` usa
+`e2e/config.e2e.json` con `authMode: mock` y publica en `allure-results-e2e/`.
+El modo mock es solo para Playwright y no se incluye en `public/config.json`.
 
 `npm start` usa `proxy.conf.json` para `/api → http://localhost:8080`. Docker sirve el build con Nginx y proxy local al BFF; en AWS el navegador llama `/api` en el mismo origen del API Gateway. Los pasos del stack están en el [README raíz](../../README.md).
 

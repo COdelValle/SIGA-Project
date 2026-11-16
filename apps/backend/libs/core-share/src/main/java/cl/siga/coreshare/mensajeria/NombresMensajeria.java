@@ -41,6 +41,24 @@ public final class NombresMensajeria {
 
     /** Patrón que atrapa las claves de asistencia en la misma cola. */
     public static final String PATRON_ASISTENCIA = ConfiguracionNombresRabbitMQ.Academico.PATRON_ASISTENCIA;
+    public static final String CLAVE_RIESGO_INASISTENCIA =
+        ConfiguracionNombresRabbitMQ.Academico.CLAVE_RIESGO_INASISTENCIA;
+    public static final String CLAVE_RIESGO_RENDIMIENTO =
+        ConfiguracionNombresRabbitMQ.Academico.CLAVE_RIESGO_RENDIMIENTO;
+    public static final String CLAVE_CAMBIO_ESTADO_ACADEMICO =
+        ConfiguracionNombresRabbitMQ.Academico.CLAVE_CAMBIO_ESTADO_ACADEMICO;
+    public static final String COLA_RIESGO_INASISTENCIA =
+        ConfiguracionNombresRabbitMQ.Academico.COLA_RIESGO_INASISTENCIA;
+    public static final String DLQ_RIESGO_INASISTENCIA =
+        ConfiguracionNombresRabbitMQ.Academico.DLQ_RIESGO_INASISTENCIA;
+    public static final String COLA_RIESGO_RENDIMIENTO =
+        ConfiguracionNombresRabbitMQ.Academico.COLA_RIESGO_RENDIMIENTO;
+    public static final String DLQ_RIESGO_RENDIMIENTO =
+        ConfiguracionNombresRabbitMQ.Academico.DLQ_RIESGO_RENDIMIENTO;
+    public static final String COLA_CAMBIO_ESTADO_ACADEMICO =
+        ConfiguracionNombresRabbitMQ.Academico.COLA_CAMBIO_ESTADO_ACADEMICO;
+    public static final String DLQ_CAMBIO_ESTADO_ACADEMICO =
+        ConfiguracionNombresRabbitMQ.Academico.DLQ_CAMBIO_ESTADO_ACADEMICO;
 
     /** Cola 3: eventos de notas (al crear y modificar). */
     public static final String COLA_NOTAS = ConfiguracionNombresRabbitMQ.Academico.COLA_NOTAS;

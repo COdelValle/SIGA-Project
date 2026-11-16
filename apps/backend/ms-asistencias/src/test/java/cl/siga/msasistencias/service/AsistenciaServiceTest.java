@@ -3,13 +3,23 @@ package cl.siga.msasistencias.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import cl.siga.coreshare.dto.asistencia.ActualizarAsistenciaRequestDTO;
 import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
@@ -21,6 +31,7 @@ import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import cl.siga.msasistencias.client.EstudianteClient;
 import cl.siga.msasistencias.mensajeria.PublicadorAsistencia;
+import cl.siga.msasistencias.mensajeria.PublicadorAsistenciaKafka;
 import cl.siga.msasistencias.model.entity.Asistencia;
 import cl.siga.msasistencias.model.mapper.AsistenciaMapperImpl;
 import cl.siga.msasistencias.repository.AsistenciaRepository;
@@ -31,9 +42,10 @@ class AsistenciaServiceTest {
     private final EstudianteClient estudianteClient = mock(EstudianteClient.class);
     private final AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
     private final PublicadorAsistencia publicador = mock(PublicadorAsistencia.class);
+    private final PublicadorAsistenciaKafka publicadorKafka = mock(PublicadorAsistenciaKafka.class);
 
     private final AsistenciaService service = new AsistenciaService(
-        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient, publicador);
+        repository, new AsistenciaMapperImpl(), estudianteClient, asignaturaClient, publicador, publicadorKafka);
 
     private final LocalDate fecha = LocalDate.of(2026, 10, 1);
 
@@ -171,6 +183,28 @@ class AsistenciaServiceTest {
             .publicarRegistrada(org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyDouble(),
                 org.mockito.ArgumentMatchers.anyBoolean());
+        org.mockito.Mockito.verify(publicadorKafka).publicar(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.anyDouble(),
+            org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(0L));
+    }
+
+    @Test
+    void ausenciaPublicaEnRabbitYKafkaAlRegistrarAsistencia() {
+        when(repository.existsByIdEstudianteAndIdCursoAsignaturaAndFecha(1L, 5L, fecha)).thenReturn(false);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), State.AUSENTE)).thenReturn(2L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(10L);
+
+        service.saveAsistencia(new RegistrarAsistenciaRequestDTO(
+            1L, 5L, fecha, State.AUSENTE, "sin aviso"));
+
+        org.mockito.Mockito.verify(publicador).publicarRegistrada(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.eq(20.0),
+            org.mockito.ArgumentMatchers.eq(false));
+        org.mockito.Mockito.verify(publicadorKafka).publicar(
+            any(AsistenciaResponseDTO.class), org.mockito.ArgumentMatchers.eq(20.0),
+            org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(2L));
     }
 
     @Test
@@ -229,5 +263,118 @@ class AsistenciaServiceTest {
 
         org.mockito.Mockito.verify(publicador).publicarRegistrada(any(AsistenciaResponseDTO.class),
             org.mockito.Mockito.eq(60.0), org.mockito.Mockito.eq(true));
+    }
+
+    @Test
+    void getAsistenciaByIdRetornaLaAsistenciaActiva() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
+            .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(Optional.of(existente));
+
+        AsistenciaResponseDTO respuesta = service.getAsistenciaById(7L);
+
+        assertThat(respuesta.id()).isEqualTo(7L);
+        assertThat(respuesta.estado()).isEqualTo(State.PRESENTE);
+        assertThat(respuesta.justificacion()).isEqualTo(Justificacion.NO_APLICA);
+    }
+
+    @Test
+    void searchAsistenciasMapeaLaPaginaDelRepositorio() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
+            .estado(State.AUSENTE).justificacion(Justificacion.PENDIENTE).active(true).build();
+        Pageable pageable = PageRequest.of(0, 20);
+        when(repository.findAll(any(Specification.class), eq(pageable)))
+            .thenReturn(new PageImpl<>(List.of(existente), pageable, 1));
+
+        Page<AsistenciaResponseDTO> pagina = service.searchAsistencias(
+            1L, 5L, fecha, fecha, State.AUSENTE, pageable);
+
+        assertThat(pagina.getTotalElements()).isEqualTo(1);
+        assertThat(pagina.getContent().get(0).id()).isEqualTo(7L);
+        assertThat(pagina.getContent().get(0).estado()).isEqualTo(State.AUSENTE);
+    }
+
+    @Test
+    void rechazaDictacionInexistente() {
+        when(asignaturaClient.existsById(5L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.saveAsistencia(
+            new RegistrarAsistenciaRequestDTO(1L, 5L, fecha, State.PRESENTE, null)))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("dictación no existe");
+        verify(repository, never()).save(any(Asistencia.class));
+    }
+
+    @Test
+    void updateInexistenteLanzaNotFound() {
+        when(repository.findByIdAndActiveTrue(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateAsistencia(404L,
+            new ActualizarAsistenciaRequestDTO(Justificacion.SI, null, null)))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void actualizarSinEstadoConservaLaMarcacionOriginal() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
+            .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(Optional.of(existente));
+
+        AsistenciaResponseDTO respuesta = service.updateAsistencia(7L,
+            new ActualizarAsistenciaRequestDTO(Justificacion.SI, "justificada después", null));
+
+        assertThat(respuesta.estado()).isEqualTo(State.PRESENTE);
+        assertThat(respuesta.justificacion()).isEqualTo(Justificacion.SI);
+        assertThat(respuesta.observacion()).isEqualTo("justificada después");
+    }
+
+    @Test
+    void corregirAAusenteConJustificacionNoAplicaLaDejaPendiente() {
+        Asistencia existente = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
+            .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(Optional.of(existente));
+
+        AsistenciaResponseDTO respuesta = service.updateAsistencia(7L,
+            new ActualizarAsistenciaRequestDTO(Justificacion.NO_APLICA, null, State.AUSENTE));
+
+        assertThat(respuesta.estado()).isEqualTo(State.AUSENTE);
+        assertThat(respuesta.justificacion()).isEqualTo(Justificacion.PENDIENTE);
+    }
+
+    @Test
+    void existsAsistenciaByIdReflejaElBorradoLogico() {
+        Asistencia activa = Asistencia.builder()
+            .id(7L).idEstudiante(1L).idCursoAsignatura(5L).fecha(fecha)
+            .estado(State.PRESENTE).justificacion(Justificacion.NO_APLICA).active(true).build();
+        when(repository.findByIdAndActiveTrue(7L)).thenReturn(Optional.of(activa));
+        when(repository.findByIdAndActiveTrue(8L)).thenReturn(Optional.empty());
+
+        assertThat(service.existsAsistenciaById(7L)).isTrue();
+        assertThat(service.existsAsistenciaById(8L)).isFalse();
+    }
+
+    @Test
+    void porcentajeDeInasistenciaEsCeroCuandoNoHayRegistrosEnElMes() {
+        LocalDate mitadDeFebrero = LocalDate.of(2026, 2, 15);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndEstadoAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28), State.AUSENTE)).thenReturn(0L);
+        when(repository.countByIdEstudianteAndIdCursoAsignaturaAndFechaBetweenAndActiveTrue(
+            1L, 5L, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28))).thenReturn(0L);
+
+        double porcentaje = service.calcularPorcentajeInasistenciaDelMes(1L, 5L, mitadDeFebrero);
+
+        assertThat(porcentaje).isZero();
+    }
+
+    @Test
+    void deleteInexistenteLanzaNotFound() {
+        when(repository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteAsistencia(404L))
+            .isInstanceOf(ResourceNotFoundException.class);
     }
 }

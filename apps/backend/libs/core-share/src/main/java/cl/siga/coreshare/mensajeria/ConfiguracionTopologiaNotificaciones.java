@@ -66,6 +66,39 @@ public class ConfiguracionTopologiaNotificaciones {
     }
 
     @Bean
+    public Queue colaRiesgoInasistencia() {
+        return colaConDlq(NombresMensajeria.COLA_RIESGO_INASISTENCIA,
+            NombresMensajeria.DLQ_RIESGO_INASISTENCIA);
+    }
+
+    @Bean
+    public Queue colaRiesgoInasistenciaDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_RIESGO_INASISTENCIA).build();
+    }
+
+    @Bean
+    public Queue colaRiesgoRendimiento() {
+        return colaConDlq(NombresMensajeria.COLA_RIESGO_RENDIMIENTO,
+            NombresMensajeria.DLQ_RIESGO_RENDIMIENTO);
+    }
+
+    @Bean
+    public Queue colaRiesgoRendimientoDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_RIESGO_RENDIMIENTO).build();
+    }
+
+    @Bean
+    public Queue colaCambioEstadoAcademico() {
+        return colaConDlq(NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO,
+            NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO);
+    }
+
+    @Bean
+    public Queue colaCambioEstadoAcademicoDlq() {
+        return QueueBuilder.durable(NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO).build();
+    }
+
+    @Bean
     public Queue colaNotificacionesNotas() {
         return colaConDlq(NombresMensajeria.COLA_NOTAS, NombresMensajeria.DLQ_NOTAS);
     }
@@ -94,6 +127,27 @@ public class ConfiguracionTopologiaNotificaciones {
     }
 
     @Bean
+    public Binding enlaceRiesgoInasistencia(Queue colaRiesgoInasistencia,
+                                            TopicExchange intercambioNotificaciones) {
+        return BindingBuilder.bind(colaRiesgoInasistencia).to(intercambioNotificaciones)
+            .with(NombresMensajeria.CLAVE_RIESGO_INASISTENCIA);
+    }
+
+    @Bean
+    public Binding enlaceRiesgoRendimiento(Queue colaRiesgoRendimiento,
+                                           TopicExchange intercambioNotificaciones) {
+        return BindingBuilder.bind(colaRiesgoRendimiento).to(intercambioNotificaciones)
+            .with(NombresMensajeria.CLAVE_RIESGO_RENDIMIENTO);
+    }
+
+    @Bean
+    public Binding enlaceCambioEstadoAcademico(Queue colaCambioEstadoAcademico,
+                                               TopicExchange intercambioNotificaciones) {
+        return BindingBuilder.bind(colaCambioEstadoAcademico).to(intercambioNotificaciones)
+            .with(NombresMensajeria.CLAVE_CAMBIO_ESTADO_ACADEMICO);
+    }
+
+    @Bean
     public Binding enlaceNotas(Queue colaNotificacionesNotas,
                                TopicExchange intercambioNotificaciones) {
         return BindingBuilder
@@ -118,6 +172,27 @@ public class ConfiguracionTopologiaNotificaciones {
             .bind(colaNotificacionesAsistenciasDlq)
             .to(sigaDeadLetterExchange)
             .with(NombresMensajeria.DLQ_ASISTENCIAS);
+    }
+
+    @Bean
+    public Binding enlaceDlqRiesgoInasistencia(Queue colaRiesgoInasistenciaDlq,
+                                               DirectExchange sigaDeadLetterExchange) {
+        return BindingBuilder.bind(colaRiesgoInasistenciaDlq).to(sigaDeadLetterExchange)
+            .with(NombresMensajeria.DLQ_RIESGO_INASISTENCIA);
+    }
+
+    @Bean
+    public Binding enlaceDlqRiesgoRendimiento(Queue colaRiesgoRendimientoDlq,
+                                              DirectExchange sigaDeadLetterExchange) {
+        return BindingBuilder.bind(colaRiesgoRendimientoDlq).to(sigaDeadLetterExchange)
+            .with(NombresMensajeria.DLQ_RIESGO_RENDIMIENTO);
+    }
+
+    @Bean
+    public Binding enlaceDlqCambioEstadoAcademico(Queue colaCambioEstadoAcademicoDlq,
+                                                  DirectExchange sigaDeadLetterExchange) {
+        return BindingBuilder.bind(colaCambioEstadoAcademicoDlq).to(sigaDeadLetterExchange)
+            .with(NombresMensajeria.DLQ_CAMBIO_ESTADO_ACADEMICO);
     }
 
     @Bean
