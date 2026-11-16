@@ -835,8 +835,15 @@ Reglas de mantenimiento:
 - **Hallazgo ms-reportes**: los logs muestran `UnsatisfiedDependencyException` en `ReporteProcesamientoService`: Spring no seleccionaba el constructor porque Lombok generaba uno para los campos finales y existía además una sobrecarga de cinco argumentos. Se explicitó el constructor de seis dependencias con `@Autowired` y se agregó una prueba ligera de wiring de contexto.
 - **Healthcheck Kafka**: se observaron probes con timeout (`ExitCode=-1`) mientras los brokers luego aparecían healthy; el probe del Compose pasa de 10 a 30 segundos para evitar falsos unhealthy durante el arranque bajo carga.
 - **Pruebas locales**: `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS`; `ms-reportes`: 16 pruebas, 0 fallos, 0 errores, 1 omitida (migración Testcontainers porque Docker local no está disponible). La nueva prueba Spring de wiring pasó.
-- **Estado remoto parcial**: `ms-notas`, `ms-asistencias`, `bff-web` y `frontend` siguen `Created`; `ms-reportes` continúa reiniciando hasta desplegar la corrección. No se detuvieron brokers ni se ejecutaron failovers.
-- **Siguientes pasos**: promover los cambios de constructor y healthcheck, esperar un CD exitoso, confirmar que todos los contenedores estén healthy y repetir preflight antes de las pruebas autorizadas de fallo de uno y dos brokers.
+- **CD 43858404711 / merge `296a1f7`**: todas las verificaciones, Allure y builds/push ECR pasaron; el deploy remoto excedió a las 12:01:42 UTC el timeout de 15 min de la acción SSH (`Run Command Timeout`). SSM confirmó que Kafka, `ms-kafka-admin`, `ms-reportes` y RabbitMQ quedaron healthy; `ms-notificaciones` seguía `starting`, y `ms-notas`, `bff-web` y `frontend` `Created` al finalizar.
+- **Corrección del timeout**: la cadena de dependencias de Compose necesita más de 15 min para iniciar los JVM en esta EC2. El `command_timeout` se amplió a 45 min en `.github/workflows/cd.yml`, pendiente de promover.
+- **Estado remoto**: no se detuvieron brokers ni se ejecutaron failovers. Aún se requiere CD exitoso, todos los contenedores healthy y preflight antes de las pruebas autorizadas de caída de uno y dos brokers.
+
+### PR-20261116-18 — Ampliar espera del deploy remoto
+
+- **Causa del fallo**: el CD `43858404711` terminó con `Run Command Timeout` exactamente tras los 15 min configurados en `appleboy/ssh-action`; Docker Compose seguía recorriendo la cadena de healthchecks y no había iniciado `ms-notas`, BFF ni frontend.
+- **Estado posterior**: SSM a las 12:02 UTC confirmó brokers, ZooKeeper, `ms-kafka-admin`, `ms-reportes`, MariaDB y RabbitMQ saludables; `ms-asistencias` y `ms-evaluaciones` healthy; `ms-notificaciones` en `starting`; `ms-notas`, `bff-web` y `frontend` en `Created`.
+- **Cambio**: `.github/workflows/cd.yml` amplía `command_timeout` a 45 min para permitir que el arranque del grafo Compose y las verificaciones post-deploy concluyan. Pendiente de promoción y nuevo CD; no ejecutar failover hasta tener todos los servicios healthy y un CD exitoso.
 
 ## 5. Runbook reproducible
 

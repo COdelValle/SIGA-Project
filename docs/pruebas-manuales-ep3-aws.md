@@ -2,7 +2,7 @@
 
 Guía separada para comprobar los requisitos de código y funcionamiento de la EP3. Está pensada para repetirla en local y en AWS, guardar evidencia verificable y explicar por qué se configuró así Kafka junto a RabbitMQ.
 
-> **Estado AWS actualizado al 16 de noviembre de 2026:** el CD `43851631259` desplegó parcialmente SHA `473c07ab`; Compose abortó porque `kafka-1` figuró `unhealthy`. La lectura SSM posterior confirma los tres brokers saludables, APIs accesibles, ISR completo y retención correcta; RabbitMQ tiene sus dos nodos activos. Sin embargo, `ms-reportes` está en reinicio por un error de constructor Spring (`No default constructor found`), y `ms-notas`, `ms-asistencias`, `bff-web` y `frontend` aparecen `Created`. La corrección de constructor y el timeout ampliado de healthcheck Kafka están en `dev`, pendientes de promoción. No hacer failover hasta completar el despliegue y repetir esta puerta.
+> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el constructor de `ms-reportes` y amplió el healthcheck Kafka; el CD `43858404711` publicó las imágenes pero excedió el timeout SSH de 15 min mientras Compose iniciaba los servicios en cadena. Los brokers, `ms-kafka-admin`, `ms-reportes` y ambos nodos RabbitMQ quedaron saludables; `ms-notificaciones` estaba `starting`, y `ms-notas`, `bff-web` y `frontend` `Created`. El timeout SSH se amplió a 45 min en `dev`, pendiente de promoción. No hacer failover hasta completar un CD exitoso y repetir esta puerta.
 
 > Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El fallo actual es de arranque/verificación Compose, no de autorización AWS.
 
