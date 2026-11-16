@@ -8,5 +8,9 @@ secret:
   ignored-matches:
     - name: password efimero de Testcontainers
       match: ^siga$
-    - name: texto fijo usado solo en test de cifrado
+    - name: texto fijo de prueba de cifrado en historial
       match: '^Secreta-123!$'
+    - name: fallback MariaDB root historico de Compose local
+      match: '^RAHHH234$'
+    - name: fallback MariaDB user historico de Compose local
+      match: '^fakta2$'
