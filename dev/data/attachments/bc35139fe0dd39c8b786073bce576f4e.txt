@@ -1,0 +1,2 @@
+{"id":9,"nombre":"Prueba de unidad","tipo":"SUMATIVA","ponderacion":60.0,
+ "idCursoAsignatura":3,"active":true}
