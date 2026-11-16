@@ -30,6 +30,14 @@ Reglas de mantenimiento:
    `REGISTRO_CRED_KEY`). Los valores sensibles se referencian por nombre.
 4. La evidencia debe poder reproducirse sin acceso a la sesión original.
 
+### Convención de ramas y promoción
+
+- **`dev`** concentra el trabajo integrado. Todo cambio llega por PR a `dev`; CI y CodeQL deben quedar en verde.
+- **`deploy`** es la rama desplegable: solo recibe PR desde `dev`. Un push a `deploy` dispara el CD completo (build de imágenes, ECR y EC2), por lo que no se hace push directo.
+- **`main`** es el espejo de lo que está desplegado. Se sincroniza por PR `deploy` → `main`, que no dispara CD; su contenido debe coincidir con la versión validada en AWS.
+- **Excepción para documentación:** cambios que no alteran el código ejecutable ni infraestructura se acumulan en `dev` y se promueven junto al siguiente cambio funcional, para no pagar un CD completo por solo documentar (ver PR-20261116-21 y la sincronización `deploy` → `main` de PR #130).
+- **Referencia de versión:** ante una entrega, registrar el SHA de `deploy` validado y, si corresponde, crear un tag anotado; el tag no dispara CD.
+
 ## 2. Convenciones
 
 - **ID**: `PR-AAAAMMDD-NN` (fecha de la sesión de prueba + correlativo).
