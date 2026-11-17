@@ -1,0 +1,17 @@
+$ node tools/performance/kafka-load.mjs consumer
+
+exitCode: 0
+
+stdout:
+eventos_publicados=300
+segundos_publicacion=1.517
+segundos_hasta_lag_0=5.396
+lag_maximo_observado=49
+filas_proyecciones_rendimiento=300
+filas_eventos_procesados=300
+alertas_generadas=0
+RESULTADO consumer: OK
+limpieza_filas alertas=0 proyecciones=300 eventos=300
+
+
+stderr:
