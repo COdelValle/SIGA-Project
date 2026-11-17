@@ -1,0 +1,16 @@
+$ node tools/performance/kafka-load.mjs broker
+
+exitCode: 0
+
+stdout:
+topic=siga.e3.local-load-20261117170636
+particiones=3 replication_factor=3 min_insync_replicas=2
+records_sent=20000
+records_per_sec=4526.935
+offsets_totales=20000
+errores=0
+RESULTADO broker: OK
+topic_temporal_eliminado=siga.e3.local-load-20261117170636
+
+
+stderr:

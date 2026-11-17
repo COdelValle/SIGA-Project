@@ -1,0 +1,9 @@
+$ node tools/ci/kafka-error-policy.mjs
+
+exitCode: 0
+
+stdout:
+kafka-error-policy: OK (2 reintentos de 1000 ms, log y descarte sin DLQ)
+
+
+stderr:

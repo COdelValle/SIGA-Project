@@ -1,0 +1,9 @@
+$ node tools/ci/kafka-topic-policy.mjs
+
+exitCode: 0
+
+stdout:
+kafka-topic-policy: OK (3 particiones, RF 3, min ISR 2, retencion 7d/128MiB, auto-create deshabilitado)
+
+
+stderr:
