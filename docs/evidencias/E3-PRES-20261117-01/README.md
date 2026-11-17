@@ -120,8 +120,19 @@ El reporte de CI en GitHub Pages incluye el epic `Kafka` con los grupos
 `performance` corre solo en push a `dev`, `main` o `deploy`: levanta Kafka, MariaDB y
 RabbitMQ, ejecuta `ms-reportes` desde el jar generado por el job `backend`, corre
 `kafka broker throughput` y `kafka consumer throughput`, y publica el artifact
-`performance-allure-<sha>` que `allure-report` fusiona y publica en Pages. El reporte
-local `allure-report-local` sigue disponible para ejecuciones manuales.
+`performance-allure-<sha>` que `allure-report` fusiona y publica en Pages.
+
+En el run [44105174173](https://github.com/COdelValle/SIGA-Project/actions/runs/44105174173)
+el job `performance` terminó en verde y Pages quedó con **1368 tests (1357 passed)**,
+incluyendo `Kafka - Alto flujo` con los dos checks en `passed`:
+
+- broker: `records_sent=20000`, `records_per_sec=5733.945`, `offsets_totales=20000`,
+  `errores=0`.
+- consumer: `segundos_hasta_lag_0=5.396`, `lag_maximo_observado=49`,
+  `filas_proyecciones_rendimiento=300`, `filas_eventos_procesados=300`,
+  `alertas_generadas=0`, limpieza de las 300 filas propia.
+
+El reporte local `allure-report-local` sigue disponible para ejecuciones manuales.
 
 ## 6. Incidencia operativa
 

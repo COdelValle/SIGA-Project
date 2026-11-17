@@ -1254,4 +1254,4 @@ datos y Azure AD.
   3. El script levanta 3 ZooKeeper, 3 Kafka, `mariadb-reportes` y `rabbitmq1`/`rabbitmq2` con `docker compose`, arranca `ms-reportes` desde el jar en la red `siga-network`, espera healthchecks y ejecuta broker + consumidor.
   4. Sube `performance-allure-<sha>`; `allure-report` lo descarga con el patrón existente y lo publica en Pages.
 - **Criterios:** broker 20 000 mensajes de 512 B, 0 errores, ≥1000 rec/s y offsets ≥20 000; consumidor 300 eventos, lag 0 en <120 s, 300 filas en proyecciones, 300 en eventos procesados y 0 alertas.
-- **Resultado:** pendiente de la primera ejecución en CI; se actualiza con el run y la verificación en Pages.
+- **Resultado:** `OK` en el run [44105174173](https://github.com/COdelValle/SIGA-Project/actions/runs/44105174173). El job `performance` terminó en ~2 min; broker `20000` records, `5733.945` rec/s, `20000` offsets y 0 errores; consumidor lag 0 en `5.396` s, `300` proyecciones, `300` eventos procesados y 0 alertas. Pages quedó con 1368 tests (1357 passed) e incluye `Kafka - Alto flujo` con `kafka broker throughput` y `kafka consumer throughput` en `passed`.
