@@ -52,6 +52,7 @@ import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.integration.estudiantes.EstudianteDirectory;
 import cl.siga.msusuariosauth.integration.graph.GraphTransientException;
@@ -93,6 +94,7 @@ class AsyncUserRegistrationServiceExtraTest {
     private CredentialCipher credentialCipher;
 
     private final RegistroAsyncProperties properties = new RegistroAsyncProperties();
+    private final RegistroMensajeriaProperties messagingProperties = new RegistroMensajeriaProperties();
     private final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JavaTimeModule()).build();
 
     private AsyncUserRegistrationService service;
@@ -102,6 +104,8 @@ class AsyncUserRegistrationServiceExtraTest {
         properties.setEnabled(true);
         properties.setCredentialKey("irrelevante-para-este-test");
         properties.setEmailDomain("platformsiga.onmicrosoft.com");
+        messagingProperties.setExchange("user.topic.exchange");
+        messagingProperties.setRkAzureSync("user.registration.azure");
         service = crearService(objectMapper);
     }
 
@@ -122,6 +126,7 @@ class AsyncUserRegistrationServiceExtraTest {
                 stateService,
                 credentialCipher,
                 properties,
+                messagingProperties,
                 mapper,
                 new EmailInstitucionalGenerator(properties));
     }

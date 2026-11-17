@@ -30,6 +30,14 @@ Reglas de mantenimiento:
    `REGISTRO_CRED_KEY`). Los valores sensibles se referencian por nombre.
 4. La evidencia debe poder reproducirse sin acceso a la sesión original.
 
+### Convención de ramas y promoción
+
+- **`dev`** concentra el trabajo integrado. Todo cambio llega por PR a `dev`; CI y CodeQL deben quedar en verde.
+- **`deploy`** es la rama desplegable: solo recibe PR desde `dev`. Un push a `deploy` dispara el CD completo (build de imágenes, ECR y EC2), por lo que no se hace push directo.
+- **`main`** es el espejo de lo que está desplegado. Se sincroniza por PR `deploy` → `main`, que no dispara CD; su contenido debe coincidir con la versión validada en AWS.
+- **Excepción para documentación:** cambios que no alteran el código ejecutable ni infraestructura se acumulan en `dev` y se promueven junto al siguiente cambio funcional, para no pagar un CD completo por solo documentar (ver PR-20261116-21 y la sincronización `deploy` → `main` de PR #130).
+- **Referencia de versión:** ante una entrega, registrar el SHA de `deploy` validado y, si corresponde, crear un tag anotado; el tag no dispara CD.
+
 ## 2. Convenciones
 
 - **ID**: `PR-AAAAMMDD-NN` (fecha de la sesión de prueba + correlativo).
@@ -866,6 +874,13 @@ Reglas de mantenimiento:
 - **Corrección local**: la primera escritura requería `actualizado_en`, `id_evento`, `correlation_id` y `nivel_riesgo`; `ReporteProcesamientoService.procesarRendimiento` inicializa ahora esos campos antes del primer `save`. La regresión unitaria captura el estado en el instante de cada invocación a `save` (no la referencia mutable final). `mvn -f apps/backend/pom.xml -pl ms-reportes -am test` terminó `BUILD SUCCESS` (16 tests del módulo, 0 errores/fallos, 1 Testcontainers omitida por Docker local no disponible); `mvn -f apps/backend/pom.xml -pl ms-reportes -am -DskipTests package` también `BUILD SUCCESS`. El cambio está en `dev`, pendiente de PR/CD y de repetir el smoke de rendimiento con un `idEvento` nuevo.
 - **Evidencia detallada**: [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No se detuvo ZooKeeper/EC2 ni se publicaron eventos de prueba en la etapa de dos brokers caídos.
 
+### PR-20261116-21 — Fix de rendimiento desplegado y verificado en AWS
+
+- **Merge/CD**: PR #129 se fusionó como `df32827ab5101121a5969731762124ac67be7c1c`; el CD [43881252562](https://github.com/COdelValle/SIGA-Project/actions/runs/43881252562) terminó `success` y desplegó el stack completo.
+- **Smoke de rendimiento OK**: evento sintético `e3-smoke-r-20261116-02` (clave `idEstudiante=900000000000000001`) persistió en `proyecciones_rendimiento` con `puntaje=6.5`, `promedio=6.5`, `nivel_riesgo=NORMAL`, y en `eventos_reportes_procesados` (topic rendimiento, partición 0, offset 1). SSM `84750ee1-602a-4110-89a5-c4ca05473c66`.
+- **Estado final**: los 26 contenedores quedaron `healthy` (SSM `f2f07f4a-a2e0-424d-8fc0-e6893cb8ca94`); grupos `siga-reportes-asistencias` (offset 1) y `siga-reportes-rendimiento` (offset 2) con lag 0; ambos topics con ISR 3/3; RabbitMQ con dos nodos en `Running Nodes`; `ms-kafka-admin` y `ms-reportes` en `UP` (SSM `db6f6862-71a1-4d88-a714-beef230cb926`).
+- **Nota operativa**: `ms-reportes` tarda ~438 s en arrancar tras el redeploy y puede aparecer `unhealthy` durante ese periodo; un productor lanzado en ese intervalo recibió `REQUEST_TIMED_OUT` con reintento exitoso. Verificar el health antes de publicar eventos de smoke.
+
 ## 5. Runbook reproducible
 
 ### 5.1 Prerrequisitos
@@ -1173,3 +1188,70 @@ datos y Azure AD.
 - **CD — FALLA de validación y corrección:** el run `39357188491` publicó las 13 imágenes y se detuvo antes de `compose pull/up` porque el guard buscaba la columna `tipo_asignatura`, que ya no pertenece al esquema vigente. La inspección de solo lectura en la EC2 confirmó `siga_asignaturas_db` con las 7 columnas actuales y Flyway V1-V4 exitosos; conteos: asignaturas 22, malla 142, cursos 155, horarios 532, inscripciones 57. Se reemplazó el guard por una comprobación de las columnas actuales; no se requiere migración ni borrado.
 
 **Estado de aceptación:** suite local y CI verdes, incluido RabbitMQ real con Testcontainers. No declarar EP1/EP2 al 100% todavía: faltan autenticación con token Entra efectivo y evidencia PKCE, matriz completa de rutas/JSON, pruebas de carga acordadas, redeploy AWS con health checks y comparación de persistencia antes/después.
+
+### PR-20261116-22 — Carga 4: dashboard de reportes y RabbitMQ configurable
+
+- **Fecha:** 2026-11-16.
+- **Rama / commit:** `feat/rabbitmq-topologia-configurable` @ `1f198b1` y `feat/dashboard-reportes-academicos` @ `b79dd44`; mergeados a `dev` en `26fe760` mediante PRs #131 y #132.
+- **Alcance:** cerrar #20, #21, #24 y #25; #22 ya estaba en Done y #23 se cierra manualmente.
+- **Entorno:** Windows + Docker Desktop, stack Compose completo (`siga-project`), MariaDB 11.4, RabbitMQ 2 nodos, Kafka 3 brokers.
+- **Pasos de verificación:**
+  1. Backend completo con `mvn -f apps/backend/pom.xml -B test "-Dtest=!*ApplicationTests" "-DfailIfNoTests=false" "-Dsurefire.failIfNoSpecifiedTests=false" "-Dtypescript.generator.skip=true"`.
+  2. Frontend con `npx tsc -p tsconfig.app.json --noEmit`, `npm test -- --watch=false`, `npm run build -- --configuration production` y `npx playwright test -c e2e/playwright.config.ts e2e/tests/reportes.spec.ts`.
+  3. Imágenes Docker reconstruidas para los módulos afectados y `docker compose up -d`.
+  4. Verificación de colas, bindings y consumidores con `rabbitmqctl list_queues`, `list_bindings` y `list_consumers`.
+  5. Regeneración de `docs/openapi/bff-web.json` con `OpenApiSpecificationTest`.
+- **Resultado:** `OK`.
+  - Backend: CI en verde (build + tests unitarios); local se validó la compilación de los 17 módulos y tests acotados de mensajería/BFF. Las suites `*ApplicationTests` se excluyeron por requerir BD/Azure; Testcontainers se omite en Windows.
+  - Frontend: TypeScript OK; Vitest **288/288**; build de producción OK; Playwright de reportes **2/2** (Docente y Administración).
+  - Docker: 35 contenedores del stack activos; los servicios con healthcheck quedaron `healthy` (`ms-kafka-admin` no define healthcheck).
+  - RabbitMQ: los nombres de colas, DLQ, exchanges, routing keys, bindings y consumers coinciden con los valores por defecto y no cambiaron respecto de la topología previa.
+  - OpenAPI: `bff-web.json` incluye `/reportes/filtros`, `/reportes/filtros/estudiantes`, `CursoReporteDTO`, `EstudianteReporteDTO` y `ReporteFiltrosDTO`.
+- **Evidencia de configuración:** `common-properties.yaml` y los `application.yaml` de los servicios contienen `siga.mensajeria.registro.*` y `siga.mensajeria.notificaciones.*`; los tests `PropiedadesMensajeriaTest`, `RegistrationMessagingConfigTest` y `ConfiguracionTopologiaNotificacionesTest` demuestran que cambiar una propiedad modifica la cola/binding sin recompilar.
+- **Pendientes / notas:** PRs #131 y #132 mergeados; actualizar las tarjetas de Trello (#20, #21, #24 y #25). #22 ya estaba en Done y #23 se cierra manualmente. No se renombraron colas ni se borraron volúmenes; el smoke se ejecutó sobre el stack local ya levantado.
+
+### PR-20261117-01 — Kafka local: 2a corrida (smoke, alertas y failover)
+
+- **Fecha:** 2026-11-17.
+- **Rama:** `dev`.
+- **Entorno:** Windows + Docker Desktop, stack Compose completo, Kafka 3 brokers, RabbitMQ 2 nodos, MariaDB `siga_reportes_db`.
+- **Resultado:** `OK`.
+  - Asistencia `AUSENTE` con 62% de inasistencia ⇒ nivel `CRITICO`, con alertas `INASISTENCIA` y `CAMBIO_ESTADO_ACADEMICO`.
+  - Rendimiento 3.2 con promedio 4.85 ⇒ nivel `PREVENTIVO`, con alerta `BAJO_RENDIMIENTO`.
+  - Lag 0 en ambos consumer groups tras el procesamiento.
+  - Failover de 1 broker: ISR se mantuvo en 2 y los offsets pasaron de `0/0/1` a `1/1/2` (escritura aceptada).
+  - Failover de 2 brokers: `NOT_ENOUGH_REPLICAS`, `0 records sent` y offsets sin cambio.
+  - RabbitMQ con 2 nodos en `Running Nodes`.
+- **Pendientes / notas:** los failovers ya quedaron cubiertos en esta corrida y **no se repitieron** en la sesión de cierre; su incorporación a Allure queda fuera de alcance.
+
+### PR-20261117-02 — Errores/duplicados en runtime y carga 3a en Allure
+
+- **Fecha:** 2026-11-17.
+- **Rama / commit:** `dev`.
+- **Alcance:** cerrar la evidencia EP3 de Kafka local y categorizar los checks en Allure.
+- **Entorno:** mismo stack local (35 contenedores; `kafka-ui` y `ms-kafka-admin` sin healthcheck).
+- **Pasos y resultado:** `OK`.
+  1. **Payload inválido (A1):** evento `local-bad-a-20261117-01` sin `idEstudiante`. El `DefaultErrorHandler` registró `Mensaje Kafka inválido o no procesable` tras 3 intentos (original + 2 reintentos de 1000 ms), el offset del grupo avanzó de 2 a 3 y no se creó proyección ni evento procesado.
+  2. **Duplicado (A2):** `local-dup-a-20261117-01` publicado 2 veces. Log `Evento de asistencia duplicado ignorado`; quedaron exactamente 1 proyección, 1 evento procesado y 1 alerta `INASISTENCIA` (`CRITICO`, 45%).
+  3. **Política (A3):** 2 reintentos con `FixedBackOff(1000L, 2L)` + log + descarte. Sin DLQ en Kafka; RabbitMQ mantiene su DLQ.
+  4. **Carga broker (B1):** topic temporal `siga.e3.local-load-20261117012719` (3/3, min ISR 2, retención 1 h/1 MiB). `kafka-producer-perf-test`: **20 000 records sent**, **14 577,259 rec/s**, 0 errores, offsets 6820/6386/6794 = 20 000.
+  5. **Carga consumidor (B2):** 300 eventos de rendimiento únicos (`idCursoAsignatura=null`, puntaje 6.5). Lag 0, 300 filas en `proyecciones_rendimiento`, 300 en `eventos_reportes_procesados`, 0 alertas.
+  6. **Recursos (B3):** muestras `docker stats --no-stream` antes/durante/después sin reinicios ni `unhealthy`; CPU de contenedores bajo 5%. **Desviación:** la RAM del host estaba en 87,8% antes de la carga (86,4% durante/después), por encima del umbral <80%, debido al consumo base del host.
+  7. **Alcance (B4):** el objetivo de 20 VUs/10 min y p95 de API no se cubre con la carga 3a porque requiere `Bearer token`.
+  8. **Limpieza (C):** 4 alertas, 2 proyecciones de asistencia, 302 de rendimiento y 305 eventos `local-%` eliminados; topics `siga.e3.local-load-*` borrados. Verificación final: 0 filas `local-%`, lag 0 y solo los 2 topics de negocio.
+  9. **Allure (D):** `tools/ci/allure-command.mjs` acepta `--layer`, `--epic`, `--feature`, `--story`, `--owner` y `--tag` con defaults idénticos; `kafka-error-policy.mjs` y `kafka-topic-policy.mjs` salen con 0; `tools/performance/kafka-load.mjs` publica métricas como attachment (`broker`: 13 633,265 rec/s y 20 000 offsets; `consumer`: lag 0 en 5,173 s, 300/300 filas, 0 alertas).
+- **Incidencia operativa:** Docker Desktop dejó de responder a la API durante la verificación inicial. Se reinició Docker Desktop sin `docker compose down -v`; los contenedores auto-reiniciaron y se revalidaron topics, grupos, lag y salud antes de continuar.
+- **Evidencia:** `docs/evidencias/E3-PRES-20261117-01/README.md`.
+
+### PR-20261117-03 — Performance Kafka publicado desde CI en GitHub Pages
+
+- **Fecha:** 2026-11-17.
+- **Rama:** `dev`.
+- **Alcance:** publicar el grupo `Kafka - Alto flujo` en el Allure Report de Pages, no solo en el reporte local.
+- **Cambios:**
+  1. El job `backend` publica el jar `ms-reportes-*.jar` como artifact `ms-reportes-jar-<sha>`.
+  2. Nuevo job `performance` (`needs: backend`, solo push a `dev`/`main`/`deploy`) que ejecuta `tools/performance/kafka-load-ci.sh`.
+  3. El script levanta 3 ZooKeeper, 3 Kafka, `mariadb-reportes` y `rabbitmq1`/`rabbitmq2` con `docker compose`, arranca `ms-reportes` desde el jar en la red `siga-network`, espera healthchecks y ejecuta broker + consumidor.
+  4. Sube `performance-allure-<sha>`; `allure-report` lo descarga con el patrón existente y lo publica en Pages.
+- **Criterios:** broker 20 000 mensajes de 512 B, 0 errores, ≥1000 rec/s y offsets ≥20 000; consumidor 300 eventos, lag 0 en <120 s, 300 filas en proyecciones, 300 en eventos procesados y 0 alertas.
+- **Resultado:** `OK` en el run [44105174173](https://github.com/COdelValle/SIGA-Project/actions/runs/44105174173). El job `performance` terminó en ~2 min; broker `20000` records, `5733.945` rec/s, `20000` offsets y 0 errores; consumidor lag 0 en `5.396` s, `300` proyecciones, `300` eventos procesados y 0 alertas. Pages quedó con 1368 tests (1357 passed) e incluye `Kafka - Alto flujo` con `kafka broker throughput` y `kafka consumer throughput` en `passed`.

@@ -195,6 +195,23 @@ jobs:
           docker compose --env-file .env.example
           -f infra/terraform/templates/docker-compose.yml config -q
 
+      - name: Kafka error policy (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka error policy"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "Log y descarte sin DLQ" --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-error-policy.mjs
+
+      - name: Kafka topic provisioning (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka topic provisioning"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "3 particiones, RF 3, min ISR 2, retencion 7d/128MiB"
+          --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-topic-policy.mjs
+
       - name: Preparar artefacto Allure de infraestructura
         if: always()
         run: |

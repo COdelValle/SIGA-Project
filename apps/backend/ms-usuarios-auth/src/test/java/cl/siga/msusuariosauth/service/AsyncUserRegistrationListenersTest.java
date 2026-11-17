@@ -22,20 +22,26 @@ import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
 import cl.siga.coreshare.dto.usuario.enums.RegistrationStepType;
 import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 
 class AsyncUserRegistrationListenersTest {
 
     private AsyncUserRegistrationService service;
     private ConfirmadorMensajes confirmador;
     private AsyncUserRegistrationListeners listeners;
+    private RegistroMensajeriaProperties propiedades;
     private Channel canal;
 
     @BeforeEach
     void setUp() {
         service = mock(AsyncUserRegistrationService.class);
         confirmador = mock(ConfirmadorMensajes.class);
-        listeners = new AsyncUserRegistrationListeners(service, confirmador);
+        propiedades = new RegistroMensajeriaProperties();
+        propiedades.setAzureQueue("user.azure.sync.queue");
+        propiedades.setAzureDlq("user.azure.sync.dlq");
+        propiedades.setStatusQueue("user.registration.status.queue");
+        propiedades.setStatusDlq("user.registration.status.dlq");
+        listeners = new AsyncUserRegistrationListeners(service, confirmador, propiedades);
         canal = mock(Channel.class);
     }
 
@@ -68,7 +74,7 @@ class AsyncUserRegistrationListenersTest {
         }).when(service).processAzureSync(event);
 
         listeners.handleAzureSync(event, "header-corr", canal, 11L);
-        capturarOperacion(RegistrationMessagingConstants.AZURE_QUEUE, 11L).run();
+        capturarOperacion(propiedades.getAzureQueue(), 11L).run();
 
         assertThat(correlacion.get()).isEqualTo("header-corr");
         assertThat(MDC.get(CorrelationIdConfig.MDC_KEY)).isNull();
@@ -85,7 +91,7 @@ class AsyncUserRegistrationListenersTest {
         }).when(service).processAzureSync(event);
 
         listeners.handleAzureSync(event, " ", canal, 12L);
-        capturarOperacion(RegistrationMessagingConstants.AZURE_QUEUE, 12L).run();
+        capturarOperacion(propiedades.getAzureQueue(), 12L).run();
 
         assertThat(correlacion.get()).isEqualTo("fallback");
     }
@@ -100,7 +106,7 @@ class AsyncUserRegistrationListenersTest {
         }).when(service).procesarAzureDlq(event);
 
         listeners.handleAzureDlq(event, canal, 13L);
-        capturarOperacion(RegistrationMessagingConstants.AZURE_DLQ, 13L).run();
+        capturarOperacion(propiedades.getAzureDlq(), 13L).run();
 
         assertThat(correlacion.get()).isEqualTo("corr-dlq");
         verify(service).procesarAzureDlq(event);
@@ -116,7 +122,7 @@ class AsyncUserRegistrationListenersTest {
         }).when(service).processDomainStepStatus(event);
 
         listeners.handleDomainStatus(event, "corr-status", canal, 14L);
-        capturarOperacion(RegistrationMessagingConstants.STATUS_QUEUE, 14L).run();
+        capturarOperacion(propiedades.getStatusQueue(), 14L).run();
 
         assertThat(correlacion.get()).isEqualTo("corr-status");
         verify(service).processDomainStepStatus(event);
@@ -132,7 +138,7 @@ class AsyncUserRegistrationListenersTest {
         }).when(service).procesarStatusDlq(event);
 
         listeners.handleStatusDlq(event, canal, 15L);
-        capturarOperacion(RegistrationMessagingConstants.STATUS_DLQ, 15L).run();
+        capturarOperacion(propiedades.getStatusDlq(), 15L).run();
 
         assertThat(correlacion.get()).isNull();
         verify(service).procesarStatusDlq(event);

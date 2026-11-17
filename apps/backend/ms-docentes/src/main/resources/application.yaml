@@ -38,6 +38,26 @@ siga:
   mensajeria:
     registro:
       topology-enabled: true
+      exchange: ${SIGA_MENSAJERIA_REGISTRO_EXCHANGE:user.topic.exchange}
+      azure-queue: ${SIGA_MENSAJERIA_REGISTRO_AZURE_QUEUE:user.azure.sync.queue}
+      estudiantes-queue: ${SIGA_MENSAJERIA_REGISTRO_ESTUDIANTES_QUEUE:ms.estudiantes.queue}
+      docentes-queue: ${SIGA_MENSAJERIA_REGISTRO_DOCENTES_QUEUE:ms.docentes.queue}
+      apoderados-queue: ${SIGA_MENSAJERIA_REGISTRO_APODERADOS_QUEUE:ms.apoderados.queue}
+      status-queue: ${SIGA_MENSAJERIA_REGISTRO_STATUS_QUEUE:user.registration.status.queue}
+      credentials-queue: ${SIGA_MENSAJERIA_REGISTRO_CREDENTIALS_QUEUE:user.credentials.notify.queue}
+      azure-dlq: ${SIGA_MENSAJERIA_REGISTRO_AZURE_DLQ:user.azure.sync.dlq}
+      estudiantes-dlq: ${SIGA_MENSAJERIA_REGISTRO_ESTUDIANTES_DLQ:ms.estudiantes.dlq}
+      docentes-dlq: ${SIGA_MENSAJERIA_REGISTRO_DOCENTES_DLQ:ms.docentes.dlq}
+      apoderados-dlq: ${SIGA_MENSAJERIA_REGISTRO_APODERADOS_DLQ:ms.apoderados.dlq}
+      status-dlq: ${SIGA_MENSAJERIA_REGISTRO_STATUS_DLQ:user.registration.status.dlq}
+      credentials-dlq: ${SIGA_MENSAJERIA_REGISTRO_CREDENTIALS_DLQ:user.credentials.notify.dlq}
+      rk-azure-sync: ${SIGA_MENSAJERIA_REGISTRO_RK_AZURE_SYNC:user.registration.azure}
+      rk-register-estudiante: ${SIGA_MENSAJERIA_REGISTRO_RK_REGISTER_ESTUDIANTE:user.register.estudiante}
+      rk-register-docente: ${SIGA_MENSAJERIA_REGISTRO_RK_REGISTER_DOCENTE:user.register.docente}
+      rk-register-apoderado: ${SIGA_MENSAJERIA_REGISTRO_RK_REGISTER_APODERADO:user.register.apoderado}
+      rk-status: ${SIGA_MENSAJERIA_REGISTRO_RK_STATUS:user.registration.status}
+      rk-credentials-notify: ${SIGA_MENSAJERIA_REGISTRO_RK_CREDENTIALS_NOTIFY:user.credentials.notify}
+      header-correlation-id: ${SIGA_MENSAJERIA_REGISTRO_HEADER_CORRELATION_ID:X-Correlation-Id}
 
 # ConfiguraciÃ³n de OpenAPI / Swagger
 springdoc:

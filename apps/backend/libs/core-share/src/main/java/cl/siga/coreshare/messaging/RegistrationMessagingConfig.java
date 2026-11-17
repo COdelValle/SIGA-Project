@@ -23,7 +23,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Topología compartida del registro asíncrono. Se activa solo en los servicios
@@ -33,26 +35,29 @@ import cl.siga.coreshare.mensajeria.NombresMensajeria;
  * mismas colas y argumentos, y para que productor y consumidores compartan el
  * mismo converter JSON (fechas ISO-8601, sin serialización Java).
  *
- * <p>Cada cola tiene su DLQ enlazada al exchange directo compartido
- * {@code siga.dlx.direct}. Los consumidores rechazan (NACK sin requeue) hacia
- * esa DLQ cuando el evento es inválido o se agotan los reintentos.</p>
+ * <p>Los nombres se inyectan desde configuración para poder modificarlos sin
+ * recompilar.</p>
  */
 @AutoConfiguration
 @AutoConfigureBefore(RabbitAutoConfiguration.class)
 @ConditionalOnClass(RabbitTemplate.class)
 @ConditionalOnProperty(prefix = "siga.mensajeria.registro", name = "topology-enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RegistrationMessagingConfig {
+
+    private final RegistroMensajeriaProperties registro;
+    private final NotificacionesMensajeriaProperties notificaciones;
 
     @Bean
     @ConditionalOnMissingBean(name = "userTopicExchange")
     public TopicExchange userTopicExchange() {
-        return new TopicExchange(RegistrationMessagingConstants.EXCHANGE, true, false);
+        return new TopicExchange(registro.getExchange(), true, false);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public RegistrationStatusPublisher registrationStatusPublisher(RabbitTemplate rabbitTemplate) {
-        return new RegistrationStatusPublisher(rabbitTemplate);
+        return new RegistrationStatusPublisher(rabbitTemplate, registro);
     }
 
     @Bean
@@ -67,140 +72,140 @@ public class RegistrationMessagingConfig {
 
     @Bean
     public Queue userAzureSyncQueue() {
-        return conDlq(RegistrationMessagingConstants.AZURE_QUEUE, RegistrationMessagingConstants.AZURE_DLQ);
+        return conDlq(registro.getAzureQueue(), registro.getAzureDlq());
     }
 
     @Bean
     public Queue userRegistrationStatusQueue() {
-        return conDlq(RegistrationMessagingConstants.STATUS_QUEUE, RegistrationMessagingConstants.STATUS_DLQ);
+        return conDlq(registro.getStatusQueue(), registro.getStatusDlq());
     }
 
     @Bean
     public Queue userCredentialsNotifyQueue() {
-        return conDlq(RegistrationMessagingConstants.CREDENTIALS_QUEUE, RegistrationMessagingConstants.CREDENTIALS_DLQ);
+        return conDlq(registro.getCredentialsQueue(), registro.getCredentialsDlq());
     }
 
     @Bean
     public Queue msEstudiantesQueue() {
-        return conDlq(RegistrationMessagingConstants.ESTUDIANTES_QUEUE, RegistrationMessagingConstants.ESTUDIANTES_DLQ);
+        return conDlq(registro.getEstudiantesQueue(), registro.getEstudiantesDlq());
     }
 
     @Bean
     public Queue msDocentesQueue() {
-        return conDlq(RegistrationMessagingConstants.DOCENTES_QUEUE, RegistrationMessagingConstants.DOCENTES_DLQ);
+        return conDlq(registro.getDocentesQueue(), registro.getDocentesDlq());
     }
 
     @Bean
     public Queue msApoderadosQueue() {
-        return conDlq(RegistrationMessagingConstants.APODERADOS_QUEUE, RegistrationMessagingConstants.APODERADOS_DLQ);
+        return conDlq(registro.getApoderadosQueue(), registro.getApoderadosDlq());
     }
 
     @Bean
     public Queue userAzureSyncDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.AZURE_DLQ).build();
+        return QueueBuilder.durable(registro.getAzureDlq()).build();
     }
 
     @Bean
     public Queue userRegistrationStatusDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.STATUS_DLQ).build();
+        return QueueBuilder.durable(registro.getStatusDlq()).build();
     }
 
     @Bean
     public Queue userCredentialsNotifyDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.CREDENTIALS_DLQ).build();
+        return QueueBuilder.durable(registro.getCredentialsDlq()).build();
     }
 
     @Bean
     public Queue msEstudiantesDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.ESTUDIANTES_DLQ).build();
+        return QueueBuilder.durable(registro.getEstudiantesDlq()).build();
     }
 
     @Bean
     public Queue msDocentesDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.DOCENTES_DLQ).build();
+        return QueueBuilder.durable(registro.getDocentesDlq()).build();
     }
 
     @Bean
     public Queue msApoderadosDlq() {
-        return QueueBuilder.durable(RegistrationMessagingConstants.APODERADOS_DLQ).build();
+        return QueueBuilder.durable(registro.getApoderadosDlq()).build();
     }
 
     @Bean
     public Binding bindingAzureSync(Queue userAzureSyncQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(userAzureSyncQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_AZURE_SYNC);
+                .with(registro.getRkAzureSync());
     }
 
     @Bean
     public Binding bindingEstudiantes(Queue msEstudiantesQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(msEstudiantesQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_REGISTER_ESTUDIANTE);
+                .with(registro.getRkRegisterEstudiante());
     }
 
     @Bean
     public Binding bindingDocentes(Queue msDocentesQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(msDocentesQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_REGISTER_DOCENTE);
+                .with(registro.getRkRegisterDocente());
     }
 
     @Bean
     public Binding bindingApoderados(Queue msApoderadosQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(msApoderadosQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_REGISTER_APODERADO);
+                .with(registro.getRkRegisterApoderado());
     }
 
     @Bean
     public Binding bindingStatus(Queue userRegistrationStatusQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(userRegistrationStatusQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_STATUS);
+                .with(registro.getRkStatus());
     }
 
     @Bean
     public Binding bindingCredentialsNotify(Queue userCredentialsNotifyQueue, TopicExchange userTopicExchange) {
         return BindingBuilder.bind(userCredentialsNotifyQueue).to(userTopicExchange)
-                .with(RegistrationMessagingConstants.RK_CREDENTIALS_NOTIFY);
+                .with(registro.getRkCredentialsNotify());
     }
 
     @Bean
     public Binding bindingAzureSyncDlq(Queue userAzureSyncDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(userAzureSyncDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.AZURE_DLQ);
+                .with(registro.getAzureDlq());
     }
 
     @Bean
     public Binding bindingEstudiantesDlq(Queue msEstudiantesDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(msEstudiantesDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.ESTUDIANTES_DLQ);
+                .with(registro.getEstudiantesDlq());
     }
 
     @Bean
     public Binding bindingDocentesDlq(Queue msDocentesDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(msDocentesDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.DOCENTES_DLQ);
+                .with(registro.getDocentesDlq());
     }
 
     @Bean
     public Binding bindingApoderadosDlq(Queue msApoderadosDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(msApoderadosDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.APODERADOS_DLQ);
+                .with(registro.getApoderadosDlq());
     }
 
     @Bean
     public Binding bindingStatusDlq(Queue userRegistrationStatusDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(userRegistrationStatusDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.STATUS_DLQ);
+                .with(registro.getStatusDlq());
     }
 
     @Bean
     public Binding bindingCredentialsNotifyDlq(Queue userCredentialsNotifyDlq, DirectExchange sigaDeadLetterExchange) {
         return BindingBuilder.bind(userCredentialsNotifyDlq).to(sigaDeadLetterExchange)
-                .with(RegistrationMessagingConstants.CREDENTIALS_DLQ);
+                .with(registro.getCredentialsDlq());
     }
 
     private Queue conDlq(String nombre, String dlq) {
         return QueueBuilder.durable(nombre)
                 .withArguments(Map.of(
-                        "x-dead-letter-exchange", NombresMensajeria.INTERCAMBIO_DLQ,
+                        "x-dead-letter-exchange", notificaciones.getExchangeDlq(),
                         "x-dead-letter-routing-key", dlq))
                 .build();
     }

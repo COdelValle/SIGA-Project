@@ -2,7 +2,7 @@ package cl.siga.msnotificaciones.mensajeria;
 
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.msnotificaciones.service.NotificacionService;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +28,13 @@ public class EscuchadorNota {
 
     private final NotificacionService notificacionService;
     private final ConfirmadorMensajes confirmador;
+    private final NotificacionesMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = NombresMensajeria.COLA_NOTAS)
+    @RabbitListener(queues = "${siga.mensajeria.notificaciones.cola-notas}")
     public void alRecibirEvento(EventoNota evento, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
         log.info("Evento de nota recibido idEvento={} id={}", evento.idEvento(), evento.idNota());
-        confirmador.procesar(canal, etiqueta, NombresMensajeria.COLA_NOTAS,
+        confirmador.procesar(canal, etiqueta, propiedades.getColaNotas(),
             () -> notificacionService.registrarEvento(evento));
     }
 }

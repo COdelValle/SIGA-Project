@@ -42,6 +42,7 @@ testem.log
 
 # Allure / Playwright
 /allure-report
+/allure-report-local
 /.allure-history
 /apps/frontend/allure-results
 /apps/frontend/allure-results-e2e

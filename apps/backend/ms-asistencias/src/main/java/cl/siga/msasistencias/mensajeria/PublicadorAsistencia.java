@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.asistencia.AsistenciaResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.AccionAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import java.time.LocalDateTime;
@@ -27,6 +27,7 @@ public class PublicadorAsistencia {
 
     private final NotificationEventOutbox outbox;
     private final AsignaturaClient asignaturaClient;
+    private final NotificacionesMensajeriaProperties propiedades;
 
     /** Se llama al registrar (POST /api/v1/asistencias) si es AUSENTE o ATRASADO. */
     public void publicarRegistrada(AsistenciaResponseDTO asistencia,
@@ -46,8 +47,8 @@ public class PublicadorAsistencia {
                 UUID.randomUUID().toString(),
                 nombreAsignatura(asistencia)
         );
-        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES,
-                NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA, evento);
+        outbox.registrar(evento.idEvento(), propiedades.getExchangeNotificaciones(),
+                propiedades.getClaveAsistenciaRegistrada(), evento);
         log.info("Evento de asistencia agregado al outbox: id={} estado={} superaUmbral={}",
                 asistencia.id(), asistencia.estado(), superaUmbral);
     }

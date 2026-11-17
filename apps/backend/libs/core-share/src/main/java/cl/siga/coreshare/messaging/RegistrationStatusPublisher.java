@@ -11,6 +11,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import cl.siga.coreshare.dto.usuario.UserRegistrationStepResultEventDTO;
 import cl.siga.coreshare.dto.usuario.enums.RegistrationStepType;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 
 /**
  * Publica el resultado de la etapa de dominio hacia ms-usuarios-auth con
@@ -23,9 +24,12 @@ public class RegistrationStatusPublisher {
     private static final int CONFIRM_TIMEOUT_SECONDS = 5;
 
     private final RabbitTemplate rabbitTemplate;
+    private final RegistroMensajeriaProperties properties;
 
-    public RegistrationStatusPublisher(RabbitTemplate rabbitTemplate) {
+    public RegistrationStatusPublisher(RabbitTemplate rabbitTemplate,
+            RegistroMensajeriaProperties properties) {
         this.rabbitTemplate = rabbitTemplate;
+        this.properties = properties;
     }
 
     public void publicarResultado(String processId, String correlationId, boolean success, String message) {
@@ -39,8 +43,8 @@ public class RegistrationStatusPublisher {
 
         CorrelationData confirmacion = new CorrelationData(evento.eventId());
         rabbitTemplate.convertAndSend(
-                RegistrationMessagingConstants.EXCHANGE,
-                RegistrationMessagingConstants.RK_STATUS,
+                properties.getExchange(),
+                properties.getRkStatus(),
                 evento,
                 mensaje -> {
                     mensaje.getMessageProperties().setMessageId(evento.eventId());
@@ -48,7 +52,7 @@ public class RegistrationStatusPublisher {
                     if (correlationId != null && !correlationId.isBlank()) {
                         mensaje.getMessageProperties().setCorrelationId(correlationId);
                         mensaje.getMessageProperties().setHeader(
-                                RegistrationMessagingConstants.HEADER_CORRELATION_ID, correlationId);
+                                properties.getHeaderCorrelationId(), correlationId);
                     }
                     return mensaje;
                 },

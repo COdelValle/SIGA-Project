@@ -95,6 +95,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Guardar jar de ms-reportes
+        uses: actions/upload-artifact@v4
+        with:
+          name: ms-reportes-jar-${{ github.sha }}
+          path: apps/backend/ms-reportes/target/ms-reportes-*.jar
+          if-no-files-found: error
+          retention-days: 7
+
   frontend:
     name: Frontend (typecheck + tests + build)
     runs-on: ubuntu-latest
@@ -246,6 +254,23 @@ jobs:
           --dir tools/infra/allure-results --
           docker compose --env-file .env.example -f infra/terraform/templates/docker-compose.yml config -q
 
+      - name: Kafka error policy (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka error policy"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "Log y descarte sin DLQ" --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-error-policy.mjs
+
+      - name: Kafka topic provisioning (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka topic provisioning"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "3 particiones, RF 3, min ISR 2, retencion 7d/128MiB"
+          --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-topic-policy.mjs
+
       - name: Preparar artefacto Allure de infraestructura
         if: always()
         run: |
@@ -262,9 +287,46 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  performance:
+    name: Kafka performance (stack local)
+    needs: backend
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'deploy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Descargar jar de ms-reportes
+        uses: actions/download-artifact@v4
+        with:
+          name: ms-reportes-jar-${{ github.sha }}
+          path: apps/backend/ms-reportes/target
+
+      - name: Ejecutar carga Kafka
+        run: bash tools/performance/kafka-load-ci.sh
+
+      - name: Preparar artefacto Allure de performance
+        if: always()
+        run: |
+          rm -rf performance-allure-artifact
+          mkdir -p performance-allure-artifact/allure-results
+          if [ -d tools/performance/allure-results ]; then
+            cp -R tools/performance/allure-results/. performance-allure-artifact/allure-results/
+          fi
+
+      - name: Guardar resultados Allure de performance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-allure-${{ github.sha }}
+          path: performance-allure-artifact
+          if-no-files-found: warn
+          retention-days: 30
+
   allure-report:
     name: Reporte Allure centralizado
-    needs: [backend, frontend, e2e, infra]
+    needs: [backend, frontend, e2e, infra, performance]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -56,7 +56,7 @@ Los hijos por portal están registrados en `libs/{portal}/src/lib/*-routes.ts`; 
 | `core` | Config runtime, MSAL, `AuthService`, `MeService`, guards, interceptores, modelos, `recursoRemoto`, tema y refresco compartido. No depende de portales. |
 | `shared-ui` | Dashboard/header/nav, campana in-app, selector, tarjetas, tabs y paginador. Consume servicios/modelos transversales, no implementa reglas del backend. |
 | `public-portal` | Landing y estado sin acceso/login público. |
-| `academico` | Modelos/mappers del perfil, tablas reutilizables y servicios de perfil/asistencias. |
+| `academico` | Modelos/mappers del perfil, tablas reutilizables, servicios de perfil/asistencias y dashboard de reportes (`ReportesDashboardComponent`). |
 | `estudiante` | Composición del portal estudiante y páginas hijas. Consume servicios académicos y core. |
 | `apoderado` | Selección de pupilo y composición de horarios/notas/asistencias/progreso/solicitudes. Reutiliza servicios académicos. |
 | `docente` | Cursos, horarios, registro de notas/evaluaciones y asistencias. Servicios de estado agrupan requests al BFF y autosalvado. |
@@ -77,6 +77,7 @@ La tabla es una guía de relaciones UI/API, no un inventario de cada ruta. El ca
 | Docente | cursos, horario, grilla de notas y asistentes por asignatura | Escritura via BFF con scopes/ownership. |
 | Administración | usuarios, roles, asignaturas/malla, selectores, detalle y registro asíncrono | Alta retorna processId; UI consulta estado y recibe credencial de un solo uso. |
 | Notificaciones | lista, contador, marcar individual/todas y ocultar leídas | Campana compartida por estudiante/apoderado; polling, refresco de foco y estado por OID. |
+| Reportes | `GET /api/bff/v1/reportes/filtros`, `/filtros/estudiantes`, `/asistencia`, `/rendimiento` | Dashboard en Docente y Administración; polling cada 15 s, filtros por curso/estudiante/período y estados de carga, error, vacío y última actualización. |
 
 ## 7. Estado, caché, errores y mocks
 
@@ -85,6 +86,7 @@ La tabla es una guía de relaciones UI/API, no un inventario de cada ruta. El ca
 - Servicios académicos cachean por clave, comparten requests y reciben señal global `RefrescoDatosService`; campana solicita refresco cuando llega notificación o se marca.
 - El consumidor debe diferenciar error de autenticación 401, autorización 403, recurso ausente 404 e indisponibilidad 503; la UI muestra estado/mensaje y no asumir dato vacío como cero.
 - Las constantes de mocks pueden usarse para presentación controlada (`useMocks=true`); no evidencian integración cloud.
+- El dashboard de reportes reinicia su polling de 15 s al cambiar filtros, conserva los datos ante un error parcial y muestra la fecha de última actualización calculada desde los indicadores.
 
 ## 8. Presentación, paginación y pruebas
 

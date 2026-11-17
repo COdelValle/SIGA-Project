@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.notificaciones.EventoCambioEstadoAcademico;
 import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.EventoRiesgoRendimiento;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.msnotificaciones.service.NotificacionService;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
@@ -21,25 +21,26 @@ public class EscuchadorRiesgo {
 
     private final NotificacionService notificacionService;
     private final ConfirmadorMensajes confirmador;
+    private final NotificacionesMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_INASISTENCIA)
+    @RabbitListener(queues = "${siga.mensajeria.notificaciones.cola-riesgo-inasistencia}")
     public void recibirInasistencia(EventoRiesgoAsistencia evento, Channel canal,
                                      @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_INASISTENCIA,
+        procesar(canal, etiqueta, propiedades.getColaRiesgoInasistencia(),
             evento.idEvento(), () -> notificacionService.registrarEvento(evento));
     }
 
-    @RabbitListener(queues = NombresMensajeria.COLA_RIESGO_RENDIMIENTO)
+    @RabbitListener(queues = "${siga.mensajeria.notificaciones.cola-riesgo-rendimiento}")
     public void recibirRendimiento(EventoRiesgoRendimiento evento, Channel canal,
                                    @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        procesar(canal, etiqueta, NombresMensajeria.COLA_RIESGO_RENDIMIENTO,
+        procesar(canal, etiqueta, propiedades.getColaRiesgoRendimiento(),
             evento.idEvento(), () -> notificacionService.registrarEvento(evento));
     }
 
-    @RabbitListener(queues = NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO)
+    @RabbitListener(queues = "${siga.mensajeria.notificaciones.cola-cambio-estado-academico}")
     public void recibirCambioEstado(EventoCambioEstadoAcademico evento, Channel canal,
                                     @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        procesar(canal, etiqueta, NombresMensajeria.COLA_CAMBIO_ESTADO_ACADEMICO,
+        procesar(canal, etiqueta, propiedades.getColaCambioEstadoAcademico(),
             evento.idEvento(), () -> notificacionService.registrarEvento(evento));
     }
 
