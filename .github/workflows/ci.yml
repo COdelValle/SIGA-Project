@@ -306,12 +306,21 @@ jobs:
       - name: Ejecutar carga Kafka
         run: bash tools/performance/kafka-load-ci.sh
 
+      - name: Preparar artefacto Allure de performance
+        if: always()
+        run: |
+          rm -rf performance-allure-artifact
+          mkdir -p performance-allure-artifact/allure-results
+          if [ -d tools/performance/allure-results ]; then
+            cp -R tools/performance/allure-results/. performance-allure-artifact/allure-results/
+          fi
+
       - name: Guardar resultados Allure de performance
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: performance-allure-${{ github.sha }}
-          path: tools/performance/allure-results
+          path: performance-allure-artifact
           if-no-files-found: warn
           retention-days: 30
 
