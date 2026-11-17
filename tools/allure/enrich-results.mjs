@@ -218,6 +218,20 @@ function backendTaxonomy(pkg, className) {
     epic = 'Notificaciones';
   } else if (module === 'msrabbitmqadmin') {
     epic = 'Plataforma';
+  } else if (module === 'ms_kafka') {
+    epic = 'Kafka';
+    feature = 'Kafka - Administracion';
+    owner = 'qa';
+  } else if (module === 'msreportes') {
+    epic = 'Kafka';
+    owner = 'qa';
+    if (pkg.includes('.mensajeria') && className.includes('Publicador')) {
+      feature = 'Kafka - Alertas de riesgo';
+    } else if (className.includes('Migraciones')) {
+      feature = 'Kafka - Migraciones';
+    } else {
+      feature = 'Kafka - Consumo y proyecciones';
+    }
   }
 
   const story = humanize(

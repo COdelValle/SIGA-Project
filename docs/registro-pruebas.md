@@ -1209,3 +1209,36 @@ datos y Azure AD.
   - OpenAPI: `bff-web.json` incluye `/reportes/filtros`, `/reportes/filtros/estudiantes`, `CursoReporteDTO`, `EstudianteReporteDTO` y `ReporteFiltrosDTO`.
 - **Evidencia de configuración:** `common-properties.yaml` y los `application.yaml` de los servicios contienen `siga.mensajeria.registro.*` y `siga.mensajeria.notificaciones.*`; los tests `PropiedadesMensajeriaTest`, `RegistrationMessagingConfigTest` y `ConfiguracionTopologiaNotificacionesTest` demuestran que cambiar una propiedad modifica la cola/binding sin recompilar.
 - **Pendientes / notas:** PRs #131 y #132 mergeados; actualizar las tarjetas de Trello (#20, #21, #24 y #25). #22 ya estaba en Done y #23 se cierra manualmente. No se renombraron colas ni se borraron volúmenes; el smoke se ejecutó sobre el stack local ya levantado.
+
+### PR-20261117-01 — Kafka local: 2a corrida (smoke, alertas y failover)
+
+- **Fecha:** 2026-11-17.
+- **Rama:** `dev`.
+- **Entorno:** Windows + Docker Desktop, stack Compose completo, Kafka 3 brokers, RabbitMQ 2 nodos, MariaDB `siga_reportes_db`.
+- **Resultado:** `OK`.
+  - Asistencia `AUSENTE` con 62% de inasistencia ⇒ nivel `CRITICO`, con alertas `INASISTENCIA` y `CAMBIO_ESTADO_ACADEMICO`.
+  - Rendimiento 3.2 con promedio 4.85 ⇒ nivel `PREVENTIVO`, con alerta `BAJO_RENDIMIENTO`.
+  - Lag 0 en ambos consumer groups tras el procesamiento.
+  - Failover de 1 broker: ISR se mantuvo en 2 y los offsets pasaron de `0/0/1` a `1/1/2` (escritura aceptada).
+  - Failover de 2 brokers: `NOT_ENOUGH_REPLICAS`, `0 records sent` y offsets sin cambio.
+  - RabbitMQ con 2 nodos en `Running Nodes`.
+- **Pendientes / notas:** los failovers ya quedaron cubiertos en esta corrida y **no se repitieron** en la sesión de cierre; su incorporación a Allure queda fuera de alcance.
+
+### PR-20261117-02 — Errores/duplicados en runtime y carga 3a en Allure
+
+- **Fecha:** 2026-11-17.
+- **Rama / commit:** `dev`.
+- **Alcance:** cerrar la evidencia EP3 de Kafka local y categorizar los checks en Allure.
+- **Entorno:** mismo stack local (35 contenedores; `kafka-ui` y `ms-kafka-admin` sin healthcheck).
+- **Pasos y resultado:** `OK`.
+  1. **Payload inválido (A1):** evento `local-bad-a-20261117-01` sin `idEstudiante`. El `DefaultErrorHandler` registró `Mensaje Kafka inválido o no procesable` tras 3 intentos (original + 2 reintentos de 1000 ms), el offset del grupo avanzó de 2 a 3 y no se creó proyección ni evento procesado.
+  2. **Duplicado (A2):** `local-dup-a-20261117-01` publicado 2 veces. Log `Evento de asistencia duplicado ignorado`; quedaron exactamente 1 proyección, 1 evento procesado y 1 alerta `INASISTENCIA` (`CRITICO`, 45%).
+  3. **Política (A3):** 2 reintentos con `FixedBackOff(1000L, 2L)` + log + descarte. Sin DLQ en Kafka; RabbitMQ mantiene su DLQ.
+  4. **Carga broker (B1):** topic temporal `siga.e3.local-load-20261117012719` (3/3, min ISR 2, retención 1 h/1 MiB). `kafka-producer-perf-test`: **20 000 records sent**, **14 577,259 rec/s**, 0 errores, offsets 6820/6386/6794 = 20 000.
+  5. **Carga consumidor (B2):** 300 eventos de rendimiento únicos (`idCursoAsignatura=null`, puntaje 6.5). Lag 0, 300 filas en `proyecciones_rendimiento`, 300 en `eventos_reportes_procesados`, 0 alertas.
+  6. **Recursos (B3):** muestras `docker stats --no-stream` antes/durante/después sin reinicios ni `unhealthy`; CPU de contenedores bajo 5%. **Desviación:** la RAM del host estaba en 87,8% antes de la carga (86,4% durante/después), por encima del umbral <80%, debido al consumo base del host.
+  7. **Alcance (B4):** el objetivo de 20 VUs/10 min y p95 de API no se cubre con la carga 3a porque requiere `Bearer token`.
+  8. **Limpieza (C):** 4 alertas, 2 proyecciones de asistencia, 302 de rendimiento y 305 eventos `local-%` eliminados; topics `siga.e3.local-load-*` borrados. Verificación final: 0 filas `local-%`, lag 0 y solo los 2 topics de negocio.
+  9. **Allure (D):** `tools/ci/allure-command.mjs` acepta `--layer`, `--epic`, `--feature`, `--story`, `--owner` y `--tag` con defaults idénticos; `kafka-error-policy.mjs` y `kafka-topic-policy.mjs` salen con 0; `tools/performance/kafka-load.mjs` publica métricas como attachment (`broker`: 13 633,265 rec/s y 20 000 offsets; `consumer`: lag 0 en 5,173 s, 300/300 filas, 0 alertas).
+- **Incidencia operativa:** Docker Desktop dejó de responder a la API durante la verificación inicial. Se reinició Docker Desktop sin `docker compose down -v`; los contenedores auto-reiniciaron y se revalidaron topics, grupos, lag y salud antes de continuar.
+- **Evidencia:** `docs/evidencias/E3-PRES-20261117-01/README.md`.

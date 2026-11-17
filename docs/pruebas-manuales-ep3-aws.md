@@ -238,3 +238,62 @@ El caso de prueba no sustituye la explicación de que la EC2 es un único domini
 | API Gateway, JWT y login | Integración cloud de presentación | Inválidos rechazados y flujo autenticado válido demostrado |
 
 Un indicador solo pasa a `100% demostrado` cuando su requisito de código está presente, las pruebas automáticas aplicables pasan y hay evidencia vigente del comportamiento requerido en el entorno. La ausencia de Kafka en AWS mantiene bloqueados los indicadores que requieren mostrar o probar Kafka UI y brokers.
+
+## 10. Política de errores de consumo Kafka
+
+`ms-reportes` configura `DefaultErrorHandler` con `FixedBackOff(1000L, 2L)` en
+`KafkaConsumerConfig`: un registro que falla se reintenta **2 veces** con 1 segundo de
+espera, se registra con `Mensaje Kafka inválido o no procesable ...` y luego se descarta.
+**No existe DLQ en Kafka** para estos topics; la DLQ es una capacidad de RabbitMQ y no
+aplica a este flujo. La deduplicación se apoya en `idEvento`: un evento ya registrado en
+`eventos_reportes_procesados` se ignora con `Evento de asistencia/rendimiento duplicado
+ignorado`.
+
+Pasos para reproducir el caso de payload inválido:
+
+1. Publicar un evento de asistencia sin `idEstudiante` con un `idEvento` nuevo (nunca
+   reutilizar uno ya procesado).
+2. Verificar en `docker logs ms-reportes` los 3 registros del listener (original + 2
+   reintentos) y la línea `Mensaje Kafka inválido o no procesable`.
+3. Confirmar que el offset del grupo avanzó y que no existen filas en
+   `proyecciones_asistencia` ni en `eventos_reportes_procesados` para ese `idEvento`.
+
+Los checks automáticos de esta política son `node tools/ci/kafka-error-policy.mjs` y
+`node tools/ci/kafka-topic-policy.mjs` (ambos deben salir con código 0).
+
+## 11. Filtrar Kafka en Allure
+
+Los checks de Kafka se agrupan bajo el epic **Kafka** y la etiqueta **`kafka`**. En el
+reporte se pueden filtrar con:
+
+- Epic: `Kafka`.
+- Tag: `kafka`.
+- Features: `Kafka - Infraestructura`, `Kafka - Administracion`,
+  `Kafka - Consumo y proyecciones`, `Kafka - Alertas de riesgo`,
+  `Kafka - Migraciones` y `Kafka - Alto flujo`.
+
+Nombres exactos de los checks de infraestructura y performance:
+
+- `kafka error policy` (layer `infra`).
+- `kafka topic provisioning` (layer `infra`).
+- `kafka broker throughput` (layer `performance`, solo reporte local).
+- `kafka consumer throughput` (layer `performance`, solo reporte local).
+
+Para generar el reporte local de carga:
+
+```bash
+node tools/ci/allure-command.mjs --name "kafka broker throughput" \
+  --layer performance --epic Kafka --feature "Kafka - Alto flujo" \
+  --story "20k mensajes de 512 B" --tag kafka --owner qa \
+  --dir tools/performance/allure-results -- node tools/performance/kafka-load.mjs broker
+node tools/ci/allure-command.mjs --name "kafka consumer throughput" \
+  --layer performance --epic Kafka --feature "Kafka - Alto flujo" \
+  --story "300 eventos hasta lag 0" --tag kafka --owner qa \
+  --dir tools/performance/allure-results -- node tools/performance/kafka-load.mjs consumer
+npx allure generate tools/performance/allure-results --config allurerc.mjs \
+  --clean --output allure-report-local
+```
+
+El reporte local solo contiene los dos checks de performance; los grupos de unit,
+security e integration se completan en CI con las suites de `ms-kafka-admin` y
+`ms-reportes`.
