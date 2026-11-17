@@ -1,1 +1,1 @@
-{"id":"e2ffa886526c501cff68e87e33c243e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.security.SharedSecurityFilterTest.rechazaPeticionSinBearer","name":"Rechaza peticion sin bearer","status":"passed","testResultsByEnv":{"default":"2b31b5abe2fc8e27454324321d84fb8a"}}
+{"id":"e2ffa886526c501cff68e87e33c243e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.coreshare.security.SharedSecurityFilterTest.rechazaPeticionSinBearer","name":"Rechaza peticion sin bearer","status":"passed","testResultsByEnv":{"default":"5ef554a74726727f8aedb1d1302a3fba"}}
