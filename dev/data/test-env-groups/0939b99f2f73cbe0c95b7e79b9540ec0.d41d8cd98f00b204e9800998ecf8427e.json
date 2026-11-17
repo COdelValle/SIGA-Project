@@ -1,1 +1,1 @@
-{"id":"0939b99f2f73cbe0c95b7e79b9540ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.bffweb.domain.me.MeServiceTest.usaElCorreoCuandoNoHayToken","name":"Usa el correo cuando no hay token","status":"passed","testResultsByEnv":{"default":"77a3cf5f14fe6e0528548cdbd18fdb36"}}
+{"id":"0939b99f2f73cbe0c95b7e79b9540ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"cl.siga.bffweb.domain.me.MeServiceTest.usaElCorreoCuandoNoHayToken","name":"Usa el correo cuando no hay token","status":"passed","testResultsByEnv":{"default":"200ec0b151d67f53ee993f2df94f58da"}}

@@ -1,1 +1,1 @@
-[{"name":"framework","values":["Angular + Vitest"]},{"name":"runner","values":["jsdom"]}]
+[{"name":"framework","values":["Playwright"]},{"name":"baseURL","values":["http://localhost:4200"]}]
