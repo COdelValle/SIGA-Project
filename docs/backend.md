@@ -35,6 +35,8 @@ La topología no es una sola cola genérica. Consulte [`microservicios/core-shar
 1. **Registro de usuarios:** `ms-usuarios-auth` + outbox/Graph; eventos `user.topic.exchange`; perfiles de estudiante/docente/apoderado y estado por colas; idempotencia por OID/proceso; DLQ por etapa.
 2. **Notificaciones académicas:** outbox de evaluaciones/notas/asistencias → topic `intercambio-notificaciones` → tres colas de `ms-notificaciones`; direct `siga.dlx.direct` enruta fallos a DLQ. Consumidores ACK manual, retry acotado, NACK sin requeue al agotar o al recibir payload no recuperable.
 
+Los nombres de exchanges, colas, DLQ y routing keys de ambos flujos viven en `siga.mensajeria.registro.*` y `siga.mensajeria.notificaciones.*` (`common-properties.yaml` + `application.yaml` de cada servicio). Se pueden cambiar sin recompilar y los valores por defecto mantienen la topología existente.
+
 `ms-rabbitmq-admin` administra topología en tiempo de ejecución por REST; sus cambios pueden diferir de la declaración estática si no se coordinan. El dashboard sirve para verificar broker; no es contrato canónico de nombres.
 
 ## Configuración y operación

@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import cl.siga.coreshare.dto.notificaciones.EventoRiesgoAsistencia;
 import cl.siga.coreshare.dto.notificaciones.NivelRiesgo;
 import cl.siga.coreshare.dto.notificaciones.TipoRiesgo;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msreportes.model.entity.AlertaRiesgo;
 import java.time.LocalDateTime;
@@ -18,10 +18,12 @@ import org.mockito.Mockito;
 
 class PublicadorAlertaRiesgoTest {
 
+    private final NotificacionesMensajeriaProperties propiedades = propiedades();
+
     @Test
     void publicaAlertaDeAsistenciaEnOutboxConRoutingKeyCorrecta() {
         NotificationEventOutbox outbox = Mockito.mock(NotificationEventOutbox.class);
-        PublicadorAlertaRiesgo publicador = new PublicadorAlertaRiesgo(outbox);
+        PublicadorAlertaRiesgo publicador = new PublicadorAlertaRiesgo(outbox, propiedades);
         AlertaRiesgo alerta = AlertaRiesgo.builder()
             .claveIdempotencia("ASISTENCIA|evento-1|40|CRITICO")
             .tipoRiesgo(TipoRiesgo.INASISTENCIA)
@@ -38,9 +40,18 @@ class PublicadorAlertaRiesgoTest {
         publicador.publicar(alerta);
 
         ArgumentCaptor<Object> evento = ArgumentCaptor.forClass(Object.class);
-        verify(outbox).registrar(any(String.class), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_RIESGO_INASISTENCIA), evento.capture());
+        verify(outbox).registrar(any(String.class), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveRiesgoInasistencia()), evento.capture());
         assertThat(evento.getValue()).isInstanceOf(EventoRiesgoAsistencia.class);
         assertThat(((EventoRiesgoAsistencia) evento.getValue()).porcentajeInasistencia()).isEqualTo(45.0);
+    }
+
+    private static NotificacionesMensajeriaProperties propiedades() {
+        NotificacionesMensajeriaProperties p = new NotificacionesMensajeriaProperties();
+        p.setExchangeNotificaciones("intercambio-notificaciones");
+        p.setClaveRiesgoInasistencia("riesgo.inasistencia");
+        p.setClaveRiesgoRendimiento("riesgo.rendimiento");
+        p.setClaveCambioEstadoAcademico("riesgo.estado-academico");
+        return p;
     }
 }

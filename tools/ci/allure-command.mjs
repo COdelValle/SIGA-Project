@@ -12,10 +12,20 @@ if (separator < 0 || separator === args.length - 1) {
 
 const options = args.slice(0, separator);
 const commandArgs = args.slice(separator + 1);
-const nameIndex = options.indexOf('--name');
-const dirIndex = options.indexOf('--dir');
-const name = nameIndex >= 0 ? options[nameIndex + 1] : commandArgs.join(' ');
-const outputDir = dirIndex >= 0 ? options[dirIndex + 1] : 'tools/ci/allure-results';
+
+function optionValue(flag, fallback) {
+  const index = options.indexOf(flag);
+  return index >= 0 ? options[index + 1] : fallback;
+}
+
+const name = optionValue('--name', commandArgs.join(' '));
+const outputDir = optionValue('--dir', 'tools/ci/allure-results');
+const layer = optionValue('--layer', 'infra');
+const epic = optionValue('--epic', 'Calidad');
+const feature = optionValue('--feature', 'Infraestructura');
+const story = optionValue('--story', 'Validacion de comandos');
+const owner = optionValue('--owner', 'qa');
+const tag = optionValue('--tag', 'infra');
 const [command, ...rest] = commandArgs;
 
 const started = Date.now();
@@ -50,12 +60,12 @@ const allureResult = {
   start: started,
   stop: stopped,
   labels: [
-    { name: 'layer', value: 'infra' },
-    { name: 'epic', value: 'Calidad' },
-    { name: 'feature', value: 'Infraestructura' },
-    { name: 'story', value: 'Validacion de comandos' },
-    { name: 'owner', value: 'qa' },
-    { name: 'tag', value: 'infra' },
+    { name: 'layer', value: layer },
+    { name: 'epic', value: epic },
+    { name: 'feature', value: feature },
+    { name: 'story', value: story },
+    { name: 'owner', value: owner },
+    { name: 'tag', value: tag },
   ],
   parameters: [],
   steps: [],

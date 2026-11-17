@@ -26,7 +26,7 @@ import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.exception.ConflictException;
 import cl.siga.coreshare.exception.ResourceNotFoundException;
 import cl.siga.coreshare.exception.ServiceUnavailableException;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
 import cl.siga.coreshare.security.SecurityUtils;
 import cl.siga.msusuariosauth.config.RegistroAsyncProperties;
 import cl.siga.msusuariosauth.integration.estudiantes.EstudianteDirectory;
@@ -71,6 +71,7 @@ public class AsyncUserRegistrationService {
     private final RegistrationStateService stateService;
     private final CredentialCipher credentialCipher;
     private final RegistroAsyncProperties properties;
+    private final RegistroMensajeriaProperties messagingProperties;
     private final ObjectMapper objectMapper;
     private final EmailInstitucionalGenerator emailGenerator;
 
@@ -154,8 +155,8 @@ public class AsyncUserRegistrationService {
         outboxRepository.save(RegistrationOutboxEvent.builder()
                 .eventId(evento.eventId())
                 .processId(processId)
-                .exchange(RegistrationMessagingConstants.EXCHANGE)
-                .routingKey(RegistrationMessagingConstants.RK_AZURE_SYNC)
+                .exchange(messagingProperties.getExchange())
+                .routingKey(messagingProperties.getRkAzureSync())
                 .correlationId(correlationId)
                 .payload(serializar(evento))
                 .state(OutboxEventState.PENDIENTE)

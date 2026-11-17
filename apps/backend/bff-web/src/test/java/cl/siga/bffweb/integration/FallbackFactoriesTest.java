@@ -194,9 +194,9 @@ class FallbackFactoriesTest {
             .isInstanceOf(ServiceUnavailableException.class);
         assertThatThrownBy(() -> asignaturas.getCursoAsignaturaById(1L))
             .isInstanceOf(ServiceUnavailableException.class);
-        assertThatThrownBy(() -> asignaturas.searchCursoAsignaturasByClase(1L, 10))
+        assertThatThrownBy(() -> asignaturas.searchCursoAsignaturas(1L, null, 10))
             .isInstanceOf(ServiceUnavailableException.class);
-        assertThatThrownBy(() -> asignaturas.searchCursoAsignaturasByDocente(1L, 10))
+        assertThatThrownBy(() -> asignaturas.searchCursoAsignaturas(null, 1L, 10))
             .isInstanceOf(ServiceUnavailableException.class);
         assertThatThrownBy(() -> asignaturas.searchInscripcionesByAlumno(1L, 10))
             .isInstanceOf(ServiceUnavailableException.class);

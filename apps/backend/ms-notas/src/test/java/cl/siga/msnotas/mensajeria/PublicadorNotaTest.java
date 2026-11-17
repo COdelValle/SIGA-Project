@@ -16,7 +16,7 @@ import cl.siga.coreshare.dto.evaluaciones.enums.TipoEvaluacion;
 import cl.siga.coreshare.dto.notas.NotaResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.EventoNota;
 import cl.siga.coreshare.enums.AreaAcademica;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msnotas.client.AsignaturaClient;
 import cl.siga.msnotas.client.EvaluacionClient;
@@ -27,6 +27,8 @@ import org.mockito.ArgumentCaptor;
 
 class PublicadorNotaTest {
 
+    private final NotificacionesMensajeriaProperties propiedades = propiedades();
+
     @Test
     void registraEventoEnOutboxConClaveDeCreacionYNombreDeAsignatura() {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
@@ -35,13 +37,13 @@ class PublicadorNotaTest {
         when(evaluacionClient.getEvaluacionById(12L)).thenReturn(
             new EvaluacionResponseDTO(12L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 8L, true));
         when(asignaturaClient.getCursoAsignaturaById(8L)).thenReturn(dictacion("Matemática"));
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarCreada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaCreada()), evento.capture());
         assertThat(UUID.fromString(evento.getValue().idEvento())).isNotNull();
         assertThat(evento.getValue().idEstudiante()).isEqualTo(10L);
         assertThat(evento.getValue().nombreEvaluacion()).isEqualTo("PRUEBA 1");
@@ -54,13 +56,13 @@ class PublicadorNotaTest {
         EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
         when(evaluacionClient.getEvaluacionById(12L)).thenThrow(new RuntimeException("ms caído"));
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarActualizada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_ACTUALIZADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaActualizada()), evento.capture());
         assertThat(evento.getValue().nombreEvaluacion()).isNull();
         assertThat(evento.getValue().nombreAsignatura()).isNull();
     }
@@ -70,13 +72,13 @@ class PublicadorNotaTest {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
         EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarCreada(new NotaResponseDTO(4L, 10L, null, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaCreada()), evento.capture());
         assertThat(evento.getValue().nombreEvaluacion()).isNull();
         assertThat(evento.getValue().nombreAsignatura()).isNull();
         verify(evaluacionClient, org.mockito.Mockito.never()).getEvaluacionById(any());
@@ -89,13 +91,13 @@ class PublicadorNotaTest {
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
         when(evaluacionClient.getEvaluacionById(12L)).thenReturn(
             new EvaluacionResponseDTO(12L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, null, true));
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarCreada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaCreada()), evento.capture());
         assertThat(evento.getValue().nombreEvaluacion()).isEqualTo("PRUEBA 1");
         assertThat(evento.getValue().nombreAsignatura()).isNull();
         verify(asignaturaClient, org.mockito.Mockito.never()).getCursoAsignaturaById(any());
@@ -109,13 +111,13 @@ class PublicadorNotaTest {
         when(evaluacionClient.getEvaluacionById(12L)).thenReturn(
             new EvaluacionResponseDTO(12L, "PRUEBA 1", TipoEvaluacion.SUMATIVA, 30.0, 8L, true));
         when(asignaturaClient.getCursoAsignaturaById(8L)).thenReturn(null);
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarActualizada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_ACTUALIZADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaActualizada()), evento.capture());
         assertThat(evento.getValue().nombreAsignatura()).isNull();
     }
 
@@ -125,13 +127,13 @@ class PublicadorNotaTest {
         EvaluacionClient evaluacionClient = mock(EvaluacionClient.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
         when(evaluacionClient.getEvaluacionById(12L)).thenReturn(null);
-        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient);
+        PublicadorNota publicador = new PublicadorNota(outbox, evaluacionClient, asignaturaClient, propiedades);
 
         publicador.publicarCreada(new NotaResponseDTO(4L, 10L, 12L, 6.0));
 
         ArgumentCaptor<EventoNota> evento = ArgumentCaptor.forClass(EventoNota.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_NOTA_CREADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveNotaCreada()), evento.capture());
         assertThat(evento.getValue().nombreEvaluacion()).isNull();
         assertThat(evento.getValue().nombreAsignatura()).isNull();
     }
@@ -140,5 +142,13 @@ class PublicadorNotaTest {
         return new CursoAsignaturaResponseDTO(
             8L, 1L, nombre, nombre.toLowerCase(), AreaAcademica.MATEMATICAS, true,
             CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 6L, 4L, null, null, 0, List.of());
+    }
+
+    private static NotificacionesMensajeriaProperties propiedades() {
+        NotificacionesMensajeriaProperties p = new NotificacionesMensajeriaProperties();
+        p.setExchangeNotificaciones("intercambio-notificaciones");
+        p.setClaveNotaCreada("nota.creada");
+        p.setClaveNotaActualizada("nota.actualizada");
+        return p;
     }
 }

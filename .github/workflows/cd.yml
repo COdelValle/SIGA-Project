@@ -195,6 +195,23 @@ jobs:
           docker compose --env-file .env.example
           -f infra/terraform/templates/docker-compose.yml config -q
 
+      - name: Kafka error policy (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka error policy"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "Log y descarte sin DLQ" --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-error-policy.mjs
+
+      - name: Kafka topic provisioning (Allure)
+        run: >-
+          node tools/ci/allure-command.mjs --name "kafka topic provisioning"
+          --layer infra --epic Kafka --feature "Kafka - Infraestructura"
+          --story "3 particiones, RF 3, min ISR 2, retencion 7d/128MiB"
+          --tag kafka --owner qa
+          --dir tools/infra/allure-results --
+          node tools/ci/kafka-topic-policy.mjs
+
       - name: Preparar artefacto Allure de infraestructura
         if: always()
         run: |
@@ -929,13 +946,23 @@ jobs:
               exit 1
             fi
             CONTENEDORES_HEALTHY="siga-mariadb rabbitmq1 rabbitmq2 caddy ms-usuarios-auth ms-estudiantes ms-apoderados ms-docentes ms-asignaturas ms-clases ms-evaluaciones ms-notas ms-asistencias ms-notificaciones ms-reportes ms-rabbitmq-admin ms-kafka-admin bff-web"
-            for CONTENEDOR in $CONTENEDORES_HEALTHY; do
-              ESTADO=$(docker inspect -f '{{.State.Health.Status}}' "$CONTENEDOR" 2>/dev/null || echo missing)
-              if [ "$ESTADO" != "healthy" ]; then
-                echo "::error::El contenedor $CONTENEDOR no quedó healthy (estado: $ESTADO)." >&2
-                exit 1
+            faltan_health="pendiente"
+            for INTENTO in $(seq 1 60); do
+              faltan_health=""
+              for CONTENEDOR in $CONTENEDORES_HEALTHY; do
+                ESTADO=$(docker inspect -f '{{.State.Health.Status}}' "$CONTENEDOR" 2>/dev/null || echo missing)
+                [ "$ESTADO" = "healthy" ] || faltan_health="$faltan_health $CONTENEDOR:$ESTADO"
+              done
+              if [ -z "$faltan_health" ]; then
+                break
               fi
+              echo "Contenedores no healthy (intento $INTENTO):$faltan_health"
+              sleep 10
             done
+            if [ -n "$faltan_health" ]; then
+              echo "::error::Contenedores no quedaron healthy tras el deploy:$faltan_health" >&2
+              exit 1
+            fi
 
             # Los topics son creados por ms-kafka-admin al arrancar. Como Kafka
             # tiene auto-create deshabilitado, el deploy falla si no existen.

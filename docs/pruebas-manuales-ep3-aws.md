@@ -2,7 +2,7 @@
 
 Guía separada para comprobar los requisitos de código y funcionamiento de la EP3. Está pensada para repetirla en local y en AWS, guardar evidencia verificable y explicar por qué se configuró así Kafka junto a RabbitMQ.
 
-> **Estado AWS actualizado al 16 de noviembre de 2026:** PR #126 corrigió el arranque de `ms-reportes`, PR #127 amplió el timeout SSH y PR #128 cambió el healthcheck RabbitMQ a TCP. El CD `43869955825` terminó `success` con SHA `dc98259`; los 26 contenedores están saludables/en ejecución. Los dos topics de negocio tienen 3 particiones, RF=3, ISR 3/3 y retención correcta; ambos grupos de reportes están conectados. Las pruebas autorizadas de caída de cada broker pasaron y la prueba de dos brokers rechazó escrituras como se esperaba; el clúster quedó restaurado y se eliminó el topic temporal. El smoke sintético de asistencia pasó y el de rendimiento detectó `actualizado_en` nulo; la corrección está en curso. Ver [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md). No declarar terminado el flujo end-to-end hasta desplegar esa corrección y repetir el smoke.
+> **Estado AWS actualizado al 16 de noviembre de 2026 (final):** PR #126 corrigió el arranque de `ms-reportes`, PR #127 amplió el timeout SSH, PR #128 cambió el healthcheck RabbitMQ a TCP y PR #129 corrigió la inicialización de campos NOT NULL en la proyección de rendimiento. El CD `43881252562` (SHA `df32827`) terminó `success` y los 26 contenedores quedaron `healthy`. Los dos topics de negocio mantienen 3 particiones, RF=3, ISR 3/3 y retención de 7 días/128 MiB; ambos grupos de reportes están conectados con lag 0. Las pruebas autorizadas de caída de uno y dos brokers pasaron (rechazo `NOT_ENOUGH_REPLICAS` con dos brokers) y el clúster se recuperó con ISR 3/3. Los smokes sintéticos de asistencia y rendimiento se persistieron correctamente. Ver [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md).
 
 > Terraform creó los ECR `siga-kafka-admin` y `siga-reportes` y amplió EBS de 10 a 20 GB sin destrucciones. Los secrets AWS se renovaron y SSM volvió a estar accesible. El CD está resuelto; resta desplegar la corrección de rendimiento descubierta por el smoke sintético.
 
@@ -114,7 +114,7 @@ Guardar la salida sin datos personales. En Kafka UI, no dejar mensajes de produc
 
 Las operaciones de actualización/eliminación de asistencia y eliminación de notas deben figurar como **brecha conocida** hasta que el código publique esos cambios y la proyección los procese; no marcar consistencia completa de proyecciones para esos casos.
 
-**Smoke AWS 2026-11-16:** un evento sintético normal de asistencia se consumió y apareció en la proyección con lag 0. El evento sintético de rendimiento fue recibido pero no persistido: la primera escritura llegó sin `actualizado_en`, `id_evento`, `correlation_id` ni `nivel_riesgo`. Ya se corrigió el orden de inicialización en `dev` y las pruebas del módulo pasan; tras promoverlo, repetir rendimiento con un `idEvento` nuevo. Detalle en [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md).
+**Smoke AWS 2026-11-16:** el evento sintético de asistencia se consumió y apareció en la proyección con lag 0. El de rendimiento falló en `dc98259` por campos NOT NULL sin inicializar; tras el fix de `df32827`, una nueva publicación (`e3-smoke-r-20261116-02`) persistió la proyección con lag 0. Detalle en [`evidencias/E3-PRES-20261116-01/README.md`](evidencias/E3-PRES-20261116-01/README.md).
 
 ## 7. Prueba controlada de disponibilidad en AWS
 
@@ -238,3 +238,66 @@ El caso de prueba no sustituye la explicación de que la EC2 es un único domini
 | API Gateway, JWT y login | Integración cloud de presentación | Inválidos rechazados y flujo autenticado válido demostrado |
 
 Un indicador solo pasa a `100% demostrado` cuando su requisito de código está presente, las pruebas automáticas aplicables pasan y hay evidencia vigente del comportamiento requerido en el entorno. La ausencia de Kafka en AWS mantiene bloqueados los indicadores que requieren mostrar o probar Kafka UI y brokers.
+
+## 10. Política de errores de consumo Kafka
+
+`ms-reportes` configura `DefaultErrorHandler` con `FixedBackOff(1000L, 2L)` en
+`KafkaConsumerConfig`: un registro que falla se reintenta **2 veces** con 1 segundo de
+espera, se registra con `Mensaje Kafka inválido o no procesable ...` y luego se descarta.
+**No existe DLQ en Kafka** para estos topics; la DLQ es una capacidad de RabbitMQ y no
+aplica a este flujo. La deduplicación se apoya en `idEvento`: un evento ya registrado en
+`eventos_reportes_procesados` se ignora con `Evento de asistencia/rendimiento duplicado
+ignorado`.
+
+Pasos para reproducir el caso de payload inválido:
+
+1. Publicar un evento de asistencia sin `idEstudiante` con un `idEvento` nuevo (nunca
+   reutilizar uno ya procesado).
+2. Verificar en `docker logs ms-reportes` los 3 registros del listener (original + 2
+   reintentos) y la línea `Mensaje Kafka inválido o no procesable`.
+3. Confirmar que el offset del grupo avanzó y que no existen filas en
+   `proyecciones_asistencia` ni en `eventos_reportes_procesados` para ese `idEvento`.
+
+Los checks automáticos de esta política son `node tools/ci/kafka-error-policy.mjs` y
+`node tools/ci/kafka-topic-policy.mjs` (ambos deben salir con código 0).
+
+## 11. Filtrar Kafka en Allure
+
+Los checks de Kafka se agrupan bajo el epic **Kafka** y la etiqueta **`kafka`**. En el
+reporte se pueden filtrar con:
+
+- Epic: `Kafka`.
+- Tag: `kafka`.
+- Features: `Kafka - Infraestructura`, `Kafka - Administracion`,
+  `Kafka - Consumo y proyecciones`, `Kafka - Alertas de riesgo`,
+  `Kafka - Migraciones` y `Kafka - Alto flujo`.
+
+Nombres exactos de los checks de infraestructura y performance:
+
+- `kafka error policy` (layer `infra`).
+- `kafka topic provisioning` (layer `infra`).
+- `kafka broker throughput` (layer `performance`).
+- `kafka consumer throughput` (layer `performance`).
+
+Para generar el reporte local de carga:
+
+```bash
+node tools/ci/allure-command.mjs --name "kafka broker throughput" \
+  --layer performance --epic Kafka --feature "Kafka - Alto flujo" \
+  --story "20k mensajes de 512 B" --tag kafka --owner qa \
+  --dir tools/performance/allure-results -- node tools/performance/kafka-load.mjs broker
+node tools/ci/allure-command.mjs --name "kafka consumer throughput" \
+  --layer performance --epic Kafka --feature "Kafka - Alto flujo" \
+  --story "300 eventos hasta lag 0" --tag kafka --owner qa \
+  --dir tools/performance/allure-results -- node tools/performance/kafka-load.mjs consumer
+npx allure generate tools/performance/allure-results --config allurerc.mjs \
+  --clean --output allure-report-local
+```
+
+En CI, el job `performance` publica estos dos checks en GitHub Pages solo cuando hay
+push a `dev`, `main` o `deploy`; los PR no ejecutan la carga. El job levanta el stack
+mínimo (3 ZooKeeper, 3 Kafka, `mariadb-reportes`, `rabbitmq1`/`rabbitmq2`), arranca
+`ms-reportes` desde el jar del job `backend` y sube `performance-allure-<sha>`, que el
+job `allure-report` fusiona con el resto. El reporte local sigue disponible para
+ejecuciones manuales; los grupos de unit, security e integration se completan en CI con
+las suites de `ms-kafka-admin` y `ms-reportes`.

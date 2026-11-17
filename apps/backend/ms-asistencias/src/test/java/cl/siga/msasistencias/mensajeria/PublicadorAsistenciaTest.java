@@ -16,7 +16,7 @@ import cl.siga.coreshare.dto.asistencia.enums.Justificacion;
 import cl.siga.coreshare.dto.asistencia.enums.State;
 import cl.siga.coreshare.dto.notificaciones.EventoAsistencia;
 import cl.siga.coreshare.enums.AreaAcademica;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msasistencias.client.AsignaturaClient;
 import java.time.LocalDate;
@@ -27,6 +27,8 @@ import org.mockito.ArgumentCaptor;
 
 class PublicadorAsistenciaTest {
 
+    private final NotificacionesMensajeriaProperties propiedades = propiedades();
+
     @Test
     void registraAsistenciaEnOutboxConElUmbralYLaAsignatura() {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
@@ -35,15 +37,15 @@ class PublicadorAsistenciaTest {
             new CursoAsignaturaResponseDTO(
                 4L, 1L, "Matemática", "matemática", AreaAcademica.MATEMATICAS, true,
                 CaracterAsignatura.OBLIGATORIA, Semestre.SEMESTRE_1, 6L, 8L, null, null, 0, List.of()));
-        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient, propiedades);
         AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, 4L,
             LocalDate.of(2026, 10, 7), State.AUSENTE, Justificacion.PENDIENTE, null);
 
         publicador.publicarRegistrada(asistencia, 60.0, true);
 
         ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveAsistenciaRegistrada()), evento.capture());
         assertThat(UUID.fromString(evento.getValue().idEvento())).isNotNull();
         assertThat(evento.getValue().porcentajeInasistencia()).isEqualTo(60.0);
         assertThat(evento.getValue().superaUmbralInasistencia()).isTrue();
@@ -54,15 +56,15 @@ class PublicadorAsistenciaTest {
     void noConsultaLaDictacionCuandoLaAsistenciaNoTieneCursoAsignatura() {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
-        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient, propiedades);
         AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, null,
             LocalDate.of(2026, 10, 7), State.AUSENTE, Justificacion.PENDIENTE, null);
 
         publicador.publicarRegistrada(asistencia, 70.0, true);
 
         ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveAsistenciaRegistrada()), evento.capture());
         assertThat(evento.getValue().nombreAsignatura()).isNull();
         verify(asignaturaClient, org.mockito.Mockito.never()).getCursoAsignaturaById(any());
     }
@@ -72,15 +74,15 @@ class PublicadorAsistenciaTest {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
         when(asignaturaClient.getCursoAsignaturaById(4L)).thenReturn(null);
-        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient, propiedades);
         AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, 4L,
             LocalDate.of(2026, 10, 7), State.ATRASADO, Justificacion.PENDIENTE, null);
 
         publicador.publicarRegistrada(asistencia, 40.0, false);
 
         ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveAsistenciaRegistrada()), evento.capture());
         assertThat(evento.getValue().nombreAsignatura()).isNull();
     }
 
@@ -89,15 +91,22 @@ class PublicadorAsistenciaTest {
         NotificationEventOutbox outbox = mock(NotificationEventOutbox.class);
         AsignaturaClient asignaturaClient = mock(AsignaturaClient.class);
         when(asignaturaClient.getCursoAsignaturaById(4L)).thenThrow(new RuntimeException("ms caído"));
-        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient);
+        PublicadorAsistencia publicador = new PublicadorAsistencia(outbox, asignaturaClient, propiedades);
         AsistenciaResponseDTO asistencia = new AsistenciaResponseDTO(2L, 10L, 4L,
             LocalDate.of(2026, 10, 7), State.AUSENTE, Justificacion.PENDIENTE, null);
 
         publicador.publicarRegistrada(asistencia, 60.0, true);
 
         ArgumentCaptor<EventoAsistencia> evento = ArgumentCaptor.forClass(EventoAsistencia.class);
-        verify(outbox).registrar(anyString(), eq(NombresMensajeria.INTERCAMBIO_NOTIFICACIONES),
-            eq(NombresMensajeria.CLAVE_ASISTENCIA_REGISTRADA), evento.capture());
+        verify(outbox).registrar(anyString(), eq(propiedades.getExchangeNotificaciones()),
+            eq(propiedades.getClaveAsistenciaRegistrada()), evento.capture());
         assertThat(evento.getValue().nombreAsignatura()).isNull();
+    }
+
+    private static NotificacionesMensajeriaProperties propiedades() {
+        NotificacionesMensajeriaProperties p = new NotificacionesMensajeriaProperties();
+        p.setExchangeNotificaciones("intercambio-notificaciones");
+        p.setClaveAsistenciaRegistrada("asistencia.registrada");
+        return p;
     }
 }

@@ -32,14 +32,11 @@ public interface AsignaturaClient {
     @GetMapping ("/api/v1/curso-asignaturas/{id}")
     CursoAsignaturaResponseDTO getCursoAsignaturaById(@PathVariable ("id") Long id);
 
+    /** Dictaciones filtradas opcionalmente por clase y/o docente. */
     @GetMapping ("/api/v1/curso-asignaturas/search")
-    PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturasByClase(
-        @RequestParam ("idClase") Long idClase,
-        @RequestParam ("size") int size);
-
-    @GetMapping ("/api/v1/curso-asignaturas/search")
-    PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturasByDocente(
-        @RequestParam ("idDocente") Long idDocente,
+    PageResponseDTO<CursoAsignaturaResponseDTO> searchCursoAsignaturas(
+        @RequestParam (value = "idClase", required = false) Long idClase,
+        @RequestParam (value = "idDocente", required = false) Long idDocente,
         @RequestParam ("size") int size);
 
     /** Inscripciones del alumno a dictaciones optativas/electivas. */

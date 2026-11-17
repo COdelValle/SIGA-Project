@@ -4,7 +4,7 @@ import cl.siga.coreshare.dto.asignatura.CursoAsignaturaResponseDTO;
 import cl.siga.coreshare.dto.evaluaciones.EvaluacionResponseDTO;
 import cl.siga.coreshare.dto.notificaciones.AccionEvaluacion;
 import cl.siga.coreshare.dto.notificaciones.EventoEvaluacion;
-import cl.siga.coreshare.mensajeria.NombresMensajeria;
+import cl.siga.coreshare.mensajeria.NotificacionesMensajeriaProperties;
 import cl.siga.coreshare.mensajeria.outbox.NotificationEventOutbox;
 import cl.siga.msevaluaciones.client.AsignaturaClient;
 import java.time.LocalDateTime;
@@ -26,20 +26,21 @@ public class PublicadorEvaluacion {
 
     private final NotificationEventOutbox outbox;
     private final AsignaturaClient asignaturaClient;
+    private final NotificacionesMensajeriaProperties propiedades;
 
     /** Se llama al crear (POST /api/v1/evaluaciones). */
     public void publicarCreada(EvaluacionResponseDTO evaluacion) {
-        publicar(evaluacion, AccionEvaluacion.CREADA, NombresMensajeria.CLAVE_EVALUACION_CREADA);
+        publicar(evaluacion, AccionEvaluacion.CREADA, propiedades.getClaveEvaluacionCreada());
     }
 
     /** Se llama al modificar (PUT /api/v1/evaluaciones/{id}). */
     public void publicarActualizada(EvaluacionResponseDTO evaluacion) {
-        publicar(evaluacion, AccionEvaluacion.ACTUALIZADA, NombresMensajeria.CLAVE_EVALUACION_ACTUALIZADA);
+        publicar(evaluacion, AccionEvaluacion.ACTUALIZADA, propiedades.getClaveEvaluacionActualizada());
     }
 
     /** Se llama al eliminar (DELETE lógico). */
     public void publicarEliminada(EvaluacionResponseDTO evaluacion) {
-        publicar(evaluacion, AccionEvaluacion.ELIMINADA, NombresMensajeria.CLAVE_EVALUACION_ELIMINADA);
+        publicar(evaluacion, AccionEvaluacion.ELIMINADA, propiedades.getClaveEvaluacionEliminada());
     }
 
     private void publicar(EvaluacionResponseDTO evaluacion, AccionEvaluacion accion, String claveEnrutamiento) {
@@ -54,7 +55,7 @@ public class PublicadorEvaluacion {
                 UUID.randomUUID().toString(),
                 nombreAsignatura(evaluacion)
         );
-        outbox.registrar(evento.idEvento(), NombresMensajeria.INTERCAMBIO_NOTIFICACIONES, claveEnrutamiento, evento);
+        outbox.registrar(evento.idEvento(), propiedades.getExchangeNotificaciones(), claveEnrutamiento, evento);
         log.info("Evento de evaluación agregado al outbox: accion={} id={} clave={}",
                 accion, evaluacion.id(), claveEnrutamiento);
     }

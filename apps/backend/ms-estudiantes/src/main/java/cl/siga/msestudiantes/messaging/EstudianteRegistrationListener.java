@@ -13,8 +13,9 @@ import cl.siga.coreshare.dto.usuario.enums.Rol;
 import cl.siga.coreshare.dto.usuario.payload.DatosRegistroEstudianteDTO;
 import cl.siga.coreshare.exception.BusinessException;
 import cl.siga.coreshare.mensajeria.ConfirmadorMensajes;
+import cl.siga.coreshare.mensajeria.RegistroMensajeriaProperties;
+import cl.siga.coreshare.messaging.MessagingHeaders;
 import cl.siga.coreshare.messaging.RegistrationCorrelation;
-import cl.siga.coreshare.messaging.RegistrationMessagingConstants;
 import cl.siga.coreshare.messaging.RegistrationStatusPublisher;
 import cl.siga.msestudiantes.repository.EstudianteRepository;
 import cl.siga.msestudiantes.service.EstudianteService;
@@ -37,25 +38,26 @@ public class EstudianteRegistrationListener {
     private final EstudianteRepository estudianteRepository;
     private final RegistrationStatusPublisher statusPublisher;
     private final ConfirmadorMensajes confirmador;
+    private final RegistroMensajeriaProperties propiedades;
 
-    @RabbitListener(queues = RegistrationMessagingConstants.ESTUDIANTES_QUEUE)
+    @RabbitListener(queues = "${siga.mensajeria.registro.estudiantes-queue}")
     public void handle(
             UserRegistrationEventDTO event,
-            @Header(name = RegistrationMessagingConstants.HEADER_CORRELATION_ID, required = false)
+            @Header(name = MessagingHeaders.CORRELATION_ID, required = false)
             String correlationId,
             Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
         String correlacion = (correlationId != null && !correlationId.isBlank())
                 ? correlationId
                 : event.correlationId();
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.ESTUDIANTES_QUEUE,
+        confirmador.procesar(canal, etiqueta, propiedades.getEstudiantesQueue(),
             () -> RegistrationCorrelation.ejecutar(correlacion, () -> procesar(event)));
     }
 
-    @RabbitListener(queues = RegistrationMessagingConstants.ESTUDIANTES_DLQ)
+    @RabbitListener(queues = "${siga.mensajeria.registro.estudiantes-dlq}")
     public void handleDlq(UserRegistrationEventDTO event, Channel canal,
             @Header(AmqpHeaders.DELIVERY_TAG) long etiqueta) {
-        confirmador.procesar(canal, etiqueta, RegistrationMessagingConstants.ESTUDIANTES_DLQ,
+        confirmador.procesar(canal, etiqueta, propiedades.getEstudiantesDlq(),
             () -> statusPublisher.publicarResultado(event.processId(), event.correlationId(), false,
                 "Se agotaron los reintentos creando el perfil de estudiante."));
     }
