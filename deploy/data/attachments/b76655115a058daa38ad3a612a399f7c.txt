@@ -1,0 +1,8 @@
+$ terraform -chdir=infra/terraform fmt -check
+
+exitCode: 0
+
+stdout:
+
+
+stderr:
