@@ -1242,3 +1242,16 @@ datos y Azure AD.
   9. **Allure (D):** `tools/ci/allure-command.mjs` acepta `--layer`, `--epic`, `--feature`, `--story`, `--owner` y `--tag` con defaults idénticos; `kafka-error-policy.mjs` y `kafka-topic-policy.mjs` salen con 0; `tools/performance/kafka-load.mjs` publica métricas como attachment (`broker`: 13 633,265 rec/s y 20 000 offsets; `consumer`: lag 0 en 5,173 s, 300/300 filas, 0 alertas).
 - **Incidencia operativa:** Docker Desktop dejó de responder a la API durante la verificación inicial. Se reinició Docker Desktop sin `docker compose down -v`; los contenedores auto-reiniciaron y se revalidaron topics, grupos, lag y salud antes de continuar.
 - **Evidencia:** `docs/evidencias/E3-PRES-20261117-01/README.md`.
+
+### PR-20261117-03 — Performance Kafka publicado desde CI en GitHub Pages
+
+- **Fecha:** 2026-11-17.
+- **Rama:** `dev`.
+- **Alcance:** publicar el grupo `Kafka - Alto flujo` en el Allure Report de Pages, no solo en el reporte local.
+- **Cambios:**
+  1. El job `backend` publica el jar `ms-reportes-*.jar` como artifact `ms-reportes-jar-<sha>`.
+  2. Nuevo job `performance` (`needs: backend`, solo push a `dev`/`main`/`deploy`) que ejecuta `tools/performance/kafka-load-ci.sh`.
+  3. El script levanta 3 ZooKeeper, 3 Kafka, `mariadb-reportes` y `rabbitmq1`/`rabbitmq2` con `docker compose`, arranca `ms-reportes` desde el jar en la red `siga-network`, espera healthchecks y ejecuta broker + consumidor.
+  4. Sube `performance-allure-<sha>`; `allure-report` lo descarga con el patrón existente y lo publica en Pages.
+- **Criterios:** broker 20 000 mensajes de 512 B, 0 errores, ≥1000 rec/s y offsets ≥20 000; consumidor 300 eventos, lag 0 en <120 s, 300 filas en proyecciones, 300 en eventos procesados y 0 alertas.
+- **Resultado:** pendiente de la primera ejecución en CI; se actualiza con el run y la verificación en Pages.

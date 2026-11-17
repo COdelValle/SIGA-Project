@@ -95,6 +95,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Guardar jar de ms-reportes
+        uses: actions/upload-artifact@v4
+        with:
+          name: ms-reportes-jar-${{ github.sha }}
+          path: apps/backend/ms-reportes/target/ms-reportes-*.jar
+          if-no-files-found: error
+          retention-days: 7
+
   frontend:
     name: Frontend (typecheck + tests + build)
     runs-on: ubuntu-latest
@@ -279,9 +287,37 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  performance:
+    name: Kafka performance (stack local)
+    needs: backend
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main' || github.ref_name == 'deploy')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Descargar jar de ms-reportes
+        uses: actions/download-artifact@v4
+        with:
+          name: ms-reportes-jar-${{ github.sha }}
+          path: apps/backend/ms-reportes/target
+
+      - name: Ejecutar carga Kafka
+        run: bash tools/performance/kafka-load-ci.sh
+
+      - name: Guardar resultados Allure de performance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-allure-${{ github.sha }}
+          path: tools/performance/allure-results
+          if-no-files-found: warn
+          retention-days: 30
+
   allure-report:
     name: Reporte Allure centralizado
-    needs: [backend, frontend, e2e, infra]
+    needs: [backend, frontend, e2e, infra, performance]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20

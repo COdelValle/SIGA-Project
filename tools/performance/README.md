@@ -91,6 +91,27 @@ npx allure generate tools/performance/allure-results --config allurerc.mjs --cle
 
 Crear el directorio antes de ejecutar k6:
 
-``bash
+```bash
 mkdir -p tools/performance/allure-results
-``
+```
+
+## Carga Kafka en CI
+
+El job `performance` de `.github/workflows/ci.yml` ejecuta
+`tools/performance/kafka-load-ci.sh` solo en push a `dev`, `main` o `deploy`. El script:
+
+- Levanta el stack mínimo con `docker compose` (3 ZooKeeper, 3 Kafka,
+  `mariadb-reportes` y `rabbitmq1`/`rabbitmq2`).
+- Arranca `ms-reportes` desde el jar generado por el job `backend`, en la red
+  `siga-network`, con variables dummy de Azure/DB/Rabbit.
+- Espera healthchecks y `/actuator/health` antes de ejecutar la carga.
+- Corre `kafka-load.mjs broker` y `kafka-load.mjs consumer` a través de
+  `allure-command.mjs`.
+- Publica `tools/performance/allure-results` como artifact
+  `performance-allure-<sha>`; el job `allure-report` lo fusiona y lo publica en
+  GitHub Pages.
+- Limpia contenedores y volúmenes del stack con `docker compose down -v` al terminar.
+
+Criterios: broker con 20 000 mensajes de 512 B, 0 errores, ≥1000 rec/s y offsets
+≥20 000; consumidor con 300 eventos, lag 0 en <120 s, 300 filas en proyecciones y 300
+en eventos procesados, sin alertas.

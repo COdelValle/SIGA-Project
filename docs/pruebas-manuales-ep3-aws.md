@@ -276,8 +276,8 @@ Nombres exactos de los checks de infraestructura y performance:
 
 - `kafka error policy` (layer `infra`).
 - `kafka topic provisioning` (layer `infra`).
-- `kafka broker throughput` (layer `performance`, solo reporte local).
-- `kafka consumer throughput` (layer `performance`, solo reporte local).
+- `kafka broker throughput` (layer `performance`).
+- `kafka consumer throughput` (layer `performance`).
 
 Para generar el reporte local de carga:
 
@@ -294,6 +294,10 @@ npx allure generate tools/performance/allure-results --config allurerc.mjs \
   --clean --output allure-report-local
 ```
 
-El reporte local solo contiene los dos checks de performance; los grupos de unit,
-security e integration se completan en CI con las suites de `ms-kafka-admin` y
-`ms-reportes`.
+En CI, el job `performance` publica estos dos checks en GitHub Pages solo cuando hay
+push a `dev`, `main` o `deploy`; los PR no ejecutan la carga. El job levanta el stack
+mínimo (3 ZooKeeper, 3 Kafka, `mariadb-reportes`, `rabbitmq1`/`rabbitmq2`), arranca
+`ms-reportes` desde el jar del job `backend` y sube `performance-allure-<sha>`, que el
+job `allure-report` fusiona con el resto. El reporte local sigue disponible para
+ejecuciones manuales; los grupos de unit, security e integration se completan en CI con
+las suites de `ms-kafka-admin` y `ms-reportes`.

@@ -113,11 +113,15 @@ Métricas del script `tools/performance/kafka-load.mjs` en la corrida D8:
   `filas_proyecciones_rendimiento=300`, `filas_eventos_procesados=300`,
   `alertas_generadas=0`, limpieza de las 300 filas propia.
 
-El reporte local `allure-report-local` contiene el epic `Kafka` con el grupo
-`Kafka - Alto flujo` (solo performance). Los grupos `Kafka - Infraestructura` (infra),
-`Kafka - Administracion` (security), `Kafka - Consumo y proyecciones` (unit),
-`Kafka - Alertas de riesgo` (unit) y `Kafka - Migraciones` (integration) se completan en
-CI con los jobs de pruebas ya existentes.
+El reporte de CI en GitHub Pages incluye el epic `Kafka` con los grupos
+`Kafka - Infraestructura` (infra), `Kafka - Administracion` (security),
+`Kafka - Consumo y proyecciones` (unit), `Kafka - Alertas de riesgo` (unit),
+`Kafka - Migraciones` (integration) y `Kafka - Alto flujo` (performance). El job
+`performance` corre solo en push a `dev`, `main` o `deploy`: levanta Kafka, MariaDB y
+RabbitMQ, ejecuta `ms-reportes` desde el jar generado por el job `backend`, corre
+`kafka broker throughput` y `kafka consumer throughput`, y publica el artifact
+`performance-allure-<sha>` que `allure-report` fusiona y publica en Pages. El reporte
+local `allure-report-local` sigue disponible para ejecuciones manuales.
 
 ## 6. Incidencia operativa
 
